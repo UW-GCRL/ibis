@@ -100,10 +100,9 @@ Both are available on the Chen Lab NAS at UW–Madison.
 
 ## Citation
 
-If you use this code, please cite both:
+If you use this code, please cite the original IBIS model:
 
-- Foley, J.A. et al. (1996) — original IBIS model
-- _Hangkai You et al. (2026) — JAX port and verification_ (paper in preparation)
+- Foley, J.A. et al. (1996), "An integrated biosphere model of land surface processes, terrestrial carbon balance, and vegetation dynamics", _Global Biogeochemical Cycles_ 10(4): 603-628.
 
 ## License
 
