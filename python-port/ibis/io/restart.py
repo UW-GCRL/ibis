@@ -1,0 +1,136 @@
+"""Restart (checkpoint) save/restore for IBIS-JAX.
+
+Serializes the full IBISState pytree to a single file using equinox's
+serialization, which handles arbitrary JAX arrays and nested pytrees.
+Falls back to a NumPy-based approach for portability.
+"""
+
+from __future__ import annotations
+
+import os
+from typing import Optional
+
+import jax
+import jax.numpy as jnp
+import numpy as np
+import equinox as eqx
+
+
+def save_state(state, path: str, metadata: Optional[dict] = None) -> None:
+    """Save IBISState to a checkpoint file.
+
+    Uses equinox serialization for clean pytree save/restore.
+
+    Parameters
+    ----------
+    state : IBISState
+        Model state to save.
+    path : str
+        Output file path (will create directories as needed).
+    metadata : dict, optional
+        Extra metadata (year, month, day, step) saved alongside state.
+    """
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+
+    # Flatten the pytree into leaves + treedef
+    leaves, treedef = jax.tree.flatten(state)
+
+    save_dict = {
+        "treedef_repr": repr(treedef),
+        "num_leaves": len(leaves),
+    }
+
+    # Save each leaf as a numpy array
+    for i, leaf in enumerate(leaves):
+        if leaf is None:
+            save_dict[f"leaf_{i}_is_none"] = True
+        else:
+            save_dict[f"leaf_{i}"] = np.asarray(leaf)
+
+    # Save metadata
+    if metadata is not None:
+        for k, v in metadata.items():
+            save_dict[f"meta_{k}"] = np.array(v)
+
+    np.savez_compressed(path, **save_dict)
+
+
+def load_state(path: str, template_state):
+    """Load IBISState from a checkpoint file.
+
+    Parameters
+    ----------
+    path : str
+        Path to the checkpoint file (.npz).
+    template_state : IBISState
+        A template state with the correct structure (shapes, dtypes).
+        The loaded arrays are placed into this structure.
+
+    Returns
+    -------
+    state : IBISState
+        Restored model state.
+    metadata : dict
+        Any metadata saved with the checkpoint.
+    """
+    if not path.endswith(".npz"):
+        path = path + ".npz"
+
+    data = np.load(path, allow_pickle=False)
+
+    # Get template structure
+    leaves_template, treedef = jax.tree.flatten(template_state)
+    num_leaves = int(data["num_leaves"])
+
+    if num_leaves != len(leaves_template):
+        raise ValueError(
+            f"Checkpoint has {num_leaves} leaves but template has "
+            f"{len(leaves_template)}. State structure mismatch. "
+            f"Use scripts/convert_restart.py to migrate old restarts."
+        )
+
+    # Restore leaves
+    new_leaves = []
+    for i, tmpl in enumerate(leaves_template):
+        if f"leaf_{i}_is_none" in data:
+            new_leaves.append(None)
+        else:
+            arr = data[f"leaf_{i}"]
+            # Convert to JAX array with matching dtype
+            if tmpl is not None:
+                arr = jnp.array(arr, dtype=jnp.asarray(tmpl).dtype)
+            else:
+                arr = jnp.array(arr)
+            new_leaves.append(arr)
+
+    state = jax.tree.unflatten(treedef, new_leaves)
+
+    # Extract metadata
+    metadata = {}
+    for key in data.files:
+        if key.startswith("meta_"):
+            meta_key = key[5:]  # strip "meta_"
+            val = data[key]
+            metadata[meta_key] = val.item() if val.ndim == 0 else val
+
+    return state, metadata
+
+
+def restart_path(restart_dir: str, year: int, prefix: str = "ibis") -> str:
+    """Generate a standard restart file path.
+
+    Parameters
+    ----------
+    restart_dir : str
+        Directory for restart files.
+    year : int
+        Simulation year.
+    prefix : str
+        File prefix.
+
+    Returns
+    -------
+    str
+        Full path like ``restart_dir/ibis_restart_1961.npz``.
+    """
+    return os.path.join(restart_dir, f"{prefix}_restart_{year}.npz")

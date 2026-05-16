@@ -1,0 +1,32 @@
+# V8: 21yr transient (1990-2010) from 200yr spinup
+grid:
+  snorth: 90.0
+  ssouth: -90.0
+  swest: -180.0
+  seast: 180.0
+  xres: 0.5
+  yres: 0.5
+
+time:
+  iyear0: 1990
+  nrun: 21
+  dtime: 3600.0
+  irestart: 2100      # year 200 of spinup (iyear0=1901 + 199 = 2100)
+
+physics:
+  isimveg: 1
+  co2init: 296.0e-6
+  o2init: 0.209
+
+output:
+  output_dir: /home/min/ibis-jax/output/cal_v8
+  restart_dir: /home/min/ibis-jax/restart/cal_v8
+  iyearout: 1
+  imonthout: 0
+
+forcing:
+  forcing_type: gswp3
+  gswp3_dir: /shared/nas2/Min/GSWP3
+  vegtype_dir: /shared/nas2/Min/ESACCI_LC/ibis_vegtype
+  soil_file: /shared/nas2/Min/HWSD/soita.nc
+  land_mask_file: /shared/nas2/Min/HWSD/surta.nc

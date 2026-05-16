@@ -1,0 +1,34 @@
+# Continue calibration run 2000-2010 with env snapshots
+grid:
+  snorth: 90.0
+  ssouth: -90.0
+  swest: -180.0
+  seast: 180.0
+  xres: 0.5
+  yres: 0.5
+
+time:
+  iyear0: 2000
+  nrun: 10
+  dtime: 3600.0
+  irestart: 1999
+
+physics:
+  isimveg: 0
+  co2init: 296.0e-6
+  o2init: 0.209
+
+output:
+  output_dir: /home/min/ibis-jax/output/calibration
+  restart_dir: /home/min/ibis-jax/restart/transient
+  iyearout: 1
+  imonthout: 1
+  env_snapshot_dir: /home/min/ibis-jax/output/calibration/env_snapshots
+  env_snapshot_start: 2000
+
+forcing:
+  forcing_type: gswp3
+  gswp3_dir: /shared/nas2/Min/GSWP3
+  vegtype_dir: /shared/nas2/Min/ESACCI_LC/ibis_vegtype
+  soil_file: /shared/nas2/Min/HWSD/soita.nc
+  land_mask_file: /shared/nas2/Min/HWSD/surta.nc

@@ -1,0 +1,33 @@
+[project]
+name = "ibis-jax"
+version = "0.1.0"
+description = "JAX implementation of the IBIS land surface model with hybrid physics+ML"
+requires-python = ">=3.10"
+dependencies = [
+    "jax>=0.4.20",
+    "jaxlib>=0.4.20",
+    "equinox>=0.11.0",
+    "jaxtyping>=0.2.20",
+    "optax>=0.1.7",
+    "xarray>=2023.0",
+    "netCDF4>=1.6.0",
+    "numpy>=1.24",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+gpu = ["jax[cuda12]>=0.4.20"]
+dev = ["pytest>=7.0", "pytest-xdist", "hypothesis"]
+ml = ["flax>=0.7.0", "wandb"]
+
+[build-system]
+requires = ["setuptools>=68.0", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ibis*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"

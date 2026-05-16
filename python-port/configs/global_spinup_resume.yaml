@@ -1,0 +1,36 @@
+# IBIS-JAX global spinup resume — restart from year 95, run years 96-200
+# Generated after the original run crashed during recompilation at year 96.
+# The lax.scan is now JIT-compiled (eqx.filter_jit) to prevent future eviction.
+
+grid:
+  snorth: 90.0
+  ssouth: -90.0
+  swest: -180.0
+  seast: 180.0
+  xres: 0.5
+  yres: 0.5
+
+time:
+  iyear0: 96         # start numbering from spinup year 96
+  nrun: 105          # run years 96-200
+  dtime: 3600.0
+  irestart: 95       # load restart/spinup/ibis_restart_95.npz
+
+physics:
+  isimveg: 0         # hold vegetation static during spinup
+  co2init: 296.0e-6  # ~1901 CO2
+  o2init: 0.209
+
+output:
+  output_dir: /home/min/ibis-jax/output/spinup
+  restart_dir: /home/min/ibis-jax/restart/spinup
+  iyearout: 10       # write output every 10 spinup cycles
+
+forcing:
+  forcing_type: gswp3
+  gswp3_dir: /shared/nas2/Min/GSWP3
+  vegtype_dir: /shared/nas2/Min/ESACCI_LC/ibis_vegtype
+  soil_file: /shared/nas2/Min/HWSD/soita.nc
+  land_mask_file: /shared/nas2/Min/HWSD/surta.nc
+  spinup_year_start: 1901   # cycle this GSWP3 period
+  spinup_year_end: 1910

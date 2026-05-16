@@ -1,0 +1,86 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+verify/.venv/
+python-port/.venv/
+.venv/
+venv/
+env/
+
+# Build artifacts
+python-port/tests/f2py/_build/
+python-port/tests/f2py/ibis_f77.so
+python-port/tests/f2py/ibis_f77*.pyc
+
+# Climate / scientific data — external; available on shared NAS
+*.nc
+*.nc4
+*.npy
+*.grib
+*.grib2
+*.hdf
+*.hdf5
+*.bil
+*.hdr
+*.h5
+
+# Generated CSVs / outputs
+verify_outputs/
+verify/results/
+*.csv
+!**/test_data/*.csv
+
+# Images, notebooks, animations
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.html
+*.ipynb
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Logs and temp
+*.log
+*.tmp
+*.bak
+
+# Fortran build temporaries
+*.o
+*.mod
+*.a
+fort.*
+
+# Min's symlinks (broken targets external)
+fortran/tests/regression/input/*.nc
+fortran/tests/regression/params.*
+**/canopy_exchange_wrapmodule.c
+**/canopy_wrapmodule.c
+**/soil_wrapmodule.c
+**/radiation_wrapmodule.c
+**/snow_wrapmodule.c
+**/biogeochem_wrapmodule.c
+**/setsoi_wrapmodule.c
+**/*wrap_*.f.gcov
+**/test_phase3
+**/test_phase4
+**/test_phase5
+**/*.gcov

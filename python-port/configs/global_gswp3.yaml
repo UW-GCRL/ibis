@@ -1,0 +1,33 @@
+# IBIS-JAX global simulation config — GSWP3 transient forcing
+# Run with: python scripts/run_global.py configs/global_gswp3.yaml
+
+grid:
+  snorth: 90.0
+  ssouth: -90.0
+  swest: -180.0
+  seast: 180.0
+  xres: 0.5
+  yres: 0.5
+
+time:
+  iyear0: 1901
+  nrun: 10          # simulate 1901–1910
+  dtime: 3600.0     # 1-hour timestep
+  irestart: 0       # 0 = cold start
+
+physics:
+  isimveg: 0        # 0 = static vegetation; 1 = update ESACCI annually
+  co2init: 296.0e-6 # ~1901 CO2 concentration
+  o2init: 0.209
+
+output:
+  output_dir: /home/min/ibis-jax/output/global_gswp3
+  restart_dir: /home/min/ibis-jax/restart/global_gswp3
+  iyearout: 1       # write output every year
+
+forcing:
+  forcing_type: gswp3
+  gswp3_dir: /shared/nas2/Min/GSWP3
+  vegtype_dir: /shared/nas2/Min/ESACCI_LC/ibis_vegtype
+  soil_file: /shared/nas2/Min/HWSD/soita.nc
+  land_mask_file: /shared/nas2/Min/HWSD/surta.nc   # leave empty to derive from GSWP3
