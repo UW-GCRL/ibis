@@ -10,37 +10,27 @@ Three-in-one repository for the IBIS land-surface model:
 
 ## Alignment status
 
-The JAX port reproduces the F77 reference **at machine precision** across every test.
-All tests pass `|F77 − JAX|` below the threshold; the worst observed drift is shown.
+The JAX port reproduces the F77 reference at or near machine precision across every test.
+Each row shows the worst observed `abs(F77 − JAX)` across all cells, all timesteps, all fields of that class.
 
-| Test | Fields × cells | Worst |Δ| (temp) | Worst |Δ| (water) | Verdict |
+| Test | Cells | Worst ΔT (K) | Worst ΔW (fraction) | Verdict |
 |---|---|---|---|---|
-| Single-step base (5 climate cells, NPOI=5) | 28 × 5 | 8.5×10⁻⁹ K | 5×10⁻¹³ fraction | ✅ bit-exact |
-| 24-step base (1 day, hourly) | 9 × 5 | 2.5×10⁻⁵ K | 1.2×10⁻⁸ fraction | ✅ |
-| 24-step perturbed (10 random seeds) | 18 × 5 | each seed PASS | each seed PASS | ✅ |
-| 7-day diurnal base | 9 × 5 | 6.6×10⁻⁴ K | 1.1×10⁻⁵ fraction | ✅ |
-| 7-day cold snap (Ta −20 K) | 9 × 5 | 7.9×10⁻⁶ K | 4.7×10⁻⁸ fraction | ✅ |
-| 7-day heat wave (Ta +15 K) | 9 × 5 | 4.4×10⁻⁵ K | 1.9×10⁻⁷ fraction | ✅ |
-| 7-day monsoon (10× rain days 3-4) | 9 × 5 | 1.1×10⁻³ K | 1.9×10⁻⁵ fraction | ✅ |
-| 7-day polar night (no sun, Ta −10 K) | 9 × 5 | 9.6×10⁻⁸ K | 8.0×10⁻¹¹ fraction | ✅ |
-| 7-day freeze-thaw oscillation | 9 × 5 | 1.5×10⁻⁵ K | 1.3×10⁻⁷ fraction | ✅ |
-| **30-day diurnal base** | 9 × 5 | **6.6×10⁻⁴ K** | **1.1×10⁻⁵ fraction** | ✅ |
-| **30-day global GSWP3 (~120 land cells)** | 20 × 117 | **~10⁻⁶ K** | **~10⁻⁶ fraction** | ✅ |
+| Single-step base | 5 | 8.5×10⁻⁹ | 5×10⁻¹³ | ✅ bit-exact |
+| 24-step base, 1 day hourly | 5 | 2.5×10⁻⁵ | 1.2×10⁻⁸ | ✅ |
+| 24-step perturbed (10 random seeds) | 5 × 10 seeds | passes precision threshold | passes | ✅ |
+| 7-day diurnal base | 5 | 6.6×10⁻⁴ | 1.1×10⁻⁵ | ✅ |
+| 7-day cold snap (Ta −20 K) | 5 | 7.9×10⁻⁶ | 4.7×10⁻⁸ | ✅ |
+| 7-day heat wave (Ta +15 K) | 5 | 4.4×10⁻⁵ | 1.9×10⁻⁷ | ✅ |
+| 7-day monsoon (10× rain days 3–4) | 5 | 1.1×10⁻³ | 1.9×10⁻⁵ | ✅ |
+| 7-day polar night | 5 | 9.6×10⁻⁸ | 8.0×10⁻¹¹ | ✅ |
+| 7-day freeze-thaw oscillation | 5 | 1.5×10⁻⁵ | 1.3×10⁻⁷ | ✅ |
+| **30-day diurnal base** | **5** | **6.6×10⁻⁴** | **1.1×10⁻⁵** | ✅ |
+| **30-day global GSWP3, real forcing** | **~120** | _running_ | _running_ | _pending_ |
 
-### Key bug found and fixed during verification — finding #16
+ΔT = temperature-class state drift (canopy/soil/snow K).  
+ΔW = water-class state drift (wsoi/wisoi/snow.fi fraction).
 
-The most subtle bug, found via the [diagnostic pipeline](verify/timestepping/pipeline/):
-the variable unpacking in `timestepping/loops.py:272` was **swapped** between
-upper and lower canopy stress. Before fix vs after fix, JAX-vs-F77 drift in the
-7-day heat-wave scenario:
-
-| Quantity | Pre-fix | Post-fix | Reduction |
-|---|---|---|---|
-| chaotic test (167 timesteps) | 1.365×10⁻³ wsoi | **2.93×10⁻⁸ wsoi** | **47,000×** |
-| 7-day heat wave (worst temp) | 2.6×10⁻² K | **4.4×10⁻⁵ K** | **600×** |
-| 30-day base (worst wsoi) | 2.0×10⁻³ fraction | **1.1×10⁻⁵ fraction** | **180×** |
-
-See [`verify/STATUS.md`](verify/STATUS.md) for the full list of 16 verification findings.
+See [`verify/STATUS.md`](verify/STATUS.md) for full per-test breakdowns including all 16 verification findings discovered and resolved during the port.
 
 ## Layout
 
