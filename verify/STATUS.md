@@ -173,25 +173,29 @@ The user correctly noted FP-precision alone can't explain 0.5% drift. Further in
 
 **Fix**: implemented `_f77_linsolve` in `python-port/ibis/physics/canopy_exchange.py` matching the F77 loop order, replacing the `jnp.linalg.solve` call at the end of `turvap`. Reduction on the worst cell (L-35°S +140°E, austral winter): Δt12 4.91e-3 K → **1.09e-5 K (450×)**, Δfseng 0.139 W/m² → **6.5e-4 W/m² (213×)**.
 
-**Scope**: helps the ~10 cells out of 87 where ill-conditioning triggers LAPACK pivoting. The other ~77 cells have negligible state ΔT (~μK) already; the visible Δflux for those is from a separate source — see below.
+**Scope**: helps the ~10 cells out of 87 where ill-conditioning triggers LAPACK pivoting. The other ~77 cells have negligible state ΔT (~μK) already; the visible Δflux for those is from a separate source — see finding #18.
 
-### Precision floor (irreducible at port level)
+### Finding #18 — GSWP3 forcing read as float32 corrupts canini's subtractive cancellation
 
-After finding #17, ~77 cells still show Δfseng up to ~0.27 W/m² for tropical regimes, with state ΔT at only μK level. The amplification comes from `Δfseng = cp·sg·ΔT` where tropical `cp·sg` ≈ 4000 W/m²/K. **Every drillable hypothesis was tested and ruled out** (2026-05-16):
+**Discovery (2026-05-17)**: After finding #17, the residual ~77 cells (most tropical) had been written off as "precision floor" — every drillable hypothesis appeared ruled out (FMA, matmul precision, SIMD libm, XLA jit-opts, solver pivoting). Re-drilling with F77 instrumentation showed the first iter-1 divergence was at the wind speeds (u1..u4) ← `tauu` ← `aloga` (log of atmospheric reference height) ← `za` ← `(psurf − pa)`. Probing `za`:
 
-| Hypothesis | Test | Result |
-|---|---|---|
-| FMA fusion in `a + b*c` | `XLA_FLAGS="--xla_cpu_enable_fast_math=false"` + direct single-op compare | Zero effect; single op bit-exact Python/numpy/JAX |
-| `jax_default_matmul_precision='highest'` | Set in test_fma_suppression.py | Zero effect |
-| SIMD-vectorized libm | `test_simd_libm.py`: batched JAX exp/log/sqrt vs scalar JAX vs CPython math | All bit-exact (0 ULPs) |
-| XLA compile-time optimizations | `jax.config.update('jax_disable_jit', True)` | Bit-identical to jit-enabled |
-| Solver pivoting (LAPACK vs no-pivot) | F77-style linsolve patched in | Helps 1 cell; for ~77 others stock and patched coincide bit-exactly yet still diverge from F77 |
+- F77 `za` = `8.4310104747290229e+00`
+- JAX `aero.za` = `8.4308036541488871e+00`  (Δ = 2.07e-4)
 
-The residual is a **genuinely irreducible accumulation of ULP-level FP rounding across hundreds of ops in the canopy 3-iter loop**, amplified by climate-dependent flux gain. To localize further would require F77-side instrumentation (dumping intermediate iter state — needs rebuilding `ibis_f77.so` with print statements), which is the practical next step if absolute bit-exactness is required.
+with bit-identical-looking inputs (ta, qa, psurf all `print()`ed as the same float64). dtype check on the JAX state revealed: **GSWP3 stores `huss`, `wind`, `ps`, `rlds`, `pr` as float32 in netCDF**. `read_gswp3_month` was passing them through unchanged. JAX's weak-type promotion then preserved float32 precision through `psurf * siga`, so `psurf − psurf*siga` (a ~0.1% subtractive cancellation) inherited float32 absolute error of ~10⁻² Pa → ~2×10⁻⁴ relative error in `za` → mK-level ΔT downstream → flux divergence amplified by `cp·sg`.
 
-This is fundamentally **the precision floor of cross-implementation FP arithmetic**. Practically all values stay physically valid (no NaN, ΔT < 7 mK, Δflux < 1.4 W/m²); the JAX port is scientifically aligned with F77 at this floor.
+**Fix**: in `verify/timestepping/pipeline/global_gswp3_test.py`, cast all GSWP3 grid arrays to `float64` at read time, and defensively cast all `diurnal_disaggregate` outputs to `float64` at return time.
 
-**Tally:** 17 findings. #17 is the first FP-precision bug fixed at the solver-algorithm level rather than at the variable/formula level.
+**Validation**: step-0 sweep over all 87 original problem cells:
+- **86 / 87 cells: bit-exact** (ΔT < 1e-9 K)
+- 1 / 87 cells still residual: `L+25p0_+100p0` (ΔT = 4.3e-3 K) — likely a separate small mechanism, under follow-up
+
+Best-case improvements on representative cells (vs pre-finding-#18):
+- L-05°S −80°E (Peru tropical): Δt12 1.2e-4 K → **1.1e-10 K (1,000,000×)**, Δfseng 0.266 W/m² → **1.5e-8 W/m² (18,000,000×)**, Δfseni 1.23 W/m² → **1.9e-8 W/m² (65,000,000×)**
+- L−35°S +140°E (Australia, post-finding-#17 baseline): all fields now Δ = 0 (true bit-exact)
+- L+65°N −100°E (Hudson Bay arctic, step 0): all fields now Δ = 0
+
+**Tally:** 18 findings. #18 is a forcing-pipeline bug rather than a physics-code bug — a reminder that bit-near-exact verification depends on bit-near-exact INPUTS.
 
 ## Diagnostic Pipeline (verify/timestepping/pipeline/)
 

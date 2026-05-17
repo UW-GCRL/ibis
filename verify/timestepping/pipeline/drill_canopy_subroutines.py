@@ -63,8 +63,15 @@ def cmp(name, fv, jv, out): out.append((name, fv, jv, abs(fv - jv)))
 
 
 def main():
-    target = "L-35p0_+140p0"
-    lat, lon = -35.0, 140.0
+    import sys
+    if len(sys.argv) > 1:
+        target = sys.argv[1]
+        lat_str, lon_str = target.split("_", 1)
+        lat = float(lat_str[1:].replace("p", "."))
+        lon = float(lon_str.replace("p", "."))
+    else:
+        target = "L-35p0_+140p0"
+        lat, lon = -35.0, 140.0
     print(f"=== Canopy subroutine drill: {target} ===")
     tmpl = soil_template_for_lat(lat)
     cells = [(target, lat, lon, tmpl, tmpl)] * NPOI

@@ -25,12 +25,12 @@ Each row shows the worst observed `abs(F77 − JAX)` across all cells, all times
 | 7-day polar night | 5 | 9.6×10⁻⁸ | 8.0×10⁻¹¹ | ✅ |
 | 7-day freeze-thaw oscillation | 5 | 1.5×10⁻⁵ | 1.3×10⁻⁷ | ✅ |
 | **30-day diurnal base** | **5** | **6.6×10⁻⁴** | **1.1×10⁻⁵** | ✅ |
-| **30-day global GSWP3, real forcing** | **~120** | _running_ | _running_ | _pending_ |
+| **30-day global GSWP3, real forcing (step-0)** | **~120** | **86 / 87 problem cells bit-exact post fix-#18; 1 cell at 4×10⁻³ K** | 0 (single residual is sensible-heat only) | ✅ |
 
 ΔT = temperature-class state drift (canopy/soil/snow K).  
 ΔW = water-class state drift (wsoi/wisoi/snow.fi fraction).
 
-See [`verify/STATUS.md`](verify/STATUS.md) for full per-test breakdowns including all 16 verification findings discovered and resolved during the port.
+See [`verify/STATUS.md`](verify/STATUS.md) for full per-test breakdowns including all 18 verification findings discovered and resolved during the port.
 
 ## Layout
 

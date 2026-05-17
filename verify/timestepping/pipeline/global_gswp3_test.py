@@ -187,7 +187,10 @@ def read_gswp3_month(year: int, month: int, cells: list) -> dict:
         grid = ds.variables[v][t0:t0 + ndays, :, :]  # (ndays, 360, 720)
         if hasattr(grid, "filled"):
             grid = grid.filled(np.nan)
-        grid = np.asarray(grid)
+        # Cast to float64: GSWP3 is stored as float32; using float32 here
+        # corrupts subtractive cancellations downstream (e.g. psurf*(1-siga)
+        # in canini → za off by ~2e-4 → tropical Δfseng of ~0.27 W/m²).
+        grid = np.asarray(grid, dtype=np.float64)
         data = grid[:, js, is_]   # advanced indexing: (ndays, ncells)
         out[v] = data
         ds.close()
@@ -264,10 +267,15 @@ def diurnal_disaggregate(daily_forcing: dict, hour: float, jday: int,
     raina = np.where(ta >= 273.16, daily_forcing["pr"], 0.0)
     snowa = np.where(ta < 273.16, daily_forcing["pr"], 0.0)
 
-    return {"ta": ta, "qa": qa, "ua": ua, "psurf": psurf,
-            "coszen": coszen, "fira": fira,
-            "solad": solad, "solai": solai,
-            "raina": raina, "snowa": snowa}
+    # Defensive cast — even if upstream is float64, np.where() and direct
+    # assignment can preserve a float32 if source array was 32-bit. JAX
+    # then keeps it 32-bit through weak-type promotion, corrupting the
+    # subtractive cancellation in canini (psurf - psurf*siga).
+    out = {"ta": ta, "qa": qa, "ua": ua, "psurf": psurf,
+           "coszen": coszen, "fira": fira,
+           "solad": solad, "solai": solai,
+           "raina": raina, "snowa": snowa}
+    return {k: np.asarray(v, dtype=np.float64) for k, v in out.items()}
 
 
 # ===========================================================================
