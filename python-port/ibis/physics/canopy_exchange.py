@@ -23,8 +23,28 @@ from jaxtyping import Float, Array
 from ibis.physics.thermo import esat, qsat, dqsat, hvapf, hsubf
 
 
+# F77's turvap mplate: pattern of non-zero positions in the 9×9 matrix.
+# F77 math.f:linsolve only performs row updates where mplatex(id,j) != 0;
+# tracking this template (with fill-in promoted to non-zero after each
+# elimination) matches F77's exact FP operation sequence — important on
+# freeze-thaw boundary cells where the 3-iter loop is FP-sensitive.
+# Rows/columns ordered: tu ts tl t12 t34 q12 q34 tg ti
+# Pure-Python list, used at trace time only (not a JAX tensor).
+_TURVAP_MPLATE_9 = [
+    [1, 0, 0, 1, 0, 1, 0, 0, 0],   # tu
+    [0, 1, 0, 1, 0, 1, 0, 0, 0],   # ts
+    [0, 0, 1, 0, 1, 0, 1, 0, 0],   # tl
+    [1, 1, 0, 1, 1, 0, 0, 0, 0],   # t12
+    [0, 0, 1, 1, 1, 0, 0, 1, 1],   # t34
+    [1, 1, 0, 0, 0, 1, 1, 0, 0],   # q12
+    [0, 0, 1, 0, 0, 1, 1, 1, 1],   # q34
+    [0, 0, 0, 0, 1, 0, 1, 1, 0],   # tg
+    [0, 0, 0, 0, 1, 0, 1, 0, 1],   # ti
+]
+
+
 def _f77_linsolve(arr, rhs):
-    """No-pivot Gaussian elimination matching F77 math.f:linsolve loop order.
+    """No-pivot Gaussian elimination matching F77 math.f:linsolve EXACTLY.
 
     JAX's jnp.linalg.solve dispatches to LAPACK gesv (partial pivoting).
     LAPACK and F77's bare no-pivot Gauss produce mathematically equivalent
@@ -34,22 +54,40 @@ def _f77_linsolve(arr, rhs):
     turvap state. Using the same loop order as F77 brings divergence down
     to ~10 μK — see verify/STATUS.md finding #17.
 
+    Additionally, F77 linsolve uses a template (mplate) to skip row updates
+    on positions that start as zero in the 9×9 turvap matrix. Skipping the
+    zero positions yields exactly the same FP sequence as F77; updating
+    them unconditionally introduces ~7 mK divergence per iter on the
+    freeze-thaw boundary, accumulating over the 3-iter loop. See #19.
+
     arr: (npoi, nd, nd), rhs: (npoi, nd)  →  vec: (npoi, nd)
     """
     npoi, nd, _ = arr.shape
     A = arr
     b = rhs
+    # Build mplatex as a plain Python 2-D list (mutable, no JAX ops).
+    # Trace-time decision; jit unrolls the loops.
+    if nd == 9:
+        mplatex = [row[:] for row in _TURVAP_MPLATE_9]
+    else:
+        mplatex = [[1] * nd for _ in range(nd)]
     for id_ in range(nd - 1):
         diag = A[:, id_, id_]
         for i in range(id_ + 1, nd):
+            if not mplatex[i][id_]:
+                continue
             f = A[:, i, id_] / diag
-            A = A.at[:, i, :].set(A[:, i, :] - f[:, None] * A[:, id_, :])
+            for j in range(id_, nd):
+                if mplatex[id_][j]:
+                    A = A.at[:, i, j].set(A[:, i, j] - f * A[:, id_, j])
+                    mplatex[i][j] = 1
             b = b.at[:, i].set(b[:, i] - f * b[:, id_])
     vec = jnp.zeros_like(b)
     for id_ in range(nd - 1, -1, -1):
         s = jnp.zeros(npoi)
         for j in range(id_ + 1, nd):
-            s = s + A[:, id_, j] * vec[:, j]
+            if mplatex[id_][j]:
+                s = s + A[:, id_, j] * vec[:, j]
         vec = vec.at[:, id_].set((b[:, id_] - s) / A[:, id_, id_])
     return vec
 
