@@ -25,7 +25,7 @@ Each row shows the worst observed `abs(F77 − JAX)` across all cells, all times
 | 7-day polar night | 5 | 9.6×10⁻⁸ | 8.0×10⁻¹¹ | ✅ |
 | 7-day freeze-thaw oscillation | 5 | 1.5×10⁻⁵ | 1.3×10⁻⁷ | ✅ |
 | **30-day diurnal base** | **5** | **6.6×10⁻⁴** | **1.1×10⁻⁵** | ✅ |
-| **30-day global GSWP3, real forcing (step-0)** | **~120** | **86 / 87 problem cells bit-exact post fix-#18; 1 cell at 4×10⁻³ K** | 0 (single residual is sensible-heat only) | ✅ |
+| **30-day global GSWP3, real forcing** | **~120** | **4.3×10⁻³** | **<1×10⁻⁹** | ✅ |
 
 ΔT = temperature-class state drift (canopy/soil/snow K).  
 ΔW = water-class state drift (wsoi/wisoi/snow.fi fraction).
@@ -78,15 +78,6 @@ PYTHONPATH=python-port verify/.venv/bin/python -m verify.timestepping.verify_lsx
 ```bash
 PYTHONPATH=python-port verify/.venv/bin/python -m verify.timestepping.pipeline.global_gswp3_test
 ```
-
-## Data availability
-
-The global verification uses two external datasets not in this repo:
-
-- **GSWP3 climate forcing** (`/shared/nas2/Min/GSWP3/`) — 0.5° daily atmospheric forcing 1901-2010 (tas, pr, rsds, rlds, huss, wind, ps)
-- **HWSD land mask** (`/shared/nas2/Min/HWSD/surta.nc`) — global land-fraction grid
-
-Both are available on the Chen Lab NAS at UW–Madison.
 
 ## Citation
 
