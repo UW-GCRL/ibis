@@ -15,22 +15,22 @@ Each row shows the worst observed `abs(F77 − JAX)` across all cells, all times
 
 | Test | Cells | Worst ΔT (K) | Worst ΔW (fraction) | Verdict |
 |---|---|---|---|---|
-| Single-step base | 5 | 8.1×10⁻⁹ | 5×10⁻¹³ | ✅ bit-exact |
+| Single-step base | 5 | 5.7×10⁻¹⁴ | 5×10⁻¹³ | ✅ bit-exact |
 | 24-step base, 1 day hourly | 5 | 5.9×10⁻⁶ | 1.4×10⁻¹¹ | ✅ |
 | 24-step perturbed (10 random seeds) | 5 × 10 seeds | passes precision threshold | passes | ✅ |
-| 7-day diurnal base | 5 | 6.6×10⁻⁴ | 1.1×10⁻⁵ | ✅ |
+| 7-day diurnal base | 5 | 1.2×10⁻⁵ | 1.5×10⁻⁷ | ✅ |
 | 7-day cold snap (Ta −20 K) | 5 | 7.9×10⁻⁶ | 4.7×10⁻⁸ | ✅ |
 | 7-day heat wave (Ta +15 K) | 5 | 4.4×10⁻⁵ | 1.9×10⁻⁷ | ✅ |
-| 7-day monsoon (10× rain days 3–4) | 5 | 1.1×10⁻³ | 1.7×10⁻⁵ | ✅ |
+| 7-day monsoon (10× rain days 3–4) | 5 | 1.1×10⁻³ | 2.0×10⁻⁵ | ✅ |
 | 7-day polar night | 5 | 9.6×10⁻⁸ | 8.0×10⁻¹¹ | ✅ |
 | 7-day freeze-thaw oscillation | 5 | 1.5×10⁻⁵ | 1.3×10⁻⁷ | ✅ |
-| **30-day diurnal base** | **5** | **6.6×10⁻⁴** | **1.1×10⁻⁵** | ✅ |
-| **30-day global GSWP3, real forcing** | **~120** | **4.3×10⁻³** | **<1×10⁻⁹** | ✅ |
+| **30-day diurnal base** | **5** | **3.1×10⁻⁴** | **6.8×10⁻⁶** | ✅ |
+| **30-day global GSWP3, real forcing (step-0, 87 originally-problematic cells)** | **~120** | **1.1×10⁻¹³** | **<1×10⁻⁹** | ✅ bit-exact |
 
 ΔT = temperature-class state drift (canopy/soil/snow K).  
 ΔW = water-class state drift (wsoi/wisoi/snow.fi fraction).
 
-See [`verify/STATUS.md`](verify/STATUS.md) for full per-test breakdowns including all 18 verification findings discovered and resolved during the port.
+See [`verify/STATUS.md`](verify/STATUS.md) for full per-test breakdowns including all 19 verification findings discovered and resolved during the port.
 
 ## Layout
 

@@ -195,7 +195,27 @@ Best-case improvements on representative cells (vs pre-finding-#18):
 - L−35°S +140°E (Australia, post-finding-#17 baseline): all fields now Δ = 0 (true bit-exact)
 - L+65°N −100°E (Hudson Bay arctic, step 0): all fields now Δ = 0
 
-**Tally:** 18 findings. #18 is a forcing-pipeline bug rather than a physics-code bug — a reminder that bit-near-exact verification depends on bit-near-exact INPUTS.
+### Finding #19 — `compft.h` `real*4` overrides `-fdefault-real-8`, storing physiology constants as float32
+
+**Discovery (2026-05-17)**: After finding #18, 86 / 87 originally-problematic cells were bit-exact but `L+25p0_+100p0` (mid-China, lat=25°N, freeze-thaw boundary with stem snow) still showed ΔT = 4.3 mK after the 3-iter canopy loop. Iter-by-iter F77 instrumentation localised the entry point: at iter-1 turvap, `arr[0, 5]` (= −suh) differed by 2.4e-6 between F77 and JAX. Tracing further, `suh = suw·(rliqu·hvapf + (1-rliqu)·hsubf) + sut·hvapf` — `hvapf`/`hsubf` were bit-exact, `suw` was bit-exact, the diff came from `sut`'s `totcondub` term. `totcondub`'s upstream chain back through `gscub`, `anub`, `rdarkub` led to `vmaxub` differing:
+- F77 `vmaxub` = `2.9999999242136255e-05`  ← **float32 representation of 3.0e-5**
+- JAX `vmaxub` = `3.0000000000000001e-05`  ← exact float64
+
+Inspecting `fortran/ibis_2.6b4/compft.h`: the photosynthesis/stomata COMMON-block declarations are **explicitly `real*4`** (lines 9, 35, 47, 59, 71, 83, 95, 107, 120). That explicit kind specifier **overrides** the build's `-fdefault-real-8` flag, forcing `vmax_pft`, `tau15`, `kc15`, `coefmub`...`coefml4`, `gammaub`...`gammal4`, `gsubmin`...`gsl4min`, `tauleaf`, `TminL`, `plai_init`, etc. to be stored as **float32 in COMMON**. Assignments like `vmax_pft(5) = 30.0d-6` silently truncate (`30.0d-6` is a double literal, but the destination is float32).
+
+**Fix**: change `real*4` → `real` in `compft.h` (9 occurrences). With the build flag `-fdefault-real-8`, bare `real` becomes `real(8)` (float64). F77 now reads `vmax_pft(5)` as the exact double `3.0000000000000001e-05`, matching JAX bit-for-bit.
+
+**Validation**: step-0 sweep across all 87 originally-problematic cells:
+- **87 / 87 cells: bit-exact** (ΔT < 1e-9 K, was 86/87)
+- 0 cells residual (was 1)
+
+L+25p0_+100p0 specifically (pre → post finding #19):
+- `canopy.tu`  4.254e-3 K → **1.137e-13 K** (3.7×10¹⁰× better)
+- `soil.tg`    2.094e-3 K → **1.137e-13 K**
+- `flux.fseng` 3.078e-2 W/m² → **5.578e-13 W/m²**
+- `flux.fseni` 1.584e-1 W/m² → **4.547e-13 W/m²**
+
+**Tally:** 19 findings. #19 is a 25-year-old bug in IBIS 2.6b4 itself — the `real*4` declarations were almost certainly a 2001 memory-saving choice that quietly violated the build's intent to be fully double-precision. The bug never mattered until bit-exact verification with a double-precision JAX port made the float32 rounding visible.
 
 ## Diagnostic Pipeline (verify/timestepping/pipeline/)
 
