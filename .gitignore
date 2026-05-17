@@ -84,3 +84,5 @@ fortran/tests/regression/params.*
 **/test_phase4
 **/test_phase5
 **/*.gcov
+**/*.gcda
+**/*.gcno
