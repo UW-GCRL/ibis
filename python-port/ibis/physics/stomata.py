@@ -62,20 +62,30 @@ class StomataParams(eqx.Module):
     # bit-exact F77 lsxmain ↔ JAX timestep_body verification.
     # Prior JAX-only CMA-ES-optimized values (kept for reference, not used):
     #   coefm=[10.9, 9.0, 5.8, 3.0, 6.0], coefb=[0.022, 0.011, 0.010, 0.020, 0.010]
+    # Explicit float64 dtype: default_factory runs at field-init time which
+    # may precede jax.config.update('jax_enable_x64', True); without dtype
+    # these arrays are float32 and JAX weak-type promotion preserves that
+    # through gsc_ub → totcondub → suh → arr[tu, q12] which then introduces
+    # ~1e-6 matrix error and mK state divergence on freeze-thaw cells.
     gamma: jnp.ndarray = eqx.field(
-        default_factory=lambda: jnp.array([0.015, 0.015, 0.015, 0.030, 0.015]))
+        default_factory=lambda: jnp.array([0.015, 0.015, 0.015, 0.030, 0.015],
+                                          dtype=jnp.float64))
     coefm: jnp.ndarray = eqx.field(
-        default_factory=lambda: jnp.array([10.0, 6.0, 9.0, 4.0, 9.0]))
+        default_factory=lambda: jnp.array([10.0, 6.0, 9.0, 4.0, 9.0],
+                                          dtype=jnp.float64))
     coefb: jnp.ndarray = eqx.field(
-        default_factory=lambda: jnp.array([0.010, 0.010, 0.010, 0.040, 0.010]))
+        default_factory=lambda: jnp.array([0.010, 0.010, 0.010, 0.040, 0.010],
+                                          dtype=jnp.float64))
     gsmin: jnp.ndarray = eqx.field(
-        default_factory=lambda: jnp.array([1e-5, 1e-5, 1e-5, 1e-5, 1e-5]))
+        default_factory=lambda: jnp.array([1e-5, 1e-5, 1e-5, 1e-5, 1e-5],
+                                          dtype=jnp.float64))
 
     # Vmax per PFT (12 PFTs, 0-indexed)
     vmax_pft: jnp.ndarray = eqx.field(
         default_factory=lambda: jnp.array([
             65e-6, 65e-6, 40e-6, 30e-6, 30e-6, 25e-6,
-            30e-6, 30e-6, 27.5e-6, 27.5e-6, 15e-6, 25e-6]))
+            30e-6, 30e-6, 27.5e-6, 27.5e-6, 15e-6, 25e-6],
+            dtype=jnp.float64))
 
     # Soil moisture stress factor
     stressfac: float = -5.0
@@ -470,6 +480,19 @@ def _temp_dep_params(tleaf_k, params):
 def _total_conductance(su, gsc):
     """Compute total conductance for water vapour (series resistance).
 
+    Match F77 physiology.f:515-517 EXACT FP operation order:
+
+        rwork = 1. / su
+        dump  = 1. / 0.029           (precomputed scalar)
+        totcond = 1. / (rwork + dump / gsc)
+
+    Mathematically: (1/0.029) / gsc = 1 / (0.029 * gsc) -- but the two
+    differ at the ULP level (0.029 is not exact in binary). F77's order
+    yields totcond ≈1e-12 different from the algebraic rewrite, which
+    propagates through suh = suw*hvapf to ~1e-6 in the turvap matrix
+    and amplifies through the 3-iter solve to mK on freeze-thaw cells.
+    See finding #20.
+
     Parameters
     ----------
     su : array [npoi]
@@ -482,8 +505,8 @@ def _total_conductance(su, gsc):
     totcond : array [npoi]
         Total conductance for water vapour.
     """
-    # 1/totcond = 1/su + 1/(0.029 * gsc)
-    return 1.0 / (1.0 / su + 1.0 / (0.029 * gsc))
+    dump = 1.0 / 0.029
+    return 1.0 / (1.0 / su + dump / gsc)
 
 
 # ---------------------------------------------------------------------------
