@@ -24,11 +24,21 @@ Each row shows the worst observed `abs(F77 − JAX)` across all cells, all times
 | 7-day monsoon (10× rain days 3–4) | 5 | 1.1×10⁻³ | 2.0×10⁻⁵ | ✅ |
 | 7-day polar night | 5 | 9.6×10⁻⁸ | 8.0×10⁻¹¹ | ✅ |
 | 7-day freeze-thaw oscillation | 5 | 1.5×10⁻⁵ | 1.3×10⁻⁷ | ✅ |
-| **30-day diurnal base** | **5** | **3.1×10⁻⁴** | **6.8×10⁻⁶** | ✅ |
-| **30-day global GSWP3, real forcing (step-0, 87 originally-problematic cells)** | **~120** | **1.1×10⁻¹³** | **<1×10⁻⁹** | ✅ bit-exact |
+| **30-day diurnal base (720 timesteps)** | **5** | **3.1×10⁻⁴** | **6.8×10⁻⁶** | ✅ |
+| **Global GSWP3, real forcing (single timestep)** | **~120** | **1.1×10⁻¹³** | **<1×10⁻⁹** | ✅ bit-exact |
+| **Global GSWP3, full year 1990** | **~120** | _running_ | _running_ | _pending_ |
 
 ΔT = temperature-class state drift (canopy/soil/snow K).  
 ΔW = water-class state drift (wsoi/wisoi/snow.fi fraction).
+
+Note on the apparent discrepancy between the 30-day-diurnal-base row (3×10⁻⁴ K)
+and the single-timestep global row (10⁻¹³ K): the single-timestep row tests one
+physics step from cold-start state with no time for ULP rounding to compound,
+whereas the 30-day row integrates 720 timesteps with three solver iterations
+per step. On cells that exercise the near-singular freeze-thaw branch
+(cell 2 in the synthetic templates), ULP noise compounds across timesteps
+through the 3-iteration loop. The full-year global row (pending) integrates
+both space and time.
 
 See [`verify/STATUS.md`](verify/STATUS.md) for full per-test breakdowns including all 19 verification findings discovered and resolved during the port.
 
