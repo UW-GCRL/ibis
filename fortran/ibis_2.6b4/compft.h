@@ -6,7 +6,7 @@ c -------------------------
 c plant parameters for ibis
 c -------------------------
 
-      real*4 
+      real   
      >       tau15,          ! co2/o2 specificity ratio at 15 degrees C (dimensionless)
      >       kc15,           ! co2 kinetic parameter (mol/mol)
      >       ko15,           ! o2 kinetic parameter (mol/mol) 
@@ -32,7 +32,7 @@ c -------------------------
      >       theta4,         ! photosynthesis coupling coefficient for C4 plants (dimensionless) 
      >       vmax_pft        ! nominal vmax of top leaf at 15 C (mol-co2/m**2/s) [not used]
 
-      real*4 
+      real   
      >       gammaub,        ! leaf respiration coefficient
      >       coefmub,        ! 'm' coefficient for stomatal conductance relationship
      >       coefbub,        ! 'b' coefficient for stomatal conductance relationship
@@ -44,7 +44,7 @@ c -------------------------
      >       coefbub,        ! 'b' coefficient for stomatal conductance relationship
      >       gsubmin         ! absolute minimum stomatal conductance
 
-      real*4 
+      real   
      >       gammauc,        ! leaf respiration coefficient
      >       coefmuc,        ! 'm' coefficient for stomatal conductance relationship  
      >       coefbuc,        ! 'b' coefficient for stomatal conductance relationship  
@@ -56,7 +56,7 @@ c -------------------------
      >       coefbuc,        ! 'b' coefficient for stomatal conductance relationship  
      >       gsucmin         ! absolute minimum stomatal conductance
 
-      real*4 
+      real   
      >       gammals,        ! leaf respiration coefficient
      >       coefbls,        ! 'b' coefficient for stomatal conductance relationship 
      >       coefmls,        ! 'm' coefficient for stomatal conductance relationship 
@@ -68,7 +68,7 @@ c -------------------------
      >       coefmls,        ! 'm' coefficient for stomatal conductance relationship 
      >       gslsmin         ! absolute minimum stomatal conductance
 
-      real*4 
+      real   
      >       gammal3,        ! leaf respiration coefficient
      >       coefml3,        ! 'm' coefficient for stomatal conductance relationship 
      >       coefbl3,        ! 'b' coefficient for stomatal conductance relationship 
@@ -80,7 +80,7 @@ c -------------------------
      >       coefbl3,        ! 'b' coefficient for stomatal conductance relationship
      >       gsl3min         ! absolute minimum stomatal conductance
 
-      real*4 
+      real   
      >       gammal4,        ! leaf respiration coefficient
      >       coefml4,        ! 'm' coefficient for stomatal conductance relationship
      >       coefbl4,        ! 'b' coefficient for stomatal conductance relationship
@@ -92,7 +92,7 @@ c -------------------------
      >       coefbl4,        ! 'b' coefficient for stomatal conductance relationship
      >       gsl4min         ! absolute minimum stomatal conductance
 
-      real*4 
+      real   
      >       tauleaf(npft),  ! foliar biomass turnover time constant (years)
      >       tauroot(npft),  ! fine root biomass turnover time constant (years)
      >       tauwood(npft),  ! wood biomass turnover time constant (years)
@@ -104,7 +104,7 @@ c -------------------------
      >       tauwood,        ! wood biomass turnover time constant (years)
      >       tauwood0        ! wood biomass turnover time constant (years)
 
-      real*4 
+      real   
      >       TminL(npft),    ! Absolute minimum temperature -- lower limit (upper canopy PFTs)
      >       TminU(npft),    ! Absolute minimum temperature -- upper limit (upper canopy PFTs)
      >       Twarm(npft),    ! Temperature of warmest month (lower canopy PFTs)
@@ -117,7 +117,7 @@ c -------------------------
      >       Twarm,          ! Temperature of warmest month (lower canopy PFTs)
      >       GDD             ! minimum GDD needed (base 5 C for upper canopy PFTs, 
 
-      real*4 
+      real   
      >       plai_init(4,15), ! initial total LAI for each vegtype (used in iniveg)
      >       plaiupper,      ! Potental LAI of upper canopy (uniform initial vegetation)
      >       plailower,      ! Potental LAI of lower canopy (uniform initial vegetation)
