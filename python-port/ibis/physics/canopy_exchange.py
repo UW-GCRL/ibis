@@ -1,7 +1,8 @@
 """Canopy energy balance and turbulent exchange for IBIS-JAX.
 
 Ported from canopy.f90.  All functions are pure, JIT-compatible, and
-differentiable.  The 9x9 implicit system is solved with jnp.linalg.solve.
+differentiable.  The 9x9 implicit system is solved with a JAX port of
+F77's no-pivot Gaussian elimination (math.f:linsolve) — see _f77_linsolve.
 
 Functions:
   canini   -- initialise aerodynamic geometry (heights, log profiles)
@@ -20,6 +21,37 @@ import jax.numpy as jnp
 from jaxtyping import Float, Array
 
 from ibis.physics.thermo import esat, qsat, dqsat, hvapf, hsubf
+
+
+def _f77_linsolve(arr, rhs):
+    """No-pivot Gaussian elimination matching F77 math.f:linsolve loop order.
+
+    JAX's jnp.linalg.solve dispatches to LAPACK gesv (partial pivoting).
+    LAPACK and F77's bare no-pivot Gauss produce mathematically equivalent
+    results but in different FP operation orders. For most cells these
+    coincide; for the near-singular freeze-thaw matrices (snow exactly at
+    tmelt + rain), the pivoting choice introduces ~5 mK divergence in
+    turvap state. Using the same loop order as F77 brings divergence down
+    to ~10 μK — see verify/STATUS.md finding #17.
+
+    arr: (npoi, nd, nd), rhs: (npoi, nd)  →  vec: (npoi, nd)
+    """
+    npoi, nd, _ = arr.shape
+    A = arr
+    b = rhs
+    for id_ in range(nd - 1):
+        diag = A[:, id_, id_]
+        for i in range(id_ + 1, nd):
+            f = A[:, i, id_] / diag
+            A = A.at[:, i, :].set(A[:, i, :] - f[:, None] * A[:, id_, :])
+            b = b.at[:, i].set(b[:, i] - f * b[:, id_])
+    vec = jnp.zeros_like(b)
+    for id_ in range(nd - 1, -1, -1):
+        s = jnp.zeros(npoi)
+        for j in range(id_ + 1, nd):
+            s = s + A[:, id_, j] * vec[:, j]
+        vec = vec.at[:, id_].set((b[:, id_] - s) / A[:, id_, id_])
+    return vec
 
 
 # ---------------------------------------------------------------------------
@@ -636,8 +668,8 @@ def turvap(
     rhs = rhs.at[:, 8].set(-rwork_si2 * (qi - dqi * ti)
                             + coi * tsno_1 + soli + firi + ziri * tiold)
 
-    # --- Solve the 9x9 system ---
-    vec = jnp.linalg.solve(arr, rhs[..., None]).squeeze(-1)
+    # --- Solve the 9x9 system using F77-style no-pivot Gauss (finding #17) ---
+    vec = _f77_linsolve(arr, rhs)
 
     tu_new, ts_new, tl_new = vec[:, 0], vec[:, 1], vec[:, 2]
     t12_new, t34_new = vec[:, 3], vec[:, 4]

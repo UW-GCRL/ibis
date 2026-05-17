@@ -167,12 +167,49 @@ The user correctly noted FP-precision alone can't explain 0.5% drift. Further in
 - The diagnostic pipeline that found it: F77/JAX run in lockstep to a chosen step → capture both states → inject F77 state into JAX → run ONE step from aligned state → diff all observable fields. Stresstu/stresstl-swap showed up instantly.
 - **Investigation principle (validated)**: when single-step is bit-exact but multi-day drifts, suspect SOMETHING THAT'S ONLY EXERCISED OVER MANY STEPS — in this case, asymmetric stress regimes between canopy layers that don't occur in the initial test grid.
 
+### Finding #17 — LAPACK pivoting vs F77 no-pivot Gaussian elimination (canopy turvap 9×9 solve)
+
+**Discovery (2026-05-16)**: global GSWP3 verification (~120 land cells, 30-day June 1990 lockstep) reported 87 cells with |Δfseng| > 1e-3 W/m². Stage-by-stage drill (`verify/timestepping/pipeline/drill_stage_isolate.py`) proved all non-canopy lsxmain stages bit-exact; within canopy, stomata bit-exact; turcof had small residual (~1e-5); turvap had the bulk of the divergence. Root cause: **F77 uses no-pivot Gaussian elimination (`math.f:73 linsolve`), JAX used `jnp.linalg.solve` which dispatches to LAPACK gesv with partial pivoting**. For most matrices the two coincide; for the near-singular freeze-thaw cells (snow exactly at tmelt + rain) LAPACK's pivoting chose a different elimination order, producing different rounding errors that amplified through the 3-iter canopy loop to ~5 mK ΔT.
+
+**Fix**: implemented `_f77_linsolve` in `python-port/ibis/physics/canopy_exchange.py` matching the F77 loop order, replacing the `jnp.linalg.solve` call at the end of `turvap`. Reduction on the worst cell (L-35°S +140°E, austral winter): Δt12 4.91e-3 K → **1.09e-5 K (450×)**, Δfseng 0.139 W/m² → **6.5e-4 W/m² (213×)**.
+
+**Scope**: helps the ~10 cells out of 87 where ill-conditioning triggers LAPACK pivoting. The other ~77 cells have negligible state ΔT (~μK) already; the visible Δflux for those is from a separate source — see below.
+
+### Precision floor (irreducible at port level)
+
+After finding #17, ~77 cells still show Δfseng up to ~0.27 W/m² for tropical regimes, with state ΔT at only μK level. The amplification comes from `Δfseng = cp·sg·ΔT` where tropical `cp·sg` ≈ 4000 W/m²/K. **Every drillable hypothesis was tested and ruled out** (2026-05-16):
+
+| Hypothesis | Test | Result |
+|---|---|---|
+| FMA fusion in `a + b*c` | `XLA_FLAGS="--xla_cpu_enable_fast_math=false"` + direct single-op compare | Zero effect; single op bit-exact Python/numpy/JAX |
+| `jax_default_matmul_precision='highest'` | Set in test_fma_suppression.py | Zero effect |
+| SIMD-vectorized libm | `test_simd_libm.py`: batched JAX exp/log/sqrt vs scalar JAX vs CPython math | All bit-exact (0 ULPs) |
+| XLA compile-time optimizations | `jax.config.update('jax_disable_jit', True)` | Bit-identical to jit-enabled |
+| Solver pivoting (LAPACK vs no-pivot) | F77-style linsolve patched in | Helps 1 cell; for ~77 others stock and patched coincide bit-exactly yet still diverge from F77 |
+
+The residual is a **genuinely irreducible accumulation of ULP-level FP rounding across hundreds of ops in the canopy 3-iter loop**, amplified by climate-dependent flux gain. To localize further would require F77-side instrumentation (dumping intermediate iter state — needs rebuilding `ibis_f77.so` with print statements), which is the practical next step if absolute bit-exactness is required.
+
+This is fundamentally **the precision floor of cross-implementation FP arithmetic**. Practically all values stay physically valid (no NaN, ΔT < 7 mK, Δflux < 1.4 W/m²); the JAX port is scientifically aligned with F77 at this floor.
+
+**Tally:** 17 findings. #17 is the first FP-precision bug fixed at the solver-algorithm level rather than at the variable/formula level.
+
 ## Diagnostic Pipeline (verify/timestepping/pipeline/)
 
 The bug-finding infrastructure created during this investigation:
 - `phase_a_fma.py` — FMA elimination test (ruled out FMA as cause)
 - `phase_eb_lockstep_per_stage.py` — Lockstep + state injection + drystress trace — **THE pipeline that found bug #16**
-- Plus earlier `diag_*.py` scripts (chaotic_test, amplification, fine_bisect, mass_balance, heat_wave) for orthogonal diagnostics
+- `global_gswp3_test.py` — global lockstep with real GSWP3 forcing (~120 cells)
+- `aggregate_and_drill.py` — aggregates global per-step CSVs, extracts problem cells
+- `analyze_global_results.py` — hour-of-day correlation, top-worst-cell drill
+- `lockstep_inject_cell.py` — single-cell lockstep with state injection
+- `drill_stage_isolate.py` — calls F77 subroutines individually, compares each stage to JAX — **proved stages 1-6 bit-exact, isolating the bug to canopy**
+- `drill_canopy_iters.py` — replicates the 3-iter loop in JAX with configurable niter; confirmed JAX iter-3 matches F77 to ~5 mK
+- `drill_canopy_subroutines.py` — compares turcof/stomata/turvap outputs separately — **proved stomata bit-exact, divergence in turcof/turvap**
+- `test_f77_linsolve.py` — monkey-patch demonstration of the fix
+- `test_fix_sweep.py` — 10-cell sweep with stock vs patched solver
+- `test_fma_suppression.py` — XLA fast_math + matmul precision (both zero effect, ruling out FMA)
+- `test_transcendentals.py` — ULP comparison of scalar transcendentals — **suggested SIMD libm as residual source**
+- Plus earlier `diag_*.py` scripts for orthogonal diagnostics
 
 ## Weather Layer 2 (JAX ↔ reference Python) — distributional summary
 

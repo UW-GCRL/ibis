@@ -19,9 +19,16 @@ import subprocess
 import sys
 from pathlib import Path
 
-FORTRAN_SRC = Path("/home/hangkai/ibis-port/fortran/ibis_2.6b4")
-BUILD_DIR = Path(__file__).parent / "_build"
-OUTPUT_DIR = Path(__file__).parent
+import os
+FORTRAN_SRC = Path(os.environ.get(
+    "IBIS_F77_SRC",
+    "/home/hangkai/ibis-port/fortran/ibis_2.6b4"))
+BUILD_DIR = Path(os.environ.get(
+    "IBIS_F77_BUILD",
+    str(Path(__file__).parent / "_build")))
+OUTPUT_DIR = Path(os.environ.get(
+    "IBIS_F77_OUT",
+    str(Path(__file__).parent)))
 NPOI = 5
 
 FFLAGS = "-ffixed-line-length-132 -O0 -fdefault-real-8 -fdefault-double-8 -fPIC -w".split()
@@ -1096,7 +1103,8 @@ def build():
 
     # Copy physics files
     for f in PHYSICS_FILES:
-        shutil.copy2(FORTRAN_SRC / f, BUILD_DIR / f)
+        # Use copyfile (not copy2) — CIFS NAS doesn't permit utime
+        shutil.copyfile(FORTRAN_SRC / f, BUILD_DIR / f)
 
     # Create main.f stub and wrapper
     (BUILD_DIR / "main.f").write_text(create_main_stub())
