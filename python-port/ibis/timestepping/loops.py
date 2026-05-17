@@ -170,6 +170,25 @@ def timestep_body(
     cp = params.canopy
     sp = params.stomata_params
 
+    # --- Promote atm forcing to float64 (defensive) ---
+    # GSWP3 and many other forcing netCDFs store data as float32. JAX's
+    # weak-type promotion preserves float32 precision through operations
+    # like `psurf * siga` (with siga a Python float), which corrupts the
+    # subtractive cancellation `psurf - psurf*siga` in canini → za drifts
+    # by ~2e-4 → mK-level state divergence amplified by cp·sg to ~0.3 W/m²
+    # in flux. See verify/STATUS.md finding #18.
+    _f64 = lambda x: x.astype(jnp.float64) if x.dtype == jnp.float32 else x
+    state = eqx.tree_at(
+        lambda s: (s.atm.ta, s.atm.qa, s.atm.ua, s.atm.psurf,
+                   s.atm.coszen, s.atm.solad, s.atm.solai,
+                   s.atm.fira, s.atm.raina, s.atm.snowa),
+        state,
+        (_f64(state.atm.ta), _f64(state.atm.qa), _f64(state.atm.ua),
+         _f64(state.atm.psurf), _f64(state.atm.coszen),
+         _f64(state.atm.solad), _f64(state.atm.solai),
+         _f64(state.atm.fira), _f64(state.atm.raina), _f64(state.atm.snowa)),
+    )
+
     # --- Extract frequently used arrays ---
     soil = state.soil
     snow = state.snow
