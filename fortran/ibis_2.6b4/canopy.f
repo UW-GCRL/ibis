@@ -518,7 +518,7 @@ c
 c
 c local variables
 c
-      integer i, k
+      integer i, k, j
 c
       real rwork, zwtot, rwork2, tgav, tiav, tuav, 
      >     tsav, tlav, quav, qsav, qlav, qgav, qiav, zwpud, zwsoi,
@@ -1148,6 +1148,58 @@ c
      >           + soli(i) + firi(i) + ziri(i) * tiold(i)
 c
   380 continue
+c
+c -----------------------------------------------------------------
+c BARE-CELL BYPASS (finding #20): when both canopy fractions are
+c effectively zero (subtropical-dry / desert veg template with
+c fu+fl < epsilon), the 9x9 matrix has degenerate rows that drive
+c the no-pivot linsolve to NaN under extreme arid+hot conditions.
+c
+c Fix: force canopy temperatures and humidities to atmospheric
+c values via identity rows in the matrix. The ground (row 8) and
+c snow (row 9) rows then solve against their own energy balances
+c with t34=ta and q34=qa forcing, which is the physically correct
+c limit when there is no canopy.
+c
+c The 2001 IBIS authors recognised this case (commented-out bypass
+c in turcof, line 462) but never completed the fix in turvap.
+c -----------------------------------------------------------------
+      do 385 i = 1, npoi
+        if (xu(i)+xs(i)+xl(i) .lt. epsilon) then
+          do 382 j = 1, nqn
+            arr(i,1,j) = 0.0
+            arr(i,2,j) = 0.0
+            arr(i,3,j) = 0.0
+            arr(i,4,j) = 0.0
+            arr(i,5,j) = 0.0
+            arr(i,6,j) = 0.0
+            arr(i,7,j) = 0.0
+ 382      continue
+          arr(i,1,1) = 1.0
+          arr(i,2,2) = 1.0
+          arr(i,3,3) = 1.0
+          arr(i,4,4) = 1.0
+          arr(i,5,5) = 1.0
+          arr(i,6,6) = 1.0
+          arr(i,7,7) = 1.0
+          rhs(i,1) = ta(i) * tfac
+          rhs(i,2) = ta(i) * tfac
+          rhs(i,3) = ta(i) * tfac
+          rhs(i,4) = ta(i) * tfac
+          rhs(i,5) = ta(i) * tfac
+          rhs(i,6) = qa(i)
+          rhs(i,7) = qa(i)
+c
+c remove coupling from canopy fields into ground/snow rows
+c (rows 8 and 9 still solve their own energy balance using t34=ta,
+c q34=qa as the forcing terms via vec(.,5) and vec(.,7))
+c
+          arr(i,8,4) = 0.0
+          arr(i,8,6) = 0.0
+          arr(i,9,4) = 0.0
+          arr(i,9,6) = 0.0
+        endif
+ 385  continue
 c
 c solve the systems of equations
 c

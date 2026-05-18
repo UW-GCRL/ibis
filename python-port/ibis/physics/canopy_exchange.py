@@ -675,6 +675,39 @@ def turvap(
     rhs = rhs.at[:, 8].set(-rwork_si2 * (qi - dqi * ti)
                             + coi * tsno_1 + soli + firi + ziri * tiold)
 
+    # --- Bare-cell bypass (finding #20) ---
+    # When both canopy fractions are effectively zero (subtropical-dry / desert
+    # veg template with fu+fl < epsilon), the 9x9 matrix has degenerate rows
+    # that drive the no-pivot linsolve to NaN under extreme arid+hot conditions.
+    # Force canopy state to atmospheric values via identity rows; the ground
+    # (row 7) and snow (row 8) rows then solve against t34=ta, q34=qa forcing,
+    # which is the physically correct limit when there is no canopy. The 2001
+    # IBIS authors recognised this case (commented-out bypass in turcof
+    # line 462) but never completed the fix in turvap.
+    bare = (xu + xs + xl) < epsilon_c                  # [npoi] bool
+    bm = bare[:, None]                                  # broadcast mask
+    bmm = bare[:, None, None]
+    # Build identity-row template for canopy rows 0-6
+    canopy_id = jnp.zeros((arr.shape[1], arr.shape[2]))
+    for ridx in range(7):
+        canopy_id = canopy_id.at[ridx, ridx].set(1.0)
+    # Override rows 0-6 with identity where bare
+    rows_07 = arr[:, :7, :]
+    arr = arr.at[:, :7, :].set(
+        jnp.where(bmm, canopy_id[None, :7, :], rows_07)
+    )
+    # Override rhs rows 0-4 with ta*tfac, rows 5-6 with qa
+    ta_tfac = ta * tfac                                # [npoi]
+    for ridx in range(5):
+        rhs = rhs.at[:, ridx].set(jnp.where(bare, ta_tfac, rhs[:, ridx]))
+    rhs = rhs.at[:, 5].set(jnp.where(bare, qa, rhs[:, 5]))
+    rhs = rhs.at[:, 6].set(jnp.where(bare, qa, rhs[:, 6]))
+    # Remove canopy→ground (row 7) and canopy→snow (row 8) coupling on bare
+    arr = arr.at[:, 7, 3].set(jnp.where(bare, 0.0, arr[:, 7, 3]))
+    arr = arr.at[:, 7, 5].set(jnp.where(bare, 0.0, arr[:, 7, 5]))
+    arr = arr.at[:, 8, 3].set(jnp.where(bare, 0.0, arr[:, 8, 3]))
+    arr = arr.at[:, 8, 5].set(jnp.where(bare, 0.0, arr[:, 8, 5]))
+
     # --- Solve the 9x9 system using F77-style no-pivot Gauss (finding #17) ---
     vec = _f77_linsolve(arr, rhs)
 

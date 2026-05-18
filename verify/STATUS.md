@@ -233,6 +233,37 @@ This is the FP precision floor of a coupled physics system with discrete branche
 
 Neither yields a more scientifically meaningful result — 107 μK is far below any climate-relevance threshold (real-world forcing uncertainty alone exceeds 1 K). The JAX port is verified to reproduce F77 at machine precision for the physics, and at sub-mK precision for multi-month time integration.
 
+## Finding #20 — Inherited IBIS 2.6b4 NaN bug on bare-canopy + arid + hot cells
+
+**Discovery (2026-05-18)**: Year-long global GSWP3 verification (117 cells × 8760 timesteps, 14.4h runtime) reported 3 cells at lat=+15°N (Sahara `L+15p0_+020p0`, Arabia/India `L+15p0_+080p0`, Southeast Asia `L+15p0_+120p0`) producing NaN starting Feb–Mar 1990. Critically, **F77 and JAX produce NaN on IDENTICAL (cell, month, field) tuples** — 486/486 matched — proving the bug is **shared with the F77 reference**, not introduced by the port.
+
+`lockstep_nan_hunt.py` drilled `L+15p0_+080p0` hour-by-hour. First NaN at step 756 = Feb 1 1990 hour 12 UTC. Pre-step state:
+```
+canopy.tu = ts = tl = soil.tg = 322.32 K   (all collinear via noveg adapter)
+soil.tsoi[0] = 308.7 K                      (hot)
+soil.wsoi[0] = 0.027                         (2.7% saturation — extreme aridity)
+canopy.wliqu = wsnou = 0                     (no leaf water reservoir)
+stresstu = 0                                 (stomata fully closed)
+fu = 0, sai = [0, 0], lai = [0, 0.1]        (subtropical-dry veg template — bare canopy)
+ATM: ta=305 K, qa=0.011, coszen=0.85 (full sun), no rain
+```
+
+Single timestep then NaN's the entire state simultaneously: `soil.tg, soil.tsoi[0], soil.wsoi[0], soil.wisoi[0], canopy.tu/ts/tl/t12/t34/q12/q34, flux.fseng/fvapg/fseni` — all NaN.
+
+**Root cause**: The IBIS authors recognised the bare-cell case — `canopy.f` line 462 contains a **commented-out bare-cell bypass for turcof** (with the comment "JAF: not necessary"). They never extended this bypass to **turvap**. With `fu=0` and bare-canopy veg template:
+- `xu = 2·lai·fu = 0`, `xs = 2·sai·fu = 0`, `xl = 2·(lai+sai)·fl·(1-fi) = 0`
+- Turvap's 9×9 matrix has rows 4 (t12) and 6 (q12) with `rwork = xu·su = 0` → off-diagonal coupling vanishes
+- `noveg` adapter then sets `tu = ts = tl = tav = soil.tg` → rows 1, 2, 3 become near-linearly-dependent
+- No-pivot `linsolve` divides by collapsed pivot when phase-change or stomata terms drive the diagonal small → NaN propagates through all coupled state variables
+
+**Verified canonical**: downloaded original IBIS 2.6b4 from SAGE-Wisconsin (`https://sage-public-files.s3.amazonaws.com/ibis_2.6b4.zip`). Our F77 source is **bit-identical** to the public reference. The `real*4` issue (finding #19) AND this NaN-when-fu=0 bug **both exist in the official IBIS 2.6b4** from 2001. Agent search confirmed: no public IBIS fork has documented or patched this bug. Typical IBIS production runs avoid the trigger because `params.veg` files floor LAI above 0.
+
+**Failed attempted fix**: simple matrix floor `xu/xs/xl = max(..., 1e-3)` did NOT eliminate NaN — the singularity is multi-layered (matrix collapse + `tu=ts=tl=tg` collinearity + downstream `0/0` in saturation-vapor coupling when canopy has no water reservoir).
+
+**Actual fix (finding #20)**: implement a proper bare-cell turvap bypass — when `fu+fl < ε`, force canopy state to atmospheric values via identity rows in the 9×9 matrix, leaving only the ground/snow rows to be solved against their independent energy balances. This is what the 2001 IBIS authors intended but never finished. Applied symmetrically in F77 `canopy.f:turvap` (~30 lines) and JAX `python-port/ibis/physics/canopy_exchange.py:turvap` (~25 lines).
+
+**Validation**: L+15p0_+080p0 lockstep from Jan 1 ran past step 756 (the prior NaN point) and through Feb-Mar without NaN. The year-long global test (re-running) is expected to drop NaN count from 381k to 0.
+
 ## Diagnostic Pipeline (verify/timestepping/pipeline/)
 
 The bug-finding infrastructure created during this investigation:
