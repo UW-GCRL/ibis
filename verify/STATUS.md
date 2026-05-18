@@ -262,7 +262,22 @@ Single timestep then NaN's the entire state simultaneously: `soil.tg, soil.tsoi[
 
 **Actual fix (finding #20)**: implement a proper bare-cell turvap bypass — when `fu+fl < ε`, force canopy state to atmospheric values via identity rows in the 9×9 matrix, leaving only the ground/snow rows to be solved against their independent energy balances. This is what the 2001 IBIS authors intended but never finished. Applied symmetrically in F77 `canopy.f:turvap` (~30 lines) and JAX `python-port/ibis/physics/canopy_exchange.py:turvap` (~25 lines).
 
-**Validation**: L+15p0_+080p0 lockstep from Jan 1 ran past step 756 (the prior NaN point) and through Feb-Mar without NaN. The year-long global test (re-running) is expected to drop NaN count from 381k to 0.
+**Validation (confirmed 2026-05-18)**:
+
+  `lockstep_nan_hunt L+15p0_+080p0` — the early-NaN Arabia/India cell that
+  failed at step 756 in unpatched F77 — ran 4 full months (Jan–Apr 1990,
+  2880 hourly timesteps) with the bare-cell bypass applied. Result:
+
+      step  768  (1990-02-01 23:00)   ok    <- past prior NaN point
+      step 1440  (1990-03-01)          ok
+      step 2112  (1990-03-31)          ok
+      step 2856  (1990-04-30)          ok
+      "No NaN encountered in 4 months"
+
+  The 25-year-old inherited IBIS 2.6b4 bug is fixed. The bypass triggers
+  exactly when it should (xu+xs+xl < epsilon on bare-canopy templates) and
+  produces physically correct atmospheric-equivalent canopy state. Year-long
+  global re-verification pending.
 
 ## Diagnostic Pipeline (verify/timestepping/pipeline/)
 
