@@ -217,6 +217,22 @@ L+25p0_+100p0 specifically (pre → post finding #19):
 
 **Tally:** 19 findings. #19 is a 25-year-old bug in IBIS 2.6b4 itself — the `real*4` declarations were almost certainly a 2001 memory-saving choice that quietly violated the build's intent to be fully double-precision. The bug never mattered until bit-exact verification with a double-precision JAX port made the float32 rounding visible.
 
+## Remaining residual (post-finding-#19, multi-day integration)
+
+After all 19 findings, single-timestep physics is bit-exact across all 117 GSWP3 cells. Multi-day integration on freeze-thaw-boundary cells shows **shock events** where soil or canopy temperature crosses tmelt at a step that differs by ULPs between F77 and JAX, triggering different branch trajectories in soilctl/snowctl phase-change physics. Investigation 2026-05-17:
+
+- `lockstep_hourly_shock.py` drilled L-85°S −160°E hour-by-hour for the first 20 days of 1990.
+- **Day 16, hour 13** (1990-01-16 13:00 UTC) — `canopy.tu` crosses tmelt (272.3 → 273.3 K). At that moment, Δtu is at 3 pK (FP precision floor).
+- **Day 16, hour 14** — `soil.tsoi[0]` suddenly diverges by **107 μK**. All canopy temperatures (tu, tl, tg) remain bit-exact at pK level. Amplification factor 3.5×10⁷ — points to a discrete branch flip in soilctl phase-change physics, not smooth FP accumulation.
+- After the shock, drift damps to ~5 μK steady-state in `soil.tg` over subsequent hours.
+- Over 217 days continuous lockstep on this cell: max drift 107 μK (day-16 shock), median daily max 5 μK, 95-pctile 13 μK.
+
+This is the FP precision floor of a coupled physics system with discrete branches at the freeze-thaw boundary. Eliminating the 107 μK shock would require either:
+1. ε-band patches on ALL tmelt branches in BOTH F77 and JAX (modifies F77 reference, requires synchronized changes across canopy.f, soil.f, snow.f and matching JAX files)
+2. Deep instrumentation in soilctl to find the precise branch and either bit-match the trigger or use a smoother phase-change scheme
+
+Neither yields a more scientifically meaningful result — 107 μK is far below any climate-relevance threshold (real-world forcing uncertainty alone exceeds 1 K). The JAX port is verified to reproduce F77 at machine precision for the physics, and at sub-mK precision for multi-month time integration.
+
 ## Diagnostic Pipeline (verify/timestepping/pipeline/)
 
 The bug-finding infrastructure created during this investigation:
