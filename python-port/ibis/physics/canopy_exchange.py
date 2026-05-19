@@ -707,6 +707,13 @@ def turvap(
     arr = arr.at[:, 7, 5].set(jnp.where(bare, 0.0, arr[:, 7, 5]))
     arr = arr.at[:, 8, 3].set(jnp.where(bare, 0.0, arr[:, 8, 3]))
     arr = arr.at[:, 8, 5].set(jnp.where(bare, 0.0, arr[:, 8, 5]))
+    # Energy-conservation redirect: any radiation/precip allocated to the
+    # vanishing canopy is moved to the ground rhs so it's not lost. With
+    # xu=xs=xl=0 this multiplies by 0; defensive for small-but-nonzero.
+    ground_redirect = ((fradu - pfluxu) * xu
+                       + (frads - pfluxs) * xs
+                       + (fradl - pfluxl) * xl)
+    rhs = rhs.at[:, 7].set(jnp.where(bare, rhs[:, 7] + ground_redirect, rhs[:, 7]))
 
     # --- Solve the 9x9 system using F77-style no-pivot Gauss (finding #17) ---
     vec = _f77_linsolve(arr, rhs)

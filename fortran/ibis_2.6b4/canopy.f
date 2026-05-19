@@ -1198,6 +1198,16 @@ c
           arr(i,8,6) = 0.0
           arr(i,9,4) = 0.0
           arr(i,9,6) = 0.0
+c
+c energy-conservation redirect: any radiation/precip energy that
+c was allocated to the (vanishing) canopy is moved to the ground
+c rhs so it's not lost. With xu=xs=xl=0 this multiplies by 0 in
+c the pathological case; defensive for small-but-nonzero edges.
+c
+          rhs(i,8) = rhs(i,8)
+     >       + (fradu(i)-pfluxu(i))*xu(i)
+     >       + (frads(i)-pfluxs(i))*xs(i)
+     >       + (fradl(i)-pfluxl(i))*xl(i)
         endif
  385  continue
 c
