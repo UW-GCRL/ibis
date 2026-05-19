@@ -190,13 +190,24 @@ def run_batch_year(batch_name: str, cells: list, year: int):
 
 
 def main():
-    YEAR = 1990
-    # Use the same global cell grid as the 30-day test
-    CELLS = build_global_cell_grid(lat_step=10.0, lon_step=20.0)
-    print(f"YEAR-LONG GSWP3 verification {YEAR}, {len(CELLS)} cells, "
-          f"12 months, {(len(CELLS) + NPOI - 1) // NPOI} batches", flush=True)
+    import sys, argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--batch-start", type=int, default=0,
+                        help="First batch index (inclusive)")
+    parser.add_argument("--batch-end", type=int, default=None,
+                        help="Last batch index (exclusive); None=all")
+    parser.add_argument("--suffix", type=str, default="",
+                        help="Suffix for output files (e.g. _p0)")
+    args = parser.parse_args()
 
+    YEAR = 1990
+    CELLS = build_global_cell_grid(lat_step=10.0, lon_step=20.0)
     n_batches = (len(CELLS) + NPOI - 1) // NPOI
+    bs = args.batch_start
+    be = args.batch_end if args.batch_end is not None else n_batches
+    sfx = args.suffix
+    print(f"YEAR-LONG GSWP3 verification {YEAR}, {len(CELLS)} cells, "
+          f"12 months, batches [{bs}, {be}) of {n_batches}{sfx}", flush=True)
 
     # Aggregate per-(cell, field) worst |Δ| across all batches/year
     all_worst = {}
@@ -206,7 +217,7 @@ def main():
     total_oor = 0
 
     t_total = time.time()
-    for b in range(n_batches):
+    for b in range(bs, be):
         batch_cells = CELLS[b*NPOI:(b+1)*NPOI]
         if len(batch_cells) < NPOI:
             while len(batch_cells) < NPOI:
@@ -227,7 +238,7 @@ def main():
         total_nan += nan; total_oor += oor
 
         # Incremental save in case of interruption
-        with open(OUTPUT_DIR / "worst_by_cell_field.csv", "w", newline="") as fh:
+        with open(OUTPUT_DIR / f"worst_by_cell_field{sfx}.csv", "w", newline="") as fh:
             w = csv.writer(fh)
             w.writerow(["cell", "field", "worst_abs_diff"])
             for (cn, fn), d in sorted(all_worst.items(), key=lambda x: -x[1]):
@@ -260,7 +271,7 @@ def main():
         "out_of_range_count": total_oor,
         "total_seconds": t_total,
     }
-    with open(OUTPUT_DIR / "year_summary.json", "w") as fh:
+    with open(OUTPUT_DIR / f"year_summary{sfx}.json", "w") as fh:
         json.dump(range_out, fh, indent=2, default=str)
     print(f"\nFull summary → {OUTPUT_DIR}/year_summary.json")
 

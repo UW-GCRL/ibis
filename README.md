@@ -26,7 +26,7 @@ Each row shows the worst observed `abs(F77 − JAX)` across all cells, all times
 | 7-day freeze-thaw oscillation | 5 | 1.5×10⁻⁵ | 1.3×10⁻⁷ | ✅ |
 | **30-day diurnal base (720 timesteps)** | **5** | **3.1×10⁻⁴** | **6.8×10⁻⁶** | ✅ |
 | **Global GSWP3, real forcing (single timestep)** | **~120** | **1.1×10⁻¹³** | **<1×10⁻⁹** | ✅ bit-exact |
-| **Global GSWP3, full year 1990 (8760 timesteps × 117 cells)** | **117** | **0.78** (one Arctic cell; median 3.5×10⁻⁵, p95 1.5×10⁻²) | **3.2×10⁻³** (one boreal cell; median sub-μ-fraction) | ✅ |
+| **Global GSWP3, full year 1990 (8760 timesteps × 117 cells, finding #20 applied)** | **117** | **0.78** (one Arctic cell; median 3.7×10⁻⁵, p95 1.5×10⁻²) | **3.2×10⁻³** (one boreal cell; median 1.1×10⁻⁶) | ✅ **0 NaN globally** |
 
 ΔT = temperature-class state drift (canopy/soil/snow K).  
 ΔW = water-class state drift (wsoi/wisoi/snow.fi fraction).
