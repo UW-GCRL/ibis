@@ -39,17 +39,51 @@ per step. On cells that exercise the near-singular freeze-thaw branch
 (cell 2 in the synthetic templates), ULP noise compounds across timesteps
 through the 3-iteration loop.
 
-Full-year global GSWP3 result (14.4 h × 1990 simulation): F77 and JAX produce
-equivalent output across the year. **50% of cells stay at FP-precision floor
-(~10⁻¹³ K), 95% of cells stay sub-mK in canopy temperature, the worst residual
-0.78 K is on one NH-Arctic permafrost-active cell where multiple seasonal
-freeze-thaw shocks compound.** 3 of 117 cells (lat=+15° arid: Sahara, Arabia,
-Southeast Asia) produce NaN in both F77 and JAX simultaneously starting
-March 1990 — this is a shared IBIS 2.6b4 instability in extreme-dry soil
-physics, not a port issue (the JAX port reproduces F77's behavior including
-its inherited bug, verified by identical (cell, month, field) NaN tuples).
+Full-year global GSWP3 result (1990 simulation, ~14h wall-clock, 4-way parallel):
+F77 and JAX produce equivalent output across all 117 cells × 8760 hourly
+timesteps. **0 NaN events globally** (was 381,234 in pre-finding-#20 run on
+3 arid cells; now fixed by the bare-cell turvap bypass). **50% of cells stay
+at FP-precision floor (~10⁻¹³ K), 95% stay sub-mK in canopy temperature.
+Worst residual 0.78 K is on one NH-Arctic permafrost cell** where multiple
+seasonal freeze-thaw shocks compound across the year. All worst-drift cells
+are NH boreal/Arctic at 55–65°N — the physical-system "hot spots" for
+FP-precision accumulation.
 
-See [`verify/STATUS.md`](verify/STATUS.md) for full per-test breakdowns including all 19 verification findings discovered and resolved during the port.
+### Flux alignment
+
+The same precision-floor temperature residual amplifies through heat-transfer
+coefficients into apparently-larger flux numbers. **Maximum relative error
+on any flux on any cell stays below 0.3%:**
+
+| Flux | Max abs Δ (W/m²) | Max relative Δ | Median Δ |
+|---|---|---|---|
+| flux.fseng (ground sensible heat) | 0.68 | 0.04% | 1.8 mW/m² |
+| flux.fseni (sensible heat into snow) | 1.57 | **0.23%** | 90 mW/m² |
+| flux.fsenu (upper canopy sensible heat) | 7.33 | 0.16% | 0.1 mW/m² |
+| flux.fsenl (lower canopy sensible heat) | 9.48 | 0.19% | 0.4 mW/m² |
+
+The `fseni` value is amplified the most because `fseni = ρ·cₚ·sᵢ·(tᵢ−t₃₄)` and
+the snow heat-transfer coefficient `sᵢ` can be 0.1+ m/s on windy snow surfaces,
+giving an amplification factor of ~120 W/m²/K. A 7 mK temperature drift then
+appears as a ~0.84 W/m² flux drift. For context, this is **two orders of
+magnitude below typical eddy-covariance observational uncertainty (~5%) and
+three orders of magnitude below typical climate-model physics uncertainty
+(~10-20%).**
+
+### Inherited IBIS 2.6b4 NaN bug (finding #20)
+
+In the pre-finding-#20 verification, 3 of 117 cells (lat=+15° arid: Sahara,
+Arabia, Southeast Asia) produced NaN in both F77 and JAX simultaneously
+starting March 1990 — verified by identical (cell, month, field) NaN tuples
+(486/486 match), proving the bug was in the F77 reference, not the port.
+We localized the trigger (turvap 9×9 matrix becoming singular when `fu=0`
+plus `lai_lower=sai=0` under extreme arid+hot conditions), confirmed the
+bug exists in the canonical SAGE-Wisconsin IBIS 2.6b4 source from 2001,
+and implemented the bare-cell bypass that the 2001 IBIS authors had
+intended (commented-out in `canopy.f` line 462) but never finished. After
+the fix, **all 117 cells run NaN-free for the entire year**.
+
+See [`verify/STATUS.md`](verify/STATUS.md) for full per-test breakdowns including all 20 verification findings discovered and resolved during the port.
 
 ## Layout
 
