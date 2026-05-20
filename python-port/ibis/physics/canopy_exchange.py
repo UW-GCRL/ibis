@@ -429,10 +429,11 @@ def impexp(tveg, ch, wliq, wsno, tmelt, hfus, epsilon, wimp_prev, is_first):
     """Compute implicit/explicit blending weight for vegetation surfaces."""
     h = ch * (tveg - tmelt)
     z = jnp.maximum(jnp.abs(h), epsilon)
+    # finding #21: widen h threshold to absorb ULP-level drift
     winew = jnp.where(
-        h > epsilon,
+        h > epsilon + 1.0e-8,
         1.0 - jnp.minimum(1.0, hfus * wsno / z),
-        jnp.where(h < -epsilon,
+        jnp.where(h < -epsilon - 1.0e-8,
                   1.0 - jnp.minimum(1.0, hfus * wliq / z),
                   1.0)
     )

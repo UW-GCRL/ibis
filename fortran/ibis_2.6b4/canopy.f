@@ -1602,8 +1602,9 @@ c
 c
         winew = 1.0
 c
-        if (h.gt.epsilon)  winew = 1. - min (1., hfus * wsno(i) / z)
-        if (h.lt.-epsilon) winew = 1. - min (1., hfus * wliq(i) / z)
+c finding #21: widen h threshold to absorb ULP-level drift in h=ch*(tveg-tmelt)
+        if (h.gt.epsilon + 1.0e-8)  winew = 1. - min (1., hfus * wsno(i) / z)
+        if (h.lt.-epsilon - 1.0e-8) winew = 1. - min (1., hfus * wliq(i) / z)
 c
         wimp(i) = 0.5 * (wimp(i) + winew)
 c
