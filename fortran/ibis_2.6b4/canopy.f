@@ -1718,7 +1718,8 @@ c
 c
         if (fwetu(i).eq.0.0) then
           rliqu(i) = 1.0
-          if (tu(i).lt.tmelt) rliqu(i) = 0.0
+c finding #21: epsilon-band to avoid ULP-level branch flip at tmelt
+          if (tu(i).lt.tmelt - 1.0e-9) rliqu(i) = 0.0
         endif
 c
   100 continue
@@ -1735,7 +1736,7 @@ c
 c
         if (fwets(i).eq.0.0) then
           rliqs(i) = 1.0
-          if (ts(i).lt.tmelt) rliqs(i) = 0.0
+          if (ts(i).lt.tmelt - 1.0e-9) rliqs(i) = 0.0
         endif
 c
   200 continue
@@ -1752,7 +1753,7 @@ c
 c
         if (fwetl(i).eq.0.) then
           rliql(i) = 1.0
-          if (tl(i).lt.tmelt) rliql(i) = 0.0
+          if (tl(i).lt.tmelt - 1.0e-9) rliql(i) = 0.0
         endif
 c
   300 continue
@@ -1815,7 +1816,7 @@ c
 c
 c set rain temperature to the wet bulb temperature
 c
-        if (ta(i) .gt. tmelt) then
+        if (ta(i) .gt. tmelt + 1.0e-9) then
            twetbulb = twet3( ta(i), qa(i), psurf(i) )
         else
            twetbulb = tmelt
@@ -2054,7 +2055,7 @@ c
 c liquid below freezing
 c
         dw = 0.
-        if (tveg(i).lt.tmelt)  dw = wliq(i)
+        if (tveg(i).lt.tmelt - 1.0e-9)  dw = wliq(i)
 c
         pflux(i) = pflux(i)
      >           + dw * (rwork2*(tmelt-tveg(i)) - hfus) * rwork
@@ -2064,7 +2065,7 @@ c
 c snow above freezing
 c
         dw = 0.
-        if (tveg(i).gt.tmelt)  dw = wsno(i)
+        if (tveg(i).gt.tmelt + 1.0e-9)  dw = wsno(i)
 c
         pflux(i) = pflux(i)
      >           + dw * (rwork2*(tveg(i)-tmelt) + hfus) * rwork
@@ -2244,7 +2245,7 @@ c correct for liquid below melt point
 c
 c (nb: if tveg > tmelt or wliq = 0, nothing changes.)
 c
-        if (tveg(i).lt.tmelt .and. wliq(i).gt.0.0) then
+        if (tveg(i).lt.tmelt - 1.0e-9 .and. wliq(i).gt.0.0) then
           dh(i) = chav*(tmelt - tveg(i))
           dw(i) = min (wliq(i), max (0., dh(i)*rwork))
           wliq(i) = wliq(i) - dw(i)
@@ -2257,7 +2258,7 @@ c correct for snow above melt point
 c
 c (nb: if tveg < tmelt or wsno = 0, nothing changes.)
 c
-        if (tveg(i).gt.tmelt .and. wsno(i).gt.0.0) then
+        if (tveg(i).gt.tmelt + 1.0e-9 .and. wsno(i).gt.0.0) then
           dh(i) = chav*(tveg(i) - tmelt)
           dw(i) = min (wsno(i), max (0., dh(i)*rwork))
           wsno(i) = wsno(i) - dw(i)

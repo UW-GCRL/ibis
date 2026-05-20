@@ -79,7 +79,7 @@ def fwetcal(
         # When fwet==0, set rliq based on temperature
         rliq = jnp.where(
             fwet == 0.0,
-            jnp.where(tveg < tmelt, 0.0, 1.0),
+            jnp.where(tveg < tmelt - 1.0e-9, 0.0, 1.0),  # finding #21 eps-band
             rliq,
         )
         return fwet, rliq
@@ -202,14 +202,14 @@ def steph2o(
     blow = blow + xai * (x - wsno) * rwork
 
     # Phase change: liquid below freezing
-    dw_freeze = jnp.where(tveg < tmelt, wliq, 0.0)
+    dw_freeze = jnp.where(tveg < tmelt - 1.0e-9, wliq, 0.0)  # finding #21 eps-band
     rwork2 = ch2o - cice
     pflux = pflux + dw_freeze * (rwork2 * (tmelt - tveg) - hfus) * rwork
     wliq = wliq - dw_freeze
     wsno = wsno + dw_freeze
 
     # Phase change: snow above freezing
-    dw_melt = jnp.where(tveg > tmelt, wsno, 0.0)
+    dw_melt = jnp.where(tveg > tmelt + 1.0e-9, wsno, 0.0)  # finding #21 eps-band
     pflux = pflux + dw_melt * (rwork2 * (tveg - tmelt) + hfus) * rwork
     wsno = wsno - dw_melt
     wliq = wliq + dw_melt
@@ -274,7 +274,7 @@ def cascade(
     rainu = raina
     # Wet bulb temp for rain temperature
     twetbulb = jnp.where(
-        ta > tmelt,
+        ta > tmelt + 1.0e-9,  # finding #21 eps-band
         twet3(ta, qa, psurf, tmelt, cair, hvap, ch2o, cvap),
         tmelt,
     )
@@ -383,7 +383,7 @@ def steph2o2(
     chav = cveg + ch2o * wliq + cice * wsno
 
     # Liquid below freezing → freeze
-    below = (tveg < tmelt) & (wliq > 0.0)
+    below = (tveg < tmelt - 1.0e-9) & (wliq > 0.0)  # finding #21 eps-band
     dh = chav * (tmelt - tveg)
     dw = jnp.minimum(wliq, jnp.maximum(0.0, dh * rwork))
     dw = jnp.where(below, dw, 0.0)
@@ -393,7 +393,7 @@ def steph2o2(
     tveg = jnp.where(below, tmelt - (dh - hfus * dw) / chav_new, tveg)
 
     # Snow above freezing → melt
-    above = (tveg > tmelt) & (wsno > 0.0)
+    above = (tveg > tmelt + 1.0e-9) & (wsno > 0.0)  # finding #21 eps-band
     chav = cveg + ch2o * wliq + cice * wsno
     dh = chav * (tveg - tmelt)
     dw = jnp.minimum(wsno, jnp.maximum(0.0, dh * rwork))

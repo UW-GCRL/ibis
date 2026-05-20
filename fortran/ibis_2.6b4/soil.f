@@ -140,7 +140,8 @@ c
             qglif(i,3) = zwpud * wpud(i) * rwork2
             qglif(i,4) = zwpud * wipud(i) * rwork2
           else
-            if (tsoi(i,1).ge.tmelt) then
+c finding #21: epsilon-band to avoid ULP-level branch flip at tmelt
+            if (tsoi(i,1).ge.tmelt - 1.0e-9) then
 c
 c above freezing
 c

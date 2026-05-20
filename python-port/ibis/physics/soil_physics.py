@@ -102,7 +102,8 @@ def setsoi(
     q4_p = zwpud * wipud * rwork2
 
     # Case 4: no soil water, no puddle
-    above_melt = tsoi[:, 0] >= tmelt
+    # finding #21: eps-band to avoid ULP-level branch flip at tmelt
+    above_melt = tsoi[:, 0] >= tmelt - 1.0e-9
     q1_n = jnp.zeros(npoi)
     q2_n = jnp.zeros(npoi)
     q3_n = jnp.where(above_melt, 1.0, 0.0)
