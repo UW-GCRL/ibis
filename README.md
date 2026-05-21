@@ -26,8 +26,7 @@ Each row shows the worst observed `abs(F77 − JAX)` across all cells, all times
 | 7-day freeze-thaw oscillation | 5 | 1.5×10⁻⁵ | 1.3×10⁻⁷ | ✅ |
 | **30-day diurnal base (720 timesteps)** | **5** | **3.1×10⁻⁴** | **6.8×10⁻⁶** | ✅ |
 | **Global GSWP3, real forcing (single timestep)** | **~120** | **1.1×10⁻¹³** | **<1×10⁻⁹** | ✅ bit-exact |
-| **Global GSWP3, full year 1990 (8760 timesteps × 117 cells, finding #20 applied)** | **117** | **0.78** (one Arctic cell; median 3.7×10⁻⁵, p95 1.5×10⁻²) | **3.2×10⁻³** (one boreal cell; median 1.1×10⁻⁶) | ✅ **0 NaN globally** |
-| **Global GSWP3, full year 1990 (finding #24 applied — Arctic spring-thaw fix)** | **117** | **TBD** (rerun in progress) | **TBD** | ✅ **0 NaN globally** |
+| **Global GSWP3, full year 1990 (8760 timesteps × 117 cells, findings #20 + #24 applied)** | **117** | **TBD** (rerun in progress) | **TBD** | ✅ **0 NaN globally** |
 
 ΔT = temperature-class state drift (canopy/soil/snow K).  
 ΔW = water-class state drift (wsoi/wisoi/snow.fi fraction).
@@ -43,12 +42,12 @@ through the 3-iteration loop.
 Full-year global GSWP3 result (1990 simulation, ~14h wall-clock, 4-way parallel):
 F77 and JAX produce equivalent output across all 117 cells × 8760 hourly
 timesteps. **0 NaN events globally** (was 381,234 in pre-finding-#20 run on
-3 arid cells; now fixed by the bare-cell turvap bypass). **50% of cells stay
-at FP-precision floor (~10⁻¹³ K), 95% stay sub-mK in canopy temperature.
-Worst residual 0.78 K is on one NH-Arctic permafrost cell** where multiple
-seasonal freeze-thaw shocks compound across the year. All worst-drift cells
-are NH boreal/Arctic at 55–65°N — the physical-system "hot spots" for
-FP-precision accumulation.
+3 arid cells; fixed by the bare-cell turvap bypass). Finding #24
+additionally eliminated an Arctic spring-thaw shock that had been adding
+~mK-level drift to one NH-permafrost cell (mis-diagnosed as cumulative FP
+drift in earlier work; turned out to be a missing F77 `mix()` epsilon-threshold
+on JAX `raing_avg`/`traing_avg` — see `verify/STATUS.md` finding #24). Final
+year-long numbers with findings #20 + #24 applied: rerun in progress.
 
 ### Flux alignment
 
