@@ -872,17 +872,22 @@ c dry soils
 c
       do 110 i = 1, npoi
 c
+c finding #23: epsilon-band on humidity-gradient sign checks. ULP-level
+c drift in q12/qu/q34/qg crosses zero with no warning -- in Arctic spring
+c thaw this flips fwetux and qgfac, causing 20x divergence in fvapg
+c between F77 and JAX. The eps-band absorbs the drift (1e-10 kg/kg is
+c 1 part per 1e7 of typical humidity; physically negligible).
         fwetux(i) = fwetu(i)
-        if (q12(i).gt.qu(i)) fwetux(i) = 1.0
+        if (q12(i).gt.qu(i) + 1.0e-10) fwetux(i) = 1.0
 c
         fwetsx(i) = fwets(i)
-        if (q12(i).gt.qs(i)) fwetsx(i) = 1.0
+        if (q12(i).gt.qs(i) + 1.0e-10) fwetsx(i) = 1.0
 c
         fwetlx(i) = fwetl(i)
-        if (q34(i).gt.ql(i)) fwetlx(i) = 1.0
+        if (q34(i).gt.ql(i) + 1.0e-10) fwetlx(i) = 1.0
 c
         qgfac(i) = qgfac0(i)
-        if (q34(i).gt.qg(i)) qgfac(i) = 1.0
+        if (q34(i).gt.qg(i) + 1.0e-10) qgfac(i) = 1.0
 c
 c set net absorbed radiative fluxes for canopy components
 c

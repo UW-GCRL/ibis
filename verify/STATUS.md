@@ -397,6 +397,45 @@ Not yet built:
 
 ---
 
+## Finding #24 — Day-84 Arctic spring-thaw shock: missing F77 `mix()` ε-threshold on JAX `raing_avg`/`traing_avg`
+
+**Discovery (2026-05-21)**: After findings #17-#22 reduced multi-day Arctic divergence by 4 orders of magnitude, a residual ~0.5 mK shock persisted on day 84 (March 25, spring thaw onset) at `L+65°N -160°E`. Initially mis-diagnosed as cumulative FP drift (concluding "not a fixable branch"). User correctly insisted the sudden onset proved a real branch flip — diagnostic effort then re-launched.
+
+**Hour-by-hour drill (`lockstep_micro_drill.py`)** isolated the bug to a single timestep:
+- **d84 h14**: all state bit-near-exact (diffs ≤ 1e-12); F77 raing=1.16e-5 kg/m²/s
+- **d84 h15**: `soil.tsoi[0]` diff jumps to **3.22e-04 K** in ONE step; F77 raing=0 (mix threshold cut it)
+- **d84 h16+**: shock propagates through soil diffusion
+
+Ruled out via the drill (drills v5-v11): qgfac/fwetux branches (defensive ε-band added anyway), `heatg_avg`, `raing_avg`, `grunof`, `wpud/wipud/consoi/qglif`, snow flux chain (`rainl/snowl/trainl/tsnowl` — all matched F77 via ctypes read of `com1d3_` common block), and the tridia algorithm itself.
+
+**Root cause (located via ctypes patch dumping `wflo`+`fhtop` into a `/wflo_dump/` common block)**: At h15 the F77 `fhtop_soil` = **9.441 W/m²** but JAX = **9.444 W/m²** — a 3 mW/m² difference traced to JAX's `raing_avg` formula in [timestepping/loops.py:712](python-port/ibis/timestepping/loops.py#L712).
+
+F77 `snow.f:293` calls `mix(raing, traing, x1, traing, x2, tmelt, vzero, vzero)` which threshold-zeroes the output when `abs(xtmp) < epsilon`. JAX previously used the smooth formula:
+```python
+raing_avg = (1.0 - fiold) * raing_total + smelt_rate   # no threshold
+traing_avg = jnp.where(raing_avg > epsilon, mixed, tmelt)
+```
+
+When cascade output `raing_total` is small but non-zero (e.g., 9.1e-7 kg/m²/s during canopy drip cessation at h15), `(1-fi)*raing_total = 4.55e-8` is below `epsilon=1e-12` AS A SUM with smelt=0, but JAX kept the value while F77 mix zeroed it. The 4.55e-8 sub-epsilon raing then contributed `raing_avg * ch2o * (tmelt - tsoi[0]) = 4.55e-8 * 4218 * 16.19 ≈ 3.1e-3 W/m²` extra heat into fhtop_soil. With top-soil-layer cap ≈ 3.5e4 J/m²/K, this yields ~3e-4 K tsoi shock — matching observation.
+
+**Fix**: replicate F77 `mix()` ε-threshold in JAX:
+```python
+raing_unmix = raing_nf + smelt_rate
+raing_zero = raing_unmix < c.epsilon
+raing_avg = jnp.where(raing_zero, 0.0, raing_unmix)
+traing_avg = jnp.where(raing_zero, 0.0, weighted_avg)
+```
+
+**Validation**: post-fix Arctic h13-h23 lockstep — `soil.tsoi[0]` diff dropped from **3.22e-04 K** to **<1e-7 K** (>3000× improvement). Spring-thaw bit-near-exact through entire day-84 event.
+
+**Defensive fixes also applied during the hunt** (kept for future safety; do not affect this shock):
+- canopy.f:876-885 + canopy_exchange.py:544-549: ε-band on `q12>qu`/`q34>qg` humidity-gradient hard branches (1e-10 kg/kg)
+- soil_physics.py:243-273: `jnp.floor(x+0.5)` replaces `jnp.round(x)` to match F77 `nint()` half-away-from-zero behavior
+
+**Diagnostic instrumentation kept**: `state.hydrology` now exposes `raing_avg`, `traing_avg`, `fhtop_soil`, `rainl`, `snowl`, `trainl`, `tsnowl`, `sflo_bot`, `fhtop_snow` — useful for future debugging of soil-heat-balance issues. The `/wflo_dump/` patch in `soil.f` should be reverted after final verification.
+
+---
+
 ## Recurring gotchas (durable lessons — re-read before wrapping a new section)
 
 1. **f2py parses `real` as float32** regardless of `-fdefault-real-8`. Use `real*8` for wrapper boundary args. Internal `real` inside `comsat.h` etc. becomes float64 via the compile flag.

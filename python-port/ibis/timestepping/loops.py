@@ -712,11 +712,20 @@ def timestep_body(
     # Combined rain + snowmelt reaching soil
     raing_nf = (1.0 - fiold) * raing_total
     smelt_rate = smelt * rwork_inv_dt
-    raing_avg = raing_nf + smelt_rate
+    # Finding #24: F77 snow.f:293 applies a mix-style epsilon threshold
+    # (`if abs(xtmp).lt.epsilon then xtmp=0, ttmp=0`) on raing/traing.
+    # JAX previously used the smooth formula without this threshold, leaving
+    # tiny sub-epsilon raing_avg values (~5e-8) that contribute
+    # raing_avg*ch2o*(tmelt-tsoi) ≈ 3 mW/m² to fhtop_soil. At Arctic spring
+    # thaw this caused the day-84 mK-level tsoi[0] shock.
+    raing_unmix = raing_nf + smelt_rate
+    raing_zero = raing_unmix < c.epsilon
+    raing_avg = jnp.where(raing_zero, 0.0, raing_unmix)
     traing_avg = jnp.where(
-        raing_avg > c.epsilon,
-        (raing_nf * casc.traing + smelt_rate * c.tmelt) / raing_avg,
-        c.tmelt,
+        raing_zero,
+        0.0,
+        (raing_nf * casc.traing + smelt_rate * c.tmelt)
+        / jnp.maximum(raing_unmix, c.epsilon),
     )
 
     # =====================================================================
@@ -970,6 +979,16 @@ def timestep_body(
         gdrain=jnp.zeros((npoi,)),    # Bottom drainage
         gadjust=gadjust,
         wtot=jnp.zeros((npoi,)),      # Computed in accounting
+        # Diagnostic exposures for day-84 shock investigation
+        raing_avg=raing_avg,
+        traing_avg=traing_avg,
+        fhtop_soil=fhtop_soil,
+        rainl=casc.rainl,
+        snowl=casc.snowl,
+        trainl=casc.trainl,
+        tsnowl=casc.tsnowl,
+        sflo_bot=snheat.sflo[:, -1],
+        fhtop_snow=fhtop_snow,
     )
 
     # Updated atmosphere (xstore, iwet unchanged within timestep)

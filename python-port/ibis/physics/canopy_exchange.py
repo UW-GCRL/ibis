@@ -541,12 +541,18 @@ def turvap(
     betafac = xnumer / xdenom
     betas = betaw / (1.0 + betafac * (1.0 - betaw))
     qgfac0 = betas * hfac + (1.0 - betas) * hfac2
-    qgfac = jnp.where(q34 > qg, 1.0, qgfac0)
-
-    # --- Wet-fraction modifiers ---
-    fwetux = jnp.where(q12 > qu, 1.0, fwetu)
-    fwetsx = jnp.where(q12 > qs, 1.0, fwets)
-    fwetlx = jnp.where(q34 > ql, 1.0, fwetl)
+    # finding #23: epsilon-band on humidity-gradient sign checks.
+    # F77 has hard branches `q34.gt.qg` and `q12.gt.q[u,s,l]` which flip
+    # discretely when ULP-level drift in q34/qg crosses zero. This is the
+    # source of the Arctic spring-thaw shock starting ~day 80: latent heat
+    # flux fvapg jumps 20× between F77 and JAX once humidity gradients
+    # narrow in spring. The eps-band absorbs the drift. F77 needs the same
+    # widening (canopy.f lines 876-885) for the two to agree near boundary.
+    _qeps = 1.0e-10
+    qgfac = jnp.where(q34 > qg + _qeps, 1.0, qgfac0)
+    fwetux = jnp.where(q12 > qu + _qeps, 1.0, fwetu)
+    fwetsx = jnp.where(q12 > qs + _qeps, 1.0, fwets)
+    fwetlx = jnp.where(q34 > ql + _qeps, 1.0, fwetl)
 
     # --- Absorbed radiation per unit leaf/stem area ---
     fradu = jnp.where(lai[:, 1] > epsilon_c,

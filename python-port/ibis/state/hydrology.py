@@ -22,6 +22,16 @@ class HydrologyDiag(eqx.Module):
     gdrain: Float[Array, "npoi"]           # Drainage from lowest layer (kg/m2/s)
     gadjust: Float[Array, "npoi"]          # Water adjustment flux (kg/m2/s)
     wtot: Float[Array, "npoi"]             # Total stored water (kg/m2)
+    # Diagnostic exposures (added for day-84 shock investigation)
+    raing_avg: Float[Array, "npoi"]        # Areal-avg rain reaching soil (kg/m2/s)
+    traing_avg: Float[Array, "npoi"]       # Areal-avg rain temperature (K)
+    fhtop_soil: Float[Array, "npoi"]       # Heat flux into top of soil (W/m2)
+    rainl: Float[Array, "npoi"]            # Rain to lower veg / snow (kg/m2/s, per-area)
+    snowl: Float[Array, "npoi"]            # Snow to lower veg / snow (kg/m2/s, per-area)
+    trainl: Float[Array, "npoi"]           # Rain temp at lower veg / snow input (K)
+    tsnowl: Float[Array, "npoi"]           # Snow temp at lower veg / snow input (K)
+    sflo_bot: Float[Array, "npoi"]         # Snow-bottom heat flux into soil (W/m2)
+    fhtop_snow: Float[Array, "npoi"]       # Heat flux into top of snow (W/m2)
 
 
 def create_hydrology_diag(npoi: int) -> HydrologyDiag:
@@ -30,4 +40,6 @@ def create_hydrology_diag(npoi: int) -> HydrologyDiag:
     return HydrologyDiag(
         ginvap=z, gsuvap=z, gtrans=z, gtransu=z, gtransl=z,
         grunof=z, gdrain=z, gadjust=z, wtot=z,
+        raing_avg=z, traing_avg=z, fhtop_soil=z,
+        rainl=z, snowl=z, trainl=z, tsnowl=z, sflo_bot=z, fhtop_snow=z,
     )

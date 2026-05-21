@@ -293,11 +293,12 @@ def make_batch_state(cells: list):
     soil_t_idx = np.array([c[3] for c in cells])
     veg_t_idx  = np.array([c[4] for c in cells])
 
+    SYNTH_NTEMPLATES = 5  # synthetic_inputs.py hardcodes 5 scenario templates
     def reorder(arr, idx):
         a = np.asarray(arr)
-        # Only reorder if first dim is NPOI (per-cell arrays); leave shape-(7,)
-        # arrays like hsoi alone.
-        if a.ndim >= 1 and a.shape[0] == NPOI:
+        # Only reorder if first dim matches the synthetic-template count.
+        # (Was previously compared to wrapper.NPOI which breaks when NPOI != 5.)
+        if a.ndim >= 1 and a.shape[0] == SYNTH_NTEMPLATES:
             return a[idx]
         return a
 

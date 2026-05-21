@@ -240,8 +240,10 @@ def soilh2o(
         b_k = (weim * hydraul[:, k - 1] * suction[:, k - 1] * bex[:, k - 1]
                + weip * hydraul[:, k] * suction[:, k] * bex[:, k])
         zbex = weim * bex[:, k - 1] + weip * bex[:, k]
-        m_k = 2 * jnp.round(zbex).astype(jnp.int32) + 3
-        n_k = jnp.round(zbex).astype(jnp.int32) + 2
+        # F77 nint() is round-half-away-from-zero; jnp.round is banker's.
+        # Use jnp.floor(x + 0.5) for F77-nint-compatible behavior on positive x.
+        m_k = 2 * jnp.floor(zbex + 0.5).astype(jnp.int32) + 3
+        n_k = jnp.floor(zbex + 0.5).astype(jnp.int32) + 2
 
         wsoim = weim * wsoi[:, k - 1] + weip * wsoi[:, k]
         wsoia = jnp.minimum(wsoim, 1.0)
@@ -270,7 +272,7 @@ def soilh2o(
     k = nsoilay
     wsoia_bot = jnp.minimum(wsoi[:, nsoilay - 1], 1.0)
     a_bot = hydraul[:, nsoilay - 1]
-    m_bot = 2 * jnp.round(bex[:, nsoilay - 1]).astype(jnp.int32) + 3
+    m_bot = 2 * jnp.floor(bex[:, nsoilay - 1] + 0.5).astype(jnp.int32) + 3
     e_bot = -a_bot * (wsoia_bot ** m_bot) * bperm
     z_ice_bot = jnp.maximum(0.0, 1.0 - wisoi[:, nsoilay - 1]) ** 2
     e = e.at[:, k].set(z_ice_bot * e_bot)
