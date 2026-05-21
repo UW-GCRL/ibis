@@ -441,9 +441,12 @@ def impexp(tveg, ch, wliq, wsno, tmelt, hfus, epsilon, wimp_prev, is_first):
 
 
 def impexp2(t, told, tmelt, epsilon, wimp_prev, is_first):
-    """Compute implicit/explicit fraction for snow skin temperature."""
+    """Compute implicit/explicit fraction for snow skin temperature.
+
+    Finding #21: eps-band on (t-told) threshold to absorb ULP-level drift.
+    """
     winew = jnp.where(
-        (t - told) > epsilon,
+        (t - told) > epsilon + 1.0e-8,
         (tmelt - told) / (t - told),
         wimp_prev,
     )

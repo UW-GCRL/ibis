@@ -1650,8 +1650,9 @@ c
 c
       do 100 i = 1, npoi
 c
-        if ((t(i)-told(i)).gt.epsilon) wimp(i) = (tmelt - told(i)) / 
-     >                                           (t(i)  - told(i))
+c finding #21: eps-band on impexp2 to absorb ULP drift in t-told
+        if ((t(i)-told(i)).gt.epsilon + 1.0e-8)
+     >    wimp(i) = (tmelt - told(i)) / (t(i)  - told(i))
         wimp(i) = max (0.0, min (1.0, wimp(i)))
 c
  100  continue
@@ -2250,7 +2251,7 @@ c
           dh(i) = chav*(tmelt - tveg(i))
           dw(i) = min (wliq(i), max (0., dh(i)*rwork))
           wliq(i) = wliq(i) - dw(i)
-          wsno(i) = wsno(i) + dw(i) 
+          wsno(i) = wsno(i) + dw(i)
           chav = cveg + ch2o*wliq(i) + cice*wsno(i)
           tveg(i) = tmelt - (dh(i)-hfus*dw(i))/chav
         endif
