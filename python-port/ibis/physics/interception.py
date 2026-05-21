@@ -122,26 +122,31 @@ def twet3(tak, q, p, tmelt, cair, hvap, ch2o, cvap):
     """Approximate wet bulb temperature (K).
 
     Uses iterative approach from Molling (2000), 20 iterations max.
-    For JAX compatibility, always runs all 20 iterations.
+    F77 has early exit when |Δtwk| < 0.02. JAX matches this by carrying
+    a "converged" mask and freezing twk once it converges — gives
+    bit-identical result to F77's early-exit (finding #22).
     """
     e = esat(tak)
     qs0 = qsat(e, p)
     ta = tak - tmelt
     twk = ta * q / jnp.maximum(qs0, 1e-12) + tmelt
 
-    def _body(twk, _):
+    # Track convergence per cell. Once converged, freeze twk (don't update).
+    converged = jnp.zeros_like(twk, dtype=bool)
+    for _ in range(20):
         twold = twk - tmelt
         hv = hvapf(twk, tak, tmelt, hvap, ch2o, cvap)
         e_tw = esat(twk)
         qs_tw = qsat(e_tw, p)
         twb = ta - (hv / cair) * (qs_tw - q)
         diff = twb - twold
-        twk = twold + 0.2 * diff + tmelt
-        return twk, None
-
-    # Unroll 20 iterations
-    for _ in range(20):
-        twk, _ = _body(twk, None)
+        twk_new = twold + 0.2 * diff + tmelt
+        # F77 convergence test: abs(twk_new - tmelt - twold) < 0.02
+        will_converge = jnp.abs(twk_new - tmelt - twold) < 0.02
+        # If already converged, keep old value; else use new value
+        twk = jnp.where(converged, twk, twk_new)
+        # Update converged state (latch on)
+        converged = converged | will_converge
 
     return twk
 
