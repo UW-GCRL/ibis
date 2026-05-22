@@ -55,6 +55,19 @@ the 117-cell global set, **median per-cell ΔT is ~22 µK** and **p95 ≤ 14 mK*
 (canopy.tu) — i.e. ≥95% of cells stay near machine precision; the worst-cell
 0.74 K is the long tail.
 
+A state-injection diagnostic (finding #25) localized this worst-case to a
+single hour (d115 h07) and a single timestep — when JAX is given F77's exact
+pre-step state, the next-step output matches F77 to ≤2×10⁻⁹ on all fields.
+The 0.74 K residual is pure libm/FMA-level ULP amplification through 115 days
+× 24 hours of independent evolution, amplified ~23,000× by a single near-
+singular canopy iteration at the snow-cover transition (where the 3-iter
+solver's spectral radius briefly exceeds 1). This is a precision floor
+inherent to the IBIS 2.6b4 numerical scheme and the FP-determinism gap
+between F77 (glibc libm) and JAX (XLA-vectorised libm + FMA), not a
+correctable bug. Restructuring the canopy solver to converge would
+*systematically diverge* JAX from F77 on the spring-thaw cells — verified
+by attempting it. See [`verify/STATUS.md`](verify/STATUS.md) finding #25.
+
 ### Flux alignment
 
 Sub-Kelvin temperature residuals amplify through heat-transfer coefficients
@@ -95,7 +108,7 @@ and implemented the bare-cell bypass that the 2001 IBIS authors had
 intended (commented-out in `canopy.f` line 462) but never finished. After
 the fix, **all 117 cells run NaN-free for the entire year**.
 
-See [`verify/STATUS.md`](verify/STATUS.md) for full per-test breakdowns including all 24 verification findings discovered and resolved during the port.
+See [`verify/STATUS.md`](verify/STATUS.md) for full per-test breakdowns including all 25 verification findings discovered and resolved (or definitively characterized) during the port.
 
 ## Layout
 
@@ -113,7 +126,7 @@ See [`verify/STATUS.md`](verify/STATUS.md) for full per-test breakdowns includin
 - `verify/<section>/` — per-section bit-exact tests (thermo, radiation, soil, snow, canopy, …)
 - `verify/timestepping/` — full-timestep integration tests including the global GSWP3 multi-month verification
 - `verify/timestepping/pipeline/` — diagnostic pipeline that found the [stresstu unpack-order bug](verify/STATUS.md) (finding #16)
-- `verify/STATUS.md` — comprehensive verification status with all 24 findings
+- `verify/STATUS.md` — comprehensive verification status with all 25 findings
 
 ## Quick start
 

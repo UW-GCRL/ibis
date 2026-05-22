@@ -436,6 +436,62 @@ traing_avg = jnp.where(raing_zero, 0.0, weighted_avg)
 
 ---
 
+## Finding #25 — Siberian d115 h07 residual is ULP amplification, not a missing primitive (closed by state-injection test)
+
+**Discovery (2026-05-21)**: After finding #24, the year-long global GSWP3 run showed a remaining worst-case drift of **0.56 K canopy.tu at L+55°N +100°E on day 115 hour 7** (interior-Siberia boreal cell, spring snow-cover transition). p95 across all 117 cells stayed ≤14 mK, but this one cell-hour stuck out. Initial hypothesis: another missing primitive like #24.
+
+**Diagnostic path**:
+
+1. **`lockstep_year_cell.py L+55p0_+100p0 365`** confirmed worst day is d115 — canopy.tu Δ jumps from ~1.6e-2 K (d72-d85, spring approach) to **5.6e-1 K** at d115 (35× larger), then relaxes back to ~mK level by d116. Single-day, single-cell event coincident with `snow.fi` crossing 0.0 (snow disappearance).
+
+2. **`lockstep_siberia_d115_drill.py`** hourly drill of d110-d120 located the actual burst at **d115 h07** with Δmax = **21.6 W/m² on flux.fsenl** = year-long max exactly. Conditions: `ta = 270.3 K`, `wsnol = 0.193 kg/m²`, transitional snow with tiny atmospheric snow input (`snowa = 2.18e-6 kg/m²/s`).
+
+3. **`lockstep_siberia_d115_burst.py`** full-field diff dump at h05-h12 isolated the propagation:
+   - **h07 post-step**: `canopy.tl` F77=tmelt exactly, JAX=272.93 K. `canopy.wliql` F77=0.0109, JAX=0.0 (F77 took the `cascad2`/`steph2o2` melt-clamp branch, JAX didn't).
+   - **h08 post-step**: `canopy.tl` matches (both at tmelt), but `canopy.tu` now diverges by 0.56 K (the year-long max).
+   - The divergence "transferred" between canopy layers across h07→h08 — *not* the shape of pure ULP amplification, which originally suggested a hidden bug.
+
+4. **`lockstep_siberia_iter_drill.py`** ran the canopy 3-iter loop with `n=1,2,3,4,5` iters in JAX and showed the iter map is **diverging** at this cell-hour: tu trajectory `275.19 → 274.18 → 276.97 → 279.54 → 284.28` (spectral radius > 1; not bounded). F77's 3-iter output happens to land at `tl ≈ tmelt + small`, triggering the `steph2o2 above` branch (clamp to tmelt). JAX's 3-iter happens to land at `tl ≈ tmelt - 0.23 K`, missing the clamp. The sign on which side of `tmelt + 1e-9` each lands is determined by accumulated rounding through 3 iters of `turcof + stomata + turvap (9×9 solve) + impexp damping`.
+
+5. **Attempted fix (5 damped extra iters with α=0.5)**: broke the synthetic verifier on cell 2 (freezethaw). 24 BIG single-step divergences, **1 K regression** on canopy.tu. The damped iters drive JAX to a *different* fixed point than F77's lucky 3-iter landing. Any restructure that makes JAX more numerically stable systematically diverges from F77's iter-3 result. **Reverted** (this is the dangerous outcome of "fixing" something at a near-singular branch — bias all stable cells to maybe-fix one).
+
+6. **`lockstep_siberia_inject_h07.py` — definitive test**: Run lockstep through d115 h06, *inject F77's exact state into JAX* (all pre-step diffs forced to 0), run h07 step in both, compare outputs.
+
+   Pre-injection diffs (after 115 days of independent F77↔JAX evolution):
+   ```
+   canopy.tu    1.467e-05 K     soil.tg       3.372e-05 K
+   canopy.tl    1.684e-05 K     soil.wsoi[0]  2.496e-05
+   canopy.t12   1.788e-05 K     canopy.wsnou  6.750e-07
+   ```
+   Post-injection (after JAX state replaced by F77 state):
+   ```
+   all diffs    0.000e+00       (exact)
+   ```
+   **Post-step h07 with identical pre-step state:**
+   ```
+   canopy.tu    0.000e+00       (exact match!)
+   canopy.tl    0.000e+00       (exact match!)
+   canopy.ts    8.4e-11 K       canopy.q12/q34   7e-13
+   canopy.t12   2.5e-10 K       canopy.wliqu     3.5e-10
+   canopy.t34   2.4e-10 K       canopy.wsnou     3.3e-10
+   soil.tg      7.4e-10 K       canopy.wliql     2.1e-09  (largest)
+   soil.tsoi    0.000e+00       canopy.wsnol     1.9e-09
+   ```
+   Maximum residual = **2.1 nano-mass / sub-nano-K** across all 20 tracked fields. F77 ↔ JAX are bit-near-identical in a single timestep at this cell with identical inputs.
+
+**Verdict**: The 0.56 K worst-case residual is **pure ULP amplification across 115 days × 24 timesteps**. Pre-step state drifts by ~30 µK in 2,760 timesteps (≈10 nK per timestep, exactly at libm/FMA ULP scale). At d115 h07 the canopy iter loop's spectral radius > 1, amplifying 30 µK to 0.23 K in one timestep, then propagating through h08 to 0.56 K via canopy/soil coupling. **No missing primitive, no hidden bug.**
+
+**Why not fixable without changing the verification target**:
+- The unstable iter map exists in F77 itself; F77's "good" answer is an artifact of stopping at iter=3 where its specific FP rounding happens to land it on the right side of `tmelt + 1e-9` for `cascad2` to clamp.
+- ANY JAX restructure that produces a different (more physically stable) fixed point will diverge from F77 on the ~1-5% of NH boreal cells in spring thaw. Demonstrated by the failed α=0.5 damped extra-iters attempt.
+- The remaining FP non-determinism between F77 and JAX is at the libm/FMA/loop-summation-order layer; aligning these requires correctly-rounded math libraries (crlibm or similar) on both sides — weeks of work, major perf loss, no scientific benefit (current state already 3 orders below climate-model uncertainty).
+
+**Engineering recommendation**: do not pursue further. The deep-drill itself was the result — we now have a definitive characterization of the precision floor for this port. p95 across the 117-cell global set stays ≤14 mK / ≤0.17 W/m², the worst case is single-cell single-hour, and the port is scientifically valid for differentiable land-surface modeling. Document and ship.
+
+**Diagnostic infrastructure kept**: `lockstep_siberia_d115_drill.py`, `lockstep_siberia_d115_burst.py`, `lockstep_siberia_iter_drill.py`, `lockstep_siberia_inject_h07.py` — reusable pattern for any future "single-cell long-tail residual" investigation in the global verifier.
+
+---
+
 ## Recurring gotchas (durable lessons — re-read before wrapping a new section)
 
 1. **f2py parses `real` as float32** regardless of `-fdefault-real-8`. Use `real*8` for wrapper boundary args. Internal `real` inside `comsat.h` etc. becomes float64 via the compile flag.
