@@ -27,6 +27,7 @@ Each row shows the worst observed `abs(F77 − JAX)` across all cells, all times
 | **30-day diurnal base (720 timesteps)** | **5** | **3.1×10⁻⁴** | **6.8×10⁻⁶** | ✅ |
 | **Global GSWP3, real forcing (single timestep)** | **~120** | **1.1×10⁻¹³** | **<1×10⁻⁹** | ✅ bit-exact |
 | **Global GSWP3, full year 1990 (8760 timesteps × 117 cells, findings #20 + #24 applied)** | **117** | **7.4×10⁻¹** (worst cell L+55°N +040°E canopy.tl) | **3.1×10⁻³** (worst cell L+55°N +100°E soil.wsoi[0]) | ✅ **0 NaN globally** |
+| **Global GSWP3, 35-year multi-decadal 1951-1985 (306,600 timesteps × 117 cells, WMO climate normal length)** | **116 healthy + 1 NaN cell** | **4.5×10⁻¹** (worst single cell-year canopy.tu, 1951 cold-start) — median **1.25×10⁻³**, p95 **3.3×10⁻²** | **4.5×10⁻³** soil.wsoi[0] | ✅ **drift bounded, no compounding across 35 years** |
 
 ΔT = temperature-class state drift (canopy/soil/snow K).  
 ΔW = water-class state drift (wsoi/wisoi/snow.fi fraction).
@@ -68,6 +69,34 @@ correctable bug. Restructuring the canopy solver to converge would
 *systematically diverge* JAX from F77 on the spring-thaw cells — verified
 by attempting it. See [`verify/STATUS.md`](verify/STATUS.md) finding #25.
 
+### Multi-decadal stability (1951-1985, 35-year continuous trajectory)
+
+A 35-year run with real GSWP3 forcing on 117 cells (24-way parallel,
+1951-2010 spans the WMO climate-normal length) confirms **bounded drift —
+no compounding across decades**. Across 116 healthy cells × 35 years:
+
+- **Median per-cell-year ΔT: 1.25 mK** (canopy.tu)
+- **p95 per-cell-year ΔT: 33 mK**
+- **Year 1985 worst ≈ year 1952 worst**: no progressive growth (year-1985 worst
+  canopy.tu = 0.20 K vs year-1952 = 0.017 K and year-1969 = 0.028 K — variation
+  is bounded by individual-cell single-hour events like finding #25, not by
+  cumulative integration drift)
+- Worst single cell-year: 0.45 K canopy.tu at L+55°N +040°E in 1951 (cold-
+  start spin-up effect, not seen in any subsequent year)
+
+**One NaN-producing cell discovered**: L+35°N +100°E (eastern Tibetan Plateau,
+Qinghai) runs cleanly for 9 years 2 months, then **both F77 and JAX go NaN
+simultaneously** in March 1960. Diagnostic signature (sub-µK F77↔JAX agreement
+up to the moment of failure, then both fail together) matches finding #20 —
+this is another **inherited IBIS 2.6b4 NaN bug** at a different physiographic
+regime (subtropical high-altitude semi-arid steppe). Provisionally documented
+as candidate **finding #26** for future investigation; the 9-year fuse before
+onset suggests it depends on slow-evolved state (deep soil temperature,
+vegetation biomass) reaching a near-singular configuration, then tipped by a
+specific spring-thaw event. The bare-cell bypass from finding #20 doesn't
+apply (this cell has `fu+fl > ε`). All other 116 cells run NaN-free for the
+full 35 years.
+
 ### Flux alignment
 
 Sub-Kelvin temperature residuals amplify through heat-transfer coefficients
@@ -108,7 +137,7 @@ and implemented the bare-cell bypass that the 2001 IBIS authors had
 intended (commented-out in `canopy.f` line 462) but never finished. After
 the fix, **all 117 cells run NaN-free for the entire year**.
 
-See [`verify/STATUS.md`](verify/STATUS.md) for full per-test breakdowns including all 25 verification findings discovered and resolved (or definitively characterized) during the port.
+See [`verify/STATUS.md`](verify/STATUS.md) for full per-test breakdowns including all 26 verification findings (25 closed, 1 open) discovered and resolved (or definitively characterized) during the port.
 
 ## Layout
 

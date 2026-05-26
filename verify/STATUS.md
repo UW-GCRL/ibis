@@ -492,6 +492,31 @@ traing_avg = jnp.where(raing_zero, 0.0, weighted_avg)
 
 ---
 
+## Finding #26 — Inherited NaN bug at L+35°N +100°E (Tibetan Plateau), slow-burn (open)
+
+**Discovery (2026-05-26)**: a 35-year multi-decadal run (1951-1985, 117 cells × 8760 hr/yr × 35 yr) found a second inherited IBIS 2.6b4 NaN-producing cell beyond the three from finding #20:
+
+- **Cell**: `L+35p0_+100p0` — central China, eastern Tibetan Plateau (~Qinghai/Gansu border), elevation ~3000-4500 m, semi-arid cold-continental steppe.
+- **NaN onset**: **March 1960** — exactly 9 years 2 months into the multi-decadal integration. (Compare finding #20: those cells went NaN within 2 months of integration.)
+- **Pre-failure agreement**: F77 ↔ JAX tracked each other within **1.2 µK on canopy.tu in Feb 1960** (the tightest of any year). Then both went NaN simultaneously starting March 1960. NaN counter grew by exactly the rate of "1 cell × 21 fields × every hour" (~15,000/month), with other 4 cells in the same batch (b14) fully NaN-free. This is the same diagnostic shape as finding #20 — JAX is faithfully reproducing an F77/IBIS 2.6b4 bug, not introducing a port bug.
+- **Other 116 cells**: NaN-free for the full 35-year run.
+
+**Why finding #20's bypass doesn't apply**: that bypass forces canopy state to atmospheric values when `fu+fl < ε` (bare-cell condition). The L+35°N +100°E cell has `fu+fl > ε` (some canopy present), so the bypass branch doesn't fire. The singularity must come from a different code path.
+
+**Why the 9-year fuse**: the cell ran cleanly for 9 spring seasons before breaking on the 10th. This rules out an initial-condition issue and points at **slow-evolved state** (deep-soil temperature equilibrating to forcing, soil moisture drying to critical level, vegetation biomass adjusting, snow/ice mass-balance trends) reaching a near-singular configuration that the 1960 spring-thaw event then tipped over the edge.
+
+**Diagnostic pattern to follow** (mirrors finding #20):
+1. Identify the exact F77 subroutine + line where NaN first appears (likely `turvap` or `soilctl` — both have known singular branches).
+2. Look for nearby commented-out 2001 IBIS author code suggesting an intended bypass.
+3. Identify the state condition (soil moisture × deep temperature × snow combo) that produces the singular matrix.
+4. Test if a bilateral F77+JAX patch (analogous to the bare-cell bypass) restores NaN-free behavior.
+
+**Status: open** — characterized, not yet fixed. The 50-year multi-year verifier run crashed at year 36 (1986-07) due to a NAS/HDF5 concurrent-read race (unrelated runtime failure, not a model bug); 35 years of clean data salvaged. After finding #26 is investigated and fixed (or definitively characterized as an irreducible IBIS 2.6b4 limitation), a full 50-year verification should be re-run with per-year state checkpointing and read-staggering.
+
+**Diagnostic file produced**: `aggregate_1951_1985.json` in the run output dir contains per-year-per-field worst |Δ| time series, the NaN-cell roster, and the per-cell aggregate stats used to characterize this finding.
+
+---
+
 ## Recurring gotchas (durable lessons — re-read before wrapping a new section)
 
 1. **f2py parses `real` as float32** regardless of `-fdefault-real-8`. Use `real*8` for wrapper boundary args. Internal `real` inside `comsat.h` etc. becomes float64 via the compile flag.
