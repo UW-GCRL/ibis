@@ -37,7 +37,8 @@ jax.config.update("jax_enable_x64", True)
 sys.path.insert(0, "/home/hangkai/ibis-port/python-port")
 
 from verify.timestepping.pipeline.global_gswp3_test import (
-    diurnal_disaggregate, read_gswp3_month, make_batch_state,
+    diurnal_disaggregate, read_gswp3_month as _raw_read_gswp3_month,
+    make_batch_state,
     soil_template_for_lat, build_global_cell_grid,
 )
 from verify.timestepping.verify_lsxmain import (
@@ -49,6 +50,84 @@ from verify.timestepping.pipeline.global_gswp3_year import (
 from ibis.constants import get_constants
 from ibis.timestepping.loops import default_sim_params, timestep_body
 from tests.f2py.ibis_f77_wrapper import NPOI
+
+
+def read_gswp3_month(year, month, cells, max_retries=8):
+    """Wrapper around the raw GSWP3 reader with retry-on-HDF5-error.
+
+    The shared NAS occasionally throws HDF5 lock/timeout errors when many
+    parallel processes hit the same .nc4 file simultaneously. Retry with
+    exponential backoff (1s, 2s, 4s, ...).
+    """
+    last_err = None
+    for attempt in range(max_retries):
+        try:
+            return _raw_read_gswp3_month(year, month, cells)
+        except (RuntimeError, OSError) as e:
+            last_err = e
+            wait_s = 1.0 * (2 ** attempt)
+            print(f"  ! NAS read failed ({type(e).__name__}: {e}); "
+                  f"retry in {wait_s:.0f}s (attempt {attempt+1}/{max_retries})",
+                  flush=True)
+            time.sleep(wait_s)
+    raise RuntimeError(f"GSWP3 read failed after {max_retries} retries: {last_err}")
+
+
+def save_state_checkpoint(checkpoint_dir, batch_name, year_completed, f77, state):
+    """Save F77 + JAX state to NAS at year boundary for crash recovery."""
+    import pickle
+    ckpt = checkpoint_dir / f"{batch_name}_state_after_{year_completed}.pkl"
+    snap = {
+        "year_completed": year_completed,
+        "veg":  {k: np.asarray(v).copy() for k, v in f77.get_veg().items()},
+        "soil": {k: np.asarray(v).copy() for k, v in f77.get_soil().items()},
+        "snow": {k: np.asarray(v).copy() for k, v in f77.get_snow().items()},
+        "stom": {k: np.asarray(v).copy() for k, v in f77.get_stomata().items()},
+        "jax_state": state,
+    }
+    # Atomic write: write to .tmp, then rename
+    tmp = ckpt.with_suffix(".pkl.tmp")
+    with open(tmp, "wb") as fh:
+        pickle.dump(snap, fh)
+    tmp.replace(ckpt)
+
+
+def find_latest_checkpoint(checkpoint_dir, batch_name, year_start, year_end):
+    """Find the latest year-checkpoint for resume; returns (year, path) or None."""
+    pattern = f"{batch_name}_state_after_*.pkl"
+    latest = None
+    latest_year = -1
+    for p in checkpoint_dir.glob(pattern):
+        try:
+            y = int(p.stem.split("_after_")[-1])
+            if year_start <= y < year_end and y > latest_year:
+                latest_year = y
+                latest = p
+        except ValueError:
+            continue
+    return (latest_year, latest) if latest else None
+
+
+def restore_state_checkpoint(ckpt_path, f77, cells, veg_i):
+    """Restore F77 + JAX state from a checkpoint."""
+    import pickle
+    with open(ckpt_path, "rb") as fh:
+        snap = pickle.load(fh)
+    veg = snap["veg"]; soil = snap["soil"]; snow = snap["snow"]
+    # Need fresh soil_i/snow_i/veg_i for set_* structural fields
+    # Use the original veg_i (constants) + checkpointed dynamic state
+    f77.set_veg(
+        tu=veg["tu"], ts=veg["ts"], tl=veg["tl"], tlsub=veg["tlsub"],
+        t12=veg["t12"], t34=veg["t34"],
+        q12=veg["q12"], q34=veg["q34"],
+        wliqu=veg["wliqu"], wliqs=veg["wliqs"], wliql=veg["wliql"],
+        wsnou=veg["wsnou"], wsnos=veg["wsnos"], wsnol=veg["wsnol"],
+        fu=veg_i["fu"], fl=veg_i["fl"],
+        lai=veg_i["lai"], sai=veg_i["sai"],
+        ztop=veg_i["ztop"], zbot=veg_i["zbot"],
+        froot=veg_i["froot"], frac=veg_i["frac"],
+    )
+    return snap["jax_state"]
 
 
 def run_one_year_continuing(f77, state, cells, year: int, batch_name: str,
@@ -181,6 +260,18 @@ def main():
         f77 = setup_f77_state(soil_i, snow_i, atm_i, veg_i)
         state = setup_jax_state(soil_i, snow_i, atm_i, veg_i)
 
+        # Checkpoint restoration (resume from last completed year, if any)
+        CKPT_DIR = OUTPUT_DIR / "checkpoints"
+        CKPT_DIR.mkdir(exist_ok=True)
+        resume_info = find_latest_checkpoint(CKPT_DIR, batch_name, year_start, year_end + 1)
+        resume_year = year_start
+        if resume_info is not None:
+            ckpt_year, ckpt_path = resume_info
+            print(f"  ↻ RESUME from {ckpt_path.name}; replaying {ckpt_year+1} onwards",
+                  flush=True)
+            state = restore_state_checkpoint(ckpt_path, f77, batch_cells, veg_i)
+            resume_year = ckpt_year + 1
+
         # Roll-up per (cell, field) worst |Δ| across all years for this batch
         batch_worst = {(c[0], fn): 0.0 for c in batch_cells
                        for fn, _, _, _ in ALL_TRACKED}
@@ -188,7 +279,7 @@ def main():
         batch_oor = 0
 
         t_batch = time.time()
-        for year in range(year_start, year_end + 1):
+        for year in range(resume_year, year_end + 1):
             t_yr = time.time()
             print(f"\n  --- {batch_name} year {year} ({year - year_start + 1}/{n_years}) ---",
                   flush=True)
@@ -225,6 +316,12 @@ def main():
             print(f"  --- {batch_name} year {year} done in {elapsed_yr/60:.1f} min "
                   f"(cum {(time.time()-t_batch)/3600:.2f}h) ---",
                   flush=True)
+
+            # Save end-of-year checkpoint for crash recovery
+            try:
+                save_state_checkpoint(CKPT_DIR, batch_name, year, f77, state)
+            except Exception as ce:
+                print(f"  ! checkpoint save failed ({ce}); continuing", flush=True)
 
             # Incremental save of batch-level worst (in case of interruption)
             with open(OUTPUT_DIR / f"worst_by_cell_field_{batch_name}{sfx}.csv",

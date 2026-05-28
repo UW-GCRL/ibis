@@ -540,7 +540,13 @@ def turvap(
     xdenom = cp + (4.0 * emisoil * stef_c * t34 ** 3) / sg
     betafac = xnumer / xdenom
     betas = betaw / (1.0 + betafac * (1.0 - betaw))
-    qgfac0 = betas * hfac + (1.0 - betas) * hfac2
+    # finding #26: guard 0*INF when soil is at wilting point (betas=0)
+    # and matric-potential exp() overflows (very dry + large bex).
+    # Without guard: 0*INF = NaN → propagates through qgfac → singular
+    # 9x9 turvap matrix → whole-cell NaN. At betas=0 only hfac2 contributes.
+    qgfac0 = jnp.where(betas > 0.0,
+                       betas * hfac + (1.0 - betas) * hfac2,
+                       hfac2)
     # finding #23: epsilon-band on humidity-gradient sign checks.
     # F77 has hard branches `q34.gt.qg` and `q12.gt.q[u,s,l]` which flip
     # discretely when ULP-level drift in q34/qg crosses zero. This is the

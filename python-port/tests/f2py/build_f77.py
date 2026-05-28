@@ -559,6 +559,24 @@ def create_wrapper() -> str:
         L("      end")
         L("c")
 
+    # ---- Inline heatg/heati setter (lives between noveg and snow in lsxmain) ----
+    # Exposed separately so per-stage isolation drills can replicate lsxmain.
+    L("      subroutine wrap_call_compute_heatg_heati()")
+    L("      include 'implicit.h'")
+    L("      include 'compar.h'")
+    L("      include 'com1d.h'")
+    L("      include 'comsoi.h'")
+    L("      integer i")
+    L("      do 110 i = 1, npoi")
+    L("        heatg(i) = solg(i) + firg(i) - fseng(i) -")
+    L("     >             hvasug(i)*fvapg(i)")
+    L("        heati(i) = soli(i) + firi(i) - fseni(i) -")
+    L("     >             hvasui(i)*fvapi(i)")
+    L(" 110  continue")
+    L("      return")
+    L("      end")
+    L("c")
+
     # turcof and turvap take iter args -- separate wrappers
     L("      subroutine wrap_call_turcof(iter)")
     L("      include 'implicit.h'")

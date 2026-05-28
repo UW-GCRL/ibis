@@ -855,7 +855,17 @@ c
 c
 c Combine hfac and hfac2 into qgfac0 ("alpha") using beta_s
 c
-          qgfac0(i) = betas * hfac + (1. - betas) * hfac2
+c finding #26: guard 0*INF when soil is at wilting point (betas=0)
+c and matric-potential exp() overflows (very dry + large bex).
+c Without guard: 0*INF = NaN → propagates through qgfac to arr(8,8)
+c → singular 9x9 turvap matrix → whole-cell NaN.
+c At betas=0 the soil-water humidity term contributes nothing; use
+c hfac2 (the q34/qg "air RH" term) directly.
+          if (betas .gt. 0.0) then
+            qgfac0(i) = betas * hfac + (1. - betas) * hfac2
+          else
+            qgfac0(i) = hfac2
+          endif
   105   continue
 c
 c set fractions covered by intercepted h2o to 1 if dew forms

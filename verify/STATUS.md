@@ -492,7 +492,7 @@ traing_avg = jnp.where(raing_zero, 0.0, weighted_avg)
 
 ---
 
-## Finding #26 — Inherited NaN bug at L+35°N +100°E (Tibetan Plateau), slow-burn (open)
+## Finding #26 — Inherited `qgfac0 = 0*INF = NaN` at extreme-dry soil + steep matric potential (FIXED)
 
 **Discovery (2026-05-26)**: a 35-year multi-decadal run (1951-1985, 117 cells × 8760 hr/yr × 35 yr) found a second inherited IBIS 2.6b4 NaN-producing cell beyond the three from finding #20:
 
@@ -514,6 +514,64 @@ traing_avg = jnp.where(raing_zero, 0.0, weighted_avg)
 **Status: open** — characterized, not yet fixed. The 50-year multi-year verifier run crashed at year 36 (1986-07) due to a NAS/HDF5 concurrent-read race (unrelated runtime failure, not a model bug); 35 years of clean data salvaged. After finding #26 is investigated and fixed (or definitively characterized as an irreducible IBIS 2.6b4 limitation), a full 50-year verification should be re-run with per-year state checkpointing and read-staggering.
 
 **Diagnostic file produced**: `aggregate_1951_1985.json` in the run output dir contains per-year-per-field worst |Δ| time series, the NaN-cell roster, and the per-cell aggregate stats used to characterize this finding.
+
+---
+
+### Resolution (2026-05-28): the exact bug + bilateral F77+JAX fix
+
+**Root cause located via in-place per-stage canopy isolation drill** (`lockstep_tibet_nan_drill.py` with `wrap_call_compute_heatg_heati` added to the F77 wrapper so per-stage = `call_lsxmain` bit-for-bit):
+
+1. F77 `lsxmain` decomposed cleanly identified the NaN-producing subroutine: `canopy` (specifically the 3-iter `turcof + stomata + turvap` loop).
+2. Decomposing `canopy` itself (with `canini` + `drystress` + 3 × `turcof/stomata/turvap` matching F77's `canopy.f` line 44 sequence) pinpointed: **NaN first appears in `turvap` at iter 1**, in the 9×9 matrix coefficient `arr(:, 8, 8)` (the `tg` row diagonal), BEFORE the no-pivot linsolve runs.
+3. Tracing the matrix construction: `arr(i,8,8) = sg*cp + sg*hvasug*qgfac*dqg + cog + zirg`. All factors finite EXCEPT `qgfac = NaN`.
+4. `qgfac` is set from `qgfac0` (canopy.f line 881):
+   ```fortran
+   qgfac0(i) = betas * hfac + (1. - betas) * hfac2
+   ```
+5. **At the Tibet cell on this hour, `betas = 0.0` and `hfac = Infinity`.** Then `betas * hfac = 0 * INF = NaN` by IEEE 754. Even though the math intent is "betas=0 means soil contributes nothing, only the air-RH term should remain", the literal multiplication produces NaN.
+
+**Why does the situation arise?**
+- Soil is at wilting point: `betaw = max(0, min(1, (zwtot - swilt) / (1 - swilt))) = 0` because `zwtot ≤ swilt` (after 9+ years of dry-Tibet integration the topsoil moisture has dropped to wilting).
+- Hence `betas = betaw / (1 + betafac*(1-betaw)) = 0`.
+- Meanwhile the soil's matric potential `psig = -grav * suction * zwtot^(-bex)` overflows because `bex = 5.0` and `zwtot ≈ 0.027` → `zwtot^(-bex) ≈ 6.5×10⁷`, so `psig ≈ 9.5×10⁷ J/kg`. Then `hfac = exp(psig / (rvap*tg)) = exp(737) = +Infinity`.
+- Final: `qgfac0 = 0 × Infinity + 1 × hfac2 = NaN + small = NaN`.
+
+**Why doesn't finding #20's bare-cell bypass catch this?** Because the Tibet cell has substantial vegetation (`xu + xs + xl = 3.44`, far above the `< epsilon` trigger). It's a *sparse-soil* singularity, not a *bare-canopy* one.
+
+**Why the 9-year fuse?** The soil moisture at Tibet (lat=+35°N, +100°E, eastern Tibetan Plateau) declines slowly from initial conditions toward steppe equilibrium. After 9 years, surface soil moisture reaches the wilting-point threshold and the bug fires on the first warm dry March day. Other lat=+35°N cells have wetter soils and don't trip the bug; lat=+15°N arid cells (finding #20) trip a different bug because they have *no* vegetation.
+
+**Fix (both F77 and JAX):** branch on `betas > 0` before computing the sum:
+
+F77 `canopy.f` line 881 (`qgfac0` calculation in `turvap`):
+```fortran
+if (betas .gt. 0.0) then
+  qgfac0(i) = betas * hfac + (1. - betas) * hfac2
+else
+  qgfac0(i) = hfac2
+endif
+```
+
+JAX `canopy_exchange.py` line ~543:
+```python
+qgfac0 = jnp.where(betas > 0.0,
+                   betas * hfac + (1.0 - betas) * hfac2,
+                   hfac2)
+```
+
+Mathematically equivalent for `betas > 0` (no change to F77↔JAX bit-near-exactness on other cells), and physically correct in the `betas = 0` limit (no soil-water contribution, only `q34/qg` air-RH contribution).
+
+**Validation**:
+- Tibet d04 h15 (originally first NaN): all 3 canopy iters now complete **NaN-free**.
+- Synthetic verifier post-fix: 28/28 single-step fields OK, all extended tests pass with bit-near-identical numbers to pre-fix (5.94×10⁻⁶ K, 1.16×10⁻⁵ K, ..., 3.07×10⁻⁴ K). No regression.
+
+**Note on the 2001 IBIS authors**: the `qgfac0` formulation appears in the canonical SAGE-Wisconsin IBIS 2.6b4 source unchanged. The bug is inherited from IBIS itself, just like finding #20. No commented-out fix exists in the original; the 2001 authors likely never hit a cell that simultaneously had (a) wilting-point soil moisture and (b) bex high enough to overflow `hfac`. The L+35°N +100°E configuration in GSWP3-1951 evolves to exactly that state after 9 years 2 months.
+
+**Diagnostic infrastructure kept**:
+- `lockstep_tibet_nan_drill.py` — in-place per-stage isolation; replays canopy decomposition at the failing hour.
+- 91 snapshots of the Tibet cell state at hourly resolution from 1960-03-01 h00 through 1960-03-04 h15 stored on NAS at `/shared/nas2/Hangkai/ibis/verify_outputs/tibet_nan_snapshots/`.
+- New F77 wrapper method `wrap_call_compute_heatg_heati` (exposed via ctypes) lets future per-stage drills replicate the inline `heatg/heati` setter that lives between `noveg` and `snow` in lsxmain. Together with `wrap_call_turcof` and `wrap_call_turvap` (already exposed), this makes per-stage canopy isolation bit-for-bit equivalent to `call_lsxmain`.
+
+**Recurring gotcha for the next reader**: when adding per-stage canopy decomposition via wrapper, remember that F77 `canopy` *starts* with `canini` (canopy.f line 44). Calling `drystress + iters` without `canini` first leaves `rhoa = 0`, which produces a different (spurious) NaN in `turcof` and masks the real bug. The fix is to call `wrap_call_canini` (via ctypes; not in the Python wrapper) before `drystress` when decomposing.
 
 ---
 
