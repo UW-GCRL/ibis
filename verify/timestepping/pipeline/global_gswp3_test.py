@@ -181,51 +181,16 @@ def read_gswp3_month(year: int, month: int, cells: list) -> dict:
         if not fname.exists():
             raise FileNotFoundError(fname)
         ds = Dataset(str(fname), "r")
-        var = ds.variables[v]
-        # Try month-at-a-time read; fall back to day-by-day if the file is
-        # corrupted in part of the month (e.g. rlds days 2022-2027 of 1981
-        # decade = July 17-22, 1986 are unreadable HDF chunks). For corrupted
-        # days, substitute the most recent valid day's grid — a 1-6 day
-        # forcing repeat is an acceptable cost vs aborting the whole run.
-        try:
-            grid = var[t0:t0 + ndays, :, :]  # (ndays, 360, 720)
-            if hasattr(grid, "filled"):
-                grid = grid.filled(np.nan)
-            grid = np.asarray(grid, dtype=np.float64)
-        except Exception:
-            print(f"  ! {v} month read failed for {year}-{month:02d}; "
-                  f"falling back to day-by-day with substitution",
-                  flush=True)
-            grid = np.zeros((ndays, 360, 720), dtype=np.float64)
-            last_good = None
-            for d in range(ndays):
-                try:
-                    day = var[t0 + d, :, :]
-                    if hasattr(day, "filled"):
-                        day = day.filled(np.nan)
-                    grid[d, :, :] = np.asarray(day, dtype=np.float64)
-                    last_good = grid[d, :, :].copy()
-                except Exception as de:
-                    if last_good is None:
-                        # No prior good day in this month; try next valid day
-                        for d2 in range(d + 1, ndays):
-                            try:
-                                day2 = var[t0 + d2, :, :]
-                                if hasattr(day2, "filled"):
-                                    day2 = day2.filled(np.nan)
-                                last_good = np.asarray(day2, dtype=np.float64)
-                                break
-                            except Exception:
-                                pass
-                        if last_good is None:
-                            raise RuntimeError(
-                                f"GSWP3 {v} {year}-{month:02d} entirely "
-                                f"unreadable") from de
-                    grid[d, :, :] = last_good
-                    print(f"    day {d+1}: substituted last good", flush=True)
+        # Read full grid for ndays then extract per cell (avoids netCDF4
+        # outer-product indexing which gives shape (ndays, ncells, ncells)
+        # instead of (ndays, ncells))
+        grid = ds.variables[v][t0:t0 + ndays, :, :]  # (ndays, 360, 720)
+        if hasattr(grid, "filled"):
+            grid = grid.filled(np.nan)
         # Cast to float64: GSWP3 is stored as float32; using float32 here
         # corrupts subtractive cancellations downstream (e.g. psurf*(1-siga)
         # in canini → za off by ~2e-4 → tropical Δfseng of ~0.27 W/m²).
+        grid = np.asarray(grid, dtype=np.float64)
         data = grid[:, js, is_]   # advanced indexing: (ndays, ncells)
         out[v] = data
         ds.close()
