@@ -12,6 +12,7 @@ dist/
 
 # Virtual environments
 verify/.venv/
+verify/.venv_gpu/
 python-port/.venv/
 .venv/
 venv/
