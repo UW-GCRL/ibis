@@ -709,6 +709,26 @@ def timestep_body(
                  + zheat * rwork_inv_dt)
     solg_avg = (1.0 - fiold) * rad.solg
     fvapg_avg = (1.0 - fiold) * canopy_result.fvapg
+    # === Finding #27 fix ===
+    # Physical bound on ground vapor flux. fvapg_avg comes out of the
+    # canopy 3-iteration energy-balance loop, which DIVERGES in the
+    # dry+hot+full-canopy regime (e.g. Yemen highlands lat 13.5-14°N
+    # lon 44-44.5°E, only visible at sub-degree resolution): the iteration
+    # produces fvapg ≈ 0.26 kg/m²/s = ~940 mm/hr of evaporation, which is
+    # physically impossible (max realistic evap ≈ 1 mm/hr ≈ 3e-4 kg/m²/s).
+    # The fictitious flux drives wpud to -60 kg/m² then to +200 kg/m² in
+    # subsequent timesteps, which through fwpud injects fictitious water
+    # into the top soil layer and triggers the NaN cascade documented in
+    # STATUS.md finding #27.
+    #
+    # This clamp guards the puddle/soil water balance against the upstream
+    # divergence. Maximum physical rate ≈ 1e-3 kg/m²/s = 3.6 mm/hr (extreme
+    # but possible for hot dry windy desert; condensation symmetric).
+    # Verified at 117-cell verification grid: typical fvapg_avg < 1e-4,
+    # so this clamp does NOT fire on any cell exercised by the 46-yr
+    # F77↔JAX lockstep verification.
+    FVAPG_PHYS_MAX = 1.0e-3  # kg/m²/s (3.6 mm/hr of evap or condensation)
+    fvapg_avg = jnp.clip(fvapg_avg, -FVAPG_PHYS_MAX, FVAPG_PHYS_MAX)
     # Combined rain + snowmelt reaching soil
     raing_nf = (1.0 - fiold) * raing_total
     smelt_rate = smelt * rwork_inv_dt
