@@ -697,17 +697,24 @@ GPU pipeline drops the in-loop F77 lockstep (F77 wrapper is CPU-only, ctypes rou
 
 ## What's next
 
-Easy-ish: all done.
+**All physics sections completed.** Every entry in the section dashboard at the top of this file is ✅ PASS. The four "hard" sections that this list previously called out are all done:
 
-Two-layer pattern for stochastic sections (introduced for `weather`):
-- **Layer 1:** F77 ↔ reference Python that uses our bit-exact ran2 port and literally transcribes F77. Yields bit-exact verification + reveals algorithmic findings cleanly.
-- **Layer 2:** reference Python ↔ JAX. Distributional / SANITY (the JAX restructure changes RNG consumption order, so bit-exact isn't possible).
+- ✅ **stomata main** (Farquhar / Ball-Berry, monolithic 950-line F77) — 34 vars × 2 scenarios, raw ci/cs/gs at machine precision, canopy-scaled at ~1e-8 (FP accumulation).
+- ✅ **canopy_exchange** (canini, fstrat, impexp, impexp2, turcof, turvap) — fully covered with the two intentionally-unreachable turvap branches noted.
+- ✅ **biogeochem** (CENTURY soilbgc) — 23 vars × 3 scenarios incl. yearstart + flipped-y for branch coverage.
+- ✅ **full lsxmain time-march** (composes everything) — 28/28 fields bit-exact single-step base + 10/10 random perturbations PASS, 14 JAX bugs fixed via integration testing.
+
+Beyond per-section verification, the port has also been validated at multi-decadal scales:
+
+- ✅ **46-year global GSWP3 F77↔JAX lockstep** (1951-1996, 117 cells × 8760 hr ≈ 48M cell-step comparisons): median canopy.tu drift **3 µK**, p99 20 mK, **zero NaN** anywhere.
+- ✅ **GPU port at RTX 4090**: full 50-yr completes in 222 min; year-1996 GPU vs CPU canopy.tu **bit-exact (median 0 K)**, worst single-cell drift 351 µK on soil.tsoi.
+- 🟢 **200-yr spin-up + 0.5° production runs** in progress (forcing-cycle support + bit-exact vectorized disagg in place).
+
+What remains is engineering, not physics verification: scaling to 0.5° GSWP3, output formats, downstream science workflows.
+
+For reference, the two-layer pattern that worked for the stochastic `weather` section was:
+- **Layer 1:** F77 ↔ reference Python that uses the bit-exact ran2 port and literally transcribes F77. Yields bit-exact verification + reveals algorithmic findings cleanly.
+- **Layer 2:** reference Python ↔ JAX. Distributional / sanity (the JAX restructure changes RNG consumption order, so bit-exact isn't possible).
 - Pattern proven on `daily`: 234 tests, 0 ULP, found algorithmic finding #5.
 
-Hard (~2–5 hr each):
-- stomata main (Farquhar/Ball-Berry, monolithic 950-line F77 with 8 common-block includes)
-- canopy_exchange (turcof + turvap, coupled implicit energy balance)
-- biogeochem (CENTURY pools)
-- full lsxmain time-march (composes everything)
-
-Each new section: build wrapper following the pattern, run with framework, add a dashboard row above, append to `section_summary.csv`. Detailed numbers go in `verify/<section>/results/*.csv` — keep this STATUS narrative tight.
+If a future stochastic section needs verification (e.g. revising the disturbance / fire submodel), reuse this pattern: build the wrapper, add a dashboard row at the top, append to `verify/results/section_summary.csv`, detailed numbers go in `verify/<section>/results/*.csv`.
