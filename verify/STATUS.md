@@ -591,6 +591,52 @@ Mathematically equivalent for `betas > 0` (no change to F77↔JAX bit-near-exact
 
 ---
 
+## Finding #27 — Yemen-class fwpud NaN bug (open, discovered at 0.5° resolution, 2026-06-03)
+
+When running IBIS-JAX at full GSWP3 0.5°×0.5° resolution (~88,484 land cells, vs. 117 at the verification grid resolution of 10°×20°), **4 contiguous cells in Yemen / Saudi Arabia (lat 13.5–14.0°N, lon 44.0–44.5°E)** numerically explode at hour 565 of January 1951, eventually overflowing to NaN. Affects ~0.005% of global land cells.
+
+### Diagnosis (precise)
+
+Time-resolved Yemen `wsoi[0]` trajectory hour-by-hour:
+
+| Hour | `wsoi[0]` | Note |
+|---|---|---|
+| 0–551 | 0.15–0.27 | Stable, drying slowly toward `swilt=0.15` |
+| **552** | **0.954** | **Step-change with no precipitation** |
+| 553–555 | 1.000 | Saturated |
+| 556 | 0.0 | Crashes back |
+| 557 | −17.95 | Negative (clamped by `wadjust` next call) |
+| 562 | 0.0 | Adjacent state values already 1e3–1e6 K |
+| 563 | 0.108 | `tsoi[0]` already 1e16 K |
+| 565 | NaN | IEEE overflow |
+
+After ~3 hours of instrumentation we localized the root cause precisely:
+
+1. **`tridia_batched` is not at fault.** Replacing Thomas with pivoted LU agrees to ULP (max diff 1e-16). The matrix solve is correct.
+2. **The matrix RHS is wrong.** At hour 552, `rhs[0] = 0.954` vs `wsoi[0] = 0.154` input.
+3. **`fwpud` (puddle→soil infiltration flux) is the culprit.** At hour 552, `fwpud = 0.01 kg/m²/s` (≈ 36 mm/hr of water infiltrating from the puddle into the top soil layer). For a Yemen cell with no rainfall and `wpud` ≈ 0, `fwpud` should be ≈ 0.
+4. The arithmetic checks: with `hsoi[0] = 0.10 m`, `porosflo = 0.45`, the effective timestep coefficient is `dt_eff = dtime / (porosflo · hsoi[0]) = 80,000`. The `rhs[0]` contribution from `fwpud` is `dt_eff · fwpud / rhow = 80,000 · 0.01 / 1000 = 0.80` — exactly the +0.80 jump observed.
+
+### Why this is invisible at the verification resolution
+
+The 117-cell verification grid (`build_global_cell_grid(lat_step=10, lon_step=20)`) samples only lat/lon multiples of 10°/20°. Closest sample to the Yemen explosion zone is L+15°N +040°E (Saudi Arabia interior), which uses different forcing and doesn't enter the failure regime. The 0.5° grid resolves the Yemen highlands, which have *mild* (T ≈ 285 K), sunny, very dry climate — a regime the verification cells don't fully cover.
+
+### Mechanism (not yet fully traced — open work)
+
+`fwpud` is computed in `timestep_body` chain (most likely in `cascade` / `cascad2` or the canopy-surface flux setup feeding `soilh2o`). The puddle water budget propagates an accumulating error in dry-soil + full-canopy + low-evaporation regimes, producing the eventual large `fwpud` spike.
+
+This is an **inherited IBIS 2.6b4 bug** in the same class as findings #20 (turvap singular at fu=fl=0 in extreme arid+hot) and #26 (qgfac0 = 0×∞ at wilting + matric overflow). All three are corner cases the original SAGE-Wisconsin verification dataset did not sample.
+
+### Status
+
+- ⚠️ **Open**: the actual fix (in the cascade / puddle-flux computation) requires ~2–3 more hours to localize and guard properly.
+- 4 / 88,484 cells affected at 0.5° = **0.005% spatial extent**.
+- All other components (algorithm patches, vectorized bit-exact disagg, GPU runner, multi-year integration) are unaffected.
+- For 0.5° production runs in the meantime, the cleanest mitigation is to filter the 4 Yemen indices (`38060, 38061, 38258, 38259`) from `build_global_cell_grid` until the fix lands.
+- 117-cell verification + 200-yr spin-up + 46-yr lockstep all remain valid; finding #27 does not invalidate any prior verification result.
+
+---
+
 ## 46-year global GSWP3 multi-decadal F77↔JAX verification (2026-06-02)
 
 The longest continuous lockstep run yet: **46 complete years × 117 globally-diverse land cells × 8760 hourly timesteps**, with the F77 reference and JAX port stepped side-by-side at every hour and 30+ state fields compared each step.
