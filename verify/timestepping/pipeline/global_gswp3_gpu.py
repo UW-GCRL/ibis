@@ -4,6 +4,14 @@ Loads GSWP3 forcing for all 117 land cells in one process, runs the JAX
 timestep_body inside jax.lax.scan (compiled once, executed per month),
 saving per-year state checkpoints and monthly stats.
 
+CRITICAL: diurnal disaggregation is done with NUMPY (bit-exact to the CPU
+lockstep runner global_gswp3_multiyear.py), then the precomputed hourly
+forcing is passed as a (n_hours, n_cells) stack into the JIT'd scan. This
+prevents ULP-level differences in jnp.sin/cos/arccos (XLA libm) from
+amplifying via freeze/thaw discontinuities over 46 years (an earlier
+JAX-native disagg gave ~16 K median divergence vs CPU at year 46 from this
+mechanism — same amplification class as finding #25).
+
 Projected speed: ~10 min for 50 yr × 117 cells on RTX 4090 FP64
 (vs ~58 hr per CPU batch × 24 batches = much more on CPU).
 
@@ -40,8 +48,18 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+# CRITICAL: import verify_lsxmain FIRST. It applies two monkey patches at
+# import time that are required for F77↔JAX equivalence:
+#   - ibis.physics.radiation.twoset → _twoset_f77_ztab (finding #1)
+#   - ibis.physics.interception.twet3 → _patched_twet3 (finding #4)
+# These patches change the ALGORITHM used by timestep_body. Without this
+# import, the GPU runner uses unpatched algorithms — physically valid but
+# diverging from the CPU lockstep run by ~1e-5 K/month, which freeze/thaw
+# discontinuities amplify to ~16 K over 46 years (observed in v2 run).
+from verify.timestepping import verify_lsxmain as _vl  # noqa: F401 (side effects only)
+
 from verify.timestepping.pipeline.global_gswp3_test import (
-    build_global_cell_grid, read_gswp3_month,
+    build_global_cell_grid, read_gswp3_month, diurnal_disaggregate,
 )
 # Reuse F77-side defs for the synthetic-template index → JAX initial state
 from tests.f2py.synthetic_inputs import (
@@ -174,51 +192,44 @@ def setup_jax_state_for_n(npoi: int, soil_i, snow_i, atm_i, veg_i):
 
 
 # ===========================================================================
-# JAX-native diurnal disaggregation
+# Precompute hourly forcing in numpy (bit-exact to CPU lockstep runner)
 # ===========================================================================
 
-def jax_diurnal_disaggregate(day_data, hour, jday, lat_rad):
-    """Hourly atmospheric forcing from daily means + lat + hour-of-day.
-    Pure JAX so it lives inside the JIT'd scan body.
+def precompute_hourly_forcing_numpy(day_np, lats, jday_start):
+    """Build the full month of hourly atm forcing in numpy, using the EXACT
+    same diurnal_disaggregate as the CPU lockstep runner. Returns a dict of
+    (n_hours, n_cells) or (n_hours, n_cells, n_band) arrays.
 
-    day_data: dict of (n_cells,) arrays
-    hour:    scalar (float, 0-23)
-    jday:    scalar (int, 1-366)
-    lat_rad: (n_cells,) latitude in radians
+    Bit-exact equivalence with CPU lockstep is critical: any libm difference
+    (e.g. JAX-XLA sin vs numpy sin) amplifies via freeze/thaw discontinuities
+    over multi-decadal runs (finding #25 mechanism).
     """
-    orbit = 2.0 * jnp.pi * jday / 365.2425
-    decl = (0.006918 - 0.399912 * jnp.cos(orbit) + 0.070257 * jnp.sin(orbit)
-            - 0.006758 * jnp.cos(2*orbit) + 0.000907 * jnp.sin(2*orbit)
-            - 0.002697 * jnp.cos(3*orbit) + 0.001480 * jnp.sin(3*orbit))
-    ha = (hour - 12.0) * (2 * jnp.pi / 24.0)
-    coszen = jnp.maximum(0.0,
-                          jnp.sin(lat_rad) * jnp.sin(decl)
-                          + jnp.cos(lat_rad) * jnp.cos(decl) * jnp.cos(ha))
-
-    cos_h0 = jnp.clip(-jnp.tan(lat_rad) * jnp.tan(decl), -1.0, 1.0)
-    h0 = jnp.arccos(cos_h0)
-    mean_cz = (h0 * jnp.sin(lat_rad) * jnp.sin(decl)
-               + jnp.cos(lat_rad) * jnp.cos(decl) * jnp.sin(h0)) / jnp.pi
-    mean_cz = jnp.maximum(mean_cz, 1e-8)
-    sw_now = jnp.maximum(0.0, day_data["rsds"] * coszen / mean_cz)
-    diffuse_frac = 0.3 + 0.4 * (1.0 - coszen)
-    solar_dir = sw_now * (1.0 - diffuse_frac)
-    solar_dif = sw_now * diffuse_frac
-    solad = jnp.stack([0.5 * solar_dir, 0.5 * solar_dir], axis=-1)
-    solai = jnp.stack([0.5 * solar_dif, 0.5 * solar_dif], axis=-1)
-
-    ta = day_data["tas"] + 5.0 * jnp.sin((hour - 8.0) * 2 * jnp.pi / 24.0)
-    qa = jnp.maximum(day_data["huss"], 1e-4)
-    ua = jnp.maximum(day_data["wind"], 0.5)
-    psurf = day_data["ps"]
-    fira  = day_data["rlds"]
-    raina = jnp.where(ta >= 273.16, day_data["pr"], 0.0)
-    snowa = jnp.where(ta <  273.16, day_data["pr"], 0.0)
-    return {
-        "ta": ta, "qa": qa, "ua": ua, "psurf": psurf, "coszen": coszen,
-        "solad": solad, "solai": solai, "fira": fira,
-        "raina": raina, "snowa": snowa,
+    n_days = day_np["tas"].shape[0]
+    n_hours = n_days * 24
+    n_cells = lats.shape[0]
+    out = {
+        "ta":     np.zeros((n_hours, n_cells), dtype=np.float64),
+        "qa":     np.zeros((n_hours, n_cells), dtype=np.float64),
+        "ua":     np.zeros((n_hours, n_cells), dtype=np.float64),
+        "psurf":  np.zeros((n_hours, n_cells), dtype=np.float64),
+        "coszen": np.zeros((n_hours, n_cells), dtype=np.float64),
+        "solad":  np.zeros((n_hours, n_cells, 2), dtype=np.float64),
+        "solai":  np.zeros((n_hours, n_cells, 2), dtype=np.float64),
+        "fira":   np.zeros((n_hours, n_cells), dtype=np.float64),
+        "raina":  np.zeros((n_hours, n_cells), dtype=np.float64),
+        "snowa":  np.zeros((n_hours, n_cells), dtype=np.float64),
     }
+    for day_idx in range(n_days):
+        jday = jday_start + day_idx
+        day_data = {k: v[day_idx] for k, v in day_np.items()}
+        for hour in range(24):
+            atm = diurnal_disaggregate(day_data, float(hour), jday, lats)
+            t = day_idx * 24 + hour
+            for k in ("ta", "qa", "ua", "psurf", "coszen", "fira", "raina", "snowa"):
+                out[k][t] = atm[k]
+            out["solad"][t] = atm["solad"]
+            out["solai"][t] = atm["solai"]
+    return out
 
 
 def inject_atm(state, atm):
@@ -238,28 +249,21 @@ def inject_atm(state, atm):
 # ===========================================================================
 
 @eqx.filter_jit
-def run_one_month(state, consts, params, day_stack, lat_rad, jday_start):
-    """Scan over n_days*24 hourly timesteps within one month.
+def run_one_month(state, consts, params, hourly):
+    """Scan over n_hours = n_days*24 hourly timesteps with precomputed forcing.
 
-    day_stack: dict of (n_days, n_cells) JAX arrays.
-    lat_rad:   (n_cells,) latitude in radians.
-    jday_start: scalar, Julian day of first day of month.
-    Returns: final state after the month, plus (nan_count, oor_count, min_T, max_T).
+    hourly: dict with each var stacked along axis 0:
+            ta, qa, ua, psurf, coszen, fira, raina, snowa: (n_hours, n_cells)
+            solad, solai:                                  (n_hours, n_cells, 2)
     """
-    n_days = day_stack["tas"].shape[0]
-    n_steps = n_days * 24
+    n_steps = hourly["ta"].shape[0]
 
-    def body(carry, step_idx):
+    def body(carry, t):
         state, nan_c, oor_c = carry
-        day_idx = step_idx // 24
-        hour    = (step_idx % 24).astype(jnp.float64)
-        jday    = jday_start + day_idx
-        day_data = {k: v[day_idx] for k, v in day_stack.items()}
-        atm = jax_diurnal_disaggregate(day_data, hour, jday, lat_rad)
+        atm = {k: v[t] for k, v in hourly.items()}
         state = inject_atm(state, atm)
         state = timestep_body(state, consts, params, DTIME)
 
-        # Track NaN/oor without leaking host syncs
         nan_now = (jnp.isnan(state.canopy.tu).any()
                    | jnp.isnan(state.soil.tg).any()
                    | jnp.isnan(state.soil.wsoi).any())
@@ -338,13 +342,37 @@ def restore_checkpoint(ckpt_path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--year-start", type=int, default=1951)
-    ap.add_argument("--year-end",   type=int, default=2000)
+    ap.add_argument("--year-start", type=int, default=1951,
+                    help="First MODEL year (e.g. 1 for spin-up, 1951 for hist).")
+    ap.add_argument("--year-end",   type=int, default=2000,
+                    help="Last MODEL year (inclusive).")
+    ap.add_argument("--forcing-cycle-start", type=int, default=None,
+                    help="If set, forcing cycles within [cycle-start, cycle-end]."
+                         " Otherwise forcing-year = model-year.")
+    ap.add_argument("--forcing-cycle-end",   type=int, default=None,
+                    help="See --forcing-cycle-start.")
     ap.add_argument("--output-root", type=str,
                     default="/shared/nas2/Hangkai/ibis/verify_outputs")
+    ap.add_argument("--output-name", type=str, default=None,
+                    help="Output dir name (default = gpu_<start>_<end>).")
     ap.add_argument("--no-resume", action="store_true",
                     help="Start fresh from year-start even if a checkpoint exists.")
     args = ap.parse_args()
+
+    # Determine forcing-year function
+    if args.forcing_cycle_start is not None:
+        if args.forcing_cycle_end is None:
+            raise ValueError("--forcing-cycle-end required with --forcing-cycle-start")
+        cs, ce = args.forcing_cycle_start, args.forcing_cycle_end
+        cycle_len = ce - cs + 1
+        def forcing_year_for(model_year):
+            # model-year-start maps to cycle-start
+            return cs + ((model_year - args.year_start) % cycle_len)
+        print(f"Forcing cycle: model-years {args.year_start}-{args.year_end} "
+              f"→ cycling forcing {cs}-{ce} ({cycle_len}-yr period)",
+              flush=True)
+    else:
+        forcing_year_for = lambda my: my  # noqa: E731 (1:1 mapping)
 
     print("=" * 80, flush=True)
     print(f"GPU multi-year run  | JAX backend: {jax.default_backend()}  "
@@ -353,7 +381,8 @@ def main():
           f"({args.year_end - args.year_start + 1} yr)", flush=True)
     print("=" * 80, flush=True)
 
-    output_dir = Path(args.output_root) / f"gpu_{args.year_start}_{args.year_end}"
+    output_name = args.output_name or f"gpu_{args.year_start}_{args.year_end}"
+    output_dir = Path(args.output_root) / output_name
     output_dir.mkdir(parents=True, exist_ok=True)
     ckpt_dir = output_dir / "checkpoints"
     stats_dir = output_dir / "per_month_stats"
@@ -397,19 +426,23 @@ def main():
         print(f"\n  --- year {year} ({year - args.year_start + 1}/"
               f"{args.year_end - args.year_start + 1}) ---", flush=True)
         for month in range(1, 13):
+            fy = forcing_year_for(year)
             try:
-                day_np = read_gswp3_month_with_retry(year, month, cells)
+                day_np = read_gswp3_month_with_retry(fy, month, cells)
             except RuntimeError as e:
                 print(f"  !! FATAL: {e}", flush=True)
                 save_checkpoint(ckpt_dir, year - 1, state)
                 sys.exit(1)
-            day_stack = {k: jnp.asarray(v) for k, v in day_np.items()}
-            jday_start = (date(year, month, 1) - date(year, 1, 1)).days + 1
-            n_days = day_stack["tas"].shape[0]
+            # jday based on forcing year so Feb 29 in leap forcing years is handled
+            jday_start = (date(fy, month, 1) - date(fy, 1, 1)).days + 1
+            n_days = day_np["tas"].shape[0]
+
+            # Precompute hourly forcing with NUMPY (bit-exact to CPU lockstep)
+            hourly_np = precompute_hourly_forcing_numpy(day_np, lats_np, jday_start)
+            hourly_jax = {k: jnp.asarray(v) for k, v in hourly_np.items()}
 
             t0 = time.time()
-            state, nan_c, oor_c = run_one_month(
-                state, consts, params, day_stack, lat_rad, jnp.int32(jday_start))
+            state, nan_c, oor_c = run_one_month(state, consts, params, hourly_jax)
             jax.block_until_ready(state.atm.ta)
             dt = time.time() - t0
             nan_c = int(nan_c); oor_c = int(oor_c)
