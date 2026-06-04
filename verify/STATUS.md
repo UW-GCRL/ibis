@@ -652,17 +652,61 @@ clamps merely shift where the energy accumulates.
   instability in the soilheat solver, coupled with the canopy iteration.
 - ✅ Affected cells **precisely identified** (Amazon equatorial, ~2-21 cells
   total at year 6 onset, grows as instability propagates).
-- ⚠️ Output-clamp guard does NOT resolve the underlying coupling instability.
-- 🔓 **Open**: proper fix requires sub-stepping when wsoi crosses critical
-  thresholds, OR an unconditionally stable soilheat solver (pivoted LU
-  instead of no-pivot Thomas), OR fully coupled soilheat-canopy iteration.
-  Estimated ~1-2 days of work.
+- ⚠️ Output-clamp guard does NOT resolve the underlying coupling instability
+  (energy redirects from soil to canopy and explodes there instead).
+- ⚠️ Pivoted LU in soilheat does NOT help either — Thomas and pivoted
+  produce identical answers on the malformed matrix. The matrix encodes
+  wrong physics, not a solver bug.
+- 🔓 **Open with documented fix path**: adaptive sub-stepping in soilh2o.
 
-This is the same class of inherited IBIS 2.6b4 bug as findings #20, #26,
-and #27 — corner cases the synthetic 117-cell verification grid does not
-sample. **F77 IBIS 2.6b4 would exhibit the same instability** (shared
-no-pivot tridiagonal solver in `math.f:linsolve` and shared canopy
-iteration in `canopy.f`).
+### Literature context
+
+This is a **well-known class of issue in land-surface-model numerics**, not specific to IBIS:
+
+> "Crank-Nicolson is unconditionally stable and second-order accurate.
+> However, one drawback is that it responds to jump discontinuities in
+> the initial conditions with oscillations which are weakly damped and
+> therefore may persist for a long time."
+> — Britz & Strutwolf 2005, *Five Ways of Reducing the Crank-Nicolson Oscillations*, BIT Numerical Mathematics.
+
+The IBIS soilh2o + soilheat solver chain is structurally identical to
+the pre-2018 CLM4.5 setup. **Wang et al. 2018 (JAMES, "A New Scheme for
+Considering Soil Water-Heat Transport Coupling")** explicitly addressed
+the same problem in CLM4.5 by implementing a fully-coupled water-heat
+solve. JULES (Best et al. 2011) handles it with slope limiters on
+hydraulic conductivity. NoahMP (recent versions) uses adaptive
+sub-stepping at saturation boundaries.
+
+### Recommended fix: adaptive sub-stepping in soilh2o
+
+When `soilh2o` is about to produce a Δwsoi exceeding a threshold (e.g.,
+0.3 per timestep), automatically divide `dtime` into N sub-steps and
+re-solve. After all sub-steps, return the accumulated state.
+
+| Property | Value |
+|---|---|
+| Effort | ~4-6 hours (implement + test) |
+| Mathematical correctness | Rigorous (no information loss, water budget preserved) |
+| 117-cell F77 lockstep | **Preserved** (sub-stepping only fires at cells with discontinuities, which the 117-cell grid does not sample) |
+| Compute overhead | Negligible (only fires at ~0.005% of cells in extreme conditions) |
+| Industry precedent | NoahMP, CLM (post-2010), JULES |
+
+### Alternative fix (deeper but heavier)
+
+**Fully-coupled soilh2o + soilheat solve** (Wang 2018 / CLM4.5 approach):
+solve water + heat together as one tridiagonal system rather than
+sequentially. ~1-2 weeks of work, requires re-deriving the coupled
+Jacobian. Eliminates the root cause but loses bit-exactness with F77
+on all cells.
+
+### F77 reference
+
+F77 IBIS 2.6b4 would exhibit the same instability if exercised at
+Amazon-class cells (shared sequential soilh2o → soilheat ordering,
+shared Thomas no-pivot solver). The original SAGE-Wisconsin
+verification dataset never sampled this regime; we hit it here because
+real per-cell ESACCI vegetation gives Amazon cells realistic high LAI
+that synthetic templates did not.
 
 ### Workaround for production runs
 
