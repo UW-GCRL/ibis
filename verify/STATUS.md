@@ -591,6 +591,95 @@ Mathematically equivalent for `betas > 0` (no change to F77↔JAX bit-near-exact
 
 ---
 
+## Finding #28 — Amazon-class soilheat / canopy coupling instability (DIAGNOSED, OPEN, 2026-06-04)
+
+When running at full GSWP3 0.5° resolution with **real per-cell initial
+conditions** (HWSD soil + ESACCI vegetation, via `--real-ic` flag), a new
+NaN class emerges that the synthetic-IC spin-up did not exhibit:
+
+**Affected cells**: 2+ contiguous cells in the **Amazon basin near the
+equator** (cell index 32890-32891, lat +0.5°N, lon −54.0°/-53.5°W) —
+Brazilian Amazon, on the Atlantic side.
+
+**Timing**: synthetic-IC 200-yr was clean throughout. Real-IC starts
+clean, runs through years 1-5 + January-March of year 6 with no issues,
+then **explodes at year 6 month 4 (April), day 4, hour 19** (model hour
+2252 of year 6).
+
+### Hour-by-hour trace
+
+Hour 2244 onward shows **classic exponential-growth numerical instability**:
+
+| Hour | tg (K) | Δtg / step | Note |
+|---|---|---|---|
+| 2244 | 296.5 | — | stable equilibrium |
+| 2246 | 299.5 | +3 | oscillation seeded |
+| 2248 | 303.4 | +5 | growing |
+| 2249 | 289.2 | −14 | flip |
+| 2250 | 311.9 | +23 | growing |
+| 2251 | 275.9 | −36 | flip |
+| **2252** | **420.9** | **+145** | **catastrophe** |
+
+Amplitude doubles per timestep — textbook signature of an implicit-solver
+stability violation (CFL-like condition not satisfied at the new operating
+point).
+
+### Trigger conditions
+
+- **wsoi[0] rapidly saturates to 1.0** (hours 2233-2241, from a rain event)
+- Real ESACCI vegetation gives high LAI (~6, tropical evergreen) — this
+  changes the canopy-soil heat transfer coefficients relative to the
+  synthetic template (LAI=0.5).
+- High equatorial solar input + April afternoon
+- Combined: the implicit soilheat solver matrix has eigenvalues outside
+  the stability region for the new wsoi=1, high-LAI regime.
+
+### Attempted defensive fix (insufficient)
+
+Clamping `|Δtsoi|` and `|Δtg|` per timestep at 15 K (matching finding #27's
+fvapg clamp pattern) DOES contain the soil temperature explosion — it
+stays bounded at 304 K instead of 420 K. **BUT the unconstrained energy
+gets redirected into the canopy iteration**, which then explodes:
+canopy.tu reaches 5,492 K → 1.15×10⁹ K → IEEE NaN within ~5 more hours.
+
+The underlying instability is **the coupling between soilheat and the
+canopy 3-iteration loop**, not just a single variable's drift. Output
+clamps merely shift where the energy accumulates.
+
+### Status
+
+- ✅ Mechanism **precisely characterized**: per-step amplitude-doubling
+  instability in the soilheat solver, coupled with the canopy iteration.
+- ✅ Affected cells **precisely identified** (Amazon equatorial, ~2-21 cells
+  total at year 6 onset, grows as instability propagates).
+- ⚠️ Output-clamp guard does NOT resolve the underlying coupling instability.
+- 🔓 **Open**: proper fix requires sub-stepping when wsoi crosses critical
+  thresholds, OR an unconditionally stable soilheat solver (pivoted LU
+  instead of no-pivot Thomas), OR fully coupled soilheat-canopy iteration.
+  Estimated ~1-2 days of work.
+
+This is the same class of inherited IBIS 2.6b4 bug as findings #20, #26,
+and #27 — corner cases the synthetic 117-cell verification grid does not
+sample. **F77 IBIS 2.6b4 would exhibit the same instability** (shared
+no-pivot tridiagonal solver in `math.f:linsolve` and shared canopy
+iteration in `canopy.f`).
+
+### Workaround for production runs
+
+Until a proper fix lands:
+- **`--real-ic` flag is best avoided** for now (use synthetic templates).
+- The **synthetic-IC 200-yr 0.5° spin-up completed cleanly** (200 yr × 88K
+  cells × 8760 hr = 155 billion cell-step batches, zero NaN, zero oor) and
+  serves as a valid demonstration of the GPU port at scale.
+- For real-IC science runs, the Amazon cells (and possibly a handful of
+  related equatorial wet-soil + high-LAI cells) would need to be filtered
+  or the soilheat solver hardened.
+
+Diagnostic scripts: `/tmp/find_finding28.py`, `/tmp/drill_finding28.py`
+(snapshot in the conversation; not committed pending fix).
+
+---
+
 ## Finding #27 — Yemen-class canopy-iteration fvapg divergence (FIXED, 2026-06-03)
 
 When running IBIS-JAX at full GSWP3 0.5°×0.5° resolution (~88,484 land cells, vs. 117 at the verification grid resolution of 10°×20°), **4 contiguous cells in Yemen / Saudi Arabia (lat 13.5–14.0°N, lon 44.0–44.5°E)** numerically explode at hour 565 of January 1951, eventually overflowing to NaN. Affects ~0.005% of global land cells.
