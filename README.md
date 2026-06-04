@@ -128,6 +128,94 @@ Setup: separate `verify/.venv_gpu/` venv with `jax[cuda12]==0.10.0` (does
 not touch the CPU lockstep venv). Benchmark script:
 [`verify/timestepping/pipeline/bench_gpu_timestep.py`](verify/timestepping/pipeline/bench_gpu_timestep.py).
 
+### Global 0.5° GPU spin-up runs (2026-06)
+
+After the 46-year F77↔JAX lockstep verification established model
+correctness, the GPU port was scaled up to **full global GSWP3
+resolution (0.5° × 0.5°, 88,484 land cells)** for production
+spin-up runs. The GPU runner is
+[`verify/timestepping/pipeline/global_gswp3_gpu.py`](verify/timestepping/pipeline/global_gswp3_gpu.py)
+with forcing-cycle support for spin-up (`--forcing-cycle-start/end`)
+and bit-exact vectorized disaggregation
+([`real_state_builder.py`](verify/timestepping/pipeline/real_state_builder.py)
+for real per-cell ICs).
+
+| Run | Resolution | Cells | Wall-clock | Per-year (steady-state) |
+|---|---|---|---|---|
+| **0.5° × 200-yr (synthetic ICs)** | 0.5° | 88,484 | ~11 hr on RTX 4090 | ~195 sec/yr |
+| **0.5° × 200-yr (real ICs)** | 0.5° | 88,484 | ~11 hr | ~195 sec/yr |
+
+Both spin-ups cycle GSWP3 1901-2000 forcing twice (200 model years),
+starting from cold-start initial conditions. Across **155 billion
+cell-step batches** (88,484 cells × 200 yr × 8,760 hr), the model
+runs cleanly with zero NaN or out-of-range events globally.
+
+### Finding #27 — inherited IBIS 2.6b4 NaN bug at sub-degree resolution
+
+Scaling to 0.5° exposed a new corner case the 117-cell verification
+grid never sampled: **4 contiguous cells in Yemen highlands
+(13.5–14°N, 44–44.5°E)** numerically exploded at hour 565 of January
+1951. Hour-by-hour instrumentation localized the cause to the
+canopy 3-iteration energy-balance loop, which produces
+`fvapg_avg ≈ 0.26 kg/m²/s` (≈ 940 mm/hr of ground evaporation —
+physically impossible) in the dry+hot+full-canopy regime. The
+fictitious flux propagates through the puddle dynamics (`wpud`
+jumps from 0.02 to ≥200 kg/m²) into `soilh2o`, driving the
+moisture solver to non-physical values, then cascading to
+1e16 K and IEEE NaN within ~13 hours of simulation time.
+
+**Fix**: clamp `fvapg_avg ∈ [-1e-3, 1e-3] kg/m²/s` (≈ 3.6 mm/hr,
+the maximum physically realistic rate) at
+[`loops.py:711`](python-port/ibis/timestepping/loops.py#L711),
+immediately after the canopy iteration. The clamp does NOT fire on
+any cell in the 117-cell verification grid across 46 years
+(`fvapg_avg` < 1e-4 there), so F77↔JAX bit-equivalence at the
+verification level is preserved. At Yemen-class cells, the clamp
+constrains output to a physically realistic range; F77 IBIS 2.6b4
+exhibits the same algorithmic instability and would NaN at the same
+cells if exercised.
+
+This is the same class of inherited IBIS 2.6b4 bug as findings #20
+(turvap singular at `fu=fl=0` in extreme arid+hot) and #26 (`qgfac0
+= 0 × ∞` at wilting + matric overflow) — all three are corner
+cases the original SAGE-Wisconsin verification dataset never
+sampled. See [`verify/STATUS.md`](verify/STATUS.md) finding #27 for
+full instrumentation trace.
+
+### Real per-cell initial conditions (HWSD + ESACCI)
+
+For production-quality science runs, replacing the 5 synthetic
+latitude-band IC templates with real per-cell datasets is wired in
+via the `--real-ic` flag in `global_gswp3_gpu.py`. Two datasets
+already on the chenlab NAS:
+
+- **HWSD soita.nc** — soil sand/clay percentages per cell, 6 layers,
+  exactly at 0.5°. Drives IBIS's texture lookup
+  ([`ibis.io.soil_init.compute_soil_properties`](python-port/ibis/io/soil_init.py))
+  to produce per-cell porosity, hydraulic conductivity, matric
+  suction, field capacity, wilting point, etc.
+- **ESACCI Land Cover (1992-2020, annual)** — dominant vegetation
+  type per cell, used by
+  [`ibis.io.veg_init.initialize_vegetation`](python-port/ibis/io/veg_init.py)
+  to produce realistic `fu`, `fl`, LAI, SAI, root distribution,
+  per-PFT biomass.
+
+Verified at Yakutsk (62°N, 130°E):
+
+| Field | Synthetic template | Real (HWSD + ESACCI) | Reality |
+|---|---|---|---|
+| `fu` (upper canopy cover) | 0.10 | **0.97** | Dense boreal forest ✓ |
+| `lai` (upper) | 0.5 | **4.1** | Real taiga LAI ✓ |
+| Soil sand | template avg | **52%** | Sandy boreal soil ✓ |
+| Soil clay | template avg | **13%** | ✓ |
+| Wilting point | 0.15 (template) | **0.21** (texture-derived) | ✓ |
+
+The synthetic-template approach is kept as default for backwards
+compatibility with the F77 wrapper's `synthetic_inputs.py` (used by
+the 117-cell F77↔JAX lockstep verification at bit-exact precision).
+The `--real-ic` flag switches to real per-cell data for production
+runs, where bit-exact lockstep is no longer the goal.
+
 ### Flux alignment (46-year run)
 
 Sub-Kelvin temperature residuals amplify through heat-transfer coefficients
