@@ -449,6 +449,13 @@ def main():
                     help="Disaggregation backend: 'scalar' (legacy hour-by-hour "
                          "loop) or 'vec' (broadcasted, ~50× faster at scale; "
                          "verified bit-exact to scalar). Default 'vec'.")
+    ap.add_argument("--real-ic", action="store_true",
+                    help="Use real per-cell ICs from HWSD soita.nc (soil sand/clay) "
+                         "and ESACCI Land Cover (vegetation type) instead of the "
+                         "5 synthetic latitude-band templates. Required for "
+                         "scientifically realistic global runs (e.g. boreal snow).")
+    ap.add_argument("--real-ic-vegtype-year", type=int, default=2000,
+                    help="ESACCI vegtype year (default 2000); clamped to [1992, 2020].")
     args = ap.parse_args()
 
     # Determine forcing-year function
@@ -494,7 +501,15 @@ def main():
     lat_rad  = jnp.asarray(np.radians(lats_np))
 
     # Build / restore initial state
-    soil_i, snow_i, atm_i, veg_i = make_state_for_cells(cells)
+    if args.real_ic:
+        from verify.timestepping.pipeline.real_state_builder import make_real_state_for_cells
+        print(f"IC mode: REAL (HWSD soil + ESACCI vegtype_{args.real_ic_vegtype_year})",
+              flush=True)
+        soil_i, snow_i, atm_i, veg_i = make_real_state_for_cells(
+            cells, vegtype_year=args.real_ic_vegtype_year)
+    else:
+        print(f"IC mode: synthetic templates (5 lat-band)", flush=True)
+        soil_i, snow_i, atm_i, veg_i = make_state_for_cells(cells)
     state = setup_jax_state_for_n(npoi, soil_i, snow_i, atm_i, veg_i)
 
     next_year = args.year_start
