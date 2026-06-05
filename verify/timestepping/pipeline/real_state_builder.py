@@ -29,6 +29,12 @@ NBAND = 2
 HWSD_SOITA = "/shared/nas2/Min/HWSD/soita.nc"
 ESACCI_VEGTYPE_DIR = "/shared/nas2/Min/ESACCI_LC/ibis_vegtype"
 
+# Canonical IBIS vegetation product: Ramankutty & Foley 1999, Global Potential
+# Vegetation Dataset (15 biomes mapping 1:1 to IBIS PFT codes). Same SAGE-
+# Wisconsin team as the original Foley 1996 IBIS paper. Source:
+#   https://sage.nelson.wisc.edu/data-and-models/datasets/global-potential-vegetation-dataset/
+RF_VEGTYPE = "/shared/nas2/Hangkai/ibis/inputs/ramankutty_foley_1999/vegtype_0.5.nc"
+
 # Synthetic-template defaults we keep for the few fields not in datasets
 DEFAULT_TG_INITIAL = 280.0     # initial ground T (mild)
 DEFAULT_WSOI_INITIAL = 0.40    # 40% saturation as IC; model equilibrates
@@ -82,6 +88,30 @@ def _read_vegtype(latindex: np.ndarray, lonindex: np.ndarray, year: int = 2000) 
     return vegdom
 
 
+def _read_vegtype_ramankutty(latindex: np.ndarray, lonindex: np.ndarray) -> np.ndarray:
+    """Read dominant vegtype per cell from Ramankutty & Foley 1999.
+
+    The CANONICAL IBIS vegetation product (same SAGE-Wisconsin team as Foley
+    1996, vegtype values 1-15 match IBIS PFT codes exactly). Time-invariant
+    "potential natural vegetation" — what would exist absent human land use.
+    """
+    ds = Dataset(RF_VEGTYPE, mode='r')
+    try:
+        # vegtype shape: (time=1, level=1, latitude=360, longitude=720)
+        # latitude order: lat[0]=-89.75 (S→N), lon[0]=-179.75 (W→E)
+        v_grid = np.asarray(ds.variables['vegtype'][0, 0, :, :], dtype=np.float64)
+    finally:
+        ds.close()
+    # R&F file is N→S ordered (lat[0]=89.75, lat[359]=-89.75) — same as HWSD,
+    # so no index flip needed.
+    vegdom = v_grid[latindex, lonindex]
+    # Ocean cells (NaN in R&F) → fill with 15 (polar desert/rock/ice) as safe default
+    vegdom = np.where(np.isfinite(vegdom), vegdom, 15.0)
+    # Clip to valid IBIS range
+    vegdom = np.clip(vegdom, 1.0, 15.0)
+    return vegdom.astype(np.float32)
+
+
 def _initial_temperatures_by_lat(lats: np.ndarray) -> np.ndarray:
     """Climatological initial soil/canopy temperature guess (K) by latitude.
 
@@ -93,11 +123,21 @@ def _initial_temperatures_by_lat(lats: np.ndarray) -> np.ndarray:
     return 295.0 - 0.5 * abs_lat
 
 
-def make_real_state_for_cells(cells: list, vegtype_year: int = 2000) -> tuple[dict, dict, dict, dict]:
+def make_real_state_for_cells(cells: list, vegtype_year: int = 2000,
+                                vegtype_source: str = "ramankutty") -> tuple[dict, dict, dict, dict]:
     """Build real-data ICs for arbitrary cell list. Returns (soil, snow, atm, veg)
     dicts matching the structure of make_state_for_cells in global_gswp3_test.py.
 
     Drop-in replacement for synthetic-template ICs.
+
+    Parameters
+    ----------
+    cells : list of (label, lat, lon, soil_template_idx, veg_template_idx)
+    vegtype_year : int
+        Year for ESACCI vegtype (ignored when vegtype_source='ramankutty').
+    vegtype_source : str
+        Either 'ramankutty' (default, canonical IBIS Ramankutty & Foley 1999)
+        or 'esacci' (Min's pre-processed ESACCI Land Cover 1992-2020).
     """
     n = len(cells)
     lats = np.array([c[1] for c in cells], dtype=np.float64)
@@ -148,12 +188,18 @@ def make_real_state_for_cells(cells: list, vegtype_year: int = 2000) -> tuple[di
         "hsno": np.zeros((n, NSNOLAY)),
     }
 
-    # Vegetation: read ESACCI dominant vegtype, then call IBIS initialize_vegetation
-    vegdom = _read_vegtype(latindex, lonindex, year=vegtype_year)
+    # Vegetation: read dominant vegtype from canonical R&F (default) or ESACCI
+    if vegtype_source == "ramankutty":
+        vegdom = _read_vegtype_ramankutty(latindex, lonindex)
+        print(f"  Vegetation initialized from CANONICAL Ramankutty & Foley 1999.")
+    elif vegtype_source == "esacci":
+        vegdom = _read_vegtype(latindex, lonindex, year=vegtype_year)
+        print(f"  Vegetation initialized from ESACCI vegtype_{vegtype_year}.")
+    else:
+        raise ValueError(f"vegtype_source must be 'ramankutty' or 'esacci', got {vegtype_source!r}")
     # Warmest-month T guess: use lat-based estimate +10 K (rough)
     tw_guess = tref - 273.15 + 10.0
     vresult = initialize_vegetation(vegdom, tw=tw_guess, npft=NPFT, nsoilay=NSOILAY)
-    print(f"  Vegetation initialized from ESACCI vegtype_{vegtype_year}.")
 
     # Build veg dict matching keys used by setup_jax_state_for_n
     # Note: initialize_vegetation returns lai/sai/ztop/zbot as (n, 2) [lower, upper]
