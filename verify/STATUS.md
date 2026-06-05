@@ -591,7 +591,41 @@ Mathematically equivalent for `betas > 0` (no change to F77↔JAX bit-near-exact
 
 ---
 
-## Finding #28 — Amazon-class outer-timestep soil↔canopy coupling instability (DEEPLY DIAGNOSED, OPEN, 2026-06-04)
+## Finding #28 — Amazon-class outer-timestep soil↔canopy coupling instability (FIXED, 2026-06-05)
+
+**Resolution**: halve the outer timestep (dt = 1800s instead of 3600s)
+via N_SUBSTEPS=2 in `verify/timestepping/pipeline/global_gswp3_gpu.py`.
+
+After 11 failed fix attempts (each tested empirically), the working fix
+is the standard CLM5 approach: smaller dt. Eigenvalue of the unstable
+coupled mode scales with dt² — halving dt takes the unstable mode from
+K≈3 at dt=3600s to K≈0.75 at dt=1800s (below the bistability boundary).
+
+**Empirical validation**:
+  - 10-yr 0.5° GPU spin-up with R&F real-IC + dt=1800s
+  - **0 NaN, 0 oor** across 88,484 cells × 10 years (87,648 hour-step batches)
+  - 250s/yr steady state (1.3× baseline 193s — sub-stepping overhead)
+  - Year 6 April (the previous explosion point) passed cleanly
+  - 200-yr v3 spin-up launched 2026-06-05
+
+**Mechanism (now understood)**: high-LAI tropical cells with saturated
+soil exhibit **bistability** in the canopy-soil coupled energy balance.
+At dt=3600s the canopy iteration can flip between two valid equilibria
+across consecutive outer steps; the flip produces amplitude-doubling
+oscillation in heatg_avg → fhtop_soil → soilheat → tg explodes within
+~8 hours. At dt=1800s the perturbation between outer steps is too small
+to flip basins → stable.
+
+Implementation: `IBIS_N_SUBSTEPS` env var (default 2). Set to 1 to
+recover original 1-hour timestep matching F77 (and the original Amazon
+NaN bug). Set to 4 or more for even tighter stability at extra compute
+cost.
+
+Committed: 58144bc (2026-06-05).
+
+---
+
+## Finding #28 ORIGINAL DIAGNOSIS — kept for historical reference (DEEP-DEBUG SESSION, 2026-06-04)
 
 ### Update from 2026-06-04 deep-debug session
 
