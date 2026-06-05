@@ -341,11 +341,27 @@ def run_one_month(state, consts, params, hourly):
     """
     n_steps = hourly["ta"].shape[0]
 
+    # === Finding #28 fix: outer-timestep sub-stepping ===
+    # Halve dt and call timestep_body twice per hourly forcing input. This
+    # is the standard fix for CLM5 (which uses 30-min dt) and addresses
+    # the documented Crank-Nicolson outer-step coupling instability at
+    # saturated tropical cells (finding #28 Amazon explosion). At smaller
+    # dt the per-step soil-canopy coupling has smaller eigenvalue (the
+    # unstable mode amplification scales with dt²), so smaller dt brings
+    # the system below the stability boundary.
+    #
+    # Forcing is held constant within the hour (sub-steps use same atm).
+    # 2x compute cost. Override via IBIS_N_SUBSTEPS env var (default 2).
+    import os as _ns
+    N_SUBSTEPS = int(_ns.environ.get("IBIS_N_SUBSTEPS", "2"))
+    SUB_DT = DTIME / N_SUBSTEPS
+
     def body(carry, t):
         state, nan_c, oor_c = carry
         atm = {k: v[t] for k, v in hourly.items()}
         state = inject_atm(state, atm)
-        state = timestep_body(state, consts, params, DTIME)
+        for _ in range(N_SUBSTEPS):
+            state = timestep_body(state, consts, params, SUB_DT)
 
         nan_now = (jnp.isnan(state.canopy.tu).any()
                    | jnp.isnan(state.soil.tg).any()
