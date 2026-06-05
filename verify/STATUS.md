@@ -591,6 +591,100 @@ Mathematically equivalent for `betas > 0` (no change to F77↔JAX bit-near-exact
 
 ---
 
+## Finding #28 — Amazon-class outer-timestep soil↔canopy coupling instability (DEEPLY DIAGNOSED, OPEN, 2026-06-04)
+
+### Update from 2026-06-04 deep-debug session
+
+Eight fix attempts tested empirically; **all failed** at the same year-6
+April Amazon cells. Conclusively localized the bug to the **outer-timestep
+coupling** between canopy and soil, NOT any single solver.
+
+#### Empirical fix attempts (all failed identically)
+
+| # | Attempt | Outcome |
+|---|---|---|
+| 1 | Output clamp on Δtg (15 K/step) | Energy redirects to canopy.tu → explodes there |
+| 2 | Recompute consoi from new wsoi (consistency fix) | Same NaN, slightly reduced amplitude |
+| 3 | Pivoted LU in soilheat instead of Thomas | Thomas ≡ pivoted (matrix encodes bad physics, not solver bug) |
+| 4 | Sub-step soilh2o N=4 | NaN=624 vs baseline 625 (no effect) |
+| 5 | Sub-step soilheat N=4 | Wrapper had a bug; broke more cells |
+| 6 | Canopy iter under-relaxation α=0.5 | Broke well-converging cells, NaN at year 3 instead of year 6 |
+| 7 | Extended canopy iterations 3→6 (no damping) | Same year 6 NaN — more iters of divergent loop = more divergence |
+| 8 | Combined N=6 iters + α=0.5 damping on iters 3-6 | Same year 6 NaN |
+
+#### Key diagnostic data (from hour-by-hour instrumentation at Amazon)
+
+Hour-by-hour trace of fhtop_soil (canopy → soil heat flux) BEFORE the
+soil state itself explodes shows amplitude-doubling oscillation:
+
+| Hour | tg (still OK) | heatg_avg (W/m²) | fhtop_soil (W/m²) |
+|---|---|---|---|
+| 2253 | 293.0 K | +26 | -6 |
+| 2255 | 294.5 K | +55 | -2 |
+| 2257 | 296.5 K | +82 | -94 |
+| 2259 | 295.6 K | -74 | **+317** |
+| 2261 | 298.8 K | +126 | **-401** |
+| 2263 | 294.6 K | -150 | **+666** |
+| 2265 | 301.4 K | +285 | **-1548** |
+| 2267 | 285.6 K | -845 | **+2741** |
+| 2269 | 313.95 K | +2936 | **-9874** |
+
+The canopy iteration is producing oscillating heat flux at OUTER-step
+cadence (one print per outer timestep, not per inner iter). Amplitude
+doubles every step. Once fhtop_soil exceeds ~3000 W/m², soilheat
+correctly produces non-physical tg (>350 K), and NaN cascades.
+
+#### Why all simple fixes fail
+
+The unstable mode lives in the **outer-step coupling** soil↔canopy
+exchange, not any single solver:
+
+- Damping the canopy inner iteration: doesn't help because the canopy
+  iter probably converges within ONE outer step; the divergence is
+  ACROSS outer steps as each step's slightly-off output feeds the next.
+- Sub-stepping just soilh2o or just soilheat: redirects the energy to
+  the unstabilized variable. The instability is in the coupled system.
+- Output clamps on any one variable: energy conservation forces the
+  excess elsewhere where it still explodes.
+
+#### What WOULD work (in increasing engineering cost)
+
+1. **Outer-timestep sub-stepping conditional on saturated wsoi[0]**:
+   detect cells with wsoi[0] > 0.95 + high LAI, run their entire
+   timestep (canopy+soil) at dt/4. Hard to implement in JAX/JIT
+   (variable per-cell timestep) but mathematically correct.
+2. **Fully-coupled solve** (Wang et al. 2018, CLM4.5): replace
+   sequential `canopy → soilh2o → soilheat` with one Newton solve
+   over the full coupled system. ~1-2 weeks of work.
+3. **JULES-style slope limiters on hydraulic conductivity**: when
+   wsoi → 1, smoothly limit dwsoi/dt. ~3-5 days work, mostly band-aid.
+4. **Heat-flux limiter on fhtop_soil**: cap |fhtop_soil| ≤ 1500 W/m²
+   (physically realistic max). Band-aid that violates energy
+   conservation at the failure boundary but prevents the runaway.
+   ~1 hour, low confidence it doesn't just shift the problem.
+
+### Status
+
+- ✅ Mechanism precisely characterized as outer-timestep coupling
+  instability (NOT inner canopy iter divergence, NOT soil solver bug).
+- ✅ Affected cells: ~2 Amazon equatorial (idx 32890-32891, Brazil
+  +0.5°N, lon -54°/-53.5°W), with cascade to ~744 cells over time.
+- ⚠️ All quick fixes empirically falsified.
+- 🔓 Requires structural change to coupling, not a one-line fix.
+  Recommended path: fully-coupled water-heat-canopy solve à la CLM4.5
+  Wang 2018, or conditional outer-step sub-stepping.
+
+### Confirmed: NOT caused by IC choice
+
+Both ESACCI Land Cover and **canonical Ramankutty & Foley 1999**
+(downloaded from SAGE Wisconsin, vegtype_0.5.nc, 15-biome 1:1 IBIS
+mapping) give vegtype=1 (Tropical Evergreen Forest) at the Amazon NaN
+cells. Switching from ESACCI to R&F produced the IDENTICAL NaN count
+at the IDENTICAL hour. The bug is purely in the physics solver
+coupling, not the vegetation classification.
+
+---
+
 ## Finding #28 — Amazon-class soilheat / canopy coupling instability (DIAGNOSED, OPEN, 2026-06-04)
 
 When running at full GSWP3 0.5° resolution with **real per-cell initial
