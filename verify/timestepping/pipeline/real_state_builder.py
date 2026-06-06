@@ -88,6 +88,32 @@ def _read_vegtype(latindex: np.ndarray, lonindex: np.ndarray, year: int = 2000) 
     return vegdom
 
 
+def _compute_frac_from_plai(plai: np.ndarray) -> np.ndarray:
+    """Compute initial PFT fractions from plai array, matching IBIS phenology.
+
+    Mirrors `ibis/physics/phenology.py:138-158`:
+      Upper canopy (PFTs 0-7, indices 0..7):  frac[:, j] = plai[:, j] / sum(plai[:, 0:8])
+      Lower canopy (PFTs 8-11, indices 8..11): frac[:, j] = plai[:, j] / sum(plai[:, 8:12])
+
+    For cold-start initialization, no phenology-drop factors apply (all 1.0),
+    so this is just normalized plai. This matches the F77 IBIS approach
+    (initial.f:1427-1545) where plai is distributed across all existing PFTs
+    in each group, then frac normalizes to within-canopy-level fractions.
+    """
+    n, npft = plai.shape
+    frac = np.zeros((n, npft), dtype=np.float64)
+    avglaiu = plai[:, :8].sum(axis=1)
+    avglail = plai[:, 8:].sum(axis=1)
+    eps = 1e-30
+    u_safe = np.where(avglaiu > eps, avglaiu, 1.0)
+    l_safe = np.where(avglail > eps, avglail, 1.0)
+    for j in range(8):
+        frac[:, j] = np.where(avglaiu > eps, plai[:, j] / u_safe, 0.0)
+    for j in range(8, npft):
+        frac[:, j] = np.where(avglail > eps, plai[:, j] / l_safe, 0.0)
+    return frac
+
+
 def _read_vegtype_ramankutty(latindex: np.ndarray, lonindex: np.ndarray) -> np.ndarray:
     """Read dominant vegtype per cell from Ramankutty & Foley 1999.
 
@@ -224,8 +250,15 @@ def make_real_state_for_cells(cells: list, vegtype_year: int = 2000,
         "sai":    vresult["sai"].astype(np.float64),    # (n, 2)
         "ztop":   vresult["ztop"].astype(np.float64),   # (n, 2)
         "zbot":   vresult["zbot"].astype(np.float64),   # (n, 2)
-        "frac":   vresult.get("frac",
-                              np.zeros((n, NPFT), dtype=np.float64)),  # PFT fractions
+        "frac":   _compute_frac_from_plai(np.asarray(vresult["plai"]).astype(np.float64)),
+        "exist":  np.asarray(vresult["exist"]).astype(np.float64),
+        "plai":   np.asarray(vresult["plai"]).astype(np.float64),
+        "cbiol":  np.asarray(vresult["cbiol"]).astype(np.float64),
+        "cbiow":  np.asarray(vresult["cbiow"]).astype(np.float64),
+        "cbior":  np.asarray(vresult["cbior"]).astype(np.float64),
+        "biomass": np.asarray(vresult["biomass"]).astype(np.float64),
+        "sapfrac": np.asarray(vresult["sapfrac"]).astype(np.float64),
+        "vegtype0": np.asarray(vresult["vegtype0"]).astype(np.float64),
         "froot":  vresult["froot"].astype(np.float64),  # (nsoilay, 2) or (n, nsoilay)
     }
 

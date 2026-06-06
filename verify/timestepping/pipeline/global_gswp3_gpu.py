@@ -173,15 +173,28 @@ def setup_jax_state_for_n(npoi: int, soil_i, snow_i, atm_i, veg_i):
          jnp.full((npoi,), 1.0),
          jnp.full((npoi,), 21600.0)),
     )
+    # Vegetation fields: include carbon pools + PFT existence/distribution if
+    # provided by the IC builder (real_state_builder), else fall back to
+    # reasonable defaults for the synthetic-template path.
+    def _vget(k, default):
+        return jnp.asarray(veg_i[k]) if k in veg_i else default
     new_veg = eqx.tree_at(
         lambda v: (v.fu, v.fl, v.lai, v.sai, v.ztop, v.zbot, v.frac,
-                   v.froot, v.exist),
+                   v.froot, v.exist, v.plai, v.cbiol, v.cbiow, v.cbior,
+                   v.biomass, v.sapfrac, v.vegtype0),
         st.vegetation,
         (jnp.asarray(veg_i["fu"]), jnp.asarray(veg_i["fl"]),
          jnp.asarray(veg_i["lai"]), jnp.asarray(veg_i["sai"]),
          jnp.asarray(veg_i["ztop"]), jnp.asarray(veg_i["zbot"]),
          jnp.asarray(veg_i["frac"]), jnp.asarray(veg_i["froot"]),
-         jnp.zeros((npoi, NPFT))),
+         _vget("exist", jnp.ones((npoi, NPFT))),
+         _vget("plai", jnp.zeros((npoi, NPFT))),
+         _vget("cbiol", jnp.zeros((npoi, NPFT))),
+         _vget("cbiow", jnp.zeros((npoi, NPFT))),
+         _vget("cbior", jnp.zeros((npoi, NPFT))),
+         _vget("biomass", jnp.zeros((npoi, NPFT))),
+         _vget("sapfrac", jnp.full((npoi,), 0.1)),
+         _vget("vegtype0", jnp.zeros((npoi,)))),
     )
     state = eqx.tree_at(
         lambda s: (s.soil, s.snow, s.atm, s.canopy, s.vegetation),
