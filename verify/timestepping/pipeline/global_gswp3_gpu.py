@@ -331,6 +331,237 @@ def inject_atm(state, atm):
 # Month-long scan (JIT'd; one launch per month after compile)
 # ===========================================================================
 
+def _accumulate_carbon(state, dtime):
+    """Per-timestep accumulation of GPP/NPP into state.summary.
+
+    Ports the carbon accumulation logic from
+    `ibis/timestepping/loops_gswp3.py:119-235` into the GPU runner.
+
+    Each timestep adds:
+      - aynpp[12 PFTs]: per-PFT NPP (kgC/m²)
+      - ayanpptot: total NPP (kgC/m²)
+      - aygpptot: total GPP (kgC/m²)
+      - ayneetot: NEE accumulator (negative = C sink)
+
+    NPP formula uses Lloyd-Taylor wood/root respiration. With zero biomass
+    pools (year 0), respiration = 0 → NPP = GPP. As biomass_update grows
+    biomass annually, respiration kicks in.
+    """
+    can = state.canopy
+    veg = state.vegetation
+    sm = state.summary
+    soil = state.soil
+    snow = state.snow
+
+    an_ub = can.an_upper[:, 0]
+    an_uc = can.an_upper[:, 1]
+    an_ls = can.an_lower[:, 0]
+    an_l3 = can.an_lower[:, 1]
+    an_l4 = can.an_lower[:, 2]
+    lai_u = veg.lai[:, 1]
+    lai_l = veg.lai[:, 0]
+    frac = veg.frac
+    smask = 1.0 - snow.fi
+
+    ndaypy = 365.0
+    rwood = 0.0125 / (ndaypy * 86400.0) * (1000.0 / 12.0)
+    rroot = 1.2500 / (ndaypy * 86400.0) * (1000.0 / 12.0)
+    rgrowth = 0.30
+
+    stemtemp = can.ts
+    roottemp = jnp.zeros_like(stemtemp)
+    for kk in range(soil.tsoi.shape[1]):
+        roottemp = roottemp + soil.tsoi[:, kk] * 0.5 * (
+            veg.froot[kk, 0] + veg.froot[kk, 1])
+    funca = jnp.exp(3500.0 * (1.0 / 288.16 - 1.0 / jnp.maximum(stemtemp, 200.0)))
+    funcb = jnp.exp(3500.0 * (1.0 / 288.16 - 1.0 / jnp.maximum(roottemp, 200.0)))
+
+    c_fac = 12.0e-3 * dtime
+    aynpp = sm.aynpp
+    for j in (0, 1, 2, 4, 6):
+        gpp_j = an_ub * frac[:, j] * lai_u * veg.fu
+        resp_j = rwood * veg.cbiow[:, j] * veg.sapfrac * funca + rroot * veg.cbior[:, j] * funcb
+        npp_j = (1.0 - rgrowth) * (gpp_j - resp_j)
+        aynpp = aynpp.at[:, j].add(npp_j * c_fac)
+    for j in (3, 5, 7):
+        gpp_j = an_uc * frac[:, j] * lai_u * veg.fu
+        resp_j = rwood * veg.cbiow[:, j] * veg.sapfrac * funca + rroot * veg.cbior[:, j] * funcb
+        npp_j = (1.0 - rgrowth) * (gpp_j - resp_j)
+        aynpp = aynpp.at[:, j].add(npp_j * c_fac)
+    for j in (8, 9):
+        gpp_j = an_ls * frac[:, j] * lai_l * veg.fl * smask
+        resp_j = rwood * veg.cbiow[:, j] * funca + rroot * veg.cbior[:, j] * funcb
+        npp_j = (1.0 - rgrowth) * (gpp_j - resp_j)
+        aynpp = aynpp.at[:, j].add(npp_j * c_fac)
+    gpp_c4 = an_l4 * frac[:, 10] * lai_l * veg.fl * smask
+    resp_c4 = rroot * veg.cbior[:, 10] * funcb
+    npp_c4 = (1.0 - rgrowth) * (gpp_c4 - resp_c4)
+    aynpp = aynpp.at[:, 10].add(npp_c4 * c_fac)
+    gpp_c3 = an_l3 * frac[:, 11] * lai_l * veg.fl * smask
+    resp_c3 = rroot * veg.cbior[:, 11] * funcb
+    npp_c3 = (1.0 - rgrowth) * (gpp_c3 - resp_c3)
+    aynpp = aynpp.at[:, 11].add(npp_c3 * c_fac)
+
+    npp_step = jnp.sum(aynpp - sm.aynpp, axis=1)
+
+    ag_ub = can.ag_upper[:, 0]
+    ag_uc = can.ag_upper[:, 1]
+    ag_ls = can.ag_lower[:, 0]
+    ag_l3 = can.ag_lower[:, 1]
+    ag_l4 = can.ag_lower[:, 2]
+    gpp_upper = (ag_ub * jnp.sum(frac[:, jnp.array([0, 1, 2, 4, 6])], axis=1)
+                 + ag_uc * jnp.sum(frac[:, jnp.array([3, 5, 7])], axis=1)
+                 ) * lai_u * veg.fu
+    gpp_lower = (ag_ls * jnp.sum(frac[:, 8:10], axis=1)
+                 + ag_l4 * frac[:, 10]
+                 + ag_l3 * frac[:, 11]
+                 ) * lai_l * veg.fl * smask
+    gpp_step = (gpp_upper + gpp_lower) * c_fac
+
+    # Per-PFT GPP accumulation (reused ayanpp field as per-PFT GPP accumulator).
+    # ayanpp is unused outside dynaveg in our minimal pipeline, so we repurpose
+    # it here to track per-PFT annual GPP for CLM/ELM-style output.
+    ayanpp = sm.ayanpp
+    for j in (0, 1, 2, 4, 6):  # broadleaf upper
+        ayanpp = ayanpp.at[:, j].add(an_ub * frac[:, j] * lai_u * veg.fu * c_fac)
+    for j in (3, 5, 7):  # conifer upper
+        ayanpp = ayanpp.at[:, j].add(an_uc * frac[:, j] * lai_u * veg.fu * c_fac)
+    for j in (8, 9):  # shrubs lower
+        ayanpp = ayanpp.at[:, j].add(an_ls * frac[:, j] * lai_l * veg.fl * smask * c_fac)
+    # C4 grass (PFT 10)
+    ayanpp = ayanpp.at[:, 10].add(an_l4 * frac[:, 10] * lai_l * veg.fl * smask * c_fac)
+    # C3 grass (PFT 11)
+    ayanpp = ayanpp.at[:, 11].add(an_l3 * frac[:, 11] * lai_l * veg.fl * smask * c_fac)
+
+    new_sm = eqx.tree_at(
+        lambda s: (s.aynpp, s.ayanpp, s.ayanpptot, s.ayneetot, s.aygpptot),
+        sm,
+        (aynpp,
+         ayanpp,
+         sm.ayanpptot + npp_step,
+         sm.ayneetot - npp_step,
+         sm.aygpptot + gpp_step),
+    )
+    return eqx.tree_at(lambda s: s.summary, state, new_sm)
+
+
+def save_annual_netcdf(path, state, year, lats, lons):
+    """Save CLM/ELM-style annual output as NetCDF with per-PFT detail.
+
+    Variables organized in three categories:
+      Per-PFT (npoi, 12):   GPP_pft, NPP_pft, cbiol_pft, cbiow_pft, cbior_pft
+      Cell aggregates (npoi): GPP, NPP, NEE, biomass, LAI, tg, tu, tl, fu, fl,
+                              ginvap, gsuvap, gtrans, grunof, gdrain, snow_fi
+      Soil profiles (npoi, nsoilay): tsoi, wsoi, wisoi
+    """
+    try:
+        from netCDF4 import Dataset
+    except ImportError:
+        return
+
+    veg = state.vegetation
+    sm = state.summary
+    soil = state.soil
+    snow = state.snow
+    can = state.canopy
+    hyd = state.hydrology
+
+    npoi = int(soil.tg.shape[0])
+    nsoilay = int(soil.tsoi.shape[1])
+    npft = 12
+
+    PFT_NAMES = [
+        "1_tropical_broadleaf_evergreen",
+        "2_tropical_broadleaf_drought_dec",
+        "3_warm_temperate_broadleaf_evergreen",
+        "4_temperate_conifer_evergreen",
+        "5_temperate_broadleaf_deciduous",
+        "6_boreal_conifer_evergreen",
+        "7_boreal_broadleaf_cold_dec",
+        "8_boreal_conifer_cold_dec",
+        "9_evergreen_shrubs",
+        "10_deciduous_shrubs",
+        "11_C4_grass",
+        "12_C3_grass",
+    ]
+
+    nc = Dataset(str(path), "w", format="NETCDF4")
+    try:
+        nc.createDimension("cell", npoi)
+        nc.createDimension("pft", npft)
+        nc.createDimension("soil_layer", nsoilay)
+        nc.year = int(year)
+        nc.description = "IBIS-JAX annual output, CLM/ELM-style with per-PFT detail"
+
+        def _add(name, data, dims, units, long_name):
+            v = nc.createVariable(name, "f4", dims, zlib=True, complevel=4)
+            v.units = units
+            v.long_name = long_name
+            v[:] = np.asarray(data, dtype=np.float32)
+
+        _add("lat", lats, ("cell",), "degrees_north", "Latitude")
+        _add("lon", lons, ("cell",), "degrees_east", "Longitude")
+        pft_var = nc.createVariable("pft_name", str, ("pft",))
+        for j in range(npft):
+            pft_var[j] = PFT_NAMES[j]
+
+        # --- Per-PFT carbon ---
+        _add("GPP_pft",  sm.ayanpp, ("cell", "pft"), "kgC m-2 yr-1",
+             "Annual gross primary production per PFT")
+        _add("NPP_pft",  sm.aynpp,  ("cell", "pft"), "kgC m-2 yr-1",
+             "Annual net primary production per PFT")
+        _add("cbiol_pft", veg.cbiol, ("cell", "pft"), "kgC m-2",
+             "Leaf biomass carbon per PFT")
+        _add("cbiow_pft", veg.cbiow, ("cell", "pft"), "kgC m-2",
+             "Wood biomass carbon per PFT")
+        _add("cbior_pft", veg.cbior, ("cell", "pft"), "kgC m-2",
+             "Root biomass carbon per PFT")
+        _add("biomass_pft", veg.biomass, ("cell", "pft"), "kgC m-2",
+             "Total biomass per PFT (leaf+wood+root)")
+        _add("pft_frac", veg.frac, ("cell", "pft"), "fraction",
+             "Within-canopy PFT cover fraction")
+
+        # --- Cell-level aggregates ---
+        _add("GPP",  sm.aygpptot,  ("cell",), "kgC m-2 yr-1", "Annual total GPP")
+        _add("NPP",  sm.ayanpptot, ("cell",), "kgC m-2 yr-1", "Annual total NPP")
+        _add("NEE",  sm.ayneetot,  ("cell",), "kgC m-2 yr-1",
+             "Annual net ecosystem exchange (negative = C sink)")
+        _add("biomass_total", veg.biomass.sum(axis=-1), ("cell",), "kgC m-2",
+             "Total above- and below-ground biomass")
+        _add("LAI_upper", veg.lai[:, 1], ("cell",), "m2 m-2", "Upper canopy LAI")
+        _add("LAI_lower", veg.lai[:, 0], ("cell",), "m2 m-2", "Lower canopy LAI")
+        _add("fu", veg.fu, ("cell",), "fraction", "Upper canopy cover fraction")
+        _add("fl", veg.fl, ("cell",), "fraction", "Lower canopy cover fraction")
+
+        # --- Surface state ---
+        _add("tg", soil.tg,    ("cell",), "K", "Ground surface temperature")
+        _add("tu", can.tu,     ("cell",), "K", "Upper canopy temperature")
+        _add("tl", can.tl,     ("cell",), "K", "Lower canopy temperature")
+        _add("snow_fi", snow.fi, ("cell",), "fraction", "Snow cover fraction")
+
+        # --- Water fluxes (instant at snapshot; for energy/water balance) ---
+        _add("ginvap", hyd.ginvap, ("cell",), "kg m-2 s-1",
+             "Canopy interception evaporation")
+        _add("gsuvap", hyd.gsuvap, ("cell",), "kg m-2 s-1",
+             "Soil surface evaporation")
+        _add("gtrans", hyd.gtrans, ("cell",), "kg m-2 s-1",
+             "Total transpiration")
+        _add("grunof", hyd.grunof, ("cell",), "kg m-2 s-1",
+             "Surface runoff")
+        _add("gdrain", hyd.gdrain, ("cell",), "kg m-2 s-1",
+             "Bottom drainage")
+
+        # --- Soil profiles ---
+        _add("tsoi",  soil.tsoi,  ("cell", "soil_layer"), "K",
+             "Soil temperature per layer")
+        _add("wsoi",  soil.wsoi,  ("cell", "soil_layer"), "fraction",
+             "Soil liquid water (saturated fraction)")
+        _add("wisoi", soil.wisoi, ("cell", "soil_layer"), "fraction",
+             "Soil ice (saturated fraction)")
+    finally:
+        nc.close()
+
+
 @eqx.filter_jit
 def run_one_month(state, consts, params, hourly):
     """Scan over n_hours = n_days*24 hourly timesteps with precomputed forcing.
@@ -368,6 +599,7 @@ def run_one_month(state, consts, params, hourly):
         state = inject_atm(state, atm)
         for _ in range(N_SUBSTEPS):
             state = timestep_body(state, consts, params, SUB_DT)
+            state = _accumulate_carbon(state, SUB_DT)
 
         nan_now = (jnp.isnan(state.canopy.tu).any()
                    | jnp.isnan(state.soil.tg).any()
@@ -597,6 +829,42 @@ def main():
                   f"NaN={nan_c}  oor={oor_c}  "
                   f"tu=[{stats['canopy_tu_min']:.1f},{stats['canopy_tu_max']:.1f}]K",
                   flush=True)
+
+        # === End-of-year: save CLM/ELM-style annual NetCDF output ===
+        annual_dir = output_dir / "annual"
+        annual_dir.mkdir(parents=True, exist_ok=True)
+        save_annual_netcdf(
+            annual_dir / f"ibis_annual_y{year:04d}.nc",
+            state, year, lats_np,
+            np.array([c[2] for c in cells], dtype=np.float64),
+        )
+
+        # === Annual biomass_update (grow biomass from accumulated NPP) ===
+        # Skips dynaveg PFT competition (can enable via biomass-only flag).
+        try:
+            from ibis.physics.vegetation_dynamics import biomass_update
+            from ibis.io.parameters import default_pft_params
+            pft_params = default_pft_params()
+            new_veg, new_carbon, new_summary = biomass_update(
+                state.vegetation, state.carbon, state.summary,
+                pft_params, consts.epsilon,
+            )
+            state = eqx.tree_at(
+                lambda s: (s.vegetation, s.carbon, s.summary),
+                state, (new_veg, new_carbon, new_summary),
+            )
+        except Exception as e:
+            print(f"    biomass_update failed: {e}", flush=True)
+
+        # === Reset annual accumulators for next year ===
+        z_vec = jnp.zeros((npoi,), dtype=state.summary.aygpptot.dtype)
+        z_pft = jnp.zeros((npoi, 12), dtype=state.summary.aynpp.dtype)
+        state = eqx.tree_at(
+            lambda s: (s.summary.aygpptot, s.summary.ayanpptot,
+                       s.summary.ayneetot, s.summary.aynpp, s.summary.ayanpp),
+            state,
+            (z_vec, z_vec, z_vec, z_pft, z_pft),
+        )
 
         save_checkpoint(ckpt_dir, year, state)
         yr_dt = time.time() - yr_t0
