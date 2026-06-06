@@ -445,8 +445,12 @@ def _accumulate_carbon(state, dtime):
     return eqx.tree_at(lambda s: s.summary, state, new_sm)
 
 
-def save_annual_netcdf(path, state, year, lats, lons):
-    """Save CLM/ELM-style annual output as NetCDF with per-PFT detail.
+def save_monthly_netcdf(path, state, year, month, lats, lons):
+    """Save CLM/ELM-style MONTHLY output as NetCDF with per-PFT detail.
+
+    Fluxes (GPP, NPP, NEE) are accumulated MONTHLY (accumulator reset at
+    month boundary). State variables (biomass, T, water) are month-end
+    snapshots. This matches CLM/ELM monthly history file convention.
 
     Variables organized in three categories:
       Per-PFT (npoi, 12):   GPP_pft, NPP_pft, cbiol_pft, cbiow_pft, cbior_pft
@@ -491,7 +495,8 @@ def save_annual_netcdf(path, state, year, lats, lons):
         nc.createDimension("pft", npft)
         nc.createDimension("soil_layer", nsoilay)
         nc.year = int(year)
-        nc.description = "IBIS-JAX annual output, CLM/ELM-style with per-PFT detail"
+        nc.month = int(month)
+        nc.description = "IBIS-JAX monthly output, CLM/ELM-style with per-PFT detail"
 
         def _add(name, data, dims, units, long_name):
             v = nc.createVariable(name, "f4", dims, zlib=True, complevel=4)
@@ -505,11 +510,11 @@ def save_annual_netcdf(path, state, year, lats, lons):
         for j in range(npft):
             pft_var[j] = PFT_NAMES[j]
 
-        # --- Per-PFT carbon ---
-        _add("GPP_pft",  sm.ayanpp, ("cell", "pft"), "kgC m-2 yr-1",
-             "Annual gross primary production per PFT")
-        _add("NPP_pft",  sm.aynpp,  ("cell", "pft"), "kgC m-2 yr-1",
-             "Annual net primary production per PFT")
+        # --- Per-PFT carbon (CUMULATIVE since Jan-1; subtract consecutive months for flux) ---
+        _add("GPP_pft",  sm.ayanpp, ("cell", "pft"), "kgC m-2",
+             "Cumulative GPP since Jan-1 per PFT. Monthly flux = diff(GPP_pft[m] - GPP_pft[m-1])")
+        _add("NPP_pft",  sm.aynpp,  ("cell", "pft"), "kgC m-2",
+             "Cumulative NPP since Jan-1 per PFT. Monthly flux = diff")
         _add("cbiol_pft", veg.cbiol, ("cell", "pft"), "kgC m-2",
              "Leaf biomass carbon per PFT")
         _add("cbiow_pft", veg.cbiow, ("cell", "pft"), "kgC m-2",
@@ -521,11 +526,13 @@ def save_annual_netcdf(path, state, year, lats, lons):
         _add("pft_frac", veg.frac, ("cell", "pft"), "fraction",
              "Within-canopy PFT cover fraction")
 
-        # --- Cell-level aggregates ---
-        _add("GPP",  sm.aygpptot,  ("cell",), "kgC m-2 yr-1", "Annual total GPP")
-        _add("NPP",  sm.ayanpptot, ("cell",), "kgC m-2 yr-1", "Annual total NPP")
-        _add("NEE",  sm.ayneetot,  ("cell",), "kgC m-2 yr-1",
-             "Annual net ecosystem exchange (negative = C sink)")
+        # --- Cell-level aggregates (CUMULATIVE since Jan-1; subtract for monthly flux) ---
+        _add("GPP",  sm.aygpptot,  ("cell",), "kgC m-2",
+             "Cumulative GPP since Jan-1. Monthly flux = diff(GPP[m] - GPP[m-1])")
+        _add("NPP",  sm.ayanpptot, ("cell",), "kgC m-2",
+             "Cumulative NPP since Jan-1. Monthly flux = diff")
+        _add("NEE",  sm.ayneetot,  ("cell",), "kgC m-2",
+             "Cumulative NEE since Jan-1 (negative = C sink)")
         _add("biomass_total", veg.biomass.sum(axis=-1), ("cell",), "kgC m-2",
              "Total above- and below-ground biomass")
         _add("LAI_upper", veg.lai[:, 1], ("cell",), "m2 m-2", "Upper canopy LAI")
@@ -830,17 +837,20 @@ def main():
                   f"tu=[{stats['canopy_tu_min']:.1f},{stats['canopy_tu_max']:.1f}]K",
                   flush=True)
 
-        # === End-of-year: save CLM/ELM-style annual NetCDF output ===
-        annual_dir = output_dir / "annual"
-        annual_dir.mkdir(parents=True, exist_ok=True)
-        save_annual_netcdf(
-            annual_dir / f"ibis_annual_y{year:04d}.nc",
-            state, year, lats_np,
-            np.array([c[2] for c in cells], dtype=np.float64),
-        )
+            # === End-of-MONTH: save CLM/ELM-style monthly NetCDF (CUMULATIVE values) ===
+            # aygpptot etc. accumulate over the year. Each monthly NetCDF stores
+            # the cumulative-from-Jan value. Post-processing: monthly flux at
+            # month m = value(m) - value(m-1). The December file's value = annual.
+            # State vars (biomass, T, water) are month-end snapshots.
+            monthly_dir = output_dir / "monthly"
+            monthly_dir.mkdir(parents=True, exist_ok=True)
+            save_monthly_netcdf(
+                monthly_dir / f"ibis_monthly_y{year:04d}_m{month:02d}.nc",
+                state, year, month, lats_np,
+                np.array([c[2] for c in cells], dtype=np.float64),
+            )
 
-        # === Annual biomass_update (grow biomass from accumulated NPP) ===
-        # Skips dynaveg PFT competition (can enable via biomass-only flag).
+        # === End-of-YEAR: biomass_update from accumulated annual NPP ===
         try:
             from ibis.physics.vegetation_dynamics import biomass_update
             from ibis.io.parameters import default_pft_params
@@ -856,7 +866,7 @@ def main():
         except Exception as e:
             print(f"    biomass_update failed: {e}", flush=True)
 
-        # === Reset annual accumulators for next year ===
+        # === Reset annual flux accumulators for next year ===
         z_vec = jnp.zeros((npoi,), dtype=state.summary.aygpptot.dtype)
         z_pft = jnp.zeros((npoi, 12), dtype=state.summary.aynpp.dtype)
         state = eqx.tree_at(
