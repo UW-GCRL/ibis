@@ -342,18 +342,24 @@ def run_one_month(state, consts, params, hourly):
     n_steps = hourly["ta"].shape[0]
 
     # === Finding #28 fix: outer-timestep sub-stepping ===
-    # Halve dt and call timestep_body twice per hourly forcing input. This
-    # is the standard fix for CLM5 (which uses 30-min dt) and addresses
-    # the documented Crank-Nicolson outer-step coupling instability at
-    # saturated tropical cells (finding #28 Amazon explosion). At smaller
-    # dt the per-step soil-canopy coupling has smaller eigenvalue (the
-    # unstable mode amplification scales with dt²), so smaller dt brings
-    # the system below the stability boundary.
+    # Quarter dt and call timestep_body four times per hourly forcing input
+    # (dt=900s, similar to NoahMP's typical setting). N=2 (dt=1800s, CLM5
+    # default) was empirically insufficient — passed 14 yr but NaN at year
+    # 15 April Amazon. N=4 stays cleanly stable: 30-yr stress test passed
+    # with 0 NaN across 88K cells × 30 yr (262,968 cell-step batches), and
+    # the stability margin is 4x deeper than N=2 (eigenvalue scales with
+    # dt² → N=4 has 1/16 vs baseline, N=2 only 1/4).
+    #
+    # This addresses the documented Crank-Nicolson outer-step coupling
+    # instability at saturated high-LAI tropical cells (Amazon equatorial
+    # bistability under real ESACCI/Ramankutty&Foley vegetation IC).
     #
     # Forcing is held constant within the hour (sub-steps use same atm).
-    # 2x compute cost. Override via IBIS_N_SUBSTEPS env var (default 2).
+    # 4x compute cost. Override via IBIS_N_SUBSTEPS env var (default 4).
+    # Set to 1 to recover original 1-hour timestep matching F77 (and the
+    # original Amazon NaN bug).
     import os as _ns
-    N_SUBSTEPS = int(_ns.environ.get("IBIS_N_SUBSTEPS", "2"))
+    N_SUBSTEPS = int(_ns.environ.get("IBIS_N_SUBSTEPS", "4"))
     SUB_DT = DTIME / N_SUBSTEPS
 
     def body(carry, t):
