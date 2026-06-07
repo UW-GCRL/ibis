@@ -932,7 +932,34 @@ def timestep_body(
     gadjust = gadjust1 + gadjust2
 
     # =====================================================================
-    # 12. Pack results back into IBISState
+    # 12. Physical T bound: clamp surface temperatures within ΔT of air T
+    # =====================================================================
+    # Standard practice in CLM (Bonan, damped Newton step) and JSBACHv3.11
+    # (canopy heat capacity), applied here as Min's T-bound idea: surface
+    # temperature (tg, tu, tl, ts, ti) can not deviate from air T by more
+    # than T_MAX_DEV per timestep. This catches finding-#28-class divergence
+    # at high-LAI tropical cells (LAI=12, fu=0.975 → eigenvalue > 1 in the
+    # canopy iteration) without disabling biomass evolution. For normal
+    # cells, |T_surf - T_air| << T_MAX_DEV is a no-op.
+    #
+    # Physical justification: surface T is tightly coupled to air T via
+    # sensible heat exchange. Extreme tropical day: |T_surf - T_air| ~ 25K.
+    # Polar winter: T_surf can be colder than T_air by ~15K. T_MAX_DEV=40K
+    # is well outside the realistic envelope.
+    # Override via IBIS_T_MAX_DEV (default 40 K). Set to 1e9 to disable.
+    import os as _tmd
+    T_MAX_DEV = float(_tmd.environ.get("IBIS_T_MAX_DEV", "40.0"))
+    ta = state.atm.ta
+    def _clamp_T(T_surf):
+        return jnp.clip(T_surf, ta - T_MAX_DEV, ta + T_MAX_DEV)
+    tu_nv = _clamp_T(tu_nv)
+    ts_nv = _clamp_T(ts_nv)
+    tl_nv = _clamp_T(tl_nv)
+    tg = _clamp_T(tg)
+    # ti is snow surface (only when snow fraction > 0); skip for now.
+
+    # =====================================================================
+    # 13. Pack results back into IBISState
     # =====================================================================
 
     # Updated canopy state

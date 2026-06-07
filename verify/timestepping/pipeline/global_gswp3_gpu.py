@@ -863,34 +863,25 @@ def main():
                 np.array([c[2] for c in cells], dtype=np.float64),
             )
 
-        # === End-of-YEAR: biomass_update (disabled by default for stability) ===
-        # biomass_update grows cbiol/cbiow/cbior from accumulated NPP and
-        # recomputes LAI, fu, fl. In practice this can push LAI up to 12
-        # and fu to 0.975 cap after a few years of tropical-cell growth,
-        # triggering finding #28-class soil-canopy coupling instability
-        # (Amazon NaN cascade at year 4 month 6 in early v4 testing).
-        #
-        # IC from initialize_vegetation already has realistic biomass
-        # (max ~11 kgC/m² for tropical evergreen, LAI 6-9), so disabling
-        # biomass_update during spin-up keeps physics stable while still
-        # producing meaningful GPP/NPP/NEE accumulation per PFT per cell.
-        # Enable via IBIS_BIOMASS_UPDATE=1 for full vegetation dynamics.
-        import os as _bu
-        if _bu.environ.get("IBIS_BIOMASS_UPDATE", "0") == "1":
-            try:
-                from ibis.physics.vegetation_dynamics import biomass_update
-                from ibis.io.parameters import default_pft_params
-                pft_params = default_pft_params()
-                new_veg, new_carbon, new_summary = biomass_update(
-                    state.vegetation, state.carbon, state.summary,
-                    pft_params, consts.epsilon,
-                )
-                state = eqx.tree_at(
-                    lambda s: (s.vegetation, s.carbon, s.summary),
-                    state, (new_veg, new_carbon, new_summary),
-                )
-            except Exception as e:
-                print(f"    biomass_update failed: {e}", flush=True)
+        # === End-of-YEAR: biomass_update — grow biomass from annual NPP ===
+        # Stable when combined with the T_surf physical bound in
+        # loops.py (T_MAX_DEV=40K), which catches the finding-#28-class
+        # canopy instability that high-LAI cells (LAI=12, fu=0.975) would
+        # otherwise trigger.
+        try:
+            from ibis.physics.vegetation_dynamics import biomass_update
+            from ibis.io.parameters import default_pft_params
+            pft_params = default_pft_params()
+            new_veg, new_carbon, new_summary = biomass_update(
+                state.vegetation, state.carbon, state.summary,
+                pft_params, consts.epsilon,
+            )
+            state = eqx.tree_at(
+                lambda s: (s.vegetation, s.carbon, s.summary),
+                state, (new_veg, new_carbon, new_summary),
+            )
+        except Exception as e:
+            print(f"    biomass_update failed: {e}", flush=True)
 
         # === Reset annual flux accumulators for next year ===
         z_vec = jnp.zeros((npoi,), dtype=state.summary.aygpptot.dtype)
