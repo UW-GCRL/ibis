@@ -859,6 +859,14 @@ def timestep_body(
             -dtime * (upsoiu_k + upsoil_k)
             / (c.rhow * porosflo[:, k] * soil.hsoi[k])
         )
+        # Floor wsoi at 0 (mirror F77 wadjust). Transpiration demand can exceed
+        # available soil water in a single layer; negative wsoi then enters
+        # soilh2o where wsoia**m_k (m_k≈13-15) and the implicit tridia solve
+        # produce wild coefficients → NaN. F77 escapes via float32 underflow;
+        # JAX-64 preserves the negative value. Y192M8 Hudson Bay diagnosis.
+        wsoi_pre_trans = wsoi_pre_trans.at[:, k].set(
+            jnp.maximum(wsoi_pre_trans[:, k], 0.0)
+        )
         cx_k = (c0pud[:, k]
                 + ((1.0 - soil.poros[:, k]) * csoi_mineral[:, k] * rhosoi[:, k]
                    + soil.poros[:, k] * (1.0 - wisoi_work[:, k]) * wsoi_pre_trans[:, k] * c.ch2o * c.rhow
