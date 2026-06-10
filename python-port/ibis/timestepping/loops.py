@@ -523,10 +523,32 @@ def timestep_body(
     # =====================================================================
     # 9. Soil/snow surface heat fluxes
     # =====================================================================
-    heatg = (rad.solg + canopy_result.firg
-             - canopy_result.fseng - setsoi_res.hvasug * canopy_result.fvapg)
-    heati = (rad.soli + canopy_result.firi
-             - canopy_result.fseni - setsoi_res.hvasui * canopy_result.fvapi)
+    # === Hudson Bay Y192M8 fix ===
+    # turvap's 9x9 canopy energy-balance solve can diverge in dry-cold-
+    # transitioning permafrost conditions (e.g., Hudson Bay 61.5N -94.5
+    # at Y192M8: layer 0 dry+frozen at -28C while layer 1 saturated liquid
+    # at 0C — the implicit solve produced tg_canopy_out=2316 K, then
+    # consistent fseng=+135k W/m² and firg=-64k W/m², driving fhtop_soil
+    # to -200k W/m² and tsoi[0] to -1169 K within one substep).
+    #
+    # The downstream T-clamp at section 12 (IBIS_T_MAX_DEV) clamps the
+    # IBIS state surface temperatures AFTER soilheat. It does NOT protect
+    # heatg here, which uses the canopy solve's raw flux output.
+    #
+    # Fix: clamp the surface fluxes (firg, fseng) to physical maxima
+    # (±2 kW/m²; extreme tropical noon sensible heat is ~1 kW/m²) before
+    # building heatg. Same idea as the fvapg clamp (finding #27) but for
+    # heat fluxes. No-op for healthy cells (fluxes always far below 2 kW).
+    import os as _hb
+    FLUX_MAX = float(_hb.environ.get("IBIS_FLUX_MAX", "2000.0"))
+    firg_clamped = jnp.clip(canopy_result.firg, -FLUX_MAX, FLUX_MAX)
+    fseng_clamped = jnp.clip(canopy_result.fseng, -FLUX_MAX, FLUX_MAX)
+    firi_clamped = jnp.clip(canopy_result.firi, -FLUX_MAX, FLUX_MAX)
+    fseni_clamped = jnp.clip(canopy_result.fseni, -FLUX_MAX, FLUX_MAX)
+    heatg = (rad.solg + firg_clamped
+             - fseng_clamped - setsoi_res.hvasug * canopy_result.fvapg)
+    heati = (rad.soli + firi_clamped
+             - fseni_clamped - setsoi_res.hvasui * canopy_result.fvapi)
 
     # =====================================================================
     # 10. Snow physics (matches Fortran snow.f)
