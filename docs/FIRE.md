@@ -32,7 +32,7 @@ buy the cheap structural fixes instead and spend the saved effort on calibration
 
 | Stage | Description | Status |
 |---|---|---|
-| F0 | Legacy path frozen behind flag, regression test | ☐ not started |
+| F0 | Legacy path frozen behind flag, regression test | ☑ **done & verified** (2026-08-11) |
 | F1 | Fire season length replaces annual-mean `firefac` | ☐ not started |
 | F2 | Fine-fuel term (`totalit` + live leaf) | ☐ not started |
 | F3 | Human ignition/suppression term | ☐ not started |
@@ -348,7 +348,66 @@ Append a row to `verify/results/section_summary.csv` and a dashboard row to
 
 > Append one entry per work session: what changed, what was measured, what broke.
 
-_(empty — first entry goes here)_
+### 2026-08-11 — F0 complete
+
+**Changed**
+
+- New `python-port/ibis/physics/fire.py`: `fire_legacy()` (verbatim transcription
+  of `vegetation.f:591`, with the two magic numbers named `LEGACY_LITTER_REF =
+  0.200` and `LEGACY_BURN_COEF = 0.5`), plus a `compute_disturbf(scheme, ...)`
+  dispatcher and an `AVAILABLE_SCHEMES` registry.
+- `physics/vegetation_dynamics.py`: `fire()` kept as a thin delegating wrapper so
+  existing callers and verification scripts are untouched; `dynaveg` unchanged.
+- `config.py`: added `fire_scheme: str = "legacy"`.
+- New `tests/test_fire_legacy.py` — 17 tests.
+
+**Measured**
+
+- **17/17 pass.** The refactor is bit-exact: 0 of 20 007 sampled values differ
+  from a verbatim copy of the pre-F0 inline expression (commit 605800c).
+- Agreement with a pure-Python `math` transcription of the Fortran is to
+  **machine precision but not bit-exact** — JAX's `exp` and glibc's `exp` differ
+  by up to 1 ULP (max |diff| 2.2e-16 over 200 k samples; 85% of values identical).
+  The test asserts ≤ 4 eps. Do not claim more than that anywhere.
+- Full suite: **465 passed, 7 failed**. All 7 reproduce identically on a clean
+  stashed tree, so they are **pre-existing and unrelated to F0** (`test_canopy` ×2,
+  `test_f77_verification` ×4, `test_stomata::test_jit_compatible`). Cause is
+  library drift, not physics — e.g. `TypeError: unhashable type:
+  'jaxlib._jax.ArrayImpl'` from newer Equinox.
+
+**Environment**
+
+The `verify/.venv` referenced in `verify/STATUS.md` did not survive the copy to
+the NAS. Rebuilt at **`/home/hangkai/.venvs/ibis-jax`** — local disk, not NAS,
+because the NAS mount refuses `chmod`, which breaks venv script creation. CPU
+JAX only:
+
+```
+jax 0.11.0 | jaxlib 0.11.0 | equinox 0.13.8 | numpy 2.5.2 | pytest 9.1.1
+```
+
+⚠ These are **much newer than the versions the port was verified against** and are
+the likely cause of the 7 pre-existing failures. Before trusting any numerical
+result from this environment, pin to the versions the 46-year lockstep used, or
+re-run the lockstep. Run tests with:
+
+```
+cd python-port && /home/hangkai/.venvs/ibis-jax/bin/python -m pytest tests/ -q -p no:cacheprovider
+```
+
+(`-p no:cacheprovider` because pytest cannot create its cache dir on the NAS.)
+
+**Also fixed:** `core.fileMode = false` in `.git/config`, removing 444 phantom
+modified files caused by NAS permission bits. `git status` is clean and branch
+switching works again.
+
+**Not done / deferred**
+
+- No `dynaveg`-level regression test. F0 does not change `dynaveg` — the call site
+  is byte-identical and `fire()` is proven bit-exact — so a full-state test adds
+  cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
+- `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
+  which were not rebuilt on the NAS.
 
 ---
 

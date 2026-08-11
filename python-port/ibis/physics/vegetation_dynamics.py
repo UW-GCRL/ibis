@@ -17,6 +17,7 @@ from ibis.state.vegetation import VegetationState
 from ibis.state.carbon import CarbonState
 from ibis.state.summary import SummaryState
 from ibis.io.parameters import PFTParams
+from ibis.physics.fire import fire_legacy
 
 
 def fire(
@@ -36,9 +37,15 @@ def fire(
     -------
     disturbf : (npoi,)
         Fire disturbance fraction.
+
+    Notes
+    -----
+    The implementation now lives in :mod:`ibis.physics.fire` so that additional
+    schemes can be added without editing :func:`dynaveg`. This wrapper is kept
+    because existing callers and verification scripts import ``fire`` from this
+    module; it delegates and is bit-identical to the previous inline code.
     """
-    burn = firefac * jnp.minimum(1.0, totlit / 0.200)
-    return jnp.minimum(1.0, jnp.maximum(0.0, 1.0 - jnp.exp(-0.5 * burn)))
+    return fire_legacy(firefac, totlit)
 
 
 def vegmap(

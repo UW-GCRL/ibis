@@ -32,6 +32,11 @@ class RunConfig:
     isimfire: int = 0           # 0 = no fire, 1 = fire enabled
     isimco2: int = 0            # 0 = fixed CO2, 1 = varying
 
+    # Fire scheme selector; see ibis.physics.fire.AVAILABLE_SCHEMES and
+    # docs/FIRE.md. "legacy" reproduces IBIS 2.6b4 vegetation.f:591 exactly and
+    # must remain the default -- the 46-yr F77<->JAX lockstep depends on it.
+    fire_scheme: str = "legacy"
+
     # Atmospheric concentrations
     co2init: float = 350.0e-6   # Initial CO2 (mol/mol)
     o2init: float = 0.209       # O2 concentration (mol/mol)
