@@ -233,7 +233,8 @@ dry_mean  = sdry / max(nfireday, 1)                        # mean severity in se
 # --- fuel availability: VERBATIM from CLM CNFireLi2014Mod.F90:582
 #     !! UNITS: IBIS litter pools are kg_C m-2 (comveg.h:132,137); CLM's
 #     !! lfuel/ufuel are gC m-2. Convert CLM's values; do NOT mix (1000x error).
-fine_fuel = totalit + Σ_pft ( w_leaf * cbiol[:,pft] * frac[:,pft] )   # kgC m-2
+#     !! NO frac weighting -- cbiol is ALREADY per grid-cell area (see 4.4d)
+fine_fuel = totalit + Σ_pft ( w_leaf[pft] * cbiol[:,pft] )            # kgC m-2
 f_fuel    = clip( (fine_fuel - lfuel) / (ufuel - lfuel), 0, 1 )       # lfuel/ufuel in kgC m-2
 
 # --- human ignition: linear in population density, as CLM (alpha per person/month)
@@ -355,13 +356,24 @@ more errors found:
 Confirmed correct on re-check: soil layer thicknesses 0.10/0.15/0.25/0.50/1.00/2.00 m
 (= 4.0 m), read from `fortran/params.soi` via `readpars.f:221` — as stated.
 
+### 4.4d Third audit — variable semantics and data availability (2026-08-12)
+
+| # | Assumption | Reality | Impact |
+|---|---|---|---|
+| 1 | Fine fuel = `Σ w_leaf · cbiol · frac` | ❌ **`frac` weighting is wrong.** `cbiol(npoi,npft)` is **already per grid-cell area**. Proof: `totlaiu(i) = plai(i,1)+…+plai(i,8)` is a plain sum with no weighting (`vegetation.f:494`), and `plai = cbiol × specla`; conversely `vegetation.f:551` *divides* by `fu` to reach canopy area. Note `frac` is documented as "fraction of **canopy** occupied by each PFT" (`comveg.h:197`) — a canopy fraction, not a grid fraction. | Multiplying by `frac` would have under-counted fuel by roughly the canopy fraction. **`frac` removed from §4.2.** |
+| 2 | Background disturbance value | ✅ `vegetation.f:403-404` sets `disturbf = 0.005` **and** `disturbo = 0.005` unconditionally; `fire()` then overwrites `disturbf` only when `isimfire==1`. JAX port faithful. | ⚠ But `cdisturb` accumulates `(disturbf + disturbo)`. **Fire emissions must use `disturbf` alone**, or background mortality gets attributed to fire. §4.3 already uses `BA` only ✓ — now stated explicitly. |
+| 3 | `ndaypy` exists for `fseason` | ✅ `compar.h:126`, plus `ndaypm(12)`. | `fseason = nfireday/ndaypy` is valid as written. |
+| 4 | Population density must be downloaded | ⚠ **Mixed.** `/shared/nas2/Hangkai/ibis/inputs/wiemip/population/` exists **but is empty** (0 files, created 2026-06-15). `crujra`, `ndep`, `ozone` are likewise empty; `co2` (10 files) and `luh2_gcb2025` have data. | The WIEMIP protocol already reserves the right slot for it. **F3 is blocked on filling that directory**, not on deciding where it goes. |
+| 5 | No burned-area product available | ✅ **Found: 19 GB of MCD64A1 v061** at `/shared/nas2/Chuanfeng/fire_data/data/burned_area/` — `ori_data/` HDF tiles (h07–h11, v04–v05 = **CONUS**) from 2009, plus `preprocessed/*.npy` monthlies. | **F5/F6 have a calibration target on the same NAS, no download.** ⚠ But GFED5 reports **93 % more** burned area than MCD64A1 — calibrating against MCD64A1 gives a systematically different answer. Choose and document (§7 Q2). Note the tiles are CONUS-only, which bears on the domain question (§7 Q1). |
+
 ### 4.5 New inputs
 
-| Dataset | Resolution | Purpose | On NAS? |
+| Dataset | Resolution | Purpose | On NAS? (checked 2026-08-12) |
 |---|---|---|---|
-| Population density (HYDE 3.3 or GPWv4) | 0.5°, time-varying | `f_human` | ☐ to check |
-| GFED5 burned area | 0.25°, 1997– | calibration target | ☐ to check |
-| FireCCI51 burned area | 250 m → 0.5° | independent check | ☐ to check |
+| Population density (HYDE 3.3 or GPWv4) | 0.5°, time-varying | `f_human` (F3) | ⚠ **slot exists, empty** — `inputs/wiemip/population/`, 0 files |
+| **MCD64A1 v061** | 500 m HDF tiles + monthly `.npy` | **calibration target, available now** | ✅ **19 GB**, `/shared/nas2/Chuanfeng/fire_data/data/burned_area/` — CONUS tiles h07–h11/v04–v05, from 2009 |
+| GFED5 burned area | 0.25°, 1997– | preferred global target | ☐ not present — ~93% higher than MCD64A1 |
+| FireCCI51 burned area | 250 m → 0.5° | independent check | ☐ not present |
 
 Note: GFED5 reports 93% more burned area than MCD64A1 and 61% more than GFED4s
 (small-fire inclusion). **Which product we calibrate against will move our
@@ -507,6 +519,33 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-12 — third audit: variable semantics and data
+
+Checked what the remaining variables actually *mean*, and whether the inputs exist.
+One more design error, and two useful discoveries.
+
+1. **`frac` weighting was wrong.** `cbiol` is already per grid-cell area — proved by
+   `totlaiu = Σ_j plai(i,j)` summing PFTs unweighted (`vegetation.f:494`) while
+   `vegetation.f:551` *divides* by `fu` to get canopy area. `frac` is a **canopy**
+   fraction (`comveg.h:197`), not a grid fraction. Multiplying by it would have
+   under-counted fine fuel. Removed from §4.2.
+2. **`disturbf` and `disturbo` are both 0.005** (`vegetation.f:403-404`) and
+   `cdisturb` sums them. Fire emissions must use `disturbf` alone or background
+   mortality is attributed to fire. §4.3 was already correct; now stated.
+3. **Population density has a home but no data.** The WIEMIP input tree already
+   reserves `inputs/wiemip/population/` — **empty**. So does `crujra`, `ndep`,
+   `ozone`. F3 is blocked on filling a directory that already exists.
+4. **A burned-area product is already on the NAS.** 19 GB of MCD64A1 v061 in
+   `/shared/nas2/Chuanfeng/fire_data/data/burned_area/`, CONUS tiles from 2009,
+   with monthly `.npy` preprocessing done. F5/F6 need no download — but MCD64A1
+   runs ~93 % below GFED5, so the choice of target must be explicit.
+
+Confirmed: `ndaypy` exists (`compar.h:126`); the JAX port faithfully reproduces
+F77's disturbance defaults.
+
+**Scheduling consequence:** F1 and F2 need no new data and are unblocked. F3
+onward needs the population directory filled. F5/F6 can use MCD64A1 today.
 
 ### 2026-08-12 — second audit: assumptions about IBIS itself
 
