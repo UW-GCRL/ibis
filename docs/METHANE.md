@@ -348,9 +348,19 @@ The same class of error is the main risk here, so units were checked first.
 | 3 | Per-cell root profile for plant transport (§4.4 `f_root`) | ⚠ **`froot` has no `npoi` dimension**: `Float[Array, "nsoilay 2"]`, shape (6, 2) (`state/vegetation.py:44`). Root fraction is **spatially uniform** in the port, upper/lower canopy only. | Plant-mediated transport cannot vary by cell through `froot`. Either scale by `lai` (which *is* per-cell) or accept a uniform profile. **Decide at M3, do not assume.** |
 | 4 | Soil layers 0.10/0.15/0.25/0.50/1.00/2.00 m, 4 m total | ✅ Confirmed — `fortran/params.soi:33-38`, read via `readpars.f:221`. | Layer weighting `w_rh[k]` can be built on these as stated. |
 
+| 5 | `sat[k] = wsoi·(1−wisoi)` is the liquid saturation | ✅ **Correct, but subtle — document the reasoning.** `wsoi` and `wisoi` are both described as "fraction of soil pore space" (`comsoi.h:41-42`), which reads as if they simply add. They do not. IBIS's own combination is `water = wisoi + (1−wisoi)·wsoi` (`stats.f:1175`), i.e. **`wsoi` is the liquid fraction of the *ice-free* pore space.** So liquid-of-total-pore-space is `(1−wisoi)·wsoi` ✓ and total water is `wisoi + (1−wisoi)·wsoi`. | Writing `wsoi + wisoi` or `wsoi` alone would be wrong and would look right. We deliberately use **liquid only** (ice neither supports methanogenesis nor moves), with freeze gating `f_frz` on top — but this must be stated, not left implicit. |
+
 Also inherited from the fire audit and relevant here: IBIS **does** carry
 `rh(npoi)` and `ua(npoi)` (`comatm.h:21,25`) — more forcing is available than the
 first draft assumed, should any CH₄ term want it.
+
+**Data availability (checked 2026-08-12):** none of WAD2M / GIEMS-2 / SWAMPS /
+FLUXNET-CH4 is present anywhere under `/shared/nas2`, `/shared/nas` or
+`/home/hangkai`. The WIEMIP input tree reserves empty slots for `crujra`, `ndep`,
+`ozone` and `population` but not for inundation. **M1 is blocked on acquiring an
+inundation product** — unlike the fire module, nothing usable is already on disk.
+(For contrast, fire found 19 GB of MCD64A1 burned area on the same NAS; see
+`FIRE.md` §4.4d.)
 
 ---
 
