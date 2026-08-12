@@ -375,12 +375,10 @@ Append a row to `verify/results/section_summary.csv` and a dashboard row to
   library drift, not physics — e.g. `TypeError: unhashable type:
   'jaxlib._jax.ArrayImpl'` from newer Equinox.
 
-**Environment**
+**Environment** *(relocated to nas2, 2026-08-12 — see `docs/ENVIRONMENT.md`)*
 
-The `verify/.venv` referenced in `verify/STATUS.md` did not survive the copy to
-the NAS. Rebuilt at **`/home/hangkai/.venvs/ibis-jax`** — local disk, not NAS,
-because the NAS mount refuses `chmod`, which breaks venv script creation. CPU
-JAX only:
+The `verify/.venv` referenced in `verify/STATUS.md` did not survive the move to
+shared storage. Rebuilt at **`/shared/nas2/Hangkai/ibis-env`**. CPU JAX only:
 
 ```
 jax 0.11.0 | jaxlib 0.11.0 | equinox 0.13.8 | numpy 2.5.2 | pytest 9.1.1
@@ -389,13 +387,12 @@ jax 0.11.0 | jaxlib 0.11.0 | equinox 0.13.8 | numpy 2.5.2 | pytest 9.1.1
 ⚠ These are **much newer than the versions the port was verified against** and are
 the likely cause of the 7 pre-existing failures. Before trusting any numerical
 result from this environment, pin to the versions the 46-year lockstep used, or
-re-run the lockstep. Run tests with:
+re-run the lockstep and re-baseline. Run tests with:
 
 ```
-cd python-port && /home/hangkai/.venvs/ibis-jax/bin/python -m pytest tests/ -q -p no:cacheprovider
+cd /shared/nas2/Hangkai/ibis-port/python-port
+/shared/nas2/Hangkai/ibis-env/ibis-python -m pytest tests/ -q
 ```
-
-(`-p no:cacheprovider` because pytest cannot create its cache dir on the NAS.)
 
 **Also fixed:** `core.fileMode = false` in `.git/config`, removing 444 phantom
 modified files caused by NAS permission bits. `git status` is clean and branch
@@ -408,6 +405,27 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-12 — relocated to nas2
+
+Working copy and environment moved from `nas` (97 % full) to `nas2` (17 T free),
+next to the 374 G run tree at `/shared/nas2/Hangkai/ibis`. Details and the full
+list of CIFS constraints are in `docs/ENVIRONMENT.md`.
+
+- Repo → `/shared/nas2/Hangkai/ibis-port`. `git clone` fails on this mount
+  (`chmod on .git/config.lock`), so the tree was rsynced. Verified: `git fsck`
+  clean, all three branch tips identical to the source, origin still GitHub,
+  `core.fileMode=false` carried over, working tree clean.
+- Environment → `/shared/nas2/Hangkai/ibis-env`. Neither `venv` nor `conda` can
+  build here (no symlink support), so packages were pip-installed on local disk
+  and rsynced, with an `ibis-python` launcher supplying `PYTHONPATH`. Versions
+  pinned in `requirements.lock`, identical to the local venv.
+- **Re-verified end to end on nas2:** F0 17/17 pass; full suite 465 passed /
+  7 failed — byte-identical outcome to local disk, so the relocation changed
+  nothing.
+- ⚠ The older copy at `/shared/nas/Chenchen/hangkai/ibis-port` is now
+  **superseded**. It is identical as of this commit but will drift. Delete it
+  once you are satisfied — not removed automatically.
 
 ---
 
