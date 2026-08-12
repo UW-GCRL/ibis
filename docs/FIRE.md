@@ -75,7 +75,7 @@ constant 0.005 yr⁻¹ background disturbance.
 | # | Defect | Why it matters | Fixed by |
 |---|---|---|---|
 | 1 | `firefac` is an **annual mean** of daily dryness | A cell with 6 bone-dry + 6 wet months scores identically to one permanently half-dry. Fire is threshold-driven; averaging is the wrong operator. This is the single largest error. | F1 |
-| 2 | Fuel is `totlit` — **total** litter | `totlit = totalit + totrlit`. Root litter cannot burn. `totalit` (above-ground litter) already exists in `CarbonState` and is the correct variable. Live fine fuel (grass, leaves) is ignored entirely. | F2 |
+| 2 | Fuel is `totlit` — **total** litter | ✅ Verified at `biogeochem.f:924`, commented *"total above and belowground litter"*: `totlit = clitlm+clitls+clitll + clitrm+clitrs+clitrl + clitwm+clitws+clitwl` — the middle three are **root** litter, which cannot burn. `totalit` (`:930`) is the above-ground sum and already exists in `CarbonState`. Live fine fuel (grass, leaves) is ignored entirely. | F2 |
 | 3 | No human term | Population density drives both ignition (low density) and suppression (high density). Its absence is the leading explanation for the Africa bias and the missed post-2000 declining trend across CMIP6 models. | F3 |
 | 4 | Uniform mortality across PFTs | `disturbf` hits savanna trees and boreal conifers identically, so the fire→vegetation feedback — the whole reason fire is in a DGVM — is wrong. | F4 |
 | 5 | Output is not burned area | `disturbf` has no observational counterpart, so no version of this module can be validated or falsified. | F5 |
@@ -146,23 +146,34 @@ area_burnt = num_fires * (pi/4)/lb * dbf^2 * 1e-4
 **So we can borrow a real fire-danger index without buying Rothermel.** This is a
 better option than the soil-moisture proxy if F1 does not fix seasonality.
 
-**2. Li's occurrence structure is piecewise-linear ramps, not physics.** The
-expensive part of CLM's fire is the *four fire types*, not the core. `cnfire_const`
-shows the core is a set of thresholds:
+**2. Li's occurrence core is a handful of closed-form factors; the bulk of the code
+is the other three fire types.** Verified line by line 2026-08-12 (§4.4b):
 
-- `lfuel`, `ufuel` — lower/upper fuel-mass thresholds (gC m⁻²), a ramp
-- `rh_low`, `rh_hgh` — relative humidity ramp
-- `bt_min`, `bt_max` — root-zone wetness (`btran`) ramp
-- `pot_hmn_ign_counts_alpha` — human ignition, per person per month
-- population suppression ~ `(hdm/450)^0.5`; GDP suppression ~ `f(gdp/7)`
+```fortran
+fb     = max(0, min(1, (fuelc - lfuel)/(ufuel - lfuel)))            ! :582  ramp
+fire_m = exp(-pi*(m/0.69)**2)                                       ! :584  GAUSSIAN in moisture
+         * (1 - max(0, min(1, (rh - rh_low)/(rh_hgh - rh_low))))    ! :585  x RH ramp
+lpop   = 0.2 + 0.8*exp(-pi*(hdm/450)**0.5)                          ! :440  suppression, floor 0.2
+lgdp   = 0.1 + 0.9*exp(-pi*(gdp/8)**0.5)                            ! :436  GDP, shrub/grass
+nfire  = ig/secsphr * fb * fire_m * lgdp                            ! :591
+```
+
+with calibrated constants `lfuel=75`, `ufuel=650` gC m⁻², `rh_low=30`, `rh_hgh=80` %,
+`bt_min=0.3`, `bt_max=0.7`, `pot_hmn_ign_counts_alpha=0.0035` /person/month
+(`CNFireBaseMod.F90:55-64`).
+
+⚠ Correction to the first draft of this section: only **fuel availability** is a
+ramp. **Combustibility is a Gaussian in fuel moisture** times an RH ramp, and the
+suppression terms are **exponentials with built-in floors**, not linear ramps.
 
 Then `cli_scale` (deforestation), `cropfire_a1` (cropland), `boreal_peatfire_c` /
 `non_boreal_peatfire_c` (peat) add the three extra fire types — **that is where the
-2865 lines go.** A single-fire-type Li core is cheap.
+2865 lines go.** A single-fire-type core is cheap.
 
-**Revised borrowing decision:** take Li's *ramp structure* for fuel availability and
-combustibility and its population terms, with **one fire type only**; keep IBIS's
+**Revised borrowing decision:** take `fb` and `lpop` **verbatim with CLM's own
+constants**, plus linear human ignition, with **one fire type only**; keep IBIS's
 existing exponential burned-fraction closure instead of fire-counts × fire-size.
+Skip `fire_m` for now — IBIS has no prognostic RH at the fire timestep (§4.2).
 
 ---
 
@@ -187,38 +198,51 @@ Cost: two extra `[npoi]` accumulators, one comparison per day. Negligible.
 
 ### 4.2 Annual burned area
 
-Revised after the code survey (§3b) to use Li-style ramps, which are cheaper and
-better-tested than the ad-hoc products in the first draft:
+Revised twice: first after the code survey (§3b), then again after verifying every
+borrowed expression against CTSM source on 2026-08-12 (§4.5). **The first draft of
+this section was wrong in two places** — corrected below.
 
 ```
 fseason   = nfireday / ndaypy                              # fire season fraction
 dry_mean  = sdry / max(nfireday, 1)                        # mean severity in season
 
-# --- fuel availability: Li-style ramp instead of min(1, fuel/ref)
+# --- fuel availability: VERBATIM from CLM CNFireLi2014Mod.F90:582
 fine_fuel = totalit + Σ_pft ( w_leaf * cbiol[:,pft] * frac[:,pft] )
 f_fuel    = clip( (fine_fuel - lfuel) / (ufuel - lfuel), 0, 1 )
 
-# --- human: ignition saturates, suppression follows CLM's sqrt form
-f_ign     = 1 - exp(-a_ig * popd)
-f_sup     = 1 - c_sup * (popd / 450)**0.5                  # CLM Li2014 form, clipped ≥ 0
-f_human   = f_ign * max(f_sup, f_min)
+# --- human ignition: linear in population density, as CLM (alpha per person/month)
+ign       = ig0 + a_ig * popd
 
-BA        = 1 - exp( -k_b * fseason^p * dry_mean * f_fuel * f_human )
+# --- human suppression: VERBATIM from CLM CNFireLi2014Mod.F90:439-440
+f_sup     = 0.2 + 0.8 * exp( -pi * (popd / 450)**0.5 )     # bounded [0.2, 1.0] by construction
+
+BA        = 1 - exp( -k_b * fseason^p * dry_mean * f_fuel * ign * f_sup )
 disturbf  = BA                                             # same variable feeds dynaveg
 ```
 
-`lfuel`/`ufuel` replace `fuel_ref` (2 params instead of 1, but a ramp rather than a
-kink, and directly comparable to CLM's calibrated values). The `(popd/450)^0.5`
-suppression form is lifted from `CNFireLi2014Mod.F90` so its exponent and scale
-have an external reference rather than being fitted from nothing.
+`f_fuel` is CLM's `fb` exactly. `f_sup` is CLM's `lpop` exactly — note it carries
+its **own floor of 0.2**, so the ad-hoc `f_min` in the first draft is unnecessary
+and has been dropped. Ignition is linear in population density, matching CLM's
+`pot_hmn_ign_counts_alpha`, with `ig0` standing in for the lightning term IBIS has
+no data for.
+
+`BA` is reported as `burntFractionAll` (the CMIP7 priority-1 variable).
+
+**Deliberately *not* copied — CLM's fuel combustibility.** CLM computes
+
+```fortran
+fire_m = exp(-pi*(m/0.69)**2) * (1 - clip((rh - rh_low)/(rh_hgh - rh_low), 0, 1))
+```
+
+a Gaussian in fuel moisture times an RH ramp (`CNFireLi2014Mod.F90:584`). We use
+`fseason^p * dry_mean` instead, because IBIS has no prognostic relative humidity at
+the fire timestep and because season length is the variable F1 exists to introduce.
+If seasonality remains poor after F1, adopting `fire_m` is the first thing to try —
+it needs only RH, which the forcing carries.
 
 **Fallback if F1 does not fix seasonality:** swap the soil-moisture dryness for a
 Nesterov index, using LPJmL's one-line FDI closure (§3b). Cost is one accumulator
-and one PFT parameter — still inside budget. Recorded as a planned contingency, not
-a v1 feature.
-
-`h_norm` normalises the hump to peak at 1 so `k_b` stays interpretable.
-`BA` is reported as `burntFractionAll` (the CMIP7 priority-1 variable).
+and one PFT parameter — still inside budget. A planned contingency, not a v1 feature.
 
 ### 4.3 Fire mortality and emissions
 
@@ -244,20 +268,43 @@ Fine roots are excluded from combustion (they may still die — see §2.3).
 | `d_crit` | fire-day dryness threshold | 0.5 | **yes** | guess |
 | `k_b` | burned-area scale | 0.5 | **yes** | F77 `-0.5` exponent |
 | `p` | fire-season exponent | 1.0 | **yes** | guess |
-| `lfuel` | lower fuel threshold (gC m⁻²) | 155 | **yes** | CLM `cnfire_const%lfuel` |
-| `ufuel` | upper fuel threshold (gC m⁻²) | 1050 | **yes** | CLM `cnfire_const%ufuel` |
+| `lfuel` | lower fuel threshold (gC m⁻²) | **75** | **yes** | ✅ CTSM `CNFireBaseMod.F90:55` |
+| `ufuel` | upper fuel threshold (gC m⁻²) | **650** | **yes** | ✅ CTSM `CNFireBaseMod.F90:56` |
 | `w_leaf` | live-leaf fine-fuel weight | 0.5 | **yes** | guess |
-| `a_ig` | human ignition saturation rate | — | **yes** | fit; cf. CLM `pot_hmn_ign_counts_alpha` |
-| `c_sup` | population suppression scale | — | **yes** | CLM Li2014 `(hdm/450)^0.5` form |
-| `f_min` | suppression floor | 0.05 | no | prevents total suppression |
-| `mort[12]` | PFT fire mortality | 0.5 grass-high, tree-low | **yes** | literature priors |
+| `ig0` | background (lightning) ignition | — | **yes** | fit; IBIS has no lightning data |
+| `a_ig` | human ignition rate (/person/month) | **0.0035** | **yes** | ✅ CTSM `pot_hmn_ign_counts_alpha`, `CNFireBaseMod.F90:64` |
+| `mort[12]` | PFT fire mortality | 0.5 grass-high, tree-low | **yes** | literature priors; cf. FATES `bark_scaler` |
 | `cc_leaf` | leaf combustion completeness | 0.9 | maybe | literature |
 | `cc_wood` | wood combustion completeness | 0.2 | maybe | literature |
 | `cc_lit` | litter combustion completeness | 0.5 | maybe | literature |
 
-**Scalars: 9. With `mort[12]`: 21.** Slightly over the 20 budget; acceptable
-because `mort` is a physically-interpretable vector with strong priors, and it can
-be frozen during calibration if it proves ill-conditioned.
+`f_sup` has **no free parameters** — the 0.2/0.8/450 constants are CLM's calibrated
+values, used verbatim. `c_sup` and `f_min` from the first draft are deleted.
+
+**Scalars: 9. With `mort[12]`: 21.** Slightly over the 20 budget; acceptable because
+`mort` is a physically-interpretable vector with strong priors, and can be frozen
+during calibration if ill-conditioned.
+
+Other CTSM constants verified in passing, available if needed:
+`rh_low = 30.0 %`, `rh_hgh = 80.0 %`, `bt_min = 0.3`, `bt_max = 0.7`
+(`CNFireBaseMod.F90:58-61`).
+
+### 4.4b Provenance audit (2026-08-12)
+
+Every borrowed expression re-checked against primary source. Recording what was
+verified and what was not, so nothing enters a paper on the strength of a summary.
+
+| Claim | Status |
+|---|---|
+| `fb = clip((fuel - lfuel)/(ufuel - lfuel), 0, 1)` | ✅ verbatim, `CNFireLi2014Mod.F90:582` |
+| `lpop = 0.2 + 0.8·exp(−π·(hdm/450)^0.5)` | ✅ verbatim, `CNFireLi2014Mod.F90:439-440` — **first draft had this wrong** |
+| `lfuel=75`, `ufuel=650`, `alpha=0.0035` | ✅ `CNFireBaseMod.F90:55,56,64` — **first draft said 155 / 1050** |
+| `fire_m` Gaussian in moisture × RH ramp | ✅ `CNFireLi2014Mod.F90:584-585` — first draft mischaracterised it as a ramp |
+| IBIS `totlit` includes root litter | ✅ `biogeochem.f:924` — "total above and belowground litter", sums `clitrm/clitrs/clitrl`. `totalit` (`:930`) is above-ground only. F2 confirmed. |
+| FATES per-PFT fire resistance | ✅ `SFMainMod.F90:570` `CalculatePostFireMortality` → `CambialMortality(bark_scaler)` + crown scorch |
+| Nesterov FDI one-liner | ✅ LPJmL `firedangerindex.c` (81 lines) |
+| Glob-FIRM's exact burned-fraction equation | ⚠ **NOT verified** — Thonicke et al. (2001) is paywalled (Wiley) and secondary sources describe it only as "an empirical relationship between fire season length and area burned". **We take the *concept* (season length, not mean dryness); the closure is IBIS's own exponential.** Do not cite a Glob-FIRM formula we have not read. |
+| Andreae (2019) emission factors | ⚠ from the paper's abstract/summary only (CH₄ 2.7 g/kg savanna → 9.1 g/kg peat). Pull the actual per-biome table before F5. |
 
 ### 4.5 New inputs
 
@@ -341,6 +388,9 @@ Append a row to `verify/results/section_summary.csv` and a dashboard row to
 | 2026-08-10 | After code survey: borrow Li's **ramp structure** and population terms, one fire type only | Source inspection showed CLM's 2865 lines are dominated by the 3 extra fire types (crop, deforestation, peat), not by the core. A single-type Li core is genuinely light. |
 | 2026-08-10 | Keep IBIS's exponential burned-fraction closure; do **not** adopt fire-counts × fire-size | `area_burnt.c` needs Rothermel rate-of-spread + elliptical geometry + wind. That is where SPITFIRE's cost lives. |
 | 2026-08-10 | Nesterov FDI recorded as a **contingency**, not v1 | LPJmL's `firedangerindex.c` shows the FDI itself is one line and one parameter — cheap to add later if soil-moisture dryness fails on seasonality. |
+| 2026-08-12 | Use CLM's `fb` and `lpop` **verbatim with CLM's constants** rather than re-deriving similar forms | Provenance audit (§4.4b) found the first draft had invented a suppression form and mis-stated `lfuel`/`ufuel` by ~2×. Copying the calibrated expression removes two free parameters and gives every constant an external reference. |
+| 2026-08-12 | Do **not** cite a Glob-FIRM equation | Thonicke et al. (2001) is paywalled and could not be verified. We take the concept (season length replaces mean dryness) and use IBIS's own closure. Claiming an unread formula is how errors enter papers. |
+| 2026-08-12 | Skip CLM's `fire_m` combustibility in v1 | It needs prognostic RH at the fire timestep, which IBIS lacks. First thing to add if seasonality is still poor after F1. |
 
 ---
 
@@ -405,6 +455,37 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-12 — provenance audit before implementing F1
+
+Re-checked every borrowed expression and constant against primary source before
+writing any code. Full result table in §4.4b. **Three errors found in the first
+draft of the design, all now corrected:**
+
+1. `lfuel`/`ufuel` were written as 155 / 1050 gC m⁻² "from CLM". Actual CTSM
+   defaults are **75 / 650** (`CNFireBaseMod.F90:55-56`) — off by roughly 2×, and
+   attributed to a source that had not been opened.
+2. The population suppression term was invented: `1 − c·(pop/450)^0.5` with an
+   ad-hoc floor. CLM's actual form is
+   **`lpop = 0.2 + 0.8·exp(−π·(hdm/450)^0.5)`** (`CNFireLi2014Mod.F90:439-440`),
+   which carries its own floor of 0.2. Adopting it verbatim **removes two free
+   parameters** (`c_sup`, `f_min`).
+3. Li's occurrence core was described as "piecewise-linear ramps". Only fuel
+   availability is a ramp; combustibility is a **Gaussian in fuel moisture**
+   (`exp(−π(m/0.69)²)`) times an RH ramp.
+
+**Confirmed correct:** the `totlit` defect (`biogeochem.f:924` is explicit — "total
+above and belowground litter", summing the three `clitr*` root pools), FATES
+per-PFT fire resistance via `CambialMortality(bark_scaler)`, and the LPJmL Nesterov
+one-liner.
+
+**Left unverified, and marked as such:** Glob-FIRM's exact burned-fraction equation
+(paywalled) and the Andreae 2019 per-biome emission-factor table (abstract only).
+Neither is on the F1 critical path; both must be resolved before they appear in a
+manuscript.
+
+No code was written this session — the audit changed the design, which is why it
+ran first.
 
 ### 2026-08-12 — relocated to nas2
 
