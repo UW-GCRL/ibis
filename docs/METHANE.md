@@ -336,6 +336,22 @@ build plan — the audit confirms M0 is not optional.
 **Not applicable:** no IBIS Fortran counterpart exists to verify against (§2.1),
 and no public JAX/Python implementation of any wetland CH₄ scheme was found.
 
+### 4.10 Second audit — assumptions about IBIS itself (2026-08-12)
+
+Ran alongside `FIRE.md` §4.4c, which found a 1000× unit error in the fire design.
+The same class of error is the main risk here, so units were checked first.
+
+| # | Assumption | Reality | Impact |
+|---|---|---|---|
+| 1 | `tco2mic` may only be an annual diagnostic (§7 open question 3) | ✅ **Resolved — it is a per-timestep field.** `VegetationState.tco2mic` (`state/vegetation.py:66`), computed in `physics/biogeochem.py:235`. | **M2 needs no plumbing work.** The open question is closed. |
+| 2 | Rh units | `tco2mic` is **mol CO₂ m⁻² s⁻¹**. `timestepping/loops_gswp3.py:414-415` already converts: `rh_day = tco2mic × 12.0e-3 × 86400` → **kgC m⁻² d⁻¹**. | §4.2 said "gC m⁻² d⁻¹". **Pick one and state it in code.** Reuse the existing conversion rather than writing a second one — the fire module's 1000× near-miss came from exactly this. |
+| 3 | Per-cell root profile for plant transport (§4.4 `f_root`) | ⚠ **`froot` has no `npoi` dimension**: `Float[Array, "nsoilay 2"]`, shape (6, 2) (`state/vegetation.py:44`). Root fraction is **spatially uniform** in the port, upper/lower canopy only. | Plant-mediated transport cannot vary by cell through `froot`. Either scale by `lai` (which *is* per-cell) or accept a uniform profile. **Decide at M3, do not assume.** |
+| 4 | Soil layers 0.10/0.15/0.25/0.50/1.00/2.00 m, 4 m total | ✅ Confirmed — `fortran/params.soi:33-38`, read via `readpars.f:221`. | Layer weighting `w_rh[k]` can be built on these as stated. |
+
+Also inherited from the fire audit and relevant here: IBIS **does** carry
+`rh(npoi)` and `ua(npoi)` (`comatm.h:21,25`) — more forcing is available than the
+first draft assumed, should any CH₄ term want it.
+
 ---
 
 ## 5. Implementation plan
@@ -383,8 +399,9 @@ deep peat" or quantify the bias. Do not leave it implicit.
    *Undecided.*
 2. Which inundation product? WAD2M, GIEMS-2 and SWAMPS disagree substantially and
    this is the largest single lever on our global total.
-3. Is `tco2mic` exposed at the timestep level, or only as an annual diagnostic
-   (`ayco2mic`)? Determines whether M2 needs plumbing work in `biogeochem.py`.
+3. ~~Is `tco2mic` exposed at the timestep level?~~ **CLOSED 2026-08-12** — it is a
+   per-timestep field on `VegetationState` (`state/vegetation.py:66`) and an
+   existing unit conversion lives at `loops_gswp3.py:415`. No plumbing needed.
 4. Depth weighting `w_rh[k]` — derive from IBIS's soil C profile, from `froot`,
    or fit? IBIS's CENTURY does not resolve soil C by layer, which may force a
    prescribed exponential profile.
