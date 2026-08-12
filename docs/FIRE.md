@@ -82,15 +82,39 @@ constant 0.005 yr⁻¹ background disturbance.
 | 6 | No trace-gas emissions | No CO₂/CH₄/N₂O from fire; nothing to hand to the methane budget. | F5 |
 | 7 | `bgc/fire_emissions.py` is dead scaffolding | Never called (only a dormant `enable_fire_emissions=False`); Andreae & Merlet (2001) 4-class factors; state field documented gC m⁻² yr⁻¹, code returns kgC m⁻² yr⁻¹, `nee.py` consumes it as gC m⁻² d⁻¹. | F5 (rewrite, do not extend) |
 
-### 2.3 To check before implementing
+### 2.3 Resolved 2026-08-12 (second audit)
 
-- [ ] `vegetation_dynamics.py:408` puts `cbior` (fine roots) into `cdisturb`.
-      Confirm whether `cdisturb` is treated as **combusted** (emitted) or as
-      **mortality transferred to litter**. If combusted, roots must be excluded
-      from the emission calculation even if they stay in the mortality flux.
-- [ ] Whether `firefac` is used anywhere besides `fire()`.
-- [ ] Whether the annual `dynaveg` call site can accept a daily-accumulated input
-      without breaking the verified `dynaveg` residuals.
+- [x] **`cdisturb` is emitted to the atmosphere, roots included, and none of it
+      reaches litter.** `vegetation.f:433` accumulates
+      `(cbiol + cbiow + cbior) × (disturbf + disturbo)`, and `vegetation.f:481`
+      does `ayneetot(i) = ayneetot(i) - cdisturb(i)` — carbon leaves the ecosystem.
+      Sitting directly above that code is an unresolved author TODO:
+
+      ```
+      **** DTP 2000/04/22 QUESTION:
+      * Shouldn't a portion of the destroyed material be added to litter fall?
+      ```
+
+      So IBIS has **combusted fine roots for 26 years**, and the original authors
+      knew it was questionable. Consequences: (a) F5 emissions must exclude
+      `cbior`; (b) routing roots to litter instead would change `ayneetot` and the
+      whole carbon balance, so it must sit behind `fire_scheme`, never in the
+      legacy path; (c) this is an *inherited* defect, worth reporting as a finding
+      rather than silently fixing.
+
+- [x] **`firefac` timing.** `sumyear` is called every timestep
+      (`main.f:437`), `nytimes` increments per call, `rwork = 1/float(nytimes)`
+      (`stats.f:960,966`). So `firefac` is a running mean over **all ~17 520
+      timesteps in the year**, not over days. §2.1's earlier wording
+      ("annual mean of daily dryness") was imprecise.
+      → **F1 must state its accumulation frequency explicitly.** `sumday`
+      (`stats.f:300`) is the natural daily hook; counting "fire days" at the
+      timestep level would need a ÷`nsteps_per_day` conversion and would
+      double-count within a day.
+
+- [ ] Whether the annual `dynaveg` call site (`main.f:500`) can accept a
+      daily-accumulated input without perturbing verified `dynaveg` residuals.
+      *Still open — resolve at F1.*
 
 ---
 
@@ -207,8 +231,10 @@ fseason   = nfireday / ndaypy                              # fire season fractio
 dry_mean  = sdry / max(nfireday, 1)                        # mean severity in season
 
 # --- fuel availability: VERBATIM from CLM CNFireLi2014Mod.F90:582
-fine_fuel = totalit + Σ_pft ( w_leaf * cbiol[:,pft] * frac[:,pft] )
-f_fuel    = clip( (fine_fuel - lfuel) / (ufuel - lfuel), 0, 1 )
+#     !! UNITS: IBIS litter pools are kg_C m-2 (comveg.h:132,137); CLM's
+#     !! lfuel/ufuel are gC m-2. Convert CLM's values; do NOT mix (1000x error).
+fine_fuel = totalit + Σ_pft ( w_leaf * cbiol[:,pft] * frac[:,pft] )   # kgC m-2
+f_fuel    = clip( (fine_fuel - lfuel) / (ufuel - lfuel), 0, 1 )       # lfuel/ufuel in kgC m-2
 
 # --- human ignition: linear in population density, as CLM (alpha per person/month)
 ign       = ig0 + a_ig * popd
@@ -228,17 +254,24 @@ no data for.
 
 `BA` is reported as `burntFractionAll` (the CMIP7 priority-1 variable).
 
-**Deliberately *not* copied — CLM's fuel combustibility.** CLM computes
+**CLM's fuel combustibility — now a live option, not excluded.** CLM computes
 
 ```fortran
 fire_m = exp(-pi*(m/0.69)**2) * (1 - clip((rh - rh_low)/(rh_hgh - rh_low), 0, 1))
 ```
 
-a Gaussian in fuel moisture times an RH ramp (`CNFireLi2014Mod.F90:584`). We use
-`fseason^p * dry_mean` instead, because IBIS has no prognostic relative humidity at
-the fire timestep and because season length is the variable F1 exists to introduce.
-If seasonality remains poor after F1, adopting `fire_m` is the first thing to try —
-it needs only RH, which the forcing carries.
+a Gaussian in fuel moisture times an RH ramp (`CNFireLi2014Mod.F90:584-585`).
+
+⚠ **Reversed on 2026-08-12.** The first draft excluded this on the grounds that
+"IBIS has no prognostic relative humidity". **That was false.** IBIS carries
+`rh(npoi)` — relative humidity in % — in common block `comatm3`
+(`comatm.h:25`), and the JAX port carries it as `AtmState.rh`
+(`state/atmosphere.py:41`). Wind `ua(npoi)` is there too (`comatm.h:21`).
+
+So `fire_m` is implementable with **no new inputs**. It is held back from v1 only
+because `fseason^p · dry_mean` is the term F1 exists to introduce and the two
+should not be conflated in the same step. **Add `fire_m` at F1b and A/B test it
+against the season-length term** — the comparison is now cheap and worth doing.
 
 **Fallback if F1 does not fix seasonality:** swap the soil-moisture dryness for a
 Nesterov index, using LPJmL's one-line FDI closure (§3b). Cost is one accumulator
@@ -268,8 +301,8 @@ Fine roots are excluded from combustion (they may still die — see §2.3).
 | `d_crit` | fire-day dryness threshold | 0.5 | **yes** | guess |
 | `k_b` | burned-area scale | 0.5 | **yes** | F77 `-0.5` exponent |
 | `p` | fire-season exponent | 1.0 | **yes** | guess |
-| `lfuel` | lower fuel threshold (gC m⁻²) | **75** | **yes** | ✅ CTSM `CNFireBaseMod.F90:55` |
-| `ufuel` | upper fuel threshold (gC m⁻²) | **650** | **yes** | ✅ CTSM `CNFireBaseMod.F90:56` |
+| `lfuel` | lower fuel threshold (**kgC m⁻²**) | **0.075** | **yes** | ✅ CTSM `CNFireBaseMod.F90:55` = 75 gC m⁻², **converted** |
+| `ufuel` | upper fuel threshold (**kgC m⁻²**) | **0.650** | **yes** | ✅ CTSM `CNFireBaseMod.F90:56` = 650 gC m⁻², **converted** |
 | `w_leaf` | live-leaf fine-fuel weight | 0.5 | **yes** | guess |
 | `ig0` | background (lightning) ignition | — | **yes** | fit; IBIS has no lightning data |
 | `a_ig` | human ignition rate (/person/month) | **0.0035** | **yes** | ✅ CTSM `pot_hmn_ign_counts_alpha`, `CNFireBaseMod.F90:64` |
@@ -305,6 +338,22 @@ verified and what was not, so nothing enters a paper on the strength of a summar
 | Nesterov FDI one-liner | ✅ LPJmL `firedangerindex.c` (81 lines) |
 | Glob-FIRM's exact burned-fraction equation | ⚠ **NOT verified** — Thonicke et al. (2001) is paywalled (Wiley) and secondary sources describe it only as "an empirical relationship between fire season length and area burned". **We take the *concept* (season length, not mean dryness); the closure is IBIS's own exponential.** Do not cite a Glob-FIRM formula we have not read. |
 | Andreae (2019) emission factors | ⚠ from the paper's abstract/summary only (CH₄ 2.7 g/kg savanna → 9.1 g/kg peat). Pull the actual per-biome table before F5. |
+
+### 4.4c Second audit — assumptions about IBIS itself (2026-08-12)
+
+The first audit checked *borrowed* expressions. This one checked what we assumed
+about **IBIS**, which is where a wrong assumption actually breaks the build. Four
+more errors found:
+
+| # | Assumption | Reality | Impact |
+|---|---|---|---|
+| 1 | `lfuel`/`ufuel` usable as-is | **IBIS litter is kg_C m⁻²** (`comveg.h:132,137`); CLM's are gC m⁻². | **1000× error** if implemented literally. Converted to 0.075 / 0.650 kgC m⁻². Sanity check: IBIS's own threshold 0.200 kgC m⁻² = 200 gC m⁻² sits inside CLM's 75–650 range ✓ |
+| 2 | "IBIS has no relative humidity" | **False.** `rh(npoi)` in `comatm.h:25`, `AtmState.rh` in the port. Wind `ua(npoi)` too. | Reversed the decision to skip `fire_m`; now an F1b A/B test |
+| 3 | `firefac` = mean of *daily* dryness | Mean over **every timestep** (`sumyear` per timestep, `main.f:437`) | F1 must declare its accumulation frequency; `sumday` is the right hook |
+| 4 | `cdisturb` might be mortality-to-litter | It is **subtracted from NEE** (`vegetation.f:481`) — fully emitted, roots included, with a 2000-era author TODO questioning it | F5 must exclude roots; any fix changes the carbon balance and must stay behind the flag |
+
+Confirmed correct on re-check: soil layer thicknesses 0.10/0.15/0.25/0.50/1.00/2.00 m
+(= 4.0 m), read from `fortran/params.soi` via `readpars.f:221` — as stated.
 
 ### 4.5 New inputs
 
@@ -390,7 +439,10 @@ Append a row to `verify/results/section_summary.csv` and a dashboard row to
 | 2026-08-10 | Nesterov FDI recorded as a **contingency**, not v1 | LPJmL's `firedangerindex.c` shows the FDI itself is one line and one parameter — cheap to add later if soil-moisture dryness fails on seasonality. |
 | 2026-08-12 | Use CLM's `fb` and `lpop` **verbatim with CLM's constants** rather than re-deriving similar forms | Provenance audit (§4.4b) found the first draft had invented a suppression form and mis-stated `lfuel`/`ufuel` by ~2×. Copying the calibrated expression removes two free parameters and gives every constant an external reference. |
 | 2026-08-12 | Do **not** cite a Glob-FIRM equation | Thonicke et al. (2001) is paywalled and could not be verified. We take the concept (season length replaces mean dryness) and use IBIS's own closure. Claiming an unread formula is how errors enter papers. |
-| 2026-08-12 | Skip CLM's `fire_m` combustibility in v1 | It needs prognostic RH at the fire timestep, which IBIS lacks. First thing to add if seasonality is still poor after F1. |
+| 2026-08-12 | ~~Skip CLM's `fire_m` combustibility in v1~~ **REVERSED same day** | The stated reason ("IBIS lacks RH") was false — `comatm.h:25` carries `rh(npoi)`. `fire_m` needs no new inputs. Now scheduled as F1b, A/B tested against the season-length term. |
+| 2026-08-12 | Carry `lfuel`/`ufuel` in **kgC m⁻²**, not CLM's gC m⁻² | IBIS litter pools are kg_C m⁻². Mixing them is a silent 1000× error — the single most likely way this module would have shipped broken. |
+| 2026-08-12 | F1 must declare accumulation frequency; hook `sumday`, not `sumyear` | `firefac` is a per-*timestep* mean, not per-day. Counting "fire days" at timestep resolution would over-count by ~48×. |
+| 2026-08-12 | Treat combusted fine roots as an **inherited finding**, not a silent fix | `cdisturb` is subtracted from NEE with roots included, and carries an unresolved 2000-era author TODO. Fixing it changes the carbon balance, so it stays behind `fire_scheme` and gets reported. |
 
 ---
 
@@ -455,6 +507,33 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-12 — second audit: assumptions about IBIS itself
+
+The first audit checked borrowed expressions; this one checked what the design
+assumes about IBIS. **Four more errors, and the worst of the whole exercise.**
+
+1. **Unit mismatch, 1000×.** IBIS litter pools are `kg_C m-2`; CLM's `lfuel`/
+   `ufuel` are `gC m-2`. The design carried CLM's raw 75/650 into an IBIS
+   expression. Implemented literally, `f_fuel` would have been ~0 everywhere and
+   fire would have switched off globally — plausibly without an obvious crash.
+   Now 0.075/0.650 kgC m⁻², with the conversion commented in the equation block.
+2. **"IBIS has no relative humidity" was false.** `comatm.h:25` carries
+   `rh(npoi)` in `comatm3`; the port has `AtmState.rh`. Wind is there too. The
+   decision to skip CLM's `fire_m` was made on a false premise and is reversed —
+   now F1b with an A/B test.
+3. **`firefac` is a per-timestep mean, not per-day.** `sumyear` runs every
+   timestep (`main.f:437`). An F1 "fire day" counter hooked there would
+   over-count by the number of steps per day (~48).
+4. **`cdisturb` is fully emitted, roots included** (`vegetation.f:481`
+   `ayneetot -= cdisturb`), with an unresolved author TODO from 2000 asking
+   whether some should go to litter instead.
+
+Confirmed correct: soil thicknesses 0.10/0.15/0.25/0.50/1.00/2.00 m from
+`params.soi`; `totalit`/`totlit` distinction; everything from the first audit.
+
+Still no code written. Two audits have now changed the design; that is the
+argument for having run them before F1 rather than after.
 
 ### 2026-08-12 — provenance audit before implementing F1
 
