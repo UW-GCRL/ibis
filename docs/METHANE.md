@@ -290,6 +290,52 @@ inside this module.
 | Soil pH map (optional) | `f_pH` | ☐ to check |
 | Compound topographic index (Phase 2 only) | TOPMODEL | ☐ not needed yet |
 
+### 4.9 Provenance audit (2026-08-12)
+
+Same audit applied to `FIRE.md` §4.4b. Three tiers of confidence — **the tiering
+decision in §4.0 currently rests on the weakest tier**, which must be fixed before
+it is defended anywhere.
+
+**✅ Verified against CTSM source** (`ch4Mod.F90`, fetched and read):
+
+| Claim | Where |
+|---|---|
+| `vmax_ch4_oxid = 45e-6·1000/3600` = 1.25e-5 mol m⁻³ s⁻¹ | `:1406`, hardcoded |
+| `k_m = 5e-6·1000` = 5e-3 mol m⁻³ | `:1418`, hardcoded |
+| 35 parameters in `params_type` | declaration block |
+| Production/oxidation/aeration/ebullition/transport are separate routines | `ch4_prod :2324`, `ch4_oxid :2679`, `ch4_aere :2832`, `ch4_ebul :3202`, `ch4_tran :3345` |
+| CLM ships a **prescribed-inundation stream** | `use ch4FInundatedStreamType` `:41` |
+| `f_sat = 0.95`, `atmch4 = 1.7e-6`, `rob = 3` | values given in declaration comments |
+
+⚠ **Most CLM CH₄ parameters are *not* in the source** — they are read from a netCDF
+parameters file (`readParams`, `:1325`). So `f_ch4`, `q10ch4`, `q10_ch4oxid` and
+others come to us from the tech note, not from code.
+
+**⚠ Secondary source only — CLM5 tech note web page**, not verified against the
+params file: `f_ch4 = 0.2`; `q10ch4 = 2.0` at `T_B = 22 °C`; the pH factor
+`10^(−0.2235pH² + 2.7727pH − 8.6)`; aerenchyma porosity 0.3 grass / 0.1 woody;
+ebullition trigger at 15 % of local pressure; the seasonal inundation factor `S`
+with `β = 0.2`. Reasonable — a tech note documents the shipped defaults — but they
+should be confirmed against `ctsm_paramfile` before publication.
+
+**⚠⚠ Search-summary only — NOT yet read in the primary paper.** These are load
+bearing and the weakest link in the whole design:
+
+| Claim | Used to justify | Risk if wrong |
+|---|---|---|
+| WetCHARTs: decomposition rate + wetland extent = **>80 % of uncertainty** | **The entire M-lite-first tiering and the stop rule (§4.0)** | If oxidation/transport matter more than stated, M-lite is the wrong starting point |
+| TRIPLEX-GHG: `r` (CH₄:CO₂) and `Q10` are the **dominant sensitivities** | Choice of the two primary calibration knobs (§4.7) | We would calibrate the wrong parameters |
+| Gedney et al. 2004 is a **~3-parameter** scheme still used as the JULES default | The claim that a very light scheme is competitive | Weakens the light-model argument |
+| 16-model review: only **25 %** represent ebullition adequately | Decision to "do ebullition properly" (§4.4) | Minor — the cost is ~10 lines either way |
+| Global wetland CH₄ **153 (136–168) Tg yr⁻¹** | The global evaluation target (§6) | Wrong benchmark |
+
+**Action before M1:** read Bloom et al. (2017) and Zhu et al. (2014) in full and
+replace the two top rows with verified numbers. This is the M0 stage already in the
+build plan — the audit confirms M0 is not optional.
+
+**Not applicable:** no IBIS Fortran counterpart exists to verify against (§2.1),
+and no public JAX/Python implementation of any wetland CH₄ scheme was found.
+
 ---
 
 ## 5. Implementation plan
