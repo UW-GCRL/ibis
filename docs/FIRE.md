@@ -74,7 +74,8 @@ constant 0.005 yr⁻¹ background disturbance.
 
 | # | Defect | Why it matters | Fixed by |
 |---|---|---|---|
-| 1 | `firefac` is an **annual mean** of daily dryness | A cell with 6 bone-dry + 6 wet months scores identically to one permanently half-dry. Fire is threshold-driven; averaging is the wrong operator. This is the single largest error. | F1 |
+| **0** | 🔴 **`firefac` is never computed in the JAX port — fire is dead code** | Discovered 2026-08-16. `firefac` is declared (`state/vegetation.py:70`), initialised to zero (`:124`), read by `fire()` (`vegetation_dynamics.py:408`) — and **never assigned anywhere in `ibis/`**. It is absent from restart I/O. The only assignments in the whole repo are in *tests* and in `verify/vegetation/verify_dynaveg.py:71`, which injects `rng.uniform` values. Consequence: in any real run `firefac ≡ 0`, so `burn = 0` and `disturbf = 1 − exp(0) = **0**`. **With `isimfire=1` the port produces exactly zero fire disturbance.** F77's `stats.f:1180` accumulator was simply never ported. This is why verification passed: the verifier tests `fire()` in isolation with injected inputs, never the accumulation chain feeding it. | **F1** |
+| 1 | `firefac` is an **annual mean** of daily dryness (in F77) | A cell with 6 bone-dry + 6 wet months scores identically to one permanently half-dry. Fire is threshold-driven; averaging is the wrong operator. Applies to the F77 side; the port has no accumulator at all (defect 0). | F1 |
 | 2 | Fuel is `totlit` — **total** litter | ✅ Verified at `biogeochem.f:924`, commented *"total above and belowground litter"*: `totlit = clitlm+clitls+clitll + clitrm+clitrs+clitrl + clitwm+clitws+clitwl` — the middle three are **root** litter, which cannot burn. `totalit` (`:930`) is the above-ground sum and already exists in `CarbonState`. Live fine fuel (grass, leaves) is ignored entirely. | F2 |
 | 3 | No human term | Population density drives both ignition (low density) and suppression (high density). Its absence is the leading explanation for the Africa bias and the missed post-2000 declining trend across CMIP6 models. | F3 |
 | 4 | Uniform mortality across PFTs | `disturbf` hits savanna trees and boreal conifers identically, so the fire→vegetation feedback — the whole reason fire is in a DGVM — is wrong. | F4 |
@@ -519,6 +520,42 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-16 — environment green, and a port defect found
+
+**Test suite repaired: 465 passed / 7 failed → 472 passed / 0 failed.**
+All seven were **test-vs-source drift**. None was a physics bug and none needed
+version pinning — the earlier "library drift" hypothesis was wrong. Two of them
+(`test_canopy` turvap) were literally *asserting the bug that verification
+finding #13 fixed*. Details in commit `15b1a3c`. The environment at
+`/shared/nas2/Hangkai/ibis-env` is therefore trustworthy for judging numerical
+differences, and F1 can proceed without re-baselining.
+
+**🔴 Then, looking for F1's accumulator hook: `firefac` is never computed in the
+JAX port.** See defect 0 in §2.2. Declared, zeroed, read — never assigned, and
+not in restart I/O. In any production run `firefac ≡ 0`, so `disturbf = 0` and
+**fire has no effect at all**, even with `isimfire=1`. The F77 `stats.f:1180`
+accumulator was never ported.
+
+Why nobody noticed: `verify/vegetation/verify_dynaveg.py:71` injects
+`rng.uniform(0,1)` for `firefac`, so it verifies `fire()` as a *function* against
+F77 — correctly, at machine precision — while never exercising the chain that
+supplies its input. A unit-verified component wired to nothing.
+
+This does **not** invalidate F0: `fire_legacy` still reproduces the F77 formula
+bit-exactly *given* `firefac`. The defect is upstream of it.
+
+**Consequences for F1:**
+
+- F1 grows in scope: it must **build** the accumulator, not merely improve it.
+  The good news is there is no port-side legacy behaviour to preserve — zero is
+  not a behaviour worth protecting — so F1 is less constrained than expected.
+- The F77 side still has the real accumulator, so the *reference* semantics are
+  defined; we implement to those, then improve.
+- The `dynaveg` regression question from §2.3 partly dissolves: any nonzero
+  `disturbf` is already a change from the port's status quo.
+- **Worth reporting to Min** — this affects any published run where fire was
+  believed active.
 
 ### 2026-08-12 — third audit: variable semantics and data
 
