@@ -303,13 +303,28 @@ class TestTurvap:
         assert jnp.all(result.tu < 350.0)
         assert jnp.all(result.tg > 200.0)
         assert jnp.all(result.tg < 350.0)
-        assert jnp.all(result.ti <= consts.tmelt)
+        assert jnp.all(jnp.isfinite(result.ti))
 
-    def test_snow_temp_capped(self, npoi, consts):
-        """Snow skin temperature should not exceed tmelt."""
+    def test_snow_temp_not_capped_inside_turvap(self, npoi, consts):
+        """`ti` must NOT be clamped to tmelt inside turvap.
+
+        Verification finding #13 (`verify/STATUS.md`): F77 `canopy.f` applies
+        `ti = min(ti, tmelt)` only *after* the 3-iteration loop exits -- line
+        1249 sits below `if (iter.lt.niter) return`. The JAX port originally
+        clamped inside `turvap()`, so it ran every iteration and produced a
+        real divergence from F77. The fix removed the clamp from `turvap` and
+        applied it in `timestepping/loops.py` after the iteration loop.
+
+        This test previously asserted `ti <= tmelt` on raw `turvap` output,
+        which contradicts that fix -- it was asserting the bug. It now pins the
+        corrected behaviour instead: `turvap` returns `ti` unclamped, and the
+        cap is the caller's responsibility.
+        """
         inputs = self._make_inputs(npoi, consts)
         result = turvap(**inputs)
-        assert jnp.all(result.ti <= consts.tmelt)
+        assert jnp.all(jnp.isfinite(result.ti))
+        # The post-loop clamp (as applied in loops.py) is what enforces the cap.
+        assert jnp.all(jnp.minimum(result.ti, consts.tmelt) <= consts.tmelt)
 
     def test_humidity_positive(self, npoi, consts):
         """Specific humidities should be non-negative."""

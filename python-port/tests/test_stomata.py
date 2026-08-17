@@ -1,5 +1,6 @@
 """Tests for ibis.physics.stomata — Farquhar C3/C4 + Ball-Berry."""
 
+import equinox as eqx
 import jax
 import jax.numpy as jnp
 import pytest
@@ -509,8 +510,16 @@ class TestStomata:
         assert jnp.all(result.ag_lower < 1e-6)
 
     def test_jit_compatible(self, inputs):
-        """Function should be JIT-compilable."""
-        jitted = jax.jit(stomata, static_argnames=['params'])
+        """Function should be JIT-compilable.
+
+        `StomataParams` is an `eqx.Module` holding JAX arrays, so it cannot be
+        passed via `jax.jit(static_argnames=...)` -- static arguments must be
+        hashable, and hashing an array raises. (Older Equinox happened to
+        tolerate this; current versions correctly reject it.) The right idiom
+        is `eqx.filter_jit`, which traces array leaves and treats everything
+        else as static -- the same idiom `ibis.ml` already uses.
+        """
+        jitted = eqx.filter_jit(stomata)
         result = jitted(**inputs)
         assert jnp.all(jnp.isfinite(result.ag_upper))
 

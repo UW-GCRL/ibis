@@ -509,11 +509,25 @@ class TestCanopyExchange:
         wi = impexp(t, ch, wliq, wsno, TMELT, HFUS, EPS,
                      jnp.ones(npoi), False)
 
-        # Point 2 (far above freezing): no phase change, wi should be ~1
-        assert float(wi[2]) > 0.9
         # All should be in [0, 1]
         for i in range(npoi):
             assert 0.0 <= float(wi[i]) <= 1.0
+
+        # Point 2 is 5 K above freezing, but the test above also supplies
+        # wsno = 2 kg/m2. The latent heat needed to melt that snow,
+        # hfus*wsno = 6.7e5 J/m2, dwarfs the available h = ch*dT = 1e3, so
+        # `min(1, hfus*wsno/z)` saturates at 1, winew = 0, and the blend with
+        # wimp_prev = 1 gives exactly 0.5. That is correct F77 behaviour --
+        # impexp is verified bit-exact in verify/STATUS.md. The previous
+        # assertion (wi[2] > 0.9, "no phase change") was wrong because it
+        # assumed no snow while passing 2 kg of it.
+        assert float(wi[2]) == pytest.approx(0.5, abs=1e-6)
+
+        # With negligible frozen/liquid water there is genuinely nothing to
+        # melt, so winew -> 1 and the blend stays at 1.
+        wi_dry = impexp(t, ch, jnp.zeros(npoi), jnp.zeros(npoi),
+                        TMELT, HFUS, EPS, jnp.ones(npoi), False)
+        assert float(wi_dry[2]) == pytest.approx(1.0, abs=1e-6)
 
     def test_canini_produces_valid_heights(self):
         """canini should produce sensible aerodynamic heights."""
@@ -557,8 +571,18 @@ class TestStomata:
         # Verify quadratic: theta*x^2 - (a+b)*x + a*b should be ~0
         residual = theta * x**2 - (a + b) * x + a * b
         assert abs(residual) < 0.01
-        # Result should be between min(a,b) and a+b
-        assert min(a, b) <= x <= a + b
+
+        # colimit returns the SMALLER root, which for theta < 1 is strictly
+        # below min(a, b) -- that is the point of co-limitation: two partially
+        # co-limiting processes yield less than either limit alone.
+        # For a=20, b=10, theta=0.95 the roots are
+        #   (30 +/- sqrt(900 - 4*0.95*200)) / (2*0.95) = 9.562 and 21.99
+        # so x = 9.562 < min(a,b) = 10. The previous assertion
+        # `min(a,b) <= x` was mathematically wrong, not a code defect.
+        assert 0.0 < x <= min(a, b)
+        # ...and it must approach min(a,b) as theta -> 1 (no co-limitation).
+        x_nolim = float(colimit(jnp.array(a), jnp.array(b), 0.9999))
+        assert x_nolim == pytest.approx(min(a, b), rel=1e-3)
 
     def test_drystress_saturated_soil(self):
         """Fully wet soil should give stress factor near 1."""
@@ -641,16 +665,20 @@ class TestWeatherGeneration:
             xintrng=jnp.full((npoi, 12), 10.0),
             xintopo=jnp.full((npoi,), 200.0),
         )
+        # `iwetdaysum` was dropped from MonthlyPrecip when the wet-day
+        # bookkeeping moved into generate_month_precip; the NamedTuple now
+        # carries only iwetday and precipday.
         mprecip = MonthlyPrecip(
             precipday=jnp.full((npoi, 31), 5.0),
             iwetday=jnp.ones((npoi, 31), dtype=jnp.int32),
-            iwetdaysum=jnp.full((npoi,), 15.0),
         )
 
+        # Signature is daily(key, imonth, iday, climate, monthly_precip,
+        # xstore); the call below had climate/monthly_precip in the positional
+        # slots for imonth/iday and passed a since-removed `ndaypm`.
         _, dw = daily(
-            key, clim, mprecip,
-            imonth=6, iday=15, ndaypm=30,
-            xstore=jnp.zeros((npoi, 3), dtype=jnp.float32),
+            key, 6, 15, clim, mprecip,
+            jnp.zeros((npoi, 3), dtype=jnp.float32),
         )
 
         # tmin <= td <= tmax
@@ -701,7 +729,12 @@ class TestBiogeochem:
         assert float(jnp.min(c_new.clitlm)) >= 0
         assert float(jnp.min(c_new.clitls)) >= 0
         assert float(jnp.min(c_new.clitrm)) >= 0
-        assert float(jnp.min(c_new.cslow)) >= 0
+        # The single `cslow` pool was split into protected / non-protected slow
+        # humus (csoislop / csoislon) plus passive humus (csoipas) when the
+        # CENTURY soilbgc port landed; `cslow` no longer exists on CarbonState.
+        assert float(jnp.min(c_new.csoislon)) >= 0
+        assert float(jnp.min(c_new.csoislop)) >= 0
+        assert float(jnp.min(c_new.csoipas)) >= 0
 
 
 # =========================================================================
