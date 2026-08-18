@@ -592,8 +592,26 @@ bit-exactly *given* `firefac`. The defect is upstream of it.
   defined; we implement to those, then improve.
 - The `dynaveg` regression question from §2.3 partly dissolves: any nonzero
   `disturbf` is already a change from the port's status quo.
-- **Worth reporting to Min** — this affects any published run where fire was
-  believed active.
+- **Scope of impact — narrower than first stated.** Checked 2026-08-18: no
+  config in `python-port/configs/` (27 files) sets `isimfire`, and the default
+  is `0`. **Fire was never switched on in any run**, so no published result
+  silently contained broken fire — the runs simply had no fire, which is a
+  configuration choice rather than a hidden error. An earlier note in this log
+  claimed this "affects any published run where fire was believed active";
+  that was an overstatement and is retracted.
+- **What it really was: a landmine for whoever first set `isimfire=1`.** In
+  `dynaveg`, `disturbf` defaults to 0.005 and the fire branch *replaces* it:
+
+  ```python
+  disturbf_val  = 0.005
+  disturbf_fire = where(isimfire == 1, fire(firefac, totlit), disturbf_val)
+  ```
+
+  With `firefac = 0`, `fire()` returns exactly 0, so enabling fire would have
+  **halved** total disturbance (0.005 + 0.005 = 0.010/yr → 0.000 + 0.005 =
+  0.005/yr). The likely reading would have been "fire works but is weak",
+  not "the input is dead". Background disturbance itself was always correct
+  and matches F77's fixed regime (`vegetation.f:403-404`).
 
 ### 2026-08-12 — third audit: variable semantics and data
 
