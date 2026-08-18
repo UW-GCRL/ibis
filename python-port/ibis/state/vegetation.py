@@ -67,7 +67,8 @@ class VegetationState(eqx.Module):
     tco2root: Float[Array, "npoi"]         # Root respiration (mol CO2/m2/s)
     tneetot: Float[Array, "npoi"]          # NEE (kgC/m2/timestep)
     sapfrac: Float[Array, "npoi"]          # Sapwood fraction
-    firefac: Float[Array, "npoi"]          # Fire dryness factor
+    firefac: Float[Array, "npoi"]          # Fire dryness factor (running annual mean of fueldry)
+    nytimes: Float[Array, ""]              # Timesteps elapsed this year (F77 stats.f counter)
 
     # --- Vegetation dynamics diagnostics ---
     totlaiu: Float[Array, "npoi"]          # Total upper canopy LAI
@@ -121,7 +122,7 @@ def create_vegetation_state(npoi: int, npft: int,
         tc=z, tw=z, gdd0=z, gdd5=z, tcmin=z,
         tnpptot=z, tgpptot=z,
         tco2mic=z, tco2root=z, tneetot=z,
-        sapfrac=z, firefac=z,
+        sapfrac=z, firefac=z, nytimes=jnp.zeros(()),
         totlaiu=z, totlail=z,
         totbiou=z, totbiol_agg=z,
         disturbf=z, disturbo=z,

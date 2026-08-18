@@ -80,6 +80,67 @@ def fire_legacy(
 
 
 # ---------------------------------------------------------------------------
+# Fuel dryness accumulator (F77 stats.f) -- restores defect 0
+# ---------------------------------------------------------------------------
+
+def fueldry_from_soil(
+    wsoi_top: Float[Array, "npoi"],
+    wisoi_top: Float[Array, "npoi"],
+    swilt_top: Float[Array, "npoi"],
+) -> Float[Array, "npoi"]:
+    """Instantaneous fuel dryness from top-layer soil water.
+
+    Verbatim transcription of ``fortran/ibis_2.6b4/stats.f:1174-1178``::
+
+        water     = wisoi(i,1) + (1. - wisoi(i,1)) * wsoi(i,1)
+        waterfrac = (water - swilt(i,1)) / (1. - swilt(i,1))
+        fueldry   = max (0.0, min (1.0, -2.0 * (waterfrac - 0.5)))
+
+    Note the water combination: `wsoi` is the liquid fraction of the *ice-free*
+    pore space, so total water is ``wisoi + (1-wisoi)*wsoi`` -- not
+    ``wsoi + wisoi``. See docs/FIRE.md 4.4c.
+
+    Returns 0 (no dryness) when the soil is wet, 1 when it is at or below the
+    midpoint between wilting point and saturation.
+    """
+    water = wisoi_top + (1.0 - wisoi_top) * wsoi_top
+    waterfrac = (water - swilt_top) / (1.0 - swilt_top)
+    return jnp.minimum(1.0, jnp.maximum(0.0, -2.0 * (waterfrac - 0.5)))
+
+
+def update_firefac(
+    firefac: Float[Array, "npoi"],
+    nytimes: Float[Array, ""],
+    wsoi_top: Float[Array, "npoi"],
+    wisoi_top: Float[Array, "npoi"],
+    swilt_top: Float[Array, "npoi"],
+) -> Float[Array, "npoi"]:
+    """Advance the running annual mean of fuel dryness by one timestep.
+
+    Verbatim transcription of ``fortran/ibis_2.6b4/stats.f:1180``::
+
+        rwork      = 1. / float(nytimes)
+        firefac(i) = ((nytimes-1) * firefac(i) + fueldry) * rwork
+
+    ``nytimes`` is the **1-based count of timesteps elapsed in the current
+    year**, matching F77's counter in ``sumyear``, which is reset to 0 at
+    ``istep==1 .and. iday==1 .and. imonth==1`` and incremented once per
+    timestep (``main.f:437`` calls ``sumyear`` every timestep, so this is a
+    per-timestep mean, *not* a per-day mean -- see docs/FIRE.md 4.4c).
+
+    At ``nytimes == 1`` this returns ``fueldry`` exactly, which is how F77
+    effectively re-initialises the mean each year without clearing ``firefac``.
+
+    This function did not exist in the JAX port before 2026-08-18. Its absence
+    left ``firefac`` pinned at its zero initial value, so ``fire()`` returned
+    ``disturbf = 0`` in every production run -- defect 0 in docs/FIRE.md.
+    """
+    fueldry = fueldry_from_soil(wsoi_top, wisoi_top, swilt_top)
+    n = jnp.maximum(nytimes, 1.0)
+    return ((n - 1.0) * firefac + fueldry) / n
+
+
+# ---------------------------------------------------------------------------
 # Dispatcher
 # ---------------------------------------------------------------------------
 

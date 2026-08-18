@@ -74,7 +74,7 @@ constant 0.005 yr⁻¹ background disturbance.
 
 | # | Defect | Why it matters | Fixed by |
 |---|---|---|---|
-| **0** | 🔴 **`firefac` is never computed in the JAX port — fire is dead code** | Discovered 2026-08-16. `firefac` is declared (`state/vegetation.py:70`), initialised to zero (`:124`), read by `fire()` (`vegetation_dynamics.py:408`) — and **never assigned anywhere in `ibis/`**. It is absent from restart I/O. The only assignments in the whole repo are in *tests* and in `verify/vegetation/verify_dynaveg.py:71`, which injects `rng.uniform` values. Consequence: in any real run `firefac ≡ 0`, so `burn = 0` and `disturbf = 1 − exp(0) = **0**`. **With `isimfire=1` the port produces exactly zero fire disturbance.** F77's `stats.f:1180` accumulator was simply never ported. This is why verification passed: the verifier tests `fire()` in isolation with injected inputs, never the accumulation chain feeding it. | **F1** |
+| **0** | ✅ **FIXED 2026-08-18** — `firefac` was never computed in the JAX port; fire was dead code | Discovered 2026-08-16. `firefac` is declared (`state/vegetation.py:70`), initialised to zero (`:124`), read by `fire()` (`vegetation_dynamics.py:408`) — and **never assigned anywhere in `ibis/`**. It is absent from restart I/O. The only assignments in the whole repo are in *tests* and in `verify/vegetation/verify_dynaveg.py:71`, which injects `rng.uniform` values. Consequence: in any real run `firefac ≡ 0`, so `burn = 0` and `disturbf = 1 − exp(0) = **0**`. **With `isimfire=1` the port produces exactly zero fire disturbance.** F77's `stats.f:1180` accumulator was simply never ported. This is why verification passed: the verifier tests `fire()` in isolation with injected inputs, never the accumulation chain feeding it. | **F1** |
 | 1 | `firefac` is an **annual mean** of daily dryness (in F77) | A cell with 6 bone-dry + 6 wet months scores identically to one permanently half-dry. Fire is threshold-driven; averaging is the wrong operator. Applies to the F77 side; the port has no accumulator at all (defect 0). | F1 |
 | 2 | Fuel is `totlit` — **total** litter | ✅ Verified at `biogeochem.f:924`, commented *"total above and belowground litter"*: `totlit = clitlm+clitls+clitll + clitrm+clitrs+clitrl + clitwm+clitws+clitwl` — the middle three are **root** litter, which cannot burn. `totalit` (`:930`) is the above-ground sum and already exists in `CarbonState`. Live fine fuel (grass, leaves) is ignored entirely. | F2 |
 | 3 | No human term | Population density drives both ignition (low density) and suppression (high density). Its absence is the leading explanation for the Africa bias and the missed post-2000 declining trend across CMIP6 models. | F3 |
@@ -520,6 +520,44 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-18 — defect 0 fixed: the fuel-dryness accumulator is ported
+
+Ported F77 `stats.f:1174-1180`, which had no JAX counterpart.
+
+**Added** (`physics/fire.py`):
+- `fueldry_from_soil(wsoi, wisoi, swilt)` — verbatim `stats.f:1174-1178`. Uses
+  the correct water combination `wisoi + (1-wisoi)*wsoi`, not `wsoi + wisoi`.
+- `update_firefac(firefac, nytimes, ...)` — verbatim `stats.f:1180` running
+  annual mean, `((n-1)*firefac + fueldry)/n`.
+
+**Wired** (`timestepping/loops.py`):
+- `timestep_body` now advances `nytimes` and `firefac` every timestep, matching
+  F77 where `main.f:437` calls `sumyear` every timestep.
+- `run_year` resets `nytimes` to 0 at the year boundary, matching `stats.f:956`.
+  `firefac` is deliberately *not* cleared — at `nytimes == 1` the running-mean
+  formula returns `fueldry` exactly, which is how F77 re-initialises it.
+
+**State** (`state/vegetation.py`): added scalar `nytimes`, mirroring F77's saved
+counter in `sumyear`.
+
+**Tests** (`tests/test_fire_firefac.py`, 9 tests): agreement with a stdlib
+transcription of the Fortran to ≤4 eps over 20 000 samples; endpoints and
+bounds; the ice combination pinned against the plausible-but-wrong
+`wsoi + wisoi`; `nytimes == 1` returns `fueldry` exactly; N updates equal the
+arithmetic mean of the N values; jit and grad clean. **The last test asserts the
+wiring itself** — that `timestep_body` actually advances `firefac` — which is
+the test whose absence let defect 0 survive.
+
+Suite: **472 → 481 passed, 0 failed.**
+
+Two incidental findings: `create_ibis_state` alone is not physically runnable
+(`poros == 0` → NaN), so the wiring test reuses the cold-start fixtures from
+`tests/test_integration.py`; and `default_sim_params` takes only `npoi`.
+
+**Still to do:** F1 proper (fire season length replacing the annual mean). The
+accumulator now exists and is F77-faithful, so F1 becomes what it was always
+meant to be — an improvement on a working baseline rather than building one.
 
 ### 2026-08-16 — environment green, and a port defect found
 

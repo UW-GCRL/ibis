@@ -47,6 +47,7 @@ from ibis.physics.interception import (
     InterceptionParams,
 )
 from ibis.physics.stomata import stomata, drystress, StomataParams
+from ibis.physics.fire import update_firefac
 from ibis.physics.weather import (
     ClimateData, MonthlyPrecip, DailyWeather, HourlyWeather,
     generate_month_precip, daily, diurnal, compute_precip_timing,
@@ -1071,11 +1072,26 @@ def timestep_body(
     # Updated atmosphere (xstore, iwet unchanged within timestep)
     new_atm = atm
 
+    # --- Fuel dryness accumulator (F77 stats.f, called every timestep from
+    # main.f:437). Restores docs/FIRE.md defect 0: before 2026-08-18 nothing
+    # in the port ever assigned firefac, so it stayed at its zero init and
+    # fire() returned disturbf = 0 in every run.
+    new_nytimes = veg.nytimes + 1.0
+    new_firefac = update_firefac(
+        veg.firefac, new_nytimes,
+        new_soil.wsoi[:, 0], new_soil.wisoi[:, 0], new_soil.swilt[:, 0],
+    )
+    new_veg = eqx.tree_at(
+        lambda v: (v.firefac, v.nytimes),
+        veg,
+        (new_firefac, new_nytimes),
+    )
+
     # Assemble full state
     new_state = eqx.tree_at(
-        lambda s: (s.canopy, s.soil, s.snow, s.hydrology, s.atm),
+        lambda s: (s.canopy, s.soil, s.snow, s.hydrology, s.atm, s.vegetation),
         state,
-        (new_canopy, new_soil, new_snow, new_hydro, new_atm),
+        (new_canopy, new_soil, new_snow, new_hydro, new_atm, new_veg),
     )
 
     return new_state
@@ -1291,6 +1307,12 @@ def run_year(
     """
     from ibis.timestepping.calendar import is_leap_year
     leap = is_leap_year(year)
+
+    # Reset the annual timestep counter, matching F77 stats.f:956
+    #   if ((istep.eq.1).and.(iday.eq.1).and.(imonth.eq.1)) nytimes = 0
+    # firefac itself is NOT cleared: at nytimes == 1 the running-mean formula
+    # returns fueldry exactly, so the mean re-initialises on its own.
+    state = eqx.tree_at(lambda s: s.vegetation.nytimes, state, jnp.zeros(()))
 
     for imonth in range(12):
         state, key = run_month(
