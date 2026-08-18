@@ -34,7 +34,7 @@ buy the cheap structural fixes instead and spend the saved effort on calibration
 |---|---|---|
 | F0 | Legacy path frozen behind flag, regression test | ☑ **done & verified** (2026-08-11) |
 | F1 | Fire season length replaces annual-mean `firefac` | ☑ **done & verified** (2026-08-18) |
-| F2 | Fine-fuel term (`totalit` + live leaf) | ☐ not started |
+| F2 | Fine-fuel term (`totalit` + live leaf) | ☑ **done & verified** (2026-08-18) |
 | F3 | Human ignition/suppression term | ☐ not started |
 | F4 | PFT-specific fire mortality | ☐ not started |
 | F5 | Burned area output + trace-gas emissions (Andreae 2019) | ☐ not started |
@@ -520,6 +520,49 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-18 — F2 complete: fuel that can actually burn
+
+**Changed**
+
+- `physics/fire.py`: `legacy_fuel_fraction()` (verbatim legacy, kept for the
+  legacy path) and `fine_fuel_fraction()`; `FireParams` gains `lfuel`, `ufuel`,
+  `w_leaf_woody`, `w_leaf_grass` and a static `use_fine_fuel` flag.
+  `fire_seasonlength()` takes an optional precomputed `fuel`, so F1's
+  behaviour and tests are untouched.
+- `vegetation_dynamics.dynaveg`: computes the fine-fuel term when
+  `use_fine_fuel` is set. Default `False` keeps legacy fuel.
+- `tests/test_fire_finefuel.py` — 9 tests.
+
+**Both audit findings are now enforced by test, not just documented:**
+
+- **Root litter excluded.** Fuel is built from `totalit` (`biogeochem.f:930`),
+  not `totlit` (`:924`, *"total above and belowground litter"*). LPJmL
+  independently corroborates — `firepft.c` burns only `agtop` litter.
+- **No `frac` weighting.** A test splits the same total leaf carbon across
+  eight PFTs and asserts the answer is unchanged; a `frac` weighting would
+  change it. `cbiol` is already per grid-cell area (`vegetation.f:494` sums
+  `plai` unweighted; `:551` *divides* by `fu` to reach canopy area).
+- **Units guarded.** A test asserts `lfuel == 0.075` and `ufuel == 0.650`
+  **kgC m⁻²** — the converted CLM values — and that a realistic 0.3 kgC m⁻²
+  litter load lands strictly inside the ramp. If anyone pastes CLM's raw
+  75/650 gC m⁻² back in, `f_fuel` clips to zero everywhere and fire switches
+  off globally and silently. That is the failure this test exists to prevent.
+
+**Behavioural change worth knowing.** Legacy saturates at `totlit = 0.2`
+kgC m⁻², so it treats a modest litter layer as the maximum possible fuel —
+fuel was effectively never limiting. The CLM ramp does not reach 1 until
+0.65 kgC m⁻². Measured at 0.30 kgC m⁻² litter with no live leaf: legacy fuel
+term `1.000`, fine-fuel term `0.217`. Fuel limitation is now a real control
+rather than a saturated constant.
+
+PFT grouping follows IBIS's own `vegmap`: 0–9 woody (8–9 shrubs), 10–11 grass.
+Grass leaf carbon is weighted higher than woody (defaults 1.0 vs 0.3) because
+cured grass carries fire; both are calibration targets for F6.
+
+**Not done.** `w_leaf_woody`, `w_leaf_grass`, `lfuel`, `ufuel` are uncalibrated
+(F6). `use_fine_fuel` defaults off until F6 can fit the thresholds — turning it
+on changes disturbance magnitudes substantially, as the numbers above show.
 
 ### 2026-08-18 — F1 complete: fire season length
 

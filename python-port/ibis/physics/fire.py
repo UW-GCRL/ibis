@@ -161,6 +161,21 @@ class FireParams(eqx.Module):
     #: to legacy when `d_crit` admits every timestep (see tests).
     p: float = 1.0
 
+    # --- F2: fine fuel -----------------------------------------------------
+    #: Lower fuel threshold (kgC m-2). CTSM CNFireBaseMod.F90:55 gives
+    #: lfuel = 75 gC m-2; IBIS carries litter in kg_C m-2 (comveg.h:132,137),
+    #: so CLM's value is CONVERTED, not copied. Mixing the two is a 1000x error.
+    lfuel: float = 0.075
+    #: Upper fuel threshold (kgC m-2). CTSM CNFireBaseMod.F90:56 = 650 gC m-2.
+    ufuel: float = 0.650
+    #: Fraction of live woody-PFT leaf carbon acting as fine fuel (PFTs 0-9).
+    w_leaf_woody: float = 0.3
+    #: Same for grass PFTs (10-11). Grass cures and carries fire readily, so
+    #: its leaf carbon counts for more than a tree's.
+    w_leaf_grass: float = 1.0
+    #: Select the F2 fuel term. False keeps the legacy min(1, totlit/0.2).
+    use_fine_fuel: bool = eqx.field(static=True, default=False)
+
 
 def default_fire_params() -> FireParams:
     return FireParams()
@@ -193,12 +208,57 @@ def update_fire_accumulators(
     return nfirestep + is_fire, sdry + fueldry * is_fire
 
 
+def legacy_fuel_fraction(totlit: Float[Array, "npoi"]) -> Float[Array, "npoi"]:
+    """Legacy fuel availability: `min(1, totlit/0.2)` from vegetation.f:609.
+
+    Uses `totlit`, which `biogeochem.f:924` defines as *"total above and
+    belowground litter"* -- it includes the three `clitr*` root pools, which
+    cannot burn. Preserved verbatim for the legacy path; :func:`fine_fuel_fraction`
+    is the corrected version.
+    """
+    return jnp.minimum(1.0, totlit / LEGACY_LITTER_REF)
+
+
+def fine_fuel_fraction(
+    totalit: Float[Array, "npoi"],
+    cbiol: Float[Array, "npoi npft"],
+    params: FireParams,
+) -> Float[Array, "npoi"]:
+    """Fuel availability from above-ground litter plus live fine fuel.
+
+    Two corrections over :func:`legacy_fuel_fraction`, both from the docs/FIRE.md
+    audits:
+
+    1. **`totalit`, not `totlit`.** `totalit` (biogeochem.f:930) is the
+       above-ground litter sum; `totlit` (`:924`) also carries root litter,
+       which cannot burn. LPJmL corroborates: `firepft.c` burns only
+       `litter->item[p].agtop.*`.
+    2. **No `frac` weighting.** `cbiol` is *already per grid-cell area* --
+       `totlaiu = sum_j plai(i,j)` sums PFTs unweighted (vegetation.f:494) and
+       vegetation.f:551 *divides* by `fu` to reach canopy area. `frac` is a
+       **canopy** fraction (comveg.h:197), not a grid fraction; multiplying by
+       it would under-count fuel.
+
+    Live leaf carbon is split woody (PFTs 0-9) / grass (10-11), following IBIS's
+    own grouping in `vegmap` where shrubs are 8-9 and grasses 10-11.
+
+    The ramp replaces legacy's kink and is CLM's `fb`
+    (CNFireLi2014Mod.F90:582), with thresholds converted to kgC m-2.
+    """
+    woody = jnp.sum(cbiol[:, :10], axis=1)
+    grass = jnp.sum(cbiol[:, 10:], axis=1)
+    fine = totalit + params.w_leaf_woody * woody + params.w_leaf_grass * grass
+    span = jnp.maximum(params.ufuel - params.lfuel, 1e-12)
+    return jnp.clip((fine - params.lfuel) / span, 0.0, 1.0)
+
+
 def fire_seasonlength(
     nfirestep: Float[Array, "npoi"],
     sdry: Float[Array, "npoi"],
     nytimes: Float[Array, ""],
     totlit: Float[Array, "npoi"],
     params: FireParams,
+    fuel: Float[Array, "npoi"] | None = None,
 ) -> Float[Array, "npoi"]:
     """Fire disturbance fraction from fire-season length and severity.
 
@@ -221,7 +281,7 @@ def fire_seasonlength(
     """
     fseason = nfirestep / jnp.maximum(nytimes, 1.0)
     dry_mean = sdry / jnp.maximum(nfirestep, 1.0)
-    fuel = jnp.minimum(1.0, totlit / LEGACY_LITTER_REF)
+    fuel = legacy_fuel_fraction(totlit) if fuel is None else fuel
     burn = params.k_b * fseason ** params.p * dry_mean * fuel
     return jnp.minimum(1.0, jnp.maximum(0.0, 1.0 - jnp.exp(-burn)))
 

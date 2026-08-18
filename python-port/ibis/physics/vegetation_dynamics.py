@@ -18,8 +18,8 @@ from ibis.state.carbon import CarbonState
 from ibis.state.summary import SummaryState
 from ibis.io.parameters import PFTParams
 from ibis.physics.fire import (
-    LEGACY, SEASONLENGTH, FireParams, default_fire_params, fire_legacy,
-    fire_seasonlength,
+    LEGACY, SEASONLENGTH, FireParams, default_fire_params, fine_fuel_fraction,
+    fire_legacy, fire_seasonlength,
 )
 
 
@@ -411,9 +411,14 @@ def dynaveg(
     # `fire_scheme` is a static Python string from RunConfig, so this branch
     # resolves at trace time and costs nothing under jit.
     if fire_scheme == SEASONLENGTH:
+        _fp = fire_params or default_fire_params()
+        # F2: above-ground litter + live fine fuel, on a CLM-style ramp.
+        # `use_fine_fuel` is a static field, so this branch resolves at trace
+        # time. Default False keeps the legacy fuel term.
+        _fuel = (fine_fuel_fraction(carbon.totalit, veg.cbiol, _fp)
+                 if _fp.use_fine_fuel else None)
         _disturbf = fire_seasonlength(
-            veg.nfirestep, veg.sdry, veg.nytimes, carbon.totlit,
-            fire_params or default_fire_params(),
+            veg.nfirestep, veg.sdry, veg.nytimes, carbon.totlit, _fp, fuel=_fuel,
         )
     elif fire_scheme == LEGACY:
         _disturbf = fire(veg.firefac, carbon.totlit)
