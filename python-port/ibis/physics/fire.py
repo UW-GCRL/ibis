@@ -18,6 +18,7 @@ why the legacy scheme is being extended rather than replaced wholesale.
 
 from __future__ import annotations
 
+import equinox as eqx
 import jax.numpy as jnp
 from jaxtyping import Float, Array
 
@@ -27,9 +28,10 @@ from jaxtyping import Float, Array
 # ---------------------------------------------------------------------------
 
 LEGACY = "legacy"
+SEASONLENGTH = "seasonlength"
 
 #: Schemes accepted by :func:`compute_disturbf`. Extended as new stages land.
-AVAILABLE_SCHEMES: tuple[str, ...] = (LEGACY,)
+AVAILABLE_SCHEMES: tuple[str, ...] = (LEGACY, SEASONLENGTH)
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +143,90 @@ def update_firefac(
 
 
 # ---------------------------------------------------------------------------
+# F1: fire season length (docs/FIRE.md stage F1)
+# ---------------------------------------------------------------------------
+
+class FireParams(eqx.Module):
+    """Tunable parameters for the season-length scheme.
+
+    All are exposed for the gradient-based calibration planned in F6.
+    """
+
+    #: Dryness above which a timestep counts as fire-prone. `fueldry` is in
+    #: [0, 1]; 0.5 is the midpoint between wilting point and the wet limit.
+    d_crit: float = 0.5
+    #: Overall burned-fraction scale. 0.5 reproduces the legacy coefficient.
+    k_b: float = 0.5
+    #: Exponent on fire-season fraction. 1.0 makes the scheme reduce exactly
+    #: to legacy when `d_crit` admits every timestep (see tests).
+    p: float = 1.0
+
+
+def default_fire_params() -> FireParams:
+    return FireParams()
+
+
+def update_fire_accumulators(
+    nfirestep: Float[Array, "npoi"],
+    sdry: Float[Array, "npoi"],
+    wsoi_top: Float[Array, "npoi"],
+    wisoi_top: Float[Array, "npoi"],
+    swilt_top: Float[Array, "npoi"],
+    d_crit: float,
+) -> tuple[Float[Array, "npoi"], Float[Array, "npoi"]]:
+    """Advance the fire-season accumulators by one timestep.
+
+    Counts timesteps whose fuel dryness exceeds ``d_crit`` and sums their
+    dryness. Sampling every timestep (rather than once per day) measures the
+    **fraction of the year spent in fire-prone conditions** directly, which is
+    what "fire season length" means. It also sidesteps the trap noted in
+    docs/FIRE.md 4.4c: F77's `sumyear` runs every timestep, so a naive
+    "fire day" counter hooked there would over-count by ~48x.
+
+    Returns
+    -------
+    (nfirestep, sdry)
+        Updated counters.
+    """
+    fueldry = fueldry_from_soil(wsoi_top, wisoi_top, swilt_top)
+    is_fire = (fueldry > d_crit).astype(fueldry.dtype)
+    return nfirestep + is_fire, sdry + fueldry * is_fire
+
+
+def fire_seasonlength(
+    nfirestep: Float[Array, "npoi"],
+    sdry: Float[Array, "npoi"],
+    nytimes: Float[Array, ""],
+    totlit: Float[Array, "npoi"],
+    params: FireParams,
+) -> Float[Array, "npoi"]:
+    """Fire disturbance fraction from fire-season length and severity.
+
+    Replaces the legacy annual *mean* of dryness. The mean cannot distinguish
+    a cell with a severe dry season from one that is mildly dry all year --
+    they average identically -- yet only the first burns. Fire is
+    threshold-driven, so averaging is the wrong operator. This is the insight
+    Glob-FIRM (Thonicke et al. 2001) was built on; the closure below is IBIS's
+    own exponential, not Glob-FIRM's equation (which we have not read -- see
+    docs/FIRE.md 4.4b).
+
+    ``fseason``  fraction of the year spent above ``d_crit``
+    ``dry_mean`` mean dryness *within* the fire season (severity)
+
+    Reduces exactly to :func:`fire_legacy` when ``d_crit`` admits every
+    timestep and ``p == 1``: then ``fseason == 1`` and ``dry_mean`` is the
+    all-timestep mean, which is precisely ``firefac``.
+
+    The fuel term is unchanged from legacy at this stage; F2 replaces it.
+    """
+    fseason = nfirestep / jnp.maximum(nytimes, 1.0)
+    dry_mean = sdry / jnp.maximum(nfirestep, 1.0)
+    fuel = jnp.minimum(1.0, totlit / LEGACY_LITTER_REF)
+    burn = params.k_b * fseason ** params.p * dry_mean * fuel
+    return jnp.minimum(1.0, jnp.maximum(0.0, 1.0 - jnp.exp(-burn)))
+
+
+# ---------------------------------------------------------------------------
 # Dispatcher
 # ---------------------------------------------------------------------------
 
@@ -149,6 +235,10 @@ def compute_disturbf(
     *,
     firefac: Float[Array, "npoi"],
     totlit: Float[Array, "npoi"],
+    nfirestep: Float[Array, "npoi"] | None = None,
+    sdry: Float[Array, "npoi"] | None = None,
+    nytimes: Float[Array, ""] | None = None,
+    params: "FireParams | None" = None,
 ) -> Float[Array, "npoi"]:
     """Dispatch to the configured fire scheme.
 
@@ -175,6 +265,14 @@ def compute_disturbf(
     """
     if scheme == LEGACY:
         return fire_legacy(firefac, totlit)
+    if scheme == SEASONLENGTH:
+        if nfirestep is None or sdry is None or nytimes is None:
+            raise ValueError(
+                "fire_scheme='seasonlength' needs nfirestep, sdry and nytimes"
+            )
+        return fire_seasonlength(
+            nfirestep, sdry, nytimes, totlit, params or default_fire_params()
+        )
     raise ValueError(
         f"unknown fire_scheme {scheme!r}; available: {AVAILABLE_SCHEMES}"
     )

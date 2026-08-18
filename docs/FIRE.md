@@ -33,7 +33,7 @@ buy the cheap structural fixes instead and spend the saved effort on calibration
 | Stage | Description | Status |
 |---|---|---|
 | F0 | Legacy path frozen behind flag, regression test | ☑ **done & verified** (2026-08-11) |
-| F1 | Fire season length replaces annual-mean `firefac` | ☐ not started |
+| F1 | Fire season length replaces annual-mean `firefac` | ☑ **done & verified** (2026-08-18) |
 | F2 | Fine-fuel term (`totalit` + live leaf) | ☐ not started |
 | F3 | Human ignition/suppression term | ☐ not started |
 | F4 | PFT-specific fire mortality | ☐ not started |
@@ -520,6 +520,52 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-18 — F1 complete: fire season length
+
+**Changed**
+
+- `physics/fire.py`: `FireParams(d_crit=0.5, k_b=0.5, p=1.0)`,
+  `update_fire_accumulators()`, `fire_seasonlength()`, scheme `"seasonlength"`
+  registered and dispatchable.
+- `state/vegetation.py`: `nfirestep`, `sdry` per grid cell.
+- `timestepping/loops.py`: accumulators advanced each timestep; all three
+  annual counters reset in `run_year`; `SimParams.fire` added.
+- `physics/vegetation_dynamics.py`: `dynaveg` takes `fire_scheme` /
+  `fire_params`, defaulting to legacy so every existing call is unchanged.
+- `tests/test_fire_seasonlength.py` — 10 tests.
+
+**The open design question from §2.3 is resolved.** Rather than counting
+"fire days" — which would have over-counted ~48x if hooked at `sumyear`'s
+per-timestep cadence — F1 measures the **fraction of the year spent above
+`d_crit`**, sampled every timestep. That is what fire-season length means, it
+needs no day-boundary hook, and it is finer-grained than daily counting.
+
+**Measured**
+
+- **Reduction to legacy holds.** With `d_crit` admitting every timestep and
+  `p = 1`, `fseason = 1` and `dry_mean` is the all-timestep mean — i.e.
+  `firefac`. Agreement ≤ 8 eps (5 of 6 sample cells bit-identical). Not
+  bit-exact by construction: legacy accumulates an incremental running mean
+  while F1 divides a sum by a count, so the two round differently. The
+  mathematics is identical; only the summation order differs.
+- **The discrimination F1 exists for is demonstrated.** Two cells with
+  *identical annual-mean dryness* (0.2): one dry at 0.8 for a quarter of the
+  year, one mildly dry at 0.2 throughout. Legacy burns them identically — that
+  is the defect. F1 burns the first and gives the second exactly zero.
+- `fseason` recovers prescribed season fractions (0.25 / 0.50 / 1.00) to
+  within one timestep; disturbance is monotonic in season length at equal
+  severity; zero season gives zero disturbance regardless of fuel load.
+- Legacy path re-checked untouched; jit and grad clean.
+- Fire tests **36 passed** (10 F1 + 17 F0 + 9 defect-0).
+
+**Note on `p`.** At `p = 1` the product `fseason · dry_mean` equals the mean
+dryness *restricted to fire-prone timesteps* — a threshold-filtered mean. Season
+length and severity only separate as independent controls once `p ≠ 1`. `p` is
+therefore one of the more interesting knobs for F6 calibration, not a formality.
+
+**Not done.** The fuel term is still legacy `min(1, totlit/0.2)`, including root
+litter — F2 replaces it. `d_crit`, `k_b` and `p` remain uncalibrated guesses.
 
 ### 2026-08-18 — defect 0 fixed: the fuel-dryness accumulator is ported
 

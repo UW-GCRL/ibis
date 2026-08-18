@@ -47,7 +47,9 @@ from ibis.physics.interception import (
     InterceptionParams,
 )
 from ibis.physics.stomata import stomata, drystress, StomataParams
-from ibis.physics.fire import update_firefac
+from ibis.physics.fire import (
+    FireParams, default_fire_params, update_fire_accumulators, update_firefac,
+)
 from ibis.physics.weather import (
     ClimateData, MonthlyPrecip, DailyWeather, HourlyWeather,
     generate_month_precip, daily, diurnal, compute_precip_timing,
@@ -72,6 +74,10 @@ class SimParams(eqx.Module):
     interception: InterceptionParams
     stomata_params: StomataParams
     latitude: Float[Array, "npoi"]    # Grid point latitudes (radians)
+
+    # Fire scheme parameters (docs/FIRE.md). Defaults reproduce legacy
+    # behaviour; only the "seasonlength" scheme reads k_b and p.
+    fire: FireParams = eqx.field(default_factory=default_fire_params)
 
     # Soil constants
     wpudmax: float = 10.0             # Maximum puddle water (kg/m2)
@@ -1081,10 +1087,17 @@ def timestep_body(
         veg.firefac, new_nytimes,
         new_soil.wsoi[:, 0], new_soil.wisoi[:, 0], new_soil.swilt[:, 0],
     )
+    # F1 accumulators: fraction of the year above d_crit, and severity within
+    # it. Sampled every timestep -- see update_fire_accumulators docstring.
+    new_nfirestep, new_sdry = update_fire_accumulators(
+        veg.nfirestep, veg.sdry,
+        new_soil.wsoi[:, 0], new_soil.wisoi[:, 0], new_soil.swilt[:, 0],
+        params.fire.d_crit,
+    )
     new_veg = eqx.tree_at(
-        lambda v: (v.firefac, v.nytimes),
+        lambda v: (v.firefac, v.nytimes, v.nfirestep, v.sdry),
         veg,
-        (new_firefac, new_nytimes),
+        (new_firefac, new_nytimes, new_nfirestep, new_sdry),
     )
 
     # Assemble full state
@@ -1312,7 +1325,12 @@ def run_year(
     #   if ((istep.eq.1).and.(iday.eq.1).and.(imonth.eq.1)) nytimes = 0
     # firefac itself is NOT cleared: at nytimes == 1 the running-mean formula
     # returns fueldry exactly, so the mean re-initialises on its own.
-    state = eqx.tree_at(lambda s: s.vegetation.nytimes, state, jnp.zeros(()))
+    state = eqx.tree_at(
+        lambda s: (s.vegetation.nytimes, s.vegetation.nfirestep, s.vegetation.sdry),
+        state,
+        (jnp.zeros(()), jnp.zeros_like(state.vegetation.nfirestep),
+         jnp.zeros_like(state.vegetation.sdry)),
+    )
 
     for imonth in range(12):
         state, key = run_month(

@@ -17,7 +17,10 @@ from ibis.state.vegetation import VegetationState
 from ibis.state.carbon import CarbonState
 from ibis.state.summary import SummaryState
 from ibis.io.parameters import PFTParams
-from ibis.physics.fire import fire_legacy
+from ibis.physics.fire import (
+    LEGACY, SEASONLENGTH, FireParams, default_fire_params, fire_legacy,
+    fire_seasonlength,
+)
 
 
 def fire(
@@ -309,6 +312,8 @@ def dynaveg(
     pft_params: PFTParams,
     isimfire: int,
     epsilon: float,
+    fire_scheme: str = LEGACY,
+    fire_params: FireParams | None = None,
 ) -> tuple[VegetationState, CarbonState, SummaryState]:
     """Annual dynamic vegetation update.
 
@@ -403,11 +408,19 @@ def dynaveg(
     disturbo_val = jnp.full_like(veg.fu, 0.005)
 
     # Fire disturbance (if enabled)
-    disturbf_fire = jnp.where(
-        isimfire == 1,
-        fire(veg.firefac, carbon.totlit),
-        disturbf_val,
-    )
+    # `fire_scheme` is a static Python string from RunConfig, so this branch
+    # resolves at trace time and costs nothing under jit.
+    if fire_scheme == SEASONLENGTH:
+        _disturbf = fire_seasonlength(
+            veg.nfirestep, veg.sdry, veg.nytimes, carbon.totlit,
+            fire_params or default_fire_params(),
+        )
+    elif fire_scheme == LEGACY:
+        _disturbf = fire(veg.firefac, carbon.totlit)
+    else:
+        raise ValueError(f"unknown fire_scheme {fire_scheme!r}")
+
+    disturbf_fire = jnp.where(isimfire == 1, _disturbf, disturbf_val)
     disturbf_val = disturbf_fire
 
     for j in range(npft):
