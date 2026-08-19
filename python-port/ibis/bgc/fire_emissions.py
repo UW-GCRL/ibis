@@ -1,98 +1,201 @@
-"""Fire emissions of CO2, CH4, and N2O for IBIS-JAX.
+"""Burned area and fire trace-gas emissions (docs/FIRE.md stage F5).
 
-Extends the existing IBIS fire disturbance model with trace gas emission
-factors by PFT, following Andreae & Merlet (2001).
+Two things this stage delivers, both absent from IBIS before it:
+
+**Burned area.** IBIS reports `disturbf`, a disturbance fraction with no
+observational counterpart -- nothing in the world can confirm or contradict it.
+Reporting burned fraction makes the module falsifiable against GFED5 and
+FireCCI51, and it is the CMIP7 priority-1 fire variable (`burntFractionAll`).
+
+**Emissions.** Trace gases from the carbon actually consumed, using Andreae
+(2019) Table 1 emission factors -- verified from the published spreadsheet, not
+from a summary. See `docs/FIRE.md` §4.4e and
+`inputs/fire/emission_factors/andreae2019_ef.csv`.
 """
 
 from __future__ import annotations
 
 import equinox as eqx
 import jax.numpy as jnp
-from jaxtyping import Float, Array
-
-
-# ---------------------------------------------------------------------------
-# State
-# ---------------------------------------------------------------------------
-
-class FireEmissionState(eqx.Module):
-    """Fire emission diagnostics."""
-
-    fire_co2: Float[Array, "npoi"]    # CO2 emissions from fire (gC/m2/yr)
-    fire_ch4: Float[Array, "npoi"]    # CH4 emissions from fire (gC/m2/yr)
-    fire_n2o: Float[Array, "npoi"]    # N2O emissions from fire (gN/m2/yr)
-    burned_area: Float[Array, "npoi"] # Burned fraction (0-1)
-
-
-def create_fire_emission_state(npoi: int) -> FireEmissionState:
-    z = jnp.zeros((npoi,))
-    return FireEmissionState(fire_co2=z, fire_ch4=z, fire_n2o=z, burned_area=z)
-
+from jaxtyping import Array, Float
 
 # ---------------------------------------------------------------------------
-# Emission factors (g species / kg dry matter burned)
-# from Andreae & Merlet (2001), Table 1
+# Emission factors -- Andreae (2019) Table 1, g species per kg dry matter
 # ---------------------------------------------------------------------------
+# Source of record: inputs/fire/emission_factors/andreae2019_ef.csv, extracted
+# from acp-19-8523-2019-t01.xlsx. `tests/test_fire_emissions.py` cross-checks
+# these constants against that CSV when it is present, so code and data cannot
+# drift apart silently.
+#
+# Only the four *vegetation* categories are used. The table also carries `peat`
+# and `agricultural residue`, but IBIS represents neither peatland nor cropland,
+# so those columns have no PFT to map onto (docs/FIRE.md §4.4e). Note also that
+# N2O for peat is ABSENT from the source -- another reason not to reach for it.
 
-# Indexed by vegetation type: 0=tropical, 1=boreal, 2=savanna, 3=crop
-# CO2 emission factor (g CO2 / kg DM)
-EF_CO2 = jnp.array([1580.0, 1569.0, 1613.0, 1515.0])
-# CH4 emission factor (g CH4 / kg DM)
-EF_CH4 = jnp.array([6.8, 5.7, 2.3, 2.7])
-# N2O emission factor (g N2O / kg DM)
-EF_N2O = jnp.array([0.20, 0.26, 0.21, 0.07])
+#: Species order used throughout this module.
+SPECIES: tuple[str, ...] = ("CO2", "CO", "CH4", "N2O", "NOx")
 
-# C fraction of dry matter
-C_FRAC_DM = 0.45  # kgC per kg dry matter
+#: (4 categories x 5 species), g species per kg dry matter.
+#: Rows: savanna/grassland, tropical forest, temperate forest, boreal forest.
+EF_TABLE = jnp.asarray([
+    [1660.0,  69.0, 2.7, 0.17, 2.50],   # savanna and grassland
+    [1620.0, 104.0, 6.5, 0.20, 2.80],   # tropical forest
+    [1570.0, 113.0, 5.2, 0.25, 3.00],   # temperate forest
+    [1530.0, 121.0, 5.5, 0.24, 1.18],   # boreal forest
+])
 
-# Molecular weight ratios
-MW_CO2_C = 44.0 / 12.0    # g CO2 per g C
-MW_CH4_C = 16.0 / 12.0    # g CH4 per g C
-MW_N2O_N = 44.0 / 28.0    # g N2O per g N (for N content)
+EF_CATEGORIES: tuple[str, ...] = (
+    "savanna_grassland", "tropical_forest", "temperate_forest", "boreal_forest",
+)
+
+#: IBIS PFT (params.veg:27-38) -> row of EF_TABLE.
+#:   0,1  tropical trees          -> tropical forest
+#:   2-4  warm/temperate trees    -> temperate forest
+#:   5-7  boreal trees            -> boreal forest
+#:   8-11 shrubs and grasses      -> savanna and grassland
+PFT_TO_EF_CATEGORY: tuple[int, ...] = (1, 1, 2, 2, 2, 3, 3, 3, 0, 0, 0, 0)
+
+#: Carbon fraction of dry matter (kgC per kg DM). Andreae's factors are per kg
+#: of dry matter, so combusted carbon must be converted before applying them.
+C_FRACTION_OF_DM: float = 0.45
+
+
+class FireEmissionParams(eqx.Module):
+    """Combustion completeness by pool. All are F6 calibration targets."""
+
+    #: Fraction of killed leaf carbon that is combusted rather than left as litter.
+    cc_leaf: float = 0.90
+    #: Wood combusts far less completely than foliage.
+    cc_wood: float = 0.20
+    #: Above-ground litter.
+    cc_litter: float = 0.50
+
+
+class FireEmissions(eqx.Module):
+    """Annual fire diagnostics for one grid cell vector.
+
+    Units are declared once, here, and not re-derived anywhere else -- the
+    quarantined prototype carried three conflicting conventions for the same
+    number.
+    """
+
+    burned_fraction: Float[Array, "npoi"]   # 0-1, CMIP7 `burntFractionAll`
+    carbon_burned: Float[Array, "npoi"]     # kgC m-2 yr-1, combusted only
+    co2: Float[Array, "npoi"]               # g CO2  m-2 yr-1
+    co: Float[Array, "npoi"]                # g CO   m-2 yr-1
+    ch4: Float[Array, "npoi"]               # g CH4  m-2 yr-1
+    n2o: Float[Array, "npoi"]               # g N2O  m-2 yr-1
+    nox: Float[Array, "npoi"]               # g NO   m-2 yr-1
+
+
+def cell_emission_factors(plai: Float[Array, "npoi npft"]) -> Float[Array, "npoi 5"]:
+    """LAI-weighted mean emission factor per grid cell.
+
+    A cell holds several PFTs mapping to different Andreae categories, and its
+    litter is a mixture of all of them. Rather than attribute litter to a
+    dominant PFT -- an arbitrary choice -- the cell takes one blended factor,
+    weighted by each PFT's leaf area.
+
+    Cells with no vegetation fall back to savanna/grassland, which is
+    immaterial: they have no fuel, so emissions are zero regardless.
+    """
+    ef_by_pft = EF_TABLE[jnp.asarray(PFT_TO_EF_CATEGORY)]        # (npft, 5)
+    w = jnp.maximum(plai, 0.0)                                   # (npoi, npft)
+    wsum = jnp.sum(w, axis=1, keepdims=True)
+    blended = (w @ ef_by_pft) / jnp.maximum(wsum, 1e-12)
+    return jnp.where(wsum > 0.0, blended, EF_TABLE[0][None, :])
 
 
 def fire_emissions(
-    disturbf: Float[Array, "npoi"],
-    biomass_burned: Float[Array, "npoi"],
-    vegtype: Float[Array, "npoi"],
-) -> FireEmissionState:
-    """Compute fire emissions from burned biomass.
+    burned_fraction: Float[Array, "npoi"],
+    cbiol: Float[Array, "npoi npft"],
+    cbiow: Float[Array, "npoi npft"],
+    totalit: Float[Array, "npoi"],
+    plai: Float[Array, "npoi npft"],
+    mort: Float[Array, "npft"],
+    params: FireEmissionParams | None = None,
+) -> FireEmissions:
+    """Trace-gas emissions from the carbon fire actually consumes.
+
+    Combusted carbon is leaf plus wood plus above-ground litter, each scaled by
+    its combustion completeness and by the burned fraction. Woody pools are
+    additionally scaled by the per-PFT mortality from F4.
+
+    **Fine roots are excluded.** `vegetation.f:433` adds `cbior` to `cdisturb`
+    and `:481` subtracts the total from NEE, so IBIS has emitted fine-root
+    carbon to the atmosphere for 26 years -- with an unresolved author TODO from
+    2000/04/22 sitting directly above the code asking whether some should go to
+    litter instead. Roots do not combust; they are excluded here. Note this
+    changes only the *emission* diagnostic, not the legacy carbon balance, which
+    stays behind `fire_scheme` (docs/FIRE.md §2.3).
 
     Parameters
     ----------
-    disturbf : (npoi,) fire disturbance fraction [0,1]
-    biomass_burned : (npoi,) biomass consumed by fire (kgC/m2/yr)
-    vegtype : (npoi,) vegetation type index (0-14)
-
-    Returns
-    -------
-    FireEmissionState with CO2, CH4, N2O emissions
+    burned_fraction : (npoi,)
+        Fire-disturbed fraction of the cell this year, i.e. `disturbf` from the
+        fire scheme -- **not** including background disturbance `disturbo`,
+        which is not fire.
+    cbiol, cbiow : (npoi, npft)
+        Live leaf and wood carbon, kgC m-2. Already per grid-cell area, so no
+        `frac` weighting (docs/FIRE.md §4.4d).
+    totalit : (npoi,)
+        Above-ground litter carbon, kgC m-2. Not `totlit`, which includes roots.
+    plai : (npoi, npft)
+        Per-PFT leaf area, used to blend emission factors.
+    mort : (npft,)
+        Per-PFT fire mortality from F4.
     """
-    # Map vegtype to emission factor index
-    # 1-5: tropical/warm trees → 0
-    # 6-8: boreal trees → 1
-    # 9-12: savanna/grassland → 2
-    # 13-15: crop/other → 3
-    ef_idx = jnp.where(vegtype <= 5, 0,
-             jnp.where(vegtype <= 8, 1,
-             jnp.where(vegtype <= 12, 2, 3)))
+    p = params or FireEmissionParams()
 
-    # Convert biomass burned from kgC/m2 to kg DM/m2
-    dm_burned = biomass_burned / C_FRAC_DM  # kg DM / m2
+    live = jnp.sum(
+        (p.cc_leaf * cbiol + p.cc_wood * cbiow) * mort[None, :], axis=1
+    )
+    litter = p.cc_litter * totalit
+    carbon_burned = burned_fraction * (live + litter)          # kgC m-2 yr-1
 
-    # Emission factors for each grid point
-    ef_co2 = EF_CO2[ef_idx]  # g CO2 / kg DM
-    ef_ch4 = EF_CH4[ef_idx]
-    ef_n2o = EF_N2O[ef_idx]
+    # kgC -> kg dry matter -> g species, via Andreae's per-kg-DM factors.
+    dm = carbon_burned / C_FRACTION_OF_DM                      # kg DM m-2 yr-1
+    ef = cell_emission_factors(plai)                           # g species / kg DM
+    e = dm[:, None] * ef                                       # g species m-2 yr-1
 
-    # Emissions (convert from g species/m2 to gC/m2 or gN/m2)
-    fire_co2 = dm_burned * ef_co2 / MW_CO2_C   # gC/m2/yr
-    fire_ch4 = dm_burned * ef_ch4 / MW_CH4_C   # gC/m2/yr
-    fire_n2o = dm_burned * ef_n2o / MW_N2O_N   # gN/m2/yr
+    return FireEmissions(
+        burned_fraction=burned_fraction,
+        carbon_burned=carbon_burned,
+        co2=e[:, 0], co=e[:, 1], ch4=e[:, 2], n2o=e[:, 3], nox=e[:, 4],
+    )
 
-    return FireEmissionState(
-        fire_co2=fire_co2 * 1e-3,  # convert g to kg
-        fire_ch4=fire_ch4 * 1e-3,
-        fire_n2o=fire_n2o * 1e-3,
-        burned_area=disturbf,
+
+def create_fire_emissions(npoi: int) -> FireEmissions:
+    """Zero-initialised diagnostics."""
+    z = jnp.zeros((npoi,))
+    return FireEmissions(burned_fraction=z, carbon_burned=z,
+                         co2=z, co=z, ch4=z, n2o=z, nox=z)
+
+
+def fire_emissions_from_state(
+    veg,
+    carbon,
+    mort: Float[Array, "npft"] | None = None,
+    params: FireEmissionParams | None = None,
+) -> FireEmissions:
+    """Convenience wrapper: emissions from post-`dynaveg` model state.
+
+    `dynaveg` writes the fire disturbance fraction back to `veg.disturbf`, so
+    emissions are a pure diagnostic of state -- nothing needs to be threaded
+    through the timestep.
+
+    Exists mainly so the correct wiring is obvious at the call site. The
+    module's own history is the argument for that: defect 0 was a
+    bit-exact-verified function that nothing ever fed, and the quarantined
+    prototype was a whole file that nothing ever called.
+    """
+    from ibis.physics.fire import DEFAULT_PFT_MORTALITY
+
+    if mort is None:
+        mort = jnp.asarray(DEFAULT_PFT_MORTALITY)
+    return fire_emissions(
+        burned_fraction=veg.disturbf,
+        cbiol=veg.cbiol, cbiow=veg.cbiow,
+        totalit=carbon.totalit, plai=veg.plai,
+        mort=mort, params=params,
     )

@@ -11,7 +11,7 @@ from ibis.bgc.permafrost import (
     stefan_depth, diagnose_frozen_ground, thermokarst,
 )
 from ibis.bgc.fire_emissions import (
-    FireEmissionState, create_fire_emission_state, fire_emissions,
+    FireEmissions, FireEmissionParams, create_fire_emissions, fire_emissions,
 )
 from ibis.bgc.soil_gases import (
     SoilGasState, SoilGasParams, create_soil_gas_state,

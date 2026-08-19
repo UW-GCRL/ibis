@@ -37,7 +37,7 @@ buy the cheap structural fixes instead and spend the saved effort on calibration
 | F2 | Fine-fuel term (`totalit` + live leaf) | ☑ **done & verified** (2026-08-18) |
 | F3 | Human ignition/suppression term | ☑ **done & verified** (2026-08-18) |
 | F4 | PFT-specific fire mortality | ☑ **done & verified** (2026-08-18) |
-| F5 | Burned area output + trace-gas emissions (Andreae 2019) | ☐ not started |
+| F5 | Burned area output + trace-gas emissions (Andreae 2019) | ☑ **done & verified** (2026-08-19) |
 | F6 | Differentiable calibration against GFED5 | ☐ not started |
 
 Legend: ☐ not started · ◐ in progress · ☑ done & verified
@@ -541,6 +541,53 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-19 — F5 complete: burned area and emissions
+
+**The module is now falsifiable.** Until this stage IBIS reported `disturbf`, a
+disturbance fraction with no observational counterpart — nothing in the world
+could confirm or contradict it. F5 reports burned fraction (CMIP7
+`burntFractionAll`) and the trace gases from the carbon fire consumes, so F6 can
+score the model against GFED5.
+
+**Changed**
+
+- `bgc/fire_emissions.py` **rewritten** (the prototype was quarantined to
+  `bgc/_legacy_prototype/`, not extended — §2.2 defect 7).
+- `bgc/__init__.py` updated for the new API.
+- `tests/test_fire_emissions.py` — 16 tests.
+
+**Emission factors are the verified Andreae (2019) values**, embedded as
+constants for speed with the extracted CSV as the source of record. A test
+cross-checks constants against that CSV and **fails if they drift apart** — the
+kind of silent divergence this module has already suffered twice.
+
+Only the four vegetation categories are used. Peat and cropland are in the
+source table but IBIS represents neither, so they have no PFT to map onto; N₂O
+for peat is absent from the source anyway. A test asserts they stay out.
+
+PFT → category: 0–1 tropical · 2–4 temperate · 5–7 boreal · 8–11
+savanna/grassland. Each cell takes an **LAI-weighted blend** of its PFTs'
+factors rather than attributing litter to a dominant PFT, which would be
+arbitrary. Verified: a single-PFT cell reproduces that category's row exactly;
+a 50/50 cell gives the mean; a bare cell yields no NaN.
+
+**Fine roots are excluded — structurally.** `fire_emissions()` has no `cbior`
+argument, so roots cannot be combusted by accident. This is the audit finding
+that IBIS has emitted fine-root carbon since 2000 (`vegetation.f:433`, `:481`)
+with an unresolved author TODO above the code. F5 fixes the *emission
+diagnostic*; the legacy carbon balance is unchanged and stays behind
+`fire_scheme`.
+
+**One declared unit convention**, stated once on the state class and not
+re-derived: burned fraction 0–1, carbon kgC m⁻² yr⁻¹, species g m⁻² yr⁻¹. The
+quarantined prototype carried three conflicting conventions for the same number.
+A test pins the conversion chain `species = (carbon_burned / 0.45) × EF`.
+
+**Not done.** `cc_leaf`/`cc_wood`/`cc_litter` (0.90/0.20/0.50) are
+literature-typical, uncalibrated. Emissions are a pure diagnostic of state —
+they do not feed back into the carbon balance, which still runs through
+`cdisturb` unchanged.
 
 ### 2026-08-18 — F4 complete: per-PFT fire mortality
 

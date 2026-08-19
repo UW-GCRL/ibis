@@ -17,10 +17,6 @@ from ibis.bgc.permafrost import (
     default_permafrost_params, permafrost_step,
     stefan_depth, diagnose_frozen_ground, thermokarst,
 )
-from ibis.bgc.fire_emissions import (
-    FireEmissionState, create_fire_emission_state, fire_emissions,
-    EF_CO2, EF_CH4, EF_N2O,
-)
 from ibis.bgc.soil_gases import (
     SoilGasState, SoilGasParams, create_soil_gas_state,
     default_soil_gas_params, soil_gas_step,
@@ -289,54 +285,14 @@ class TestPermafrostStep:
 
 # ===== Fire Emissions =====
 
-class TestFireEmissionState:
-    def test_create(self):
-        fs = create_fire_emission_state(NPOI)
-        assert fs.fire_co2.shape == (NPOI,)
-        assert jnp.all(fs.burned_area == 0.0)
+# NOTE: the fire-emissions tests that lived here exercised the prototype in
+# ibis/bgc/fire_emissions.py that was never called by the model and used
+# superseded Andreae & Merlet (2001) factors with three conflicting unit
+# conventions. That file is quarantined in ibis/bgc/_legacy_prototype/ and the
+# module was rewritten for docs/FIRE.md stage F5. Its replacement is covered by
+# tests/test_fire_emissions.py (16 tests), including a cross-check of the
+# embedded emission factors against the published Andreae (2019) spreadsheet.
 
-
-class TestFireEmissions:
-    def test_basic(self):
-        disturbf = jnp.array([0.1, 0.05, 0.2, 0.0])
-        biomass = jnp.array([0.5, 0.3, 0.8, 0.0])
-        vegtype = jnp.array([2.0, 7.0, 10.0, 14.0])
-        fs = fire_emissions(disturbf, biomass, vegtype)
-        assert isinstance(fs, FireEmissionState)
-        assert fs.fire_co2.shape == (NPOI,)
-        # No biomass burned → no emissions
-        assert jnp.allclose(fs.fire_co2[3], 0.0)
-        assert jnp.allclose(fs.fire_ch4[3], 0.0)
-
-    def test_positive_emissions(self):
-        disturbf = jnp.full((NPOI,), 0.1)
-        biomass = jnp.full((NPOI,), 1.0)
-        vegtype = jnp.full((NPOI,), 3.0)
-        fs = fire_emissions(disturbf, biomass, vegtype)
-        assert jnp.all(fs.fire_co2 > 0.0)
-        assert jnp.all(fs.fire_ch4 > 0.0)
-        assert jnp.all(fs.fire_n2o > 0.0)
-
-    def test_co2_dominates(self):
-        """CO2 emissions should be much larger than CH4 and N2O."""
-        disturbf = jnp.full((NPOI,), 0.1)
-        biomass = jnp.full((NPOI,), 1.0)
-        vegtype = jnp.full((NPOI,), 3.0)
-        fs = fire_emissions(disturbf, biomass, vegtype)
-        assert jnp.all(fs.fire_co2 > fs.fire_ch4)
-        assert jnp.all(fs.fire_co2 > fs.fire_n2o)
-
-    def test_vegtype_mapping(self):
-        """Different vegetation types use different emission factors."""
-        disturbf = jnp.full((4,), 0.1)
-        biomass = jnp.full((4,), 1.0)
-        vegtype = jnp.array([1.0, 7.0, 10.0, 14.0])
-        fs = fire_emissions(disturbf, biomass, vegtype)
-        # All should have emissions but different amounts
-        assert not jnp.allclose(fs.fire_co2[0], fs.fire_co2[2])
-
-
-# ===== Soil Gases =====
 
 class TestSoilGasState:
     def test_create(self):
@@ -658,7 +614,7 @@ class TestBGCIntegration:
         from ibis.bgc import (
             WetlandState, WetlandParams, wetland_step,
             PermafrostState, PermafrostParams, permafrost_step,
-            FireEmissionState, fire_emissions,
+            FireEmissions, FireEmissionParams, fire_emissions,
             SoilGasState, SoilGasParams, soil_gas_step,
             BVOCState, bvoc_emissions,
             NEEState, compute_nee,
@@ -682,11 +638,18 @@ class TestBGCIntegration:
         het_resp = jnp.full((NPOI,), 2.0)
         ws = wetland_step(ws, soil_temps, soil_moisture, porosity, het_resp, params)
 
-        # Fire emissions
-        disturbf = jnp.full((NPOI,), 0.05)
-        biomass = jnp.full((NPOI,), 0.3)
-        vegtype = jnp.full((NPOI,), 5.0)
-        fs = fire_emissions(disturbf, biomass, vegtype)
+        # Fire emissions use the F5 API (see tests/test_fire_emissions.py);
+        # this integration check only needs a CO2 number to feed NEE.
+        from ibis.bgc.fire_emissions import fire_emissions
+        from ibis.physics.fire import DEFAULT_PFT_MORTALITY
+        fs = fire_emissions(
+            burned_fraction=jnp.full((NPOI,), 0.05),
+            cbiol=jnp.full((NPOI, 12), 0.04),
+            cbiow=jnp.full((NPOI, 12), 0.30),
+            totalit=jnp.full((NPOI,), 0.20),
+            plai=jnp.zeros((NPOI, 12)).at[:, 10].set(2.0),
+            mort=jnp.asarray(DEFAULT_PFT_MORTALITY),
+        )
 
         # NEE
         gpp = jnp.full((NPOI,), 8.0)
@@ -694,9 +657,9 @@ class TestBGCIntegration:
         rh = het_resp
         ns = compute_nee(
             gpp, ra, rh,
-            fire_co2=fs.fire_co2,
-            fire_ch4=fs.fire_ch4,
-            fire_n2o=fs.fire_n2o,
+            fire_co2=fs.co2,
+            fire_ch4=fs.ch4,
+            fire_n2o=fs.n2o,
             wetland_ch4=ws.ch4_flux,
         )
         assert isinstance(ns, NEEState)
