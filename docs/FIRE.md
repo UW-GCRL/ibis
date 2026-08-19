@@ -339,7 +339,28 @@ verified and what was not, so nothing enters a paper on the strength of a summar
 | FATES per-PFT fire resistance | ✅ `SFMainMod.F90:570` `CalculatePostFireMortality` → `CambialMortality(bark_scaler)` + crown scorch |
 | Nesterov FDI one-liner | ✅ LPJmL `firedangerindex.c` (81 lines) |
 | Glob-FIRM's exact burned-fraction equation | ⚠ **NOT verified** — Thonicke et al. (2001) is paywalled (Wiley) and secondary sources describe it only as "an empirical relationship between fire season length and area burned". **We take the *concept* (season length, not mean dryness); the closure is IBIS's own exponential.** Do not cite a Glob-FIRM formula we have not read. |
-| Andreae (2019) emission factors | ⚠ from the paper's abstract/summary only (CH₄ 2.7 g/kg savanna → 9.1 g/kg peat). Pull the actual per-biome table before F5. |
+| Andreae (2019) emission factors | ✅ **Verified 2026-08-18** — Table 1 downloaded (`acp-19-8523-2019-t01.xlsx`, open access) and extracted to `inputs/fire/emission_factors/andreae2019_ef.csv`. The abstract-derived figures were right: CH₄ 2.7 g/kg savanna → 9.1 g/kg peat. Full set below. |
+
+### 4.4e Andreae (2019) Table 1 — open-vegetation fire (g species per kg dry matter)
+
+| species | savanna/grass | tropical forest | temperate forest | boreal forest | peat | agri. residue |
+|---|---|---|---|---|---|---|
+| CO₂ | 1660 | 1620 | 1570 | 1530 | 1590 | 1430 |
+| CO | 69 | 104 | 113 | 121 | 260 | 76 |
+| CH₄ | 2.7 | 6.5 | 5.2 | 5.5 | 9.1 | 5.7 |
+| N₂O | 0.17 | 0.20 | 0.25 | 0.24 | **no data** | 0.09 |
+| NOx (as NO) | 2.5 | 2.8 | 3.0 | 1.18 | 1.2 | 2.4 |
+
+Stored with SD and study counts in `andreae2019_ef.csv`. The spreadsheet's
+second block (row 135 on) covers biofuels, dung, charcoal, garbage and lab
+studies — **not** open vegetation fire, and deliberately not extracted.
+
+⚠ **N₂O for peat is absent from the source**, marked `–`. It must be handled
+explicitly at F5, not silently filled with zero or a neighbouring biome's value.
+
+Mapping to IBIS's 12 PFTs is an F5 decision: the four vegetation categories map
+naturally onto tropical / temperate / boreal trees and grass, but IBIS has no
+peat or cropland representation, so those two columns have no home yet.
 
 ### 4.4c Second audit — assumptions about IBIS itself (2026-08-12)
 
