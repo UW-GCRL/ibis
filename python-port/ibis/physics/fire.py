@@ -146,6 +146,46 @@ def update_firefac(
 # F1: fire season length (docs/FIRE.md stage F1)
 # ---------------------------------------------------------------------------
 
+#: Fire mortality by IBIS PFT (params.veg lines 27-38 give the ordering):
+#:
+#:   0  tropical broadleaf evergreen tree     6  boreal broadleaf cold-decid. tree
+#:   1  tropical broadleaf drought-decid.     7  boreal conifer cold-decid. tree
+#:   2  warm-temperate broadleaf evergreen    8  evergreen shrub
+#:   3  temperate conifer evergreen           9  cold-deciduous shrub
+#:   4  temperate broadleaf cold-deciduous   10  warm (C4) grass
+#:   5  boreal conifer evergreen             11  cool (C3) grass
+#:
+#: These are **literature-informed priors, not measured values**, and are
+#: calibration targets for F6. The ordering of magnitudes is the defensible
+#: part; the exact numbers are not.
+#:
+#: Reasoning: grasses are entirely top-killed by any fire that passes, so 1.0.
+#: Shrubs are nearly so. Boreal conifers carry thin bark and support
+#: stand-replacing crown fire, so mortality is high. Temperate conifers and
+#: tropical drought-deciduous trees are the fire-adapted end -- thick bark,
+#: frequent low-intensity surface fire -- so they sit lowest. Tropical
+#: evergreen forest burns rarely but destructively when it does.
+#:
+#: Precedent: FATES resolves this as crown scorch plus cambial damage scaled by
+#: a per-PFT `bark_scaler` (SFMainMod.F90:570 CalculatePostFireMortality ->
+#: CambialMortality). We collapse that to one coefficient per PFT, which is the
+#: light-model version of the same idea.
+DEFAULT_PFT_MORTALITY: tuple[float, ...] = (
+    0.50,  #  0 tropical broadleaf evergreen
+    0.35,  #  1 tropical broadleaf drought-deciduous (fire-adapted savanna tree)
+    0.50,  #  2 warm-temperate broadleaf evergreen
+    0.35,  #  3 temperate conifer evergreen (thick bark, surface-fire adapted)
+    0.50,  #  4 temperate broadleaf cold-deciduous
+    0.80,  #  5 boreal conifer evergreen (thin bark, crown fire)
+    0.70,  #  6 boreal broadleaf cold-deciduous
+    0.75,  #  7 boreal conifer cold-deciduous (larch)
+    0.85,  #  8 evergreen shrub
+    0.85,  #  9 cold-deciduous shrub
+    1.00,  # 10 warm (C4) grass -- fully top-killed
+    1.00,  # 11 cool (C3) grass
+)
+
+
 class FireParams(eqx.Module):
     """Tunable parameters for the season-length scheme.
 
@@ -189,6 +229,16 @@ class FireParams(eqx.Module):
     ign_max: float = 3.0
     #: Select the F3 human term. False leaves fire purely climate-driven.
     use_human: bool = eqx.field(static=True, default=False)
+
+    # --- F4: PFT-specific fire mortality -----------------------------------
+    #: Fraction of a PFT's live biomass killed per unit burned fraction, one
+    #: value per IBIS PFT (see DEFAULT_PFT_MORTALITY for the ordering and the
+    #: reasoning). 1.0 = fully killed, lower = more fire-resistant.
+    mort: Float[Array, "npft"] = eqx.field(
+        default_factory=lambda: jnp.asarray(DEFAULT_PFT_MORTALITY)
+    )
+    #: Select the F4 per-PFT mortality. False keeps IBIS's uniform mortality.
+    use_pft_mortality: bool = eqx.field(static=True, default=False)
 
 
 def default_fire_params() -> FireParams:

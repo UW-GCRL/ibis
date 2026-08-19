@@ -435,8 +435,19 @@ def dynaveg(
     disturbf_fire = jnp.where(isimfire == 1, _disturbf, disturbf_val)
     disturbf_val = disturbf_fire
 
+    # F4: per-PFT fire mortality. IBIS applies `disturbf` identically to every
+    # PFT, so savanna trees and boreal conifers lose the same fraction -- which
+    # makes the fire->vegetation feedback, the whole reason fire lives in a
+    # DGVM, wrong. `mort[j]` scales the FIRE part only; background disturbance
+    # (`disturbo`) stays uniform because it is not fire.
+    _use_mort = fire_scheme == SEASONLENGTH and (fire_params or default_fire_params()).use_pft_mortality
+    _mort = (fire_params or default_fire_params()).mort
+
     for j in range(npft):
-        disturb_total = disturbf_val + disturbo_val
+        if _use_mort:
+            disturb_total = disturbf_val * _mort[j] + disturbo_val
+        else:
+            disturb_total = disturbf_val + disturbo_val
         cdisturb = cdisturb + (cbiol[:, j] + cbiow[:, j] + cbior[:, j]) * disturb_total
 
         cbiol = cbiol.at[:, j].set(jnp.maximum(0.0, cbiol[:, j] * (1.0 - disturb_total)))
@@ -462,7 +473,15 @@ def dynaveg(
     totbiol_agg = jnp.sum(biomass[:, 8:], axis=1)
 
     # --- Update fractional cover ---
-    disturb_total = disturbf_val + disturbo_val
+    # Cover is a cell-level quantity, so it takes the LAI-weighted mean
+    # mortality rather than any single PFT's.
+    if _use_mort:
+        _w = jnp.maximum(veg.plai, 0.0)
+        _wsum = jnp.maximum(jnp.sum(_w, axis=1), 1e-12)
+        _mort_mean = jnp.sum(_w * _mort[None, :], axis=1) / _wsum
+        disturb_total = disturbf_val * _mort_mean + disturbo_val
+    else:
+        disturb_total = disturbf_val + disturbo_val
     fu = (1.0 - jnp.exp(-wood)) / (1.0 - jnp.exp(-woodnorm))
     fu = fu * (1.0 - disturb_total)
     fu = jnp.maximum(0.25, jnp.minimum(0.975, fu))

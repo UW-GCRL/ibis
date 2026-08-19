@@ -36,7 +36,7 @@ buy the cheap structural fixes instead and spend the saved effort on calibration
 | F1 | Fire season length replaces annual-mean `firefac` | ☑ **done & verified** (2026-08-18) |
 | F2 | Fine-fuel term (`totalit` + live leaf) | ☑ **done & verified** (2026-08-18) |
 | F3 | Human ignition/suppression term | ☑ **done & verified** (2026-08-18) |
-| F4 | PFT-specific fire mortality | ☐ not started |
+| F4 | PFT-specific fire mortality | ☑ **done & verified** (2026-08-18) |
 | F5 | Burned area output + trace-gas emissions (Andreae 2019) | ☐ not started |
 | F6 | Differentiable calibration against GFED5 | ☐ not started |
 
@@ -541,6 +541,47 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-18 — F4 complete: per-PFT fire mortality
+
+**Changed**
+
+- `physics/fire.py`: `DEFAULT_PFT_MORTALITY` (12 values, one per IBIS PFT),
+  `FireParams.mort` as a **traced array leaf** so F6 gradients can reach it,
+  plus a static `use_pft_mortality` flag.
+- `vegetation_dynamics.dynaveg`: the disturbance loop scales the **fire part
+  only** by `mort[j]`; `disturbo` stays uniform because it is not fire.
+  Fractional cover takes the LAI-weighted mean mortality, since cover is a
+  cell-level quantity.
+- `tests/test_fire_mortality.py` — 9 tests.
+
+**Priors** (params.veg:27-38 ordering), lowest to highest vulnerability:
+temperate conifer and tropical drought-deciduous 0.35 (thick bark, adapted to
+frequent low-intensity surface fire) · tropical/temperate broadleaf 0.50 ·
+boreal broadleaf 0.70 · boreal conifer deciduous 0.75 · boreal conifer
+evergreen 0.80 (thin bark, stand-replacing crown fire) · shrubs 0.85 ·
+**grasses 1.00** (entirely top-killed by any fire that passes).
+
+⚠ These are **literature-informed priors, not measured values**. The tests pin
+the *ordering* — boreal conifer above temperate conifer, savanna tree below
+tropical evergreen, every woody PFT below grass — because the ordering is the
+defensible part. The exact numbers are F6 calibration targets and are marked as
+such in the source.
+
+Precedent is FATES, which resolves this as crown scorch plus cambial damage
+scaled by a per-PFT `bark_scaler` (`SFMainMod.F90:570`
+`CalculatePostFireMortality` → `CambialMortality`). F4 collapses that to one
+coefficient per PFT — the light-model version of the same idea. A future
+refinement could split leaf from wood mortality, as FATES does.
+
+**One design point worth recording:** `mort` scales `disturbf` but not
+`disturbo`. Background (non-fire) disturbance should not inherit fire
+resistance, and a test asserts that with `disturbf = 0` every PFT sees exactly
+the background rate.
+
+**Not done.** Off by default. Uncalibrated. Mortality applies equally to leaf,
+wood and root pools; the second audit's finding that roots are combusted and
+emitted (`vegetation.f:481`) is F5's problem, not F4's.
 
 ### 2026-08-18 — F3 complete: human ignition and suppression
 
