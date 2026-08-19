@@ -38,7 +38,7 @@ buy the cheap structural fixes instead and spend the saved effort on calibration
 | F3 | Human ignition/suppression term | ☑ **done & verified** (2026-08-18) |
 | F4 | PFT-specific fire mortality | ☑ **done & verified** (2026-08-18) |
 | F5 | Burned area output + trace-gas emissions (Andreae 2019) | ☑ **done & verified** (2026-08-19) |
-| F6 | Differentiable calibration against GFED5 | ☐ not started |
+| F6 | Differentiable calibration against GFED5 | ◐ **machinery done & verified** (2026-08-19); global fit pending a production run |
 
 Legend: ☐ not started · ◐ in progress · ☑ done & verified
 
@@ -541,6 +541,61 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-19 — F6 machinery: gradient-based calibration
+
+**Changed**
+
+- `io/gfed5.py` (new): GFED5 reader — conservative 0.25°→0.5° aggregation,
+  coordinate-aligned, returns annual burned *fraction* on the model grid.
+- `ml/fire_calibration.py` (new): `FireBatch`, `predict_burned_fraction`,
+  `fire_loss`, `fit_fire_params` (optax Adam).
+- `tests/test_fire_calibration.py` — 11 tests.
+
+**Gradients reach every fitted parameter.** 11 trainable leaves (10 scalars plus
+`mort[12]`), all finite; the structural `use_*` switches are partitioned out via
+`eqx.is_inexact_array_like` and provably not differentiated.
+
+**⚠ `mort` has zero gradient with respect to burned area — and that is
+correct.** Per-PFT mortality controls what fire does to vegetation and how much
+carbon is emitted, not how much of a cell burns. It is therefore **not
+identifiable from burned area alone** and needs a vegetation or emissions
+target. Pinned as a test so the zero is never mistaken for a broken gradient.
+
+**Synthetic recovery works.** Observations generated from `k_b = 1.7` are fitted
+back to 1.7 within 2%. A multi-parameter fit reduces the loss by >50× and
+reproduces the observations to 2e-3.
+
+**Loss is area-weighted MSE in log space.** Burned fraction spans orders of
+magnitude; a plain MSE is dominated by a handful of savanna cells and learns
+nothing about the boreal zone. `eps = 1e-4` keeps zero-burn cells finite.
+
+### GFED5 as the target — one finding that matters
+
+GFED5 splits burned area by cause, and `Total = Norm + Peat + Defo + Crop`
+exactly (verified on a sample month). **The default target is `Norm`, not
+`Total`**, because IBIS represents neither cropland, nor deforestation fire, nor
+peatland. Calibrating against `Total` would force natural-vegetation parameters
+to absorb fire the model structurally cannot produce.
+
+That is not a rounding decision: for 2015, Total = **744 Mha** and Norm =
+**658 Mha**, so the excluded components are **~12%** of global burned area,
+overwhelmingly cropland.
+
+Annual totals read from the archive — 2001 916, 2010 758, 2015 744, 2020 723 Mha
+— bracket GFED5's published ~774 Mha yr⁻¹ mean and reproduce its declining
+trend. (An earlier note in this log cited 5.4–7.4 Mkm² as the expected range;
+that figure is from the 1901–2020 *reconstruction* paper, not GFED5 itself.)
+
+Burned area and burnable area are aggregated conservatively over 2×2 blocks and
+only then divided, giving a true area-weighted fraction rather than a mean of
+fractions.
+
+**Not done — and this is the honest boundary.** The *machinery* is verified; the
+*global fit* is not, because it needs multi-year model runs producing the
+per-cell accumulators to calibrate against. That is a production activity, not a
+code change. Until it runs, no fitted parameters exist and every default in
+`FireParams` remains an uncalibrated prior.
 
 ### 2026-08-19 — F5 complete: burned area and emissions
 
