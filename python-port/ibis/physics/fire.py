@@ -176,6 +176,20 @@ class FireParams(eqx.Module):
     #: Select the F2 fuel term. False keeps the legacy min(1, totlit/0.2).
     use_fine_fuel: bool = eqx.field(static=True, default=False)
 
+    # --- F3: human ignition and suppression --------------------------------
+    #: Baseline (non-human) ignition factor, dimensionless. At popd = 0 the
+    #: ignition term is `ig0`, so 1.0 leaves the scheme unchanged where nobody
+    #: lives. IBIS carries no lightning data, so natural ignition is folded
+    #: into this constant rather than resolved (docs/FIRE.md 4.2).
+    ig0: float = 1.0
+    #: Rate at which human ignition saturates, per ind/km2.
+    a_ig: float = 0.01
+    #: Ceiling on the ignition factor. Human ignition saturates rather than
+    #: growing without bound -- see :func:`human_ignition`.
+    ign_max: float = 3.0
+    #: Select the F3 human term. False leaves fire purely climate-driven.
+    use_human: bool = eqx.field(static=True, default=False)
+
 
 def default_fire_params() -> FireParams:
     return FireParams()
@@ -252,6 +266,60 @@ def fine_fuel_fraction(
     return jnp.clip((fine - params.lfuel) / span, 0.0, 1.0)
 
 
+def human_suppression(
+    popd: Float[Array, "npoi"],
+    params: FireParams | None = None,
+) -> Float[Array, "npoi"]:
+    """Fire suppression by people. **Verbatim CLM.**
+
+    `lpop = 0.2 + 0.8 * exp(-pi * (hdm/450)**0.5)`
+    -- CTSM `CNFireLi2014Mod.F90:439-440`, constants included.
+
+    Bounded to [0.2, 1.0] by construction: dense population suppresses at most
+    80% of fire, and empty land is unsuppressed. That built-in floor is why the
+    ad-hoc `f_min` in the first draft of the design was dropped (docs/FIRE.md
+    4.4b) -- copying CLM's expression removed two free parameters.
+
+    `popd` is in ind/km2, matching the units of the CLM population stream
+    (`hdm`, docs at inputs/fire/README.md).
+    """
+    del params  # no free parameters: the constants are CLM's
+    return 0.2 + 0.8 * jnp.exp(-jnp.pi * jnp.sqrt(jnp.maximum(popd, 0.0) / 450.0))
+
+
+def human_ignition(
+    popd: Float[Array, "npoi"],
+    params: FireParams,
+) -> Float[Array, "npoi"]:
+    """Ignition factor: a background term plus a *saturating* human term.
+
+    `ign = ig0 + (ign_max - ig0) * (1 - exp(-a_ig * popd))`
+
+    bounded in [`ig0`, `ign_max`]. At `popd = 0` it is `ig0` -- fire still
+    happens where nobody lives, because lightning does.
+
+    **Deliberate deviation from CLM.** CLM's human ignition is *linear* in
+    population density (`pot_hmn_ign_counts_alpha`, CNFireBaseMod.F90:64). That
+    is safe there because CLM's fuel term collapses toward zero in dense urban
+    cells, capping the product. IBIS has no such urban fuel collapse, so a
+    linear term is unbounded: at 10 000 ind/km2 it produced a 7x *increase* in
+    burning, which is the opposite of the observed decline at high density.
+    Saturating the term keeps the population response hump-shaped -- rising
+    where people provide ignition, falling where they provide suppression --
+    which is what burned-area observations show.
+
+    `a_ig` and `ign_max` are calibration targets (F6), not borrowed constants.
+    Do not cite them as CLM's.
+
+    IBIS carries no lightning data, so natural ignition is the constant `ig0`
+    rather than a resolved field. A 0.5-degree lightning climatology sits in
+    the same CLM stream directory if we later want it, at the cost of a second
+    input dataset (docs/FIRE.md 0).
+    """
+    x = params.a_ig * jnp.maximum(popd, 0.0)
+    return params.ig0 + (params.ign_max - params.ig0) * (1.0 - jnp.exp(-x))
+
+
 def fire_seasonlength(
     nfirestep: Float[Array, "npoi"],
     sdry: Float[Array, "npoi"],
@@ -259,6 +327,7 @@ def fire_seasonlength(
     totlit: Float[Array, "npoi"],
     params: FireParams,
     fuel: Float[Array, "npoi"] | None = None,
+    popd: Float[Array, "npoi"] | None = None,
 ) -> Float[Array, "npoi"]:
     """Fire disturbance fraction from fire-season length and severity.
 
@@ -283,6 +352,8 @@ def fire_seasonlength(
     dry_mean = sdry / jnp.maximum(nfirestep, 1.0)
     fuel = legacy_fuel_fraction(totlit) if fuel is None else fuel
     burn = params.k_b * fseason ** params.p * dry_mean * fuel
+    if popd is not None:
+        burn = burn * human_ignition(popd, params) * human_suppression(popd)
     return jnp.minimum(1.0, jnp.maximum(0.0, 1.0 - jnp.exp(-burn)))
 
 

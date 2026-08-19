@@ -35,7 +35,7 @@ buy the cheap structural fixes instead and spend the saved effort on calibration
 | F0 | Legacy path frozen behind flag, regression test | ☑ **done & verified** (2026-08-11) |
 | F1 | Fire season length replaces annual-mean `firefac` | ☑ **done & verified** (2026-08-18) |
 | F2 | Fine-fuel term (`totalit` + live leaf) | ☑ **done & verified** (2026-08-18) |
-| F3 | Human ignition/suppression term | ☐ not started |
+| F3 | Human ignition/suppression term | ☑ **done & verified** (2026-08-18) |
 | F4 | PFT-specific fire mortality | ☐ not started |
 | F5 | Burned area output + trace-gas emissions (Andreae 2019) | ☐ not started |
 | F6 | Differentiable calibration against GFED5 | ☐ not started |
@@ -520,6 +520,58 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-18 — F3 complete: human ignition and suppression
+
+**Changed**
+
+- `physics/fire.py`: `human_suppression()` (verbatim CLM), `human_ignition()`
+  (deliberately *not* CLM — see below); `FireParams` gains `ig0`, `a_ig`,
+  `ign_max` and a static `use_human`. `fire_seasonlength()` takes optional
+  `popd`.
+- `io/popdens.py` (new): reader for the CLM 0.5° population stream.
+- `vegetation_dynamics.dynaveg`: takes `popd`; raises if `use_human` is set
+  without it, rather than silently running without the term.
+- `tests/test_fire_human.py` — 9 tests.
+
+**Suppression is CLM verbatim** and pinned against CLM's own expression to
+4 eps: `lpop = 0.2 + 0.8·exp(−π·(hdm/450)^0.5)`
+(`CNFireLi2014Mod.F90:439-440`). A test asserts it has **no free parameters** —
+the 0.2/0.8/450 constants are CLM's calibrated values and `FireParams` must not
+be able to shift them.
+
+**Ignition deliberately departs from CLM.** CLM's human ignition is *linear*
+in population density. That is safe there because CLM's fuel term collapses
+toward zero in dense urban cells, capping the product. IBIS has no such urban
+fuel collapse, and the linear form was measured giving a **7× increase** in
+burning at 10 000 ind/km² — the opposite of the observed decline at high
+density. Replaced with a saturating form bounded in `[ig0, ign_max]`:
+
+```
+ign = ig0 + (ign_max − ig0)·(1 − exp(−a_ig·popd))
+```
+
+Net human factor is then hump-shaped and bounded in **[0.60, 1.00]** at default
+parameters: 1.00 where nobody lives, dipping to ~0.84 at 20 ind/km², settling
+at 0.60 in dense population. `a_ig` and `ign_max` are calibration targets, **not
+borrowed constants — do not cite them as CLM's.**
+
+**The reader aligns on coordinates, not indices.** `latindex`/`lonindex` come
+from whatever ordering the *surta* land-mask file uses
+(`netcdf_io.read_input_data`), while the population stream stores latitude
+south-to-north. Assuming they agree by index would put Siberia's population in
+the Sahara. `model_lat`/`model_lon` are therefore **required arguments**, and
+alignment is by nearest coordinate value. Verified: reversing `model_lat`
+changes the returned values, so the alignment is doing real work rather than
+passing through.
+
+Reader checked against the real file: 251 years (1850–2100), 360×720, year-2000
+global mean 9.81 ind/km², max 6939; 1850→2000 shows the expected growth.
+
+**Not done.** `use_human` defaults off. `ig0`, `a_ig`, `ign_max` uncalibrated
+(F6). Lightning is still folded into the constant `ig0`; a 0.5° lightning
+climatology sits in the same CLM directory if we ever want it, at the cost of a
+second input dataset.
 
 ### 2026-08-18 — F2 complete: fuel that can actually burn
 

@@ -314,6 +314,7 @@ def dynaveg(
     epsilon: float,
     fire_scheme: str = LEGACY,
     fire_params: FireParams | None = None,
+    popd: Float[Array, "npoi"] | None = None,
 ) -> tuple[VegetationState, CarbonState, SummaryState]:
     """Annual dynamic vegetation update.
 
@@ -417,8 +418,14 @@ def dynaveg(
         # time. Default False keeps the legacy fuel term.
         _fuel = (fine_fuel_fraction(carbon.totalit, veg.cbiol, _fp)
                  if _fp.use_fine_fuel else None)
+        # F3: human ignition/suppression. Requires popd; without it the
+        # scheme stays purely climate-driven.
+        _popd = popd if (_fp.use_human and popd is not None) else None
+        if _fp.use_human and popd is None:
+            raise ValueError("fire params set use_human=True but popd was not supplied")
         _disturbf = fire_seasonlength(
-            veg.nfirestep, veg.sdry, veg.nytimes, carbon.totlit, _fp, fuel=_fuel,
+            veg.nfirestep, veg.sdry, veg.nytimes, carbon.totlit, _fp,
+            fuel=_fuel, popd=_popd,
         )
     elif fire_scheme == LEGACY:
         _disturbf = fire(veg.firefac, carbon.totlit)
