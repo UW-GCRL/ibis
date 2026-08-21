@@ -32,8 +32,8 @@ biogeochemistry while inheriting the same extent uncertainty buys almost nothing
 
 | Stage | Description | Status |
 |---|---|---|
-| M0 | Read TRIPLEX-GHG and IBIS-CH4 papers; extract their parameter values | ☐ not started |
-| M1 | Inundated fraction + water table depth diagnostic | ☐ not started |
+| M0 | Read TRIPLEX-GHG and IBIS-CH4 papers; extract their parameter values | ☑ **done** (2026-08-21) — see §4.11 |
+| M1 | Inundated fraction + water table depth diagnostic | ◐ **data acquired** (WAD2M, 2026-08-21); reader not written |
 | M2 | **M-lite**: production only (`f_inund · r_CH4 · Rh · Q10`) | ☐ not started |
 | M3 | Evaluate M-lite: FLUXNET-CH4 + global total | ☐ not started |
 | M4 | **M-mid**: + oxidation, + upland sink — *only if M3 shows systematic bias* | ☐ not started |
@@ -263,8 +263,8 @@ inside this module.
 
 | Symbol | Meaning | Init | Calibrate? | Source |
 |---|---|---|---|---|
-| `r_CH4` | CH₄:CO₂ production ratio | 0.20 | **yes — primary** | CLM5 `f_CH4`; TRIPLEX-GHG top sensitivity |
-| `Q10p` | production Q₁₀ | 3.0 | **yes — primary** | TRIPLEX-GHG top sensitivity (CLM5 uses 2.0) |
+| `r_CH4` | CH₄:CO₂ production ratio | **0.23** | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean (range 0.1–0.7) across 19 sites. Supersedes CLM5's 0.20 — TRIPLEX-GHG is built on IBIS, so its calibration is the closer prior. |
+| `Q10p` | production Q₁₀ | **2.48** | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean (range 1.6–4.5) across 19 sites. Supersedes the earlier guess of 3.0. |
 | `T_ref` | production reference T | 295.15 K | no | CLM5 `T_B = 22 °C` |
 | `sat_crit` | saturation defining "wet" | 0.95 | maybe | guess |
 | `z_max` | max diagnosed WT depth | 4.0 m | no | soil column depth |
@@ -284,7 +284,7 @@ inside this module.
 
 | Dataset | Purpose | On NAS? |
 |---|---|---|
-| WAD2M / GIEMS-2 / SWAMPS inundated fraction | `f_inund` (Phase 1) | ☐ to check |
+| **WAD2M v2.0** inundated fraction | `f_inund` (Phase 1) | ✅ **acquired 2026-08-21** — `inputs/methane/wad2m/`, 499 MB, `Fw(time=252, lat=360, lon=720)`, monthly 2000–2020, **already on IBIS's 0.5° grid** (lat −89.75→89.75, lon −179.75→179.75), identical to the population stream |
 | FLUXNET-CH4 | site evaluation | ☐ to check |
 | Global Methane Budget 2025 ensemble | global benchmark | ☐ to check |
 | Soil pH map (optional) | `f_pH` | ☐ to check |
@@ -335,6 +335,48 @@ build plan — the audit confirms M0 is not optional.
 
 **Not applicable:** no IBIS Fortran counterpart exists to verify against (§2.1),
 and no public JAX/Python implementation of any wetland CH₄ scheme was found.
+
+### 4.11 M0 — load-bearing claims verified against the primary papers (2026-08-21)
+
+Both claims the design rests on were checked in the published articles, not in
+search summaries. **Both hold**, and the second returned better priors than we had.
+
+**WetCHARTs — verified verbatim.** Bloom et al. (2017), *Geosci. Model Dev.* 10,
+2141, abstract:
+
+> "uncertainties in carbon decomposition rates and the wetland extent together
+> account for more than 80 % of the dominant uncertainty in the timing,
+> magnitude and seasonal variability in wetland CH₄ emissions"
+
+This is the sentence the whole **M-lite-first tiering and stop rule** (§4.0)
+depend on. It stands as quoted. Their ensemble varies satellite-derived surface
+water extent, precipitation reanalyses, **nine** heterotrophic-respiration
+simulations and **three** temperature-dependence parameterisations — i.e.
+exactly the two terms M-lite already contains.
+
+**TRIPLEX-GHG — verified, and it upgraded our parameters.** Zhu et al. (2014),
+*Geosci. Model Dev.* 7, 981, abstract:
+
+> "the most sensitive parameters to evaluate CH₄ emission processes from
+> wetlands are *r* (defined as the CH₄ to CO₂ release ratio) and *Q*₁₀ in the
+> CH₄ production process"
+
+and it gives **calibrated values**, which our first draft did not have:
+
+| parameter | calibrated mean | range | basis |
+|---|---|---|---|
+| `r` (CH₄:CO₂) | **0.23** | 0.1 – 0.7 | 19 sites, ~35 studies |
+| `Q₁₀` | **2.48** | 1.6 – 4.5 | 19 sites, ~35 studies |
+
+§4.7 now uses these instead of CLM5's `f_CH4 = 0.2` and a guessed `Q10 = 3.0`.
+**TRIPLEX-GHG is built on IBIS**, so its calibration is the closer prior — and
+the published ranges give F6-style optimisation sensible bounds rather than
+arbitrary ones.
+
+Still not read in full: the mechanism of TRIPLEX-GHG's water-table module, and
+IBIS-CH4 (Xiao et al. 2024) — paywalled at Wiley, though reachable through the
+UW–Madison library. Neither is on M2's critical path now that the priors are in
+hand.
 
 ### 4.10 Second audit — assumptions about IBIS itself (2026-08-12)
 
