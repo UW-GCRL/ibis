@@ -38,7 +38,11 @@ import equinox as eqx
 jax.config.update("jax_enable_x64", True)
 
 # Import Min's F77 wrapper system
-PYTHON_PORT = Path("/home/hangkai/ibis-port/python-port")
+# Resolve from this file, not a hard-coded path: the literal
+# "/home/hangkai/ibis-port" is a symlink to the superseded nas copy, so
+# hard-coding it silently imports a DIFFERENT ibis package and every
+# result looks fine while testing the wrong code. See docs/ENVIRONMENT.md.
+PYTHON_PORT = Path(__file__).resolve().parents[2] / "python-port"
 sys.path.insert(0, str(PYTHON_PORT))
 from tests.f2py.ibis_f77_wrapper import F77IBIS, NPOI, NSOILAY, NSNOLAY, NPFT, NBAND
 from tests.f2py.synthetic_inputs import (

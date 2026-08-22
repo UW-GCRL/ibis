@@ -28,7 +28,11 @@ import numpy as np
 
 jax.config.update("jax_enable_x64", True)
 
-sys.path.insert(0, "/home/hangkai/ibis-port/python-port")
+# Resolve the repo root from this file rather than hard-coding a path.
+# The old literal "/home/hangkai/ibis-port" is a symlink to the superseded
+# nas copy, so it would silently import a DIFFERENT ibis package -- and
+# look like it worked. See docs/ENVIRONMENT.md.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "python-port"))
 
 from verify.timestepping.pipeline.global_gswp3_test import (
     diurnal_disaggregate, read_gswp3_month, make_batch_state,

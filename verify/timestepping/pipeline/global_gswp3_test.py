@@ -30,7 +30,11 @@ from netCDF4 import Dataset
 jax.config.update("jax_enable_x64", True)
 
 # Set up paths AFTER jax config
-sys.path.insert(0, "/home/hangkai/ibis-port/python-port")
+# Resolve the repo root from this file rather than hard-coding a path.
+# The old literal "/home/hangkai/ibis-port" is a symlink to the superseded
+# nas copy, so it would silently import a DIFFERENT ibis package -- and
+# look like it worked. See docs/ENVIRONMENT.md.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "python-port"))
 
 from tests.f2py.ibis_f77_wrapper import F77IBIS, NPOI, NSOILAY, NSNOLAY, NPFT, NBAND
 from tests.f2py.synthetic_inputs import (
