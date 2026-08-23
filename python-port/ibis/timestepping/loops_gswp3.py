@@ -562,3 +562,109 @@ def run_year_gswp3(
         )
 
     return state, key
+
+
+# ---------------------------------------------------------------------------
+# Complete carbon spin-up loop
+# ---------------------------------------------------------------------------
+
+def run_spinup_gswp3(
+    state: IBISState,
+    consts: PhysicalConstants,
+    params: SimParams,
+    reader: "GSWP3Reader",
+    latindex: np.ndarray,
+    lonindex: np.ndarray,
+    lat_rad: np.ndarray,
+    key: jax.Array,
+    dtime: float,
+    years,
+    nband: int = 2,
+    nsoilcall: int = 1,
+    on_year_end=None,
+):
+    """Multi-year spin-up with the **complete** carbon chain.
+
+    IBIS's carbon cycle is split across two cadences:
+
+        biomass_update  ->  falll / fallr / fallw  ->  soilbgc  ->  litter, soil C
+          (annual)              litterfall            (daily)
+
+    Neither existing runner contained both halves, so litter and soil carbon
+    were never produced:
+
+    * `verify/.../global_gswp3_gpu.py` -- which generated the archived 200-year
+      spin-ups -- calls `biomass_update` annually but never `soilbgc`.
+    * `run_year_gswp3` calls `soilbgc` daily but never `biomass_update`, so it
+      decomposes a litterfall flux that is identically zero.
+
+    Confirmed empirically before this was written: three years at
+    `nsoilcall=10` left `totlit == totalit == totcsoi == 0` exactly, with
+    `falll == fallr == fallw == 0` as the cause. The archived 200-year
+    checkpoints show the same -- realistic `cbiol`/`plai`, zero litter.
+
+    Ordering follows F77: `soilbgc` runs daily against the litterfall set by
+    the *previous* year's `dynaveg` (`main.f:500` calls it at year end), so
+    the first simulated year legitimately has no litterfall. Annual NPP
+    accumulators are cleared after `biomass_update` consumes them.
+
+    Parameters
+    ----------
+    years : iterable of int
+        Calendar years to run, in order.
+    nsoilcall : int
+        Times to advance `soilbgc` per simulated day. >1 accelerates soil
+        carbon equilibration, the standard spin-up trick.
+    on_year_end : callable(year, state) -> None, optional
+        Hook for checkpointing or diagnostics.
+
+    Returns
+    -------
+    (IBISState, PRNGKey)
+    """
+    from ibis.io.parameters import default_pft_params
+    from ibis.physics.vegetation_dynamics import biomass_update
+
+    pft_params = default_pft_params()
+
+    def _match(ref, new):
+        """Keep the carry dtypes stable; this loop runs in float32."""
+        return jax.tree_util.tree_map(
+            lambda r, n: n.astype(r.dtype)
+            if hasattr(r, "dtype") and hasattr(n, "dtype") and r.dtype != n.dtype
+            else n,
+            ref, new,
+        )
+
+    for year in years:
+        state, key = run_year_gswp3(
+            state, consts, params, reader, latindex, lonindex, lat_rad,
+            key, dtime, year, nband=nband, nsoilcall=nsoilcall,
+        )
+
+        # --- annual: grow biomass from accumulated NPP and set litterfall ---
+        new_veg, new_carbon, new_summary = biomass_update(
+            state.vegetation, state.carbon, state.summary,
+            pft_params, consts.epsilon,
+        )
+        new_veg = _match(state.vegetation, new_veg)
+        new_carbon = _match(state.carbon, new_carbon)
+        new_summary = _match(state.summary, new_summary)
+        state = eqx.tree_at(
+            lambda s: (s.vegetation, s.carbon, s.summary),
+            state, (new_veg, new_carbon, new_summary),
+        )
+
+        # --- clear the annual accumulators biomass_update just consumed ---
+        sm = state.summary
+        state = eqx.tree_at(
+            lambda s: (s.summary.aynpp, s.summary.aygpptot, s.summary.ayanpptot),
+            state,
+            (jnp.zeros_like(sm.aynpp), jnp.zeros_like(sm.aygpptot),
+             jnp.zeros_like(sm.ayanpptot)),
+        )
+
+        if on_year_end is not None:
+            on_year_end(year, state)
+
+    return state, key
