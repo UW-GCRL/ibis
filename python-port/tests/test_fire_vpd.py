@@ -121,9 +121,17 @@ def test_accumulator_counts_only_flammable_timesteps():
     assert np.all(np.asarray(sd) >= 0.0)
 
 
-def test_default_still_uses_soil_moisture():
-    """F1b is off by default; the F1 path is unchanged."""
-    assert default_fire_params().use_vpd_danger is False
+def test_vpd_danger_is_now_the_default():
+    """F1b shipped off, and was switched on once measured in-model.
+
+    Against GFED5 2001-2005 over 88 484 cells, from one live 5-year run: the
+    VPD path ranks +0.630 against the soil-moisture path's +0.315, and places
+    the top-2000 burning cells at |lat| 14.2 rather than 39.8, against an
+    observed 10.7. The soil-moisture path stays reachable by setting the flag
+    back to False, and `legacy` is untouched either way.
+    """
+    assert default_fire_params().use_vpd_danger is True
+    assert FireParams(use_vpd_danger=False).use_vpd_danger is False
 
 
 def test_vd_is_optional_and_omitting_it_changes_nothing():

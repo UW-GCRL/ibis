@@ -19,6 +19,8 @@ import equinox as eqx
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
+from ibis.physics.fire import CC_LEAF, CC_LITTER, CC_WOOD
+
 # ---------------------------------------------------------------------------
 # Emission factors -- Andreae (2019) Table 1, g species per kg dry matter
 # ---------------------------------------------------------------------------
@@ -61,14 +63,21 @@ C_FRACTION_OF_DM: float = 0.45
 
 
 class FireEmissionParams(eqx.Module):
-    """Combustion completeness by pool. All are F6 calibration targets."""
+    """Combustion completeness by pool. All are F6 calibration targets.
+
+    The values come from :mod:`ibis.physics.fire` rather than being restated
+    here. They used to be restated, and the carbon balance in
+    `vegetation_dynamics` used none of them -- it emitted 100 % of killed
+    biomass while this module reported 20 % of killed wood as burned. One
+    definition, imported in both places, is what stops that recurring.
+    """
 
     #: Fraction of killed leaf carbon that is combusted rather than left as litter.
-    cc_leaf: float = 0.90
+    cc_leaf: float = CC_LEAF
     #: Wood combusts far less completely than foliage.
-    cc_wood: float = 0.20
+    cc_wood: float = CC_WOOD
     #: Above-ground litter.
-    cc_litter: float = 0.50
+    cc_litter: float = CC_LITTER
 
 
 class FireEmissions(eqx.Module):

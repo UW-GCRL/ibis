@@ -591,15 +591,37 @@ def run_global_simulation(config: IBISConfig) -> None:
         # Full vegetation dynamics (PFT competition, disturbance, reclassification)
         # Only with isimveg > 0
         if p.isimveg > 0:
+            # `p.fire_scheme` used to be read nowhere: this call omitted it,
+            # so every run took the legacy scheme no matter what the config
+            # said. Same class of defect as the dead `firefac` (docs/FIRE.md).
             new_veg, new_carbon, new_summary = dynaveg(
                 state.vegetation, state.carbon, state.summary,
                 pft_params, p.isimfire, consts.epsilon,
+                fire_scheme=p.fire_scheme,
             )
             state = eqx.tree_at(
                 lambda s: (s.vegetation, s.carbon, s.summary),
                 state, (new_veg, new_carbon, new_summary),
             )
-            logger.info("  dynaveg: PFT competition and disturbance applied")
+            logger.info("  dynaveg: PFT competition and disturbance applied "
+                        "(fire_scheme=%s)", p.fire_scheme)
+
+            # `enable_fire_emissions` was declared in RunConfig and read
+            # nowhere, so the whole F5 module -- Andreae factors, CO/CH4/N2O/
+            # NOx -- was unreachable from a production run.
+            # Note `veg.disturbf` falls back to IBIS's constant 0.005 when
+            # isimfire=0, which is background disturbance, not fire -- so
+            # reporting emissions then would be meaningless.
+            if p.enable_fire_emissions and p.isimfire == 1:
+                from ibis.bgc import fire_emissions_from_state
+                fe = fire_emissions_from_state(state.vegetation, state.carbon)
+                logger.info(
+                    "  fire emissions: burned %.4f%% of land, %.4f kgC/m2, "
+                    "CH4 %.4g g/m2, CO %.4g g/m2",
+                    float(jnp.mean(fe.burned_fraction)) * 100.0,
+                    float(jnp.mean(fe.carbon_burned)),
+                    float(jnp.mean(fe.ch4)), float(jnp.mean(fe.co)),
+                )
 
         elapsed = time.time() - t0
         logger.info("Year %d complete in %.1f s", year, elapsed)

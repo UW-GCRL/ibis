@@ -27,6 +27,7 @@ import pytest
 from ibis.config import RunConfig
 from ibis.physics import vegetation_dynamics
 from ibis.physics.fire import (
+    SEASONLENGTH,
     AVAILABLE_SCHEMES,
     LEGACY,
     LEGACY_BURN_COEF,
@@ -203,10 +204,19 @@ def test_dispatcher_rejects_unknown_scheme():
         )
 
 
-def test_config_defaults_to_legacy():
-    """A default RunConfig must select the verified path."""
-    assert RunConfig().fire_scheme == LEGACY
+def test_config_defaults_to_seasonlength():
+    """The default scheme changed on 2026-08-24; legacy stays reachable.
+
+    It defaulted to "legacy" on the stated grounds that the 46-yr F77<->JAX
+    lockstep depended on it. It does not: the lockstep runs at isimfire=0, and
+    `dynaveg` selects `jnp.where(isimfire == 1, _disturbf, 0.005)`, so with
+    fire off the scheme is numerically irrelevant. Fire has never been enabled
+    in any run, so nothing regresses -- and anyone setting isimfire=1 now gets
+    rank +0.630 against GFED5 rather than +0.315.
+    """
+    assert RunConfig().fire_scheme == SEASONLENGTH
     assert LEGACY in AVAILABLE_SCHEMES
+    assert SEASONLENGTH in AVAILABLE_SCHEMES
 
 
 # ---------------------------------------------------------------------------

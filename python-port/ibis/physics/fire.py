@@ -170,6 +170,20 @@ def update_firefac(
 #: a per-PFT `bark_scaler` (SFMainMod.F90:570 CalculatePostFireMortality ->
 #: CambialMortality). We collapse that to one coefficient per PFT, which is the
 #: light-model version of the same idea.
+#: Combustion completeness by pool -- the fraction of *killed* carbon that a
+#: fire actually volatilises, as opposed to killing and leaving behind. Wood
+#: burns far less completely than foliage: a crown fire kills a tree in minutes
+#: but consumes only its fine branches, and the bole becomes coarse woody
+#: debris that decomposes over decades.
+#:
+#: These are the single definition used by BOTH the emission diagnostic
+#: (`ibis.bgc.fire_emissions`) and the carbon balance
+#: (`ibis.physics.vegetation_dynamics`). Keeping two copies is exactly how the
+#: two came to disagree by a factor of five -- see docs/FIRE.md.
+CC_LEAF = 0.90
+CC_WOOD = 0.20
+CC_LITTER = 0.50
+
 DEFAULT_PFT_MORTALITY: tuple[float, ...] = (
     0.50,  #  0 tropical broadleaf evergreen
     0.35,  #  1 tropical broadleaf drought-deciduous (fire-adapted savanna tree)
@@ -250,8 +264,29 @@ class FireParams(eqx.Module):
     #: to vegetation density is what lifted rank skill from 0.22 to 0.59 --
     #: see :func:`vegetation_density`.
     lai_ref_vd: float = 4.0
-    #: Use the VPD accumulators instead of the soil-moisture ones.
-    use_vpd_danger: bool = eqx.field(static=True, default=False)
+    #: Use the VPD accumulators instead of the soil-moisture ones. Default
+    #: True: measured in-model against GFED5 2001-2005 over 88 484 cells, the
+    #: VPD path ranks +0.630 against the soil-moisture path's +0.315, and puts
+    #: fire at |lat| 14.2 rather than 39.8 against an observed 10.7. This only
+    #: applies under the "seasonlength" scheme; "legacy" is untouched.
+    use_vpd_danger: bool = eqx.field(static=True, default=True)
+
+    # --- combustion completeness -------------------------------------------
+    #: Fraction of *killed* leaf / wood / above-ground litter carbon that is
+    #: actually combusted. The remainder is killed but not burned, and becomes
+    #: litter -- standing dead wood decomposes over decades, it does not
+    #: volatilise in a fire. See :data:`CC_LEAF` for provenance.
+    cc_leaf: float = CC_LEAF
+    cc_wood: float = CC_WOOD
+    cc_litter: float = CC_LITTER
+    #: Route the non-combusted share of fire-killed biomass to litter instead
+    #: of emitting all of it. IBIS 2.6b4 `vegetation.f:433,481` adds the whole
+    #: killed pool to `cdisturb` and subtracts it from NEE, which was harmless
+    #: while `disturbf` was a constant 0.005 but is not once the scheme
+    #: produces 30-50 % burned fractions: wood is ~97 % of live biomass in the
+    #: spun-up global state, and emitting 100 % of it contradicts this module's
+    #: own `cc_wood = 0.20`. Only applies under "seasonlength".
+    use_combustion_completeness: bool = eqx.field(static=True, default=True)
 
 
 def default_fire_params() -> FireParams:

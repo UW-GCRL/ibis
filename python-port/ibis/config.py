@@ -33,9 +33,15 @@ class RunConfig:
     isimco2: int = 0            # 0 = fixed CO2, 1 = varying
 
     # Fire scheme selector; see ibis.physics.fire.AVAILABLE_SCHEMES and
-    # docs/FIRE.md. "legacy" reproduces IBIS 2.6b4 vegetation.f:591 exactly and
-    # must remain the default -- the 46-yr F77<->JAX lockstep depends on it.
-    fire_scheme: str = "legacy"
+    # docs/FIRE.md. "legacy" reproduces IBIS 2.6b4 vegetation.f:591 exactly.
+    #
+    # The default was "legacy", on the stated grounds that the 46-yr F77<->JAX
+    # lockstep depended on it. It does not: the lockstep runs at isimfire=0,
+    # and `dynaveg` selects `jnp.where(isimfire == 1, _disturbf, 0.005)`, so
+    # with fire off the scheme is numerically irrelevant. Since fire has never
+    # been enabled in any run, defaulting to the better scheme costs nothing
+    # and means anyone who sets isimfire=1 gets rank +0.630 rather than +0.315.
+    fire_scheme: str = "seasonlength"
 
     # Atmospheric concentrations
     co2init: float = 350.0e-6   # Initial CO2 (mol/mol)

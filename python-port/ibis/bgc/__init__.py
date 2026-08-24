@@ -12,6 +12,7 @@ from ibis.bgc.permafrost import (
 )
 from ibis.bgc.fire_emissions import (
     FireEmissions, FireEmissionParams, create_fire_emissions, fire_emissions,
+    fire_emissions_from_state,
 )
 from ibis.bgc.soil_gases import (
     SoilGasState, SoilGasParams, create_soil_gas_state,

@@ -427,6 +427,18 @@ def dynaveg(
         # soil moisture (Spearman 0.59 vs 0.26 against GFED5) and puts fire at
         # |lat| 11.6 rather than 39.8, against an observed 10.7.
         if _fp.use_vpd_danger:
+            # Checkpoints written before F1b have no VPD accumulators. Say so
+            # plainly rather than letting an AttributeError surface from deep
+            # inside the disturbance branch.
+            if not hasattr(veg, "nfirestep_vpd"):
+                raise AttributeError(
+                    "fire params set use_vpd_danger=True (the default since "
+                    "2026-08-24) but this VegetationState predates F1b and has "
+                    "no nfirestep_vpd / sdry_vpd. Add them zero-initialised to "
+                    "migrate the checkpoint, or pass "
+                    "FireParams(use_vpd_danger=False) to keep the "
+                    "soil-moisture path."
+                )
             _nfs, _sd = veg.nfirestep_vpd, veg.sdry_vpd
             _vd = vegetation_density(veg.plai, _fp)
         else:
@@ -452,12 +464,42 @@ def dynaveg(
     _use_mort = fire_scheme == SEASONLENGTH and (fire_params or default_fire_params()).use_pft_mortality
     _mort = (fire_params or default_fire_params()).mort
 
+    # Combustion completeness. IBIS sends every gram of killed biomass straight
+    # to NEE (`vegetation.f:433,481`), which was harmless while `disturbf` was
+    # a constant 0.005 but is not once the seasonlength scheme produces 30-50 %
+    # burned fractions. Wood is ~97 % of live biomass in the spun-up global
+    # state, and `cc_wood = 0.20`, so the old path emitted roughly five times
+    # the carbon that `bgc.fire_emissions` reports as burned -- and the other
+    # 80 % was neither emitted nor left as litter. It simply vanished.
+    #
+    # Only the FIRE share is treated this way. Background disturbance
+    # (`disturbo`) keeps IBIS's original all-to-NEE behaviour: it is not fire,
+    # and changing it is not this module's business.
+    _fp_cc = fire_params or default_fire_params()
+    _use_cc = fire_scheme == SEASONLENGTH and _fp_cc.use_combustion_completeness
+
     for j in range(npft):
         if _use_mort:
             disturb_total = disturbf_val * _mort[j] + disturbo_val
         else:
             disturb_total = disturbf_val + disturbo_val
-        cdisturb = cdisturb + (cbiol[:, j] + cbiow[:, j] + cbior[:, j]) * disturb_total
+
+        if _use_cc:
+            _f = disturbf_val * (_mort[j] if _use_mort else 1.0)
+            kill_l, kill_w, kill_r = (cbiol[:, j] * _f, cbiow[:, j] * _f,
+                                      cbior[:, j] * _f)
+            # Fine roots do not combust at all -- they are underground.
+            combusted = _fp_cc.cc_leaf * kill_l + _fp_cc.cc_wood * kill_w
+            cdisturb = cdisturb + combusted + (
+                (cbiol[:, j] + cbiow[:, j] + cbior[:, j]) * disturbo_val)
+            # What fire killed but did not burn becomes litter, on the same
+            # pools as ordinary litterfall, so soilbgc decomposes it.
+            falll = falll + (1.0 - _fp_cc.cc_leaf) * kill_l
+            fallw = fallw + (1.0 - _fp_cc.cc_wood) * kill_w
+            fallr = fallr + kill_r
+        else:
+            cdisturb = cdisturb + (
+                (cbiol[:, j] + cbiow[:, j] + cbior[:, j]) * disturb_total)
 
         cbiol = cbiol.at[:, j].set(jnp.maximum(0.0, cbiol[:, j] * (1.0 - disturb_total)))
         cbiow = cbiow.at[:, j].set(jnp.maximum(0.0, cbiow[:, j] * (1.0 - disturb_total)))

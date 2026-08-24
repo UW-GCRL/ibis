@@ -545,6 +545,78 @@ switching works again.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
 
+### 2026-08-24 — three wiring defects fixed, and fire-killed carbon stops vanishing
+
+An audit of the fire path after F6 turned up three defects. All three are
+wiring, not physics — the physics was written, tested, and unreachable.
+
+**1. The carbon balance and the emission diagnostic disagreed by ~5×.**
+
+`bgc.fire_emissions` applies combustion completeness properly — `cc_wood`
+0.20, `cc_leaf` 0.90, `cc_litter` 0.50 — and per-PFT mortality. But
+`vegetation_dynamics` sent **100 %** of killed biomass to NEE, faithfully
+following `vegetation.f:433,481`, with the author's own unresolved TODO from
+2000/04/22 above it asking whether some should become litter. Wood is **97.3 %**
+of live biomass in the spun-up global state (65 071 vegetated cells), so the
+old path emitted about five times what the diagnostic reported as burned — and
+the other 80 % was neither emitted nor left as litter. It vanished from the
+model.
+
+Harmless while `disturbf` was a constant 0.005. Not harmless at 30–50 %.
+
+Measured on the spun-up state with the live 2001–2005 accumulators injected:
+
+```
+                       killed      to NEE   litterfall   emitted/killed
+old (100% combusted)  81386.1     47092.8      43131.3        57.9%
+new (cc routing)      81386.1     12684.8      77539.4        15.6%
+```
+
+Carbon conserved exactly: 47092.8 − 12684.8 = 34408.0 = 77539.4 − 43131.3.
+Mortality is untouched; only the *fate* of killed carbon changes. Background
+disturbance (`disturbo`) keeps IBIS's original all-to-NEE behaviour — it is not
+fire. Fine roots are never combusted. Behind
+`FireParams.use_combustion_completeness`, default **True**, and it applies only
+under `seasonlength`; `legacy` is bit-identical either way.
+
+The `cc_*` constants now live once, in `physics.fire`, and both modules import
+them. Two copies is exactly how they came to disagree.
+
+**2. `enable_fire_emissions` was a dead config flag.** Declared in
+`config.py:47`, read nowhere; `fire_emissions_from_state` was called nowhere
+outside tests. The whole F5 module — Andreae factors, CO/CH₄/N₂O/NOₓ, 16
+passing tests — was unreachable from a production run. Same class as defect 0.
+Now wired in `run_global.py`, guarded on `isimfire == 1` because `disturbf`
+falls back to the constant 0.005 when fire is off, which is background
+disturbance, not fire.
+
+**3. `RunConfig.fire_scheme` was also read nowhere.** The `dynaveg` call in
+`run_global.py:594` omitted the argument, so **every run took `legacy`
+regardless of what the config said**. Now passed through.
+
+**Defaults changed.** `fire_scheme` → `seasonlength`, `use_vpd_danger` → True.
+The old comment said legacy "must remain the default — the 46-yr F77↔JAX
+lockstep depends on it." It does not: the lockstep runs at `isimfire=0`, and
+`dynaveg` selects `jnp.where(isimfire == 1, _disturbf, 0.005)`, so with fire
+off the scheme is numerically irrelevant. Fire has never been enabled in any
+run, so nothing regresses. `isimfire` itself stays 0 — turning fire on changes
+the carbon balance of every future run and is the modeller's call, not a
+default.
+
+One consequence: pre-F1b checkpoints now fail on load, because the VPD
+accumulators do not exist in them. `dynaveg` raises a message naming the
+migration rather than letting a bare `AttributeError` surface from inside the
+disturbance branch.
+
+**Still open — `run_spinup_gswp3` never calls `dynaveg` at all.** It calls
+`biomass_update`, which by design "does NOT apply disturbances (fire,
+background mortality)". So the GPU spin-up runner exercises no fire feedback
+whatever; only `scripts/run_global.py` does. Switching the runner to `dynaveg`
+means enabling PFT competition and reclassification too, which is a scientific
+decision about the experiment, not a defect to patch silently.
+
+11 new tests in `tests/test_fire_carbon_balance.py` (557 → 568).
+
 ### 2026-08-24 — F6 global fit, and a defect in the loss function
 
 First global fit on the live VPD accumulators: 88 484 cells, GFED5 `Norm`
