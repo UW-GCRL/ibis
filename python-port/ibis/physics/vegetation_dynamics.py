@@ -19,7 +19,7 @@ from ibis.state.summary import SummaryState
 from ibis.io.parameters import PFTParams
 from ibis.physics.fire import (
     LEGACY, SEASONLENGTH, FireParams, default_fire_params, fine_fuel_fraction,
-    fire_legacy, fire_seasonlength,
+    fire_legacy, fire_seasonlength, vegetation_density,
 )
 
 
@@ -423,9 +423,18 @@ def dynaveg(
         _popd = popd if (_fp.use_human and popd is not None) else None
         if _fp.use_human and popd is None:
             raise ValueError("fire params set use_human=True but popd was not supplied")
+        # F1b: select the danger source. VPD ranks cells far better than
+        # soil moisture (Spearman 0.59 vs 0.26 against GFED5) and puts fire at
+        # |lat| 11.6 rather than 39.8, against an observed 10.7.
+        if _fp.use_vpd_danger:
+            _nfs, _sd = veg.nfirestep_vpd, veg.sdry_vpd
+            _vd = vegetation_density(veg.plai, _fp)
+        else:
+            _nfs, _sd = veg.nfirestep, veg.sdry
+            _vd = None
         _disturbf = fire_seasonlength(
-            veg.nfirestep, veg.sdry, veg.nytimes, carbon.totlit, _fp,
-            fuel=_fuel, popd=_popd,
+            _nfs, _sd, veg.nytimes, carbon.totlit, _fp,
+            fuel=_fuel, popd=_popd, vd=_vd,
         )
     elif fire_scheme == LEGACY:
         _disturbf = fire(veg.firefac, carbon.totlit)

@@ -48,7 +48,8 @@ from ibis.physics.interception import (
 )
 from ibis.physics.stomata import stomata, drystress, StomataParams
 from ibis.physics.fire import (
-    FireParams, default_fire_params, update_fire_accumulators, update_firefac,
+    FireParams, default_fire_params, update_fire_accumulators,
+    update_fire_accumulators_vpd, update_firefac,
 )
 from ibis.physics.weather import (
     ClimateData, MonthlyPrecip, DailyWeather, HourlyWeather,
@@ -1094,10 +1095,19 @@ def timestep_body(
         new_soil.wsoi[:, 0], new_soil.wisoi[:, 0], new_soil.swilt[:, 0],
         params.fire.d_crit,
     )
+    # F1b: VPD-based danger, accumulated ALONGSIDE the soil-moisture pair so a
+    # single run yields both and the A/B comparison is free. VPD uses ta/qa/
+    # psurf rather than AtmState.rh, which the GSWP3 driver never populates.
+    new_nfs_vpd, new_sdry_vpd = update_fire_accumulators_vpd(
+        veg.nfirestep_vpd, veg.sdry_vpd,
+        atm.ta, atm.qa, atm.psurf, params.fire,
+    )
     new_veg = eqx.tree_at(
-        lambda v: (v.firefac, v.nytimes, v.nfirestep, v.sdry),
+        lambda v: (v.firefac, v.nytimes, v.nfirestep, v.sdry,
+                   v.nfirestep_vpd, v.sdry_vpd),
         veg,
-        (new_firefac, new_nytimes, new_nfirestep, new_sdry),
+        (new_firefac, new_nytimes, new_nfirestep, new_sdry,
+         new_nfs_vpd, new_sdry_vpd),
     )
 
     # Assemble full state
@@ -1326,10 +1336,13 @@ def run_year(
     # firefac itself is NOT cleared: at nytimes == 1 the running-mean formula
     # returns fueldry exactly, so the mean re-initialises on its own.
     state = eqx.tree_at(
-        lambda s: (s.vegetation.nytimes, s.vegetation.nfirestep, s.vegetation.sdry),
+        lambda s: (s.vegetation.nytimes, s.vegetation.nfirestep, s.vegetation.sdry,
+                   s.vegetation.nfirestep_vpd, s.vegetation.sdry_vpd),
         state,
         (jnp.zeros(()), jnp.zeros_like(state.vegetation.nfirestep),
-         jnp.zeros_like(state.vegetation.sdry)),
+         jnp.zeros_like(state.vegetation.sdry),
+         jnp.zeros_like(state.vegetation.nfirestep_vpd),
+         jnp.zeros_like(state.vegetation.sdry_vpd)),
     )
 
     for imonth in range(12):
