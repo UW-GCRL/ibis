@@ -71,13 +71,30 @@ def fire_loss(
     weights: Float[Array, "n"] | None = None,
     eps: float = 1e-4,
     balance_zeros: bool = True,
+    total_weight: float = 1.0,
 ) -> Float[Array, ""]:
-    """Mean squared error in log space, area-weighted.
+    """Mean squared error in log space, area-weighted, plus a global-total term.
 
     Log space because burned fraction spans orders of magnitude -- a plain MSE
     is dominated by a handful of savanna cells and learns nothing about the
     boreal zone. `eps` keeps zero-burn cells finite and sets the floor below
     which differences stop mattering.
+
+    **Why the total term exists.** Log-space MSE alone is minimised where the
+    prediction sits at the *geometric* mean of the target. Burned fraction is
+    strongly right-skewed, so its geometric mean is far below its arithmetic
+    mean, and fitting the pattern alone drives global burned area roughly 10x
+    too low: measured on the 2001-2005 global fit, the optimiser cut the loss
+    from 7.97 to 3.71 while taking the predicted mean from 3.28% to 0.34%
+    against an observed 3.00%, and the rank correlation did not improve at all
+    (+0.746 to +0.743). It was buying magnitude collapse, not skill. Setting
+    `balance_zeros=False` does not help -- the skew, not the zeros, is the
+    cause.
+
+    `total_weight` adds a squared log error on the area-mean burned fraction,
+    which pins the global total while the per-cell term shapes the pattern.
+    Anchoring the global total against GFED is standard practice in fire-model
+    calibration. Set it to 0.0 to recover the pure pattern loss.
     """
     pred = predict_burned_fraction(params, batch)
     resid = jnp.log(pred + eps) - jnp.log(observed + eps)
@@ -96,9 +113,16 @@ def fire_loss(
                             0.5 / jnp.maximum(nz, 1.0))
 
     if weights is None:
-        return jnp.mean(resid ** 2)
-    w = weights / jnp.maximum(jnp.sum(weights), 1e-12)
-    return jnp.sum(w * resid ** 2)
+        base = jnp.mean(resid ** 2)
+    else:
+        w = weights / jnp.maximum(jnp.sum(weights), 1e-12)
+        base = jnp.sum(w * resid ** 2)
+
+    if total_weight == 0.0:
+        return base
+    total = (jnp.log(jnp.mean(pred) + eps)
+             - jnp.log(jnp.mean(observed) + eps)) ** 2
+    return base + total_weight * total
 
 
 def _trainable(params: FireParams):
@@ -214,6 +238,7 @@ def fit_fire_params(
     weights: Float[Array, "n"] | None = None,
     balance_zeros: bool = True,
     fit_only=None,
+    total_weight: float = 1.0,
 ) -> FitResult:
     """Fit the fire parameters by gradient descent.
 
@@ -226,7 +251,8 @@ def fit_fire_params(
 
     def loss_fn(uu):
         return fire_loss(from_unconstrained(uu, params0), batch, observed,
-                         weights, balance_zeros=balance_zeros)
+                         weights, balance_zeros=balance_zeros,
+                         total_weight=total_weight)
 
     @jax.jit
     def step(uu, st):

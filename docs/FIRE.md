@@ -39,7 +39,7 @@ buy the cheap structural fixes instead and spend the saved effort on calibration
 | F3 | Human ignition/suppression term | ☑ **done & verified** (2026-08-18) |
 | F4 | PFT-specific fire mortality | ☑ **done & verified** (2026-08-18) |
 | F5 | Burned area output + trace-gas emissions (Andreae 2019) | ☑ **done & verified** (2026-08-19) |
-| F6 | Differentiable calibration against GFED5 | ◐ **machinery done & verified** (2026-08-19); global fit pending a production run |
+| F6 | Differentiable calibration against GFED5 | ☑ **global fit done** (2026-08-24); see the entry below -- the honest result is that the a-priori parameters are already competitive |
 
 Legend: ☐ not started · ◐ in progress · ☑ done & verified
 
@@ -544,6 +544,74 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-24 — F6 global fit, and a defect in the loss function
+
+First global fit on the live VPD accumulators: 88 484 cells, GFED5 `Norm`
+2001–2005, `use_vpd_danger=True`, `use_fine_fuel=False`.
+
+**A defect found first.** The fit cut the loss from 7.97 to 3.71 — and took
+predicted burned area from 3.28 % to **0.34 %** against an observed 3.00 %,
+with the rank correlation *unchanged* (+0.746 → +0.743). It was buying a 10×
+magnitude collapse, not skill.
+
+The cause is the objective, not the parameters. Log-space MSE is minimised
+where the prediction sits at the **geometric** mean of the target; burned
+fraction is strongly right-skewed, so its geometric mean lies far below its
+arithmetic mean. Setting `balance_zeros=False` changes nothing (0.335 % →
+0.308 %) — the skew is the cause, not the zeros, and at 46 % burning cells the
+zeros were never rare enough to matter here.
+
+`fire_loss` now carries a `total_weight` term: a squared log error on the
+area-mean burned fraction, which pins the global total while the per-cell term
+shapes the pattern. Anchoring the global total against GFED is standard in
+fire-model calibration. `total_weight=0.0` recovers the old pure-pattern loss.
+Sweeping it recovers the magnitude monotonically:
+
+| anchor weight | 0.0 | 0.3 | 1.0 | 3.0 |
+|---|---|---|---|---|
+| global bias | ×0.11 | ×0.29 | ×0.54 | ×0.77 |
+
+**The fit, on real skill metrics.** NMSE is the Drüke (2019) metric; area
+weighting is `cos(lat)`, so this is burned *area*, not a mean of fractions.
+
+| configuration | NMSE | log-RMSE | rank all/burning | area-wtd burned |
+|---|---|---|---|---|
+| **a priori** (`k_b`=0.5, `p`=1.0) | 0.731 | 2.833 | **+0.746**/+0.401 | 4.77 % (**×1.03**) |
+| fitted, anchor 1.0 | 0.770 | **2.146** | +0.720/+0.415 | 2.50 % (×0.54) |
+| fitted, anchor 3.0 | 0.728 | 2.261 | +0.711/+0.417 | 3.61 % (×0.78) |
+| **fitted + human (F4), anchor 3.0** | **0.687** | 2.190 | +0.725/+0.412 | 3.71 % (×0.80) |
+
+```
+best fit  k_b 0.328   p 2.233   lai_ref_vd 7.446   a_ig 0.326   ign_max 9.843
+```
+
+**The honest reading.** Calibration buys much less than expected. The a-priori
+parameters — never fitted to anything — already give the best global rank
+(+0.746) and a near-perfect global burned area (×1.03). Fitting improves NMSE
+only once human ignition is switched on (0.731 → 0.687, ~6 %) and improves
+log-RMSE substantially (2.833 → 2.190, ~23 %, i.e. better relative accuracy in
+the low-burning boreal cells), but it costs global rank and leaves total burned
+area 20 % low.
+
+This is consistent with FireMIP (Hantson 2020): fire-model skill is dominated
+by structure, not by parameter values. The large win this month came from
+replacing soil-moisture dryness with VPD (+0.258 → +0.630 rank), not from the
+optimiser.
+
+**Therefore the shipped defaults stay a priori.** The fitted set is recorded
+here as an alternative for anyone who wants minimum log-RMSE and is willing to
+accept a 20 % low global total. `use_human=True` is worth enabling either way —
+it is the only change that improves NMSE.
+
+**Two API corrections made while doing this.**
+
+- `ign_max` must **not** be added to `PARAM_BOUNDS`. It is already reachable
+  through the `ign_span` reparameterisation, which guarantees `ign_max > ig0`;
+  a direct bound would let the fit invert that and make fire *decrease* with
+  population. A test now pins this.
+- `predict_burned_fraction` applies vegetation density whenever `use_vpd_danger`
+  is set, so `lai_ref_vd` is fittable (the fit moves it 4.0 → 7.4).
 
 ### 2026-08-24 — F1b confirmed with a live run, and one finding reversed
 
