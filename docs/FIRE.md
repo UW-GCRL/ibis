@@ -34,6 +34,7 @@ buy the cheap structural fixes instead and spend the saved effort on calibration
 |---|---|---|
 | F0 | Legacy path frozen behind flag, regression test | ☑ **done & verified** (2026-08-11) |
 | F1 | Fire season length replaces annual-mean `firefac` | ☑ **done & verified** (2026-08-18) |
+| **F1b** | **VPD fire danger × vegetation density** (replaces soil-moisture dryness) | ☑ **done & verified** (2026-08-24) |
 | F2 | Fine-fuel term (`totalit` + live leaf) | ☑ **done & verified** (2026-08-18) |
 | F3 | Human ignition/suppression term | ☑ **done & verified** (2026-08-18) |
 | F4 | PFT-specific fire mortality | ☑ **done & verified** (2026-08-18) |
@@ -543,6 +544,75 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-24 — F1b complete: VPD fire danger replaces soil-moisture dryness
+
+**The measurement that drove this.** Parameter-free Spearman rank correlation
+against GFED5 2001–2005 over 62 176 cells. `k_b`/`p` are monotonic and cannot
+change rank, so this is *driver* skill, independent of any calibration:
+
+| driver | all cells | burning only |
+|---|---|---|
+| soil-moisture `fseason` (F1) | **−0.112** | +0.166 |
+| soil-moisture burn index | +0.258 | +0.222 |
+| VPD mean | +0.217 | +0.302 |
+| **VPD × vegetation density** | **+0.590** | +0.323 |
+| VPD season × VD × fuel | +0.604 | +0.301 |
+
+Latitude of the most fire-prone cells:
+
+```
+GFED5 top-2000 burning       |lat| 10.7 deg
+soil moisture (F1)           |lat| 39.8 deg   <- 29 deg displaced
+VPD x vegetation density     |lat| 11.6 deg   <- within 1 deg
+```
+
+Soil-moisture dryness correlates **negatively** with burned area and put the
+model's fire in the subtropical dry belt rather than tropical savanna.
+Perennially dry subtropical cells score high all year but have nothing to burn;
+tropical savannas cure seasonally and burn. **VPD alone is not enough (+0.22) —
+the jump to +0.59 comes from multiplying by vegetation density.** Neither
+factor separates the two regions; the product does.
+
+This is Drüke et al. (2019)'s fix for LPJmL4-SPITFIRE, where replacing Nesterov
+with VPD took South America from NMSE 1.80 → 0.82 and Caatinga from 327.8 →
+15.2. Their diagnosis of Nesterov — "a strong but very localized maximum for
+high temperatures and low humidity" — describes our soil-moisture index exactly.
+
+**Changed**
+
+- `physics/fire.py`: `vpd_from_state`, `flammability_vpd`,
+  `vegetation_density`, `update_fire_accumulators_vpd`; `FireParams` gains
+  `vpd_ref`, `d_crit_vpd`, `lai_ref_vd`, static `use_vpd_danger`;
+  `fire_seasonlength` takes an optional `vd` multiplier.
+- `state/vegetation.py`: `nfirestep_vpd`, `sdry_vpd`.
+- `loops.py`: VPD accumulators advanced every timestep **alongside** the
+  soil-moisture pair, so one run yields both and the A/B costs no extra
+  simulation. Reset annually with the rest.
+- `vegetation_dynamics.dynaveg`: `use_vpd_danger` selects the source.
+- `tests/test_fire_vpd.py` — 11 tests. Suite **540 → 551**, 0 failures.
+
+**Two implementation points**
+
+VPD comes from `ta`/`qa`/`psurf`, **not** `AtmState.rh` — the GSWP3 driver never
+populates `rh`, so using it would have silently returned the initial 70 %
+everywhere. And it is built on IBIS's own `thermo.esat`, a bit-exact
+transcription of `comsat.h`, rather than a separate Tetens curve, so the model
+does not carry two inconsistent saturation curves. A test pins that.
+
+The accumulator is **purely meteorological**; vegetation density is applied
+annually in `fire_seasonlength`. VD varies slowly so the product is nearly
+identical either way, and this keeps weather and vegetation separable.
+
+**Known limits.** Burning-cell rank skill improves much less (0.22 → 0.32), so
+this fixes *where* fire happens far better than *how much* burns where it
+already does — likely the fuel-limited/moisture-limited switch at
+~800 mm yr⁻¹ (Alvarado et al. 2020), which a single multiplicative form cannot
+represent. `VD` is largely redundant with the F2 fuel term (+0.590 vs +0.604
+with both), so calibration must not be given free rein over both. Off by
+default. The rank test used offline VPD from GSWP3 plus stored vegetation, not a
+live run with the in-model accumulator, so the implemented skill still needs a
+real run to confirm.
 
 ### 2026-08-19 — F6 machinery: gradient-based calibration
 
