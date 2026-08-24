@@ -545,6 +545,48 @@ switching works again.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
 
+### 2026-08-24 — F1b confirmed with a live run, and one finding reversed
+
+The earlier rank test used VPD computed offline from GSWP3 plus stored
+vegetation. This is the same test against the **in-model accumulator**, from a
+5-year run (2001–2005, 88 484 cells) off the spun-up carbon state:
+
+| driver | all | burning | (offline) |
+|---|---|---|---|
+| soil-moisture burn index (F1) | +0.315 | +0.274 | +0.258 |
+| in-model VPD `fseason` | +0.316 | +0.355 | +0.254 |
+| in-model VPD × severity | +0.322 | +0.354 | +0.243 |
+| **in-model VPD × VD** | **+0.630** | **+0.403** | +0.590 |
+| in-model VPD × VD × fuel | +0.618 | +0.329 | +0.604 |
+
+```
+mean |lat| of top-2000 cells
+  GFED5 observed        10.7
+  soil-moisture (F1)    39.8
+  in-model VPD x VD     14.2
+```
+
+**Confirmed and slightly better than the proxy** (+0.630 vs +0.590). The
+latitude displacement falls from 29° to ~3.5°.
+
+**Two corrections to what F1b's entry claims.**
+
+1. Its "known limits" said VPD fixes *where* fire happens far better than *how
+   much*. Live, burning-cell skill improves **0.274 → 0.403**, not to the 0.32
+   the proxy suggested. That caveat was too pessimistic.
+2. It called `VD` "largely redundant" with the F2 fuel term. Live, adding fuel
+   on top of VD is **actively harmful**: 0.630 → 0.618 overall and 0.403 →
+   0.329 among burning cells. **`use_vpd_danger` and `use_fine_fuel` must not
+   both be on**, and VD is the better vegetation control. `predict_burned_fraction`
+   now applies VD whenever VPD danger is active, and F6 should fit one or the
+   other, never both.
+
+**Consequences for F6.** `vpd_ref` and `d_crit_vpd` join `d_crit` in
+`FIXED_PARAMS`: they enter only through the accumulators, which the model run
+precomputes, so their gradients are identically zero unless the model is re-run
+per proposal. `lai_ref_vd` **is** fittable, because vegetation density is
+evaluated annually from `plai` rather than accumulated.
+
 ### 2026-08-24 — F1b complete: VPD fire danger replaces soil-moisture dryness
 
 **The measurement that drove this.** Parameter-free Spearman rank correlation

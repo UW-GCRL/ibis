@@ -24,6 +24,7 @@ from jaxtyping import Array, Float
 
 from ibis.physics.fire import (
     FireParams, fine_fuel_fraction, fire_seasonlength, legacy_fuel_fraction,
+    vegetation_density,
 )
 
 
@@ -51,9 +52,15 @@ def predict_burned_fraction(
     fuel = (fine_fuel_fraction(batch.totalit, batch.cbiol, params)
             if params.use_fine_fuel else legacy_fuel_fraction(batch.totlit))
     popd = batch.popd if params.use_human else None
+    # With VPD danger the caller supplies the VPD accumulators in
+    # nfirestep/sdry, and vegetation density replaces the fuel term as the
+    # vegetation control -- measured live, VD alone ranks better (+0.630) than
+    # VD and fuel together (+0.618), and markedly better among burning cells
+    # (0.403 vs 0.329). Do not activate both.
+    vd = vegetation_density(batch.plai, params) if params.use_vpd_danger else None
     return fire_seasonlength(
         batch.nfirestep, batch.sdry, batch.nytimes, batch.totlit, params,
-        fuel=fuel, popd=popd,
+        fuel=fuel, popd=popd, vd=vd,
     )
 
 
@@ -136,11 +143,16 @@ PARAM_BOUNDS: dict[str, tuple[float, float]] = {
     "w_leaf_woody": (0.0, 2.0),
     "w_leaf_grass": (0.0, 2.0),
     "a_ig":         (1e-4, 0.5),
+    "lai_ref_vd":   (1.0, 12.0),    # LAI at which vegetation density saturates
     "ign_span":     (0.05, 9.0),    # ign_max = ig0 + span
 }
 
-#: Not fitted -- see the note above.
-FIXED_PARAMS = ("ig0", "d_crit")
+#: Not fitted -- see the note above. `vpd_ref` and `d_crit_vpd` join `d_crit`
+#: here for the same reason: they enter only through the accumulators, which are
+#: precomputed by the model run, so their gradient is identically zero unless
+#: the model is re-run per proposal. `lai_ref_vd` IS fittable, because
+#: vegetation density is evaluated annually from `plai`, not accumulated.
+FIXED_PARAMS = ("ig0", "d_crit", "vpd_ref", "d_crit_vpd")
 
 DEFAULT_FIT = ("k_b", "p")
 
