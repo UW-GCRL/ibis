@@ -525,16 +525,9 @@ def run_global_simulation(config: IBISConfig) -> None:
         # ------------------------------------------------------------------
         # Compute this-year climate statistics from the monthly temperatures
         # accumulated above, then update the 30-year running climate means.
-        xint_this = np.stack(monthly_tmean, axis=1)  # (npoi, 12) °C
-        tcthis_np = np.nanmin(xint_this, axis=1)     # coldest month
-        twthis_np = np.nanmax(xint_this, axis=1)     # warmest month
-        gdd0this_np = np.zeros(npoi, dtype=np.float32)
-        gdd5this_np = np.zeros(npoi, dtype=np.float32)
-        for _im in range(12):
-            ndays_m = int(ndaypm_this[_im])
-            t_c = xint_this[:, _im]
-            gdd0this_np += np.maximum(0.0, t_c) * ndays_m
-            gdd5this_np += np.maximum(0.0, t_c - 5.0) * ndays_m
+        from ibis.timestepping.loops_gswp3 import climate_stats_from_monthly
+        tcthis_np, twthis_np, gdd0this_np, gdd5this_np = (
+            climate_stats_from_monthly(np.stack(monthly_tmean, axis=1), leap))
 
         state = eqx.tree_at(
             lambda s: (s.vegetation.tcthis, s.vegetation.twthis,
@@ -575,36 +568,38 @@ def run_global_simulation(config: IBISConfig) -> None:
             lambda s: s.vegetation.exist, state, exist_new,
         )
 
-        # Annual biomass update: NPP → allocation → biomass → LAI → litterfall
-        # ALWAYS runs to couple LAI to the carbon cycle
-        from ibis.physics.vegetation_dynamics import biomass_update
-        new_veg, new_carbon, new_summary = biomass_update(
-            state.vegetation, state.carbon, state.summary,
-            pft_params, consts.epsilon,
-        )
-        state = eqx.tree_at(
-            lambda s: (s.vegetation, s.carbon, s.summary),
-            state, (new_veg, new_carbon, new_summary),
-        )
-        logger.info("  biomass_update: LAI and litterfall updated from NPP")
-
-        # Full vegetation dynamics (PFT competition, disturbance, reclassification)
-        # Only with isimveg > 0
+        # Annual vegetation update: NPP → allocation → biomass → LAI →
+        # litterfall, plus disturbance and PFT reclassification when dynamic.
+        #
+        # This used to call `biomass_update` unconditionally and then `dynaveg`
+        # as well when isimveg > 0. They perform the SAME allocation from the
+        # SAME uncleared `summary.aynpp`, so every dynamic-vegetation year
+        # advanced the biomass pools twice -- measured at 1.42x the correct
+        # annual change. Call one or the other, never both.
+        from ibis.physics.vegetation_dynamics import biomass_update, dynaveg
         if p.isimveg > 0:
-            # `p.fire_scheme` used to be read nowhere: this call omitted it,
-            # so every run took the legacy scheme no matter what the config
-            # said. Same class of defect as the dead `firefac` (docs/FIRE.md).
             new_veg, new_carbon, new_summary = dynaveg(
                 state.vegetation, state.carbon, state.summary,
                 pft_params, p.isimfire, consts.epsilon,
                 fire_scheme=p.fire_scheme,
             )
-            state = eqx.tree_at(
-                lambda s: (s.vegetation, s.carbon, s.summary),
-                state, (new_veg, new_carbon, new_summary),
+        else:
+            new_veg, new_carbon, new_summary = biomass_update(
+                state.vegetation, state.carbon, state.summary,
+                pft_params, consts.epsilon,
             )
-            logger.info("  dynaveg: PFT competition and disturbance applied "
-                        "(fire_scheme=%s)", p.fire_scheme)
+            logger.info("  biomass_update: LAI and litterfall from NPP "
+                        "(static vegetation, no disturbance)")
+        state = eqx.tree_at(
+            lambda s: (s.vegetation, s.carbon, s.summary),
+            state, (new_veg, new_carbon, new_summary),
+        )
+        if p.isimveg > 0:
+            # `p.fire_scheme` used to be read nowhere: the call omitted it, so
+            # every run took the legacy scheme no matter what the config said.
+            # Same class of defect as the dead `firefac` (docs/FIRE.md).
+            logger.info("  dynaveg: allocation, disturbance and PFT "
+                        "reclassification (fire_scheme=%s)", p.fire_scheme)
 
             # `enable_fire_emissions` was declared in RunConfig and read
             # nowhere, so the whole F5 module -- Andreae factors, CO/CH4/N2O/

@@ -1,0 +1,123 @@
+"""The spin-up runner must apply disturbance, and must apply it exactly once.
+
+`run_spinup_gswp3` called `biomass_update`, whose own docstring says it "does
+NOT apply disturbances (fire, background mortality)". Every result from that
+path -- including the 50-year GPU carbon spin-up -- therefore had no fire
+feedback at all, whatever `isimfire` said.
+
+`scripts/run_global.py` had the opposite defect: it called `biomass_update`
+*and* `dynaveg`, which perform the same allocation from the same uncleared
+`summary.aynpp`, so each dynamic-vegetation year advanced the pools twice.
+"""
+
+from __future__ import annotations
+
+import inspect
+import pathlib
+
+import equinox as eqx
+import jax.numpy as jnp
+import numpy as np
+import pytest
+
+from ibis.io.parameters import default_pft_params
+from ibis.physics.fire import LEGACY
+from ibis.physics.vegetation_dynamics import biomass_update, dynaveg
+from ibis.state.carbon import create_carbon_state
+from ibis.state.summary import create_summary_state
+from ibis.state.vegetation import create_vegetation_state
+from ibis.timestepping.loops_gswp3 import (
+    climate_stats_from_monthly, run_spinup_gswp3,
+)
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+
+
+def _set(o, **kw):
+    for k, v in kw.items():
+        o = eqx.tree_at(lambda x, _k=k: getattr(x, _k), o, v)
+    return o
+
+
+def _growing_state(n=8, npft=12):
+    v = create_vegetation_state(n, npft, 6)
+    v = _set(v, cbiol=jnp.full((n, npft), 0.2), cbiow=jnp.full((n, npft), 1.0),
+             cbior=jnp.full((n, npft), 0.2), exist=jnp.ones((n, npft)),
+             plai=jnp.full((n, npft), 0.3), gdd0=jnp.full((n,), 3000.0),
+             gdd5=jnp.full((n,), 2000.0))
+    su = _set(create_summary_state(n, npft), aynpp=jnp.full((n, npft), 0.05))
+    return v, create_carbon_state(n), su
+
+
+def test_calling_both_updates_advances_biomass_twice():
+    """The defect run_global had. Pins why exactly one may be called."""
+    v, c, su = _growing_state()
+    pf, e = default_pft_params(), 1e-12
+
+    def total(veg):
+        return float(jnp.sum(veg.cbiol + veg.cbiow + veg.cbior))
+
+    start = total(v)
+    once, _, _ = dynaveg(v, c, su, pf, 0, e, fire_scheme=LEGACY)
+    bv, bc, bs = biomass_update(v, c, su, pf, e)
+    twice, _, _ = dynaveg(bv, bc, bs, pf, 0, e, fire_scheme=LEGACY)
+
+    d_once, d_twice = total(once) - start, total(twice) - start
+    assert abs(d_once) > 1e-6
+    # Two applications of one year's update, not one.
+    assert abs(d_twice) > abs(d_once) * 1.2
+
+
+def test_spinup_runner_offers_dynamic_vegetation_and_defaults_to_it():
+    sig = inspect.signature(run_spinup_gswp3).parameters
+    assert sig["dynamic_vegetation"].default is True
+    assert sig["isimfire"].default == 0        # fire stays the modeller's call
+
+
+def test_spinup_runner_calls_dynaveg_not_biomass_update():
+    src = (ROOT / "ibis" / "timestepping" / "loops_gswp3.py").read_text()
+    body = src[src.index("def run_spinup_gswp3"):]
+    assert "dynaveg(" in body
+    # and maintains the climate normals dynaveg's PFT reclassification needs
+    for needed in ("annual_climate_stats", "climanl2", "existence("):
+        assert needed in body, needed
+
+
+def test_run_global_applies_exactly_one_annual_update():
+    src = (ROOT / "scripts" / "run_global.py").read_text()
+    year_loop = src[src.index("Annual vegetation update"):]
+    assert year_loop.count("= dynaveg(") == 1
+    assert year_loop.count("= biomass_update(") == 1
+    assert "if p.isimveg > 0:" in year_loop     # they are the two branches
+
+
+def test_climate_stats_are_computed_once_and_shared():
+    """run_global had its own copy of the gdd arithmetic."""
+    src = (ROOT / "scripts" / "run_global.py").read_text()
+    assert "climate_stats_from_monthly" in src
+    assert "gdd5this_np +=" not in src         # the inline copy is gone
+
+
+def test_climate_stats_arithmetic():
+    """A flat 10 degC year: gdd0 = 3650, gdd5 = 1825, tc = tw = 10."""
+    xint = np.full((4, 12), 10.0, dtype=np.float32)
+    tc, tw, gdd0, gdd5 = climate_stats_from_monthly(xint, leap=False)
+    assert tc == pytest.approx(np.full(4, 10.0))
+    assert tw == pytest.approx(np.full(4, 10.0))
+    assert gdd0 == pytest.approx(np.full(4, 3650.0))
+    assert gdd5 == pytest.approx(np.full(4, 1825.0))
+
+
+def test_climate_stats_handle_leap_years():
+    xint = np.full((2, 12), 10.0, dtype=np.float32)
+    _, _, gdd0_no, _ = climate_stats_from_monthly(xint, leap=False)
+    _, _, gdd0_yes, _ = climate_stats_from_monthly(xint, leap=True)
+    assert gdd0_yes == pytest.approx(gdd0_no + 10.0)   # one extra day at 10 degC
+
+
+def test_a_freezing_year_accumulates_no_growing_degree_days():
+    xint = np.full((3, 12), -20.0, dtype=np.float32)
+    tc, tw, gdd0, gdd5 = climate_stats_from_monthly(xint, leap=False)
+    assert gdd0 == pytest.approx(np.zeros(3))
+    assert gdd5 == pytest.approx(np.zeros(3))
+    assert tc == pytest.approx(np.full(3, -20.0))

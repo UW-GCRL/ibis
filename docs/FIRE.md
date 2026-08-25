@@ -545,6 +545,57 @@ switching works again.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
 
+### 2026-08-24 — the spin-up runner now applies fire, and stops double-counting growth
+
+`run_spinup_gswp3` called `biomass_update`, whose own docstring says it "does
+NOT apply disturbances (fire, background mortality)". It never called
+`dynaveg`. So **every result this runner produced — including the 50-year GPU
+carbon spin-up — had no fire feedback of any kind**, whatever `isimfire` said.
+The fire code was reachable only from `scripts/run_global.py`.
+
+It now calls `dynaveg` when `dynamic_vegetation=True` (the default), and
+maintains the climate normals that `dynaveg` needs: `dynaveg` reclassifies PFTs
+through `vegmap(.., gdd5, gdd0, ..)` and grows only PFTs that `existence()`
+permits, so running it on stale normals would silently rewrite the vegetation
+map. The chain is `annual_climate_stats` → `climanl2` → `existence` →
+`dynaveg`. `isimfire` still defaults to 0 — enabling fire is the modeller's
+call.
+
+**And the opposite defect in `run_global.py`.** It called `biomass_update`
+*and* `dynaveg`. They perform the **same** allocation from the **same**
+uncleared `summary.aynpp`, so every dynamic-vegetation year advanced the
+biomass pools twice — measured at **1.42×** the correct annual change on a
+controlled fixture. It now calls exactly one: `dynaveg` if `isimveg > 0`,
+`biomass_update` otherwise. IBIS 2.6b4 has no such split — `biomass_update` is
+a port-invented subset of `dynaveg`, and nothing should ever call both.
+
+The gdd arithmetic also existed twice, inline in `run_global` and in the new
+helper. It is now `climate_stats_from_monthly`, called by both; `run_global`
+passes the monthly means it already has, so it does no extra I/O.
+
+**End-to-end verification**, 3 years on the RTX 4090 from the spun-up state,
+`dynamic_vegetation=True, isimfire=1`, seasonlength + VPD:
+
+```
+y2001 [312s] disturbf=0.03326 totlit=2.9471 biomass=8.323 exist=0.226
+y2002 [376s] disturbf=0.02489 totlit=3.3431 biomass=7.638 exist=0.307
+y2003 [441s] disturbf=0.01379 totlit=3.4414 biomass=7.213 exist=0.335
+```
+
+Fire burns (`disturbf` ≈ 3.3 % in year one, against GFED5's observed 3.0 %),
+litter accumulates, and biomass falls as fire removes it — the feedback that
+`biomass_update` could not produce. `disturbf` then declines as burning thins
+the vegetation and lowers the density term, which is the coupling working in
+the intended direction.
+
+**Not yet interpretable:** biomass falls 8.32 → 7.21 kgC/m² in three years, and
+`exist` climbs 0.226 → 0.335 as the 30-year normals re-equilibrate from the
+checkpoint's stale values. Three years cannot distinguish "settling into a new
+equilibrium with fire" from "degrading". That needs a multi-decade run before
+anything is claimed about it.
+
+8 new tests in `tests/test_spinup_dynaveg_wiring.py` (568 → 576).
+
 ### 2026-08-24 — three wiring defects fixed, and fire-killed carbon stops vanishing
 
 An audit of the fire path after F6 turned up three defects. All three are

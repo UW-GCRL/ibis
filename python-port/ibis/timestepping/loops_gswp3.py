@@ -40,7 +40,9 @@ import numpy as np
 from ibis.constants import PhysicalConstants
 from ibis.state.model_state import IBISState
 from ibis.timestepping.loops import SimParams, timestep_body, timesteps_per_day
-from ibis.timestepping.calendar import julian_day, is_leap_year, timesteps_per_day
+from ibis.timestepping.calendar import (
+    NDAYPM, NDAYPM_LEAP, julian_day, is_leap_year, timesteps_per_day,
+)
 from ibis.io.gswp3_reader import GSWP3Reader
 from ibis.io.gswp3_forcing import make_monthly_daily_weather
 from ibis.physics.weather import DailyWeather, compute_precip_timing, diurnal
@@ -505,6 +507,60 @@ def run_month_gswp3(
 
 
 # ---------------------------------------------------------------------------
+# Annual climate statistics -- the input `dynaveg` needs and `biomass_update`
+# does not
+# ---------------------------------------------------------------------------
+
+def annual_climate_stats(reader, year, latindex, lonindex, leap):
+    """This-year `tcthis` / `twthis` / `gdd0this` / `gdd5this` from GSWP3.
+
+    `dynaveg` reclassifies PFTs through `vegmap(.., gdd5, gdd0, ..)` and grows
+    only PFTs that `existence()` permits, so running it against stale or
+    zero-valued climate normals would silently rewrite the vegetation map. Both
+    runners therefore have to maintain these, and both now call this rather
+    than keeping their own copy of the arithmetic.
+
+    Temperature is re-read from the reader rather than taken from the physics
+    loop: file handles are cached, so this is a slice read of `tas` alone, and
+    it keeps the statistic independent of the daily-weather generator.
+
+    Returns
+    -------
+    (tcthis, twthis, gdd0this, gdd5this) : each (npoi,) float32
+        Coldest and warmest monthly mean in degC, and growing degree-days
+        above 0 degC and 5 degC.
+    """
+    monthly = [np.nanmean(reader.read_month(year, im, latindex, lonindex)["tas"],
+                          axis=0) - 273.16                        # K -> degC
+               for im in range(12)]
+    return climate_stats_from_monthly(np.stack(monthly, axis=1), leap)
+
+
+def climate_stats_from_monthly(xint_c, leap):
+    """The arithmetic behind :func:`annual_climate_stats`, on monthly means.
+
+    Split out so the caller that already has the monthly temperatures in hand
+    (`scripts/run_global.py` reads them in its own month loop) does not need a
+    second pass over the files, and so the formula exists exactly once. Two
+    copies of a constant is how the combustion-completeness values came to
+    disagree by a factor of five -- see docs/FIRE.md.
+
+    Parameters
+    ----------
+    xint_c : (npoi, 12) array
+        Monthly mean temperature in degC.
+    """
+    ndaypm = NDAYPM_LEAP if leap else NDAYPM
+    gdd0 = np.zeros(xint_c.shape[0], dtype=np.float32)
+    gdd5 = np.zeros(xint_c.shape[0], dtype=np.float32)
+    for im in range(12):
+        gdd0 += np.maximum(0.0, xint_c[:, im]) * int(ndaypm[im])
+        gdd5 += np.maximum(0.0, xint_c[:, im] - 5.0) * int(ndaypm[im])
+    return (np.nanmin(xint_c, axis=1).astype(np.float32),
+            np.nanmax(xint_c, axis=1).astype(np.float32), gdd0, gdd5)
+
+
+# ---------------------------------------------------------------------------
 # run_year_gswp3: full year, Python loop over 12 months
 # ---------------------------------------------------------------------------
 
@@ -582,6 +638,11 @@ def run_spinup_gswp3(
     nband: int = 2,
     nsoilcall: int = 1,
     on_year_end=None,
+    dynamic_vegetation: bool = True,
+    isimfire: int = 0,
+    fire_scheme: str = None,
+    fire_params=None,
+    popd=None,
 ):
     """Multi-year spin-up with the **complete** carbon chain.
 
@@ -617,13 +678,39 @@ def run_spinup_gswp3(
         carbon equilibration, the standard spin-up trick.
     on_year_end : callable(year, state) -> None, optional
         Hook for checkpointing or diagnostics.
+    dynamic_vegetation : bool
+        Call `dynaveg` rather than `biomass_update` at year end. `dynaveg` is a
+        superset: it does the same NPP allocation and litterfall, and adds
+        disturbance (fire, background mortality), fractional cover, canopy
+        height, sapwood fraction and PFT reclassification.
+
+        This runner called `biomass_update`, whose own docstring says it "does
+        NOT apply disturbances (fire, background mortality)". So every result
+        produced by this path -- including the 50-year GPU carbon spin-up --
+        had **no fire feedback of any kind**, whatever `isimfire` said.
+
+        Call one or the other, never both: they perform the *same* allocation
+        from the *same* `summary.aynpp`, so calling both grows biomass twice.
+    isimfire : int
+        0 = no fire (IBIS's constant 0.005 background disturbance only),
+        1 = fire enabled. Ignored unless `dynamic_vegetation`.
+    fire_scheme : str, optional
+        Defaults to `RunConfig.fire_scheme`. See docs/FIRE.md.
+    fire_params : FireParams, optional
+    popd : (npoi,) array, optional
+        Population density, required only if `fire_params.use_human`.
 
     Returns
     -------
     (IBISState, PRNGKey)
     """
     from ibis.io.parameters import default_pft_params
-    from ibis.physics.vegetation_dynamics import biomass_update
+    from ibis.physics.climate_analysis import climanl2, existence
+    from ibis.physics.vegetation_dynamics import biomass_update, dynaveg
+
+    if fire_scheme is None:
+        from ibis.config import RunConfig
+        fire_scheme = RunConfig().fire_scheme
 
     pft_params = default_pft_params()
 
@@ -642,11 +729,49 @@ def run_spinup_gswp3(
             key, dtime, year, nband=nband, nsoilcall=nsoilcall,
         )
 
-        # --- annual: grow biomass from accumulated NPP and set litterfall ---
-        new_veg, new_carbon, new_summary = biomass_update(
-            state.vegetation, state.carbon, state.summary,
-            pft_params, consts.epsilon,
-        )
+        # --- annual: climate normals, then grow biomass and disturb it ---
+        if dynamic_vegetation:
+            # `dynaveg` reclassifies PFTs from gdd0/gdd5 and grows only PFTs
+            # `existence()` permits, so the normals have to be current or the
+            # vegetation map drifts on stale climate.
+            tcthis, twthis, gdd0this, gdd5this = annual_climate_stats(
+                reader, year, latindex, lonindex, is_leap_year(year),
+            )
+            state = eqx.tree_at(
+                lambda s: (s.vegetation.tcthis, s.vegetation.twthis,
+                           s.vegetation.gdd0this, s.vegetation.gdd5this),
+                state,
+                (jnp.asarray(tcthis), jnp.asarray(twthis),
+                 jnp.asarray(gdd0this), jnp.asarray(gdd5this)),
+            )
+            v = state.vegetation
+            tc_n, tw_n, tcmin_n, gdd0_n, gdd5_n = climanl2(
+                v.tc, v.tw, v.tcmin, v.gdd0, v.gdd5,
+                v.tcthis, v.twthis, v.gdd0this, v.gdd5this,
+                jnp.zeros_like(v.tc),
+            )
+            state = eqx.tree_at(
+                lambda s: (s.vegetation.tc, s.vegetation.tw,
+                           s.vegetation.tcmin, s.vegetation.gdd0,
+                           s.vegetation.gdd5),
+                state, (tc_n, tw_n, tcmin_n, gdd0_n, gdd5_n),
+            )
+            state = eqx.tree_at(
+                lambda s: s.vegetation.exist, state,
+                existence(state.vegetation.tcmin, state.vegetation.tw,
+                          state.vegetation.gdd0, state.vegetation.gdd5,
+                          pft_params),
+            )
+            new_veg, new_carbon, new_summary = dynaveg(
+                state.vegetation, state.carbon, state.summary,
+                pft_params, isimfire, consts.epsilon,
+                fire_scheme=fire_scheme, fire_params=fire_params, popd=popd,
+            )
+        else:
+            new_veg, new_carbon, new_summary = biomass_update(
+                state.vegetation, state.carbon, state.summary,
+                pft_params, consts.epsilon,
+            )
         new_veg = _match(state.vegetation, new_veg)
         new_carbon = _match(state.carbon, new_carbon)
         new_summary = _match(state.summary, new_summary)
@@ -655,7 +780,7 @@ def run_spinup_gswp3(
             state, (new_veg, new_carbon, new_summary),
         )
 
-        # --- clear the annual accumulators biomass_update just consumed ---
+        # --- clear the annual accumulators the update just consumed ---
         sm = state.summary
         state = eqx.tree_at(
             lambda s: (s.summary.aynpp, s.summary.aygpptot, s.summary.ayanpptot),
