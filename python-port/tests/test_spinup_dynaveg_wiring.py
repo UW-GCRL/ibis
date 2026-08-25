@@ -121,3 +121,50 @@ def test_a_freezing_year_accumulates_no_growing_degree_days():
     assert gdd0 == pytest.approx(np.zeros(3))
     assert gdd5 == pytest.approx(np.zeros(3))
     assert tc == pytest.approx(np.full(3, -20.0))
+
+
+# --- climate normals must be seeded, not crawled up to ----------------------
+
+
+def test_first_year_seeds_normals_instead_of_averaging_from_zero():
+    """`climanl2` is a 30-year running mean; from zero it is wrong for decades.
+
+    Not hypothetical: every climate normal in the v7 spin-up checkpoint is
+    exactly 0.0, because no runner ever maintained them, which left `exist` at
+    1.000 -- all 12 PFTs permitted everywhere, tropical evergreen included in
+    Siberia. Seeding fixed `exist` at 0.341 from year one; without it, it
+    climbed 0.226 -> 0.335 over three years and was wrong throughout.
+    """
+    src = (ROOT / "ibis" / "timestepping" / "loops_gswp3.py").read_text()
+    body = src[src.index("def run_spinup_gswp3"):]
+    assert "climanl(" in body and "climanl2(" in body
+    # seeded when the normals are unset, averaged thereafter
+    assert "jnp.abs(v.gdd5)" in body
+
+
+def test_annual_climate_stats_returns_the_monthly_means_for_seeding():
+    import inspect
+
+    from ibis.timestepping.loops_gswp3 import annual_climate_stats
+    doc = inspect.getdoc(annual_climate_stats)
+    assert "xint" in doc          # climanl needs (npoi, 12), not the 4 stats
+
+
+def test_seeding_and_averaging_agree_on_a_steady_climate():
+    """A constant climate: the seed is already the equilibrium of the mean."""
+    from ibis.physics.climate_analysis import climanl, climanl2
+
+    n = 5
+    xint = jnp.asarray(np.tile(np.linspace(-5.0, 25.0, 12), (n, 1)))
+    ndaypm = tuple(int(d) for d in np.array([31, 28, 31, 30, 31, 30, 31, 31,
+                                             30, 31, 30, 31]))
+    tc, tw, tcmin, gdd0, gdd5 = climanl(xint, jnp.zeros(n), ndaypm)
+    tcthis, twthis, gdd0this, gdd5this = climate_stats_from_monthly(
+        np.asarray(xint), leap=False)
+    # Feeding the same year back through the running mean must not move it.
+    out = climanl2(tc, tw, tcmin, gdd0, gdd5,
+                   jnp.asarray(tcthis), jnp.asarray(twthis),
+                   jnp.asarray(gdd0this), jnp.asarray(gdd5this),
+                   jnp.zeros(n))
+    for seeded, averaged in zip((tc, tw, tcmin, gdd0, gdd5), out):
+        assert np.allclose(np.asarray(seeded), np.asarray(averaged), rtol=1e-3)

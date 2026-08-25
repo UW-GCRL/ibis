@@ -545,6 +545,56 @@ switching works again.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
 
+### 2026-08-24 — the v7 checkpoint is not a usable baseline
+
+Asked whether the fire results looked reasonable, the biomass trend did not.
+Checking it turned up something bigger than fire.
+
+**Every climate normal in the v7 spin-up checkpoint is exactly 0.0** —
+`tc`, `tw`, `tcmin`, `gdd0`, `gdd5` and all four `*this` counterparts — because
+no runner ever maintained them. `existence()` was therefore never called
+either, leaving `exist` at **1.000**: all 12 PFTs permitted in every cell,
+tropical broadleaf evergreen in Siberia included. The 50-year carbon spin-up
+grew vegetation under that.
+
+Two consequences, and they are separable.
+
+**Seeding.** `climanl2` is a 30-year running mean. Started from zero it needs
+three decades before the normals mean anything, and `existence()` is wrong
+throughout. `run_spinup_gswp3` now seeds with `climanl` on the first year when
+the normals are unset — what `scripts/run_global.py` already did at start-up —
+and only then starts averaging. Measured: `exist` is now **0.341 from year
+one**, where before it climbed 0.226 → 0.335 over three years.
+
+**Attribution.** Biomass still fell after seeding, so a fire-off control:
+
+```
+             y2001    y2002    y2003
+fire on      8.168    7.410    6.932     disturbf 0.033 / 0.024 / 0.012
+fire off     8.247    8.089    7.677     disturbf 0.005 (background only)
+```
+
+Biomass falls **with fire off too**. Most of the decline is the vegetation
+correcting away from a state grown with every PFT allowed everywhere; fire's
+marginal contribution is about 0.25 kgC/m²/yr, consistent with ~2.5 % burned of
+~8 kgC/m². **The fire signal is behaving; the starting state is not.**
+
+So: nothing built this month should be judged against v7, and a fresh spin-up
+is needed — one that now maintains normals, calls `existence`, applies
+disturbance, and no longer double-counts growth.
+
+**One more duplicated formula, found by a test.** `climanl` interpolates the
+monthly means to daily before accumulating growing degree-days (F77
+`climate.f`); `climate_stats_from_monthly` used a flat monthly step, as
+`run_global` did inline. They disagree by ~0.15 % on a smooth annual cycle and
+more on a sharp one — and the mismatch sat exactly at the seam between seeding
+the normals and averaging them, so the normals would step on the transition.
+`climate_stats_from_monthly` now delegates to `climanl`. Both remain
+monthly-mean approximations of what F77 accumulates daily during the run; they
+now at least agree with each other.
+
+3 further tests (576 → 579).
+
 ### 2026-08-24 — the spin-up runner now applies fire, and stops double-counting growth
 
 `run_spinup_gswp3` called `biomass_update`, whose own docstring says it "does

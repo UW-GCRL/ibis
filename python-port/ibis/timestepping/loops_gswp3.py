@@ -526,14 +526,22 @@ def annual_climate_stats(reader, year, latindex, lonindex, leap):
 
     Returns
     -------
-    (tcthis, twthis, gdd0this, gdd5this) : each (npoi,) float32
-        Coldest and warmest monthly mean in degC, and growing degree-days
-        above 0 degC and 5 degC.
+    (tcthis, twthis, gdd0this, gdd5this, xint) :
+        The four (npoi,) statistics -- coldest and warmest monthly mean in
+        degC, and growing degree-days above 0 degC and 5 degC -- plus the
+        (npoi, 12) monthly means they came from, which `climanl` needs to seed
+        the normals on the first year.
     """
-    monthly = [np.nanmean(reader.read_month(year, im, latindex, lonindex)["tas"],
-                          axis=0) - 273.16                        # K -> degC
-               for im in range(12)]
-    return climate_stats_from_monthly(np.stack(monthly, axis=1), leap)
+    xint = monthly_tmean(reader, year, latindex, lonindex)
+    return climate_stats_from_monthly(xint, leap) + (xint,)
+
+
+def monthly_tmean(reader, year, latindex, lonindex):
+    """(npoi, 12) monthly mean temperature in degC, from GSWP3 `tas`."""
+    return np.stack(
+        [np.nanmean(reader.read_month(year, im, latindex, lonindex)["tas"],
+                    axis=0) - 273.16                              # K -> degC
+         for im in range(12)], axis=1)
 
 
 def climate_stats_from_monthly(xint_c, leap):
@@ -545,19 +553,31 @@ def climate_stats_from_monthly(xint_c, leap):
     copies of a constant is how the combustion-completeness values came to
     disagree by a factor of five -- see docs/FIRE.md.
 
+    Both this and `climanl` are monthly-mean approximations of what F77
+    accumulates from daily temperature during the run; they now at least agree
+    with each other.
+
     Parameters
     ----------
     xint_c : (npoi, 12) array
         Monthly mean temperature in degC.
     """
-    ndaypm = NDAYPM_LEAP if leap else NDAYPM
-    gdd0 = np.zeros(xint_c.shape[0], dtype=np.float32)
-    gdd5 = np.zeros(xint_c.shape[0], dtype=np.float32)
-    for im in range(12):
-        gdd0 += np.maximum(0.0, xint_c[:, im]) * int(ndaypm[im])
-        gdd5 += np.maximum(0.0, xint_c[:, im] - 5.0) * int(ndaypm[im])
+    from ibis.physics.climate_analysis import climanl
+
+    ndaypm = tuple(int(d) for d in (NDAYPM_LEAP if leap else NDAYPM).tolist())
+    x = jnp.asarray(np.nan_to_num(xint_c))
+    # Delegate the growing-degree-day sum to `climanl` rather than repeating
+    # it. `climanl` interpolates the monthly means to daily values before
+    # accumulating, following F77 `climate.f`; a flat monthly step -- which is
+    # what this used to do, and what run_global did inline -- disagrees with it
+    # by ~0.15 % on a smooth annual cycle and more on a sharp one. That
+    # mismatch sat exactly at the seam between seeding the normals and
+    # averaging them, so the normals would step on the transition.
+    _, _, _, gdd0, gdd5 = climanl(x, jnp.zeros(x.shape[0]), ndaypm)
     return (np.nanmin(xint_c, axis=1).astype(np.float32),
-            np.nanmax(xint_c, axis=1).astype(np.float32), gdd0, gdd5)
+            np.nanmax(xint_c, axis=1).astype(np.float32),
+            np.asarray(gdd0, dtype=np.float32),
+            np.asarray(gdd5, dtype=np.float32))
 
 
 # ---------------------------------------------------------------------------
@@ -705,7 +725,7 @@ def run_spinup_gswp3(
     (IBISState, PRNGKey)
     """
     from ibis.io.parameters import default_pft_params
-    from ibis.physics.climate_analysis import climanl2, existence
+    from ibis.physics.climate_analysis import climanl, climanl2, existence
     from ibis.physics.vegetation_dynamics import biomass_update, dynaveg
 
     if fire_scheme is None:
@@ -734,8 +754,9 @@ def run_spinup_gswp3(
             # `dynaveg` reclassifies PFTs from gdd0/gdd5 and grows only PFTs
             # `existence()` permits, so the normals have to be current or the
             # vegetation map drifts on stale climate.
-            tcthis, twthis, gdd0this, gdd5this = annual_climate_stats(
-                reader, year, latindex, lonindex, is_leap_year(year),
+            leap = is_leap_year(year)
+            tcthis, twthis, gdd0this, gdd5this, xint = annual_climate_stats(
+                reader, year, latindex, lonindex, leap,
             )
             state = eqx.tree_at(
                 lambda s: (s.vegetation.tcthis, s.vegetation.twthis,
@@ -745,11 +766,27 @@ def run_spinup_gswp3(
                  jnp.asarray(gdd0this), jnp.asarray(gdd5this)),
             )
             v = state.vegetation
-            tc_n, tw_n, tcmin_n, gdd0_n, gdd5_n = climanl2(
-                v.tc, v.tw, v.tcmin, v.gdd0, v.gdd5,
-                v.tcthis, v.twthis, v.gdd0this, v.gdd5this,
-                jnp.zeros_like(v.tc),
-            )
+            # `climanl2` is a 30-year running mean. Started from zero it needs
+            # three decades before the normals mean anything, and `existence()`
+            # is wrong the whole time -- which is not hypothetical: every
+            # normal in the v7 spin-up checkpoint is exactly 0.0, because no
+            # runner ever maintained them, leaving `exist` at 1.000 with all 12
+            # PFTs permitted everywhere including tropical evergreen in
+            # Siberia. Seed from this year's climate instead, as
+            # `scripts/run_global.py` does at start-up, and only then start
+            # averaging.
+            if float(jnp.max(jnp.abs(v.gdd5))) == 0.0:
+                ndaypm = tuple(int(d) for d in
+                               (NDAYPM_LEAP if leap else NDAYPM).tolist())
+                tc_n, tw_n, tcmin_n, gdd0_n, gdd5_n = climanl(
+                    jnp.asarray(xint), jnp.zeros_like(v.tc), ndaypm,
+                )
+            else:
+                tc_n, tw_n, tcmin_n, gdd0_n, gdd5_n = climanl2(
+                    v.tc, v.tw, v.tcmin, v.gdd0, v.gdd5,
+                    v.tcthis, v.twthis, v.gdd0this, v.gdd5this,
+                    jnp.zeros_like(v.tc),
+                )
             state = eqx.tree_at(
                 lambda s: (s.vegetation.tc, s.vegetation.tw,
                            s.vegetation.tcmin, s.vegetation.gdd0,
