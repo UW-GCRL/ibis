@@ -33,7 +33,7 @@ biogeochemistry while inheriting the same extent uncertainty buys almost nothing
 | Stage | Description | Status |
 |---|---|---|
 | M0 | Read TRIPLEX-GHG and IBIS-CH4 papers; extract their parameter values | ☐ not started |
-| M1 | Inundated fraction + water table depth diagnostic | ☐ not started |
+| M1 | Inundated fraction + water table depth diagnostic | ☑ **done** (2026-08-25) — `io/wad2m.py`, `bgc/methane.py`, 18 tests |
 | M2 | **M-lite**: production only (`f_inund · r_CH4 · Rh · Q10`) | ☐ not started |
 | M3 | Evaluate M-lite: FLUXNET-CH4 + global total | ☐ not started |
 | M4 | **M-mid**: + oxidation, + upland sink — *only if M3 shows systematic bias* | ☐ not started |
@@ -284,7 +284,7 @@ inside this module.
 
 | Dataset | Purpose | On NAS? |
 |---|---|---|
-| WAD2M / GIEMS-2 / SWAMPS inundated fraction | `f_inund` (Phase 1) | ☐ to check |
+| WAD2M / GIEMS-2 / SWAMPS inundated fraction | `f_inund` (Phase 1) | ☑ WAD2M v2.0 2000–2020, 0.5°, 499 MB |
 | FLUXNET-CH4 | site evaluation | ☐ to check |
 | Global Methane Budget 2025 ensemble | global benchmark | ☐ to check |
 | Soil pH map (optional) | `f_pH` | ☐ to check |
@@ -306,6 +306,52 @@ inside this module.
 | all | `config.py`, `state/model_state.py` | `enable_methane: bool = False`; populate the existing `IBISState.wetland` slot. |
 
 ---
+
+## 5b. Build log
+
+### 2026-08-25 — M1 done
+
+`ibis/io/wad2m.py` and `ibis/bgc/methane.py`, 18 tests.
+
+**Grid alignment, checked not assumed.** WAD2M labels cell *centres*
+(−89.75 … 89.75); the IBIS land mask labels the lower-left corner
+(−90.0 … 89.5). Both are 360×720 south-to-north, so cell *i* is cell *i* — the
+0.25° difference is a labelling convention, not an offset. `_check_grid`
+asserts the uniform half-cell offset rather than trusting index order.
+
+Verified against geography, by regional mean Fw for July 2010:
+
+| region | mean Fw |
+|---|---|
+| West Siberian Lowland | 0.229 |
+| Hudson Bay Lowlands | 0.218 |
+| Congo Cuvette | 0.150 |
+| Amazon basin | 0.130 |
+| US Great Plains | 0.0023 |
+| Sahara | 0.0005 |
+
+Wetlands are ~100× the dry regions and land where they should. The first
+version of that test used single cells and **failed** — 57.0 °N sits exactly
+between WAD2M's 56.75 and 57.25 centres, so a knife-edge point says nothing
+about orientation. Regional means, not points.
+
+**Ice is not water.** `wsoi` is the liquid share of the *ice-free* pore space,
+so saturation is `wsoi · (1 − wisoi)`. Treating a frozen column as saturated
+would put the water table at the surface across the whole winter Arctic and
+make it the model's largest methane source. A test pins this.
+
+**Pre-satellite years are explicit.** WAD2M starts in 2000; a spin-up cycling
+1901–2000 has no record for 99 of those years. `read_wad2m_month` raises unless
+`clamp_to_range=True` is passed, and `read_wad2m_climatology` gives a mean
+seasonal cycle for spin-up. Silently returning zeros would delete every wetland
+before 2000.
+
+**Open question for M2.** Global wetland area through this reader is 3.06 Mkm²
+in January 2010 and 4.64 Mkm² in July. Zhang et al. (2021) quote larger
+figures, but whether that reflects a different definition (inundated-only vs
+including non-inundated peatland) or an error here is **not yet established**.
+Total flux scales linearly with this, so it must be settled against the paper
+before any M3 evaluation is believed.
 
 ## 6. Verification plan
 
