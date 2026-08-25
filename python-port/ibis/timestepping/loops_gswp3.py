@@ -697,7 +697,13 @@ def run_spinup_gswp3(
         Times to advance `soilbgc` per simulated day. >1 accelerates soil
         carbon equilibration, the standard spin-up trick.
     on_year_end : callable(year, state) -> None, optional
-        Hook for checkpointing or diagnostics.
+        Hook for checkpointing or diagnostics. If it accepts a third argument
+        it is also given the PRNG key. **Checkpoint the key.** The stochastic
+        weather generator draws from it, so a checkpoint without it cannot be
+        resumed reproducibly -- which is not academic: a NaN that appeared at
+        year 173 of the v8 spin-up could not be reproduced from the year-150
+        checkpoint, because restarting with a fresh key gave that cell entirely
+        different weather.
     dynamic_vegetation : bool
         Call `dynaveg` rather than `biomass_update` at year end. `dynaveg` is a
         superset: it does the same NPP allocation and litterfall, and adds
@@ -827,6 +833,9 @@ def run_spinup_gswp3(
         )
 
         if on_year_end is not None:
-            on_year_end(year, state)
+            try:
+                on_year_end(year, state, key)
+            except TypeError:
+                on_year_end(year, state)      # older two-argument hooks
 
     return state, key
