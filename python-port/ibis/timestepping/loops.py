@@ -835,6 +835,32 @@ def timestep_body(
                          wipud_w - (setsoi_res.qglif[:, 1] + setsoi_res.qglif[:, 3]) * evap_dt,
                          wipud_w)
 
+    # A puddle cannot supply more water than it holds.
+    #
+    # When the surface is 100 % dry with no puddle, `setsoi` follows F77
+    # (`soil.f:135-160`) and assigns ALL ground evaporation to the puddle,
+    # qglif(3) = 1. F77's own comment concedes this "could lead to negative
+    # puddle depths", and assumes it will not matter because "for a 100% dry
+    # soil with small puddles, evaporation is likely to be very small or less
+    # than zero (condensation)". That assumption is designed for dew, and it is
+    # violated on the Taymyr Peninsula in August: a bone-dry top layer under
+    # strong insolation has a large *positive* evaporative demand and no water
+    # to meet it, so wpud is driven to about -3e-3 kg/m2.
+    #
+    # The next timestep then reads the negative puddle back as a spurious
+    # CONDENSATION flux and releases its latent heat into the ground: measured
+    # at cell 85004 (75.0 N, 91.0 E) on 5 August 1915, heatg jumps to
+    # +339 W/m2 at night with zero insolation, and tsoi[0] rises 8.7 K in one
+    # hour. Repeated, that ratchets the dry insulating top layer up until the
+    # thermal solve returns temperatures hotter than the surface above it
+    # (324.7 K on CPU) and NaN on GPU. See docs/STATUS.md.
+    #
+    # Flooring at zero costs at most ~1e-3 kg/m2 of water per event -- far
+    # below the 1e-7 wsoi clamp already applied elsewhere -- and removes the
+    # fictitious energy source entirely.
+    wpud_w = jnp.maximum(wpud_w, 0.0)
+    wipud_w = jnp.maximum(wipud_w, 0.0)
+
     # (3) Puddle infiltration
     zdpud = c.rhow * dtime * jnp.maximum(1.0 - wisoi_0_new, 0.0) ** 2 * soil.hydraul[:, 0]
     fwpud = jnp.maximum(0.0, jnp.minimum(wpud_w, zdpud)) / dtime
