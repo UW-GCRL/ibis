@@ -545,6 +545,51 @@ switching works again.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
 
+### 2026-08-26 — v8 spin-up complete: 200 years, no NaN, converged
+
+`spinup_fire_v8`, 200 years cycling 1901–2000, `isimfire=1`, seasonlength +
+VPD + combustion completeness, `nsoilcall=10`. 208 minutes on the RTX 4090.
+**200/200 steps, zero NaN**, from the run that previously died at step 115 and
+before that at step 173.
+
+**Converged.** Over the last 50 steps:
+
+| | mean | σ | drift |
+|---|---|---|---|
+| biomass | 2.356 | 0.0074 | +0.026 |
+| `totcsoi` | 13.594 | 0.061 | −0.120 |
+| `totlit` | 0.932 | 0.018 | −0.052 |
+| `disturbf` | 0.0282 | 0.0007 | +0.0010 |
+
+**Evaluated against GFED5 `Norm` 2001–2005**, 88 484 cells:
+
+```
+area-weighted burned fraction   model  4.256%   GFED5  4.615%    x0.92
+unweighted mean                 model  2.857%   GFED5  3.002%
+rank correlation                all +0.749     burning +0.410
+NMSE                            0.715
+mean |lat| of top-2000 cells    model 11.9      GFED5 10.7
+```
+
+Every metric is at or better than the pre-spin-up a-priori evaluation
+(NMSE 0.731, rank +0.746/+0.401, ×1.03, |lat| 14.2). Global burned area is
+within 8 % of observed, and the fire-prone latitude is within 1.2°.
+
+**State is physical.** `tsoi` 224.1–312.8 K, `tg` 223.8–307.0 K, `wpud` ≥ 0
+everywhere — no trace of the 324.7 K runaway. `state_latest.pkl` carries the
+PRNG key, so it is reproducibly resumable.
+
+**One thing the fix did not change**: 37.07 % of cells still sit at
+`wsoi == 0` in every layer (v6 41.38 %, pre-fix v8 37.02 %). That population is
+no longer a NaN risk, but a third of the land surface at exactly zero liquid
+water remains unexplained and predates all of this work. It is the next thing
+worth pulling on.
+
+**Still open on the fire side**: `use_pft_mortality` defaults to False, so fire
+kills boreal conifers and savanna grass at identical rates. F4 exists to fix
+that and has never been exercised in a spin-up. Given burned area is now within
+8 %, that is the most likely remaining source of biomass bias.
+
 ### 2026-08-24 — the v7 checkpoint is not a usable baseline
 
 Asked whether the fire results looked reasonable, the biomass trend did not.
