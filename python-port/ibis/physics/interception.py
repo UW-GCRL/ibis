@@ -104,13 +104,18 @@ def mix(x1, t1, x2, t2, x3, t3, epsilon):
     Returns (xm, tm) where xm = x1+x2+x3 and tm is mass-weighted temp.
     """
     xm = x1 + x2 + x3
-    ytmp = jnp.sign(xm) * jnp.maximum(jnp.abs(xm), epsilon)
-    tm = jnp.where(
-        jnp.abs(xm) >= epsilon,
-        (t1 * x1 + t2 * x2 + t3 * x3) / ytmp,
-        0.0,
-    )
-    xm = jnp.where(jnp.abs(xm) >= epsilon, xm, 0.0)
+    have_mass = jnp.abs(xm) >= epsilon
+    # `jnp.sign(0.0)` is 0.0, so the obvious `sign(xm) * max(abs(xm), epsilon)`
+    # denominator is exactly 0 when the three masses cancel -- which happens
+    # routinely, since dry canopies carry xm == 0. `jnp.where` discards the
+    # resulting 0/0 from the *value*, so this was harmless in forward mode, but
+    # it means the NaN is still computed: it makes `jax.grad` return NaN
+    # through this function, and it fires `jax_debug_nans` on every timestep,
+    # which hides any real NaN behind it. Divide by something that is never
+    # zero and select afterwards.
+    safe = jnp.where(have_mass, xm, 1.0)
+    tm = jnp.where(have_mass, (t1 * x1 + t2 * x2 + t3 * x3) / safe, 0.0)
+    xm = jnp.where(have_mass, xm, 0.0)
     return xm, tm
 
 

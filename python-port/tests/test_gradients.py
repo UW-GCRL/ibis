@@ -367,3 +367,67 @@ class TestBGCGradientThroughPhysics:
         ta = jnp.full((NPOI,), 293.0)
         grad = jax.grad(loss)(ta)
         assert jnp.all(jnp.isfinite(grad))
+
+
+# --- masked-NaN divisions (2026-08-25) --------------------------------------
+# Both of these computed a NaN inside a `jnp.where` branch that was then
+# discarded. Harmless for the forward value, but `jax.grad` propagates NaN
+# through the untaken branch, and under `jax_debug_nans` they fire on every
+# timestep and mask any real NaN behind them. Found while bisecting the
+# Aug-1915 Taymyr Peninsula NaN (docs/STATUS.md).
+
+
+def test_mix_is_differentiable_at_zero_mass():
+    """`jnp.sign(0.0)` is 0.0, so the old denominator was exactly zero."""
+    import jax
+    import jax.numpy as jnp
+
+    from ibis.physics.interception import mix
+
+    def f(x):
+        z = jnp.zeros_like(x)
+        return mix(x, jnp.full_like(x, 280.0), z, jnp.full_like(x, 270.0),
+                   z, z, 1e-7)[1].sum()
+
+    g = jax.grad(f)(jnp.zeros(3))
+    assert jnp.all(jnp.isfinite(g)), g
+
+
+def test_mix_value_is_unchanged_by_the_safe_denominator():
+    import jax.numpy as jnp
+
+    from ibis.physics.interception import mix
+
+    x1 = jnp.array([0.0, 2.0, 1e-9])
+    xm, tm = mix(x1, jnp.full(3, 280.0), jnp.zeros(3), jnp.full(3, 270.0),
+                 jnp.zeros(3), jnp.zeros(3), 1e-7)
+    assert jnp.allclose(xm, jnp.array([0.0, 2.0, 0.0]))
+    assert jnp.allclose(tm, jnp.array([0.0, 280.0, 0.0]))
+
+
+def test_impexp2_is_differentiable_when_temperature_does_not_change():
+    """The denominator `t - told` is the same quantity the branch tests."""
+    import jax
+    import jax.numpy as jnp
+
+    from ibis.physics.canopy_exchange import impexp2
+
+    def f(t):
+        return impexp2(t, jnp.array([273.16]), 273.16, 1e-7,
+                       jnp.array([0.5]), jnp.array([False])).sum()
+
+    g = jax.grad(f)(jnp.array([273.16]))
+    assert jnp.all(jnp.isfinite(g)), g
+
+
+def test_impexp2_still_returns_the_previous_weight_when_not_warming():
+    import jax.numpy as jnp
+
+    from ibis.physics.canopy_exchange import impexp2
+
+    t = jnp.array([273.16, 280.0])
+    told = jnp.array([273.16, 270.0])
+    out = impexp2(t, told, 273.16, 1e-7, jnp.array([0.5, 0.5]),
+                  jnp.array([False, False]))
+    assert float(out[0]) == 0.5                     # unchanged -> carry forward
+    assert 0.0 <= float(out[1]) <= 1.0

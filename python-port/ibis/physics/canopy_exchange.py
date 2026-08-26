@@ -445,11 +445,15 @@ def impexp2(t, told, tmelt, epsilon, wimp_prev, is_first):
 
     Finding #21: eps-band on (t-told) threshold to absorb ULP-level drift.
     """
-    winew = jnp.where(
-        (t - told) > epsilon + 1.0e-8,
-        (tmelt - told) / (t - told),
-        wimp_prev,
-    )
+    # The denominator is the same quantity the condition tests, so it is zero
+    # exactly when the branch is not taken -- and `jnp.where` evaluates both
+    # branches, so the untaken one computes 0/0. Harmless for the value, fatal
+    # for `jax.grad`, and it masks any real NaN from `jax_debug_nans`. Divide by
+    # something that is never zero and select afterwards.
+    dt = t - told
+    warming = dt > epsilon + 1.0e-8
+    winew = jnp.where(warming, (tmelt - told) / jnp.where(warming, dt, 1.0),
+                      wimp_prev)
     winew = jnp.clip(winew, 0.0, 1.0)
     return jnp.where(is_first, 1.0, winew)
 
