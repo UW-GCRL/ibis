@@ -142,3 +142,50 @@ def test_a_real_puddle_still_evaporates():
     end = float(np.asarray(st.soil.wpud)[0])
     assert end < start, "a wet puddle under hot dry air should lose water"
     assert end >= 0.0
+
+
+def test_soilh2o_never_returns_a_negative_puddle():
+    """Round-off, not physics -- but a negative puddle is a negative heat capacity.
+
+    In exact arithmetic `wpud + (fsqueez - fwpud) * dtime` is already
+    non-negative: `fsqueez` is a `jnp.maximum(..., 0.0)` and the caller forms
+    `fwpud` as `max(0, min(wpud, zdpud)) / dtime`. In float32 the two terms
+    nearly cancel and leak below zero -- across the 200-year v8 spin-up, 4475
+    cells (5.1 %) ended with wpud down to -2.4e-7 kg/m2. Four orders of
+    magnitude below the -4.2e-3 that drove the +339 W/m2 spurious flux, but
+    zero is the right answer and it is free to enforce.
+    """
+    import jax.numpy as jnp
+
+    from ibis.physics.soil_physics import soilh2o
+
+    n, ns = 6, 6
+    hsoi = jnp.asarray([0.10, 0.15, 0.25, 0.50, 1.00, 2.00])
+    wpud = jnp.asarray([0.0, 1e-7, 1e-3, 1.0, 5.0, 10.0])
+    r = soilh2o(
+        wsoi=jnp.full((n, ns), 0.3), wisoi=jnp.zeros((n, ns)),
+        poros=jnp.full((n, ns), 0.45), porosflo=jnp.full((n, ns), 0.45),
+        hydraul=jnp.full((n, ns), 1e-5), suction=jnp.full((n, ns), -0.15),
+        bex=jnp.full((n, ns), 5.0), hsoi=hsoi,
+        fwtop=jnp.zeros(n), fwpud=wpud / 3600.0, wpud=wpud,
+        bperm=0.0, dtime=3600.0, rhow=1000.0, epsilon=1e-7,
+    )
+    assert float(jnp.min(r.wpud)) >= 0.0
+
+
+def test_puddle_freeze_thaw_never_returns_negative_mass():
+    import jax.numpy as jnp
+
+    from ibis.physics.soil_physics import puddle_freeze_thaw
+
+    n = 5
+    _, wpud, wipud = puddle_freeze_thaw(
+        jnp.asarray([250.0, 273.16, 300.0, 260.0, 290.0]),
+        jnp.asarray([0.0, 1e-9, 2.0, 0.5, 0.0]),
+        jnp.asarray([0.0, 0.0, 0.0, 1.0, 3.0]),
+        jnp.full(n, 0.45), jnp.full(n, 870.0), jnp.full(n, 2650.0),
+        jnp.full(n, 0.0), jnp.full(n, 0.0), 0.10,
+        4218.0, 1880.0, 1000.0, 3.336e5, 273.16,
+    )
+    assert float(jnp.min(wpud)) >= 0.0
+    assert float(jnp.min(wipud)) >= 0.0

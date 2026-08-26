@@ -80,9 +80,16 @@ def test_mort_is_a_traced_leaf_not_static():
     assert np.all(np.isfinite(np.asarray(g)))
 
 
-def test_default_keeps_uniform_mortality():
-    """Off by default, so an existing run is unchanged."""
-    assert default_fire_params().use_pft_mortality is False
+def test_per_pft_mortality_is_now_the_default():
+    """Switched on 2026-08-26; uniform mortality stays reachable.
+
+    Uniform mortality kills a fire-adapted savanna tree and a thin-barked
+    boreal conifer at the same rate. The v8 spin-up put burned area within 8 %
+    of GFED5 with uniform mortality still on, which left mortality as the
+    largest remaining structural bias rather than a tuning detail.
+    """
+    assert default_fire_params().use_pft_mortality is True
+    assert FireParams(use_pft_mortality=False).use_pft_mortality is False
 
 
 # ---------------------------------------------------------------------------

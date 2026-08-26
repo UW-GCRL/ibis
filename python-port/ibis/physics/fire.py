@@ -251,8 +251,15 @@ class FireParams(eqx.Module):
     mort: Float[Array, "npft"] = eqx.field(
         default_factory=lambda: jnp.asarray(DEFAULT_PFT_MORTALITY)
     )
-    #: Select the F4 per-PFT mortality. False keeps IBIS's uniform mortality.
-    use_pft_mortality: bool = eqx.field(static=True, default=False)
+    #: Select the F4 per-PFT mortality. False keeps IBIS's uniform mortality,
+    #: which kills a fire-adapted savanna tree and a thin-barked boreal conifer
+    #: at exactly the same rate and makes the fire->vegetation feedback -- the
+    #: whole reason fire belongs in a DGVM -- wrong in a way no calibration can
+    #: repair. Default True since 2026-08-26: the v8 spin-up put burned area
+    #: within 8 % of GFED5 while uniform mortality was still on, which left
+    #: mortality as the largest remaining structural bias. Only applies under
+    #: "seasonlength"; "legacy" is untouched.
+    use_pft_mortality: bool = eqx.field(static=True, default=True)
 
     # --- F1b: VPD-based fire danger ----------------------------------------
     #: VPD (kPa) at which flammability saturates.

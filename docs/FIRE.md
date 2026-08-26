@@ -545,6 +545,62 @@ switching works again.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
 
+### 2026-08-26 — the two open items, and a correction to how one was measured
+
+**`wsoi == 0` is not "a third of the land surface bone dry".** I characterised
+it that way; it is wrong. Broken down by latitude on the converged v8 state:
+
+| band | % dry | cells |
+|---|---|---|
+| −90…−60 | **98.4 %** | 18 728 (Antarctica) |
+| −60…+60 | 0–5 % | |
+| +60…+90 | **72.4 %** | 18 196 (Arctic permafrost) |
+
+**89.4 % of dry cells are ice-rich (`wisoi` > 0.5); not one is ice-free.** The
+Sahara reads `wsoi = [0.085 … 0.161]` and interior Australia 0.23–0.35 — the
+arid regions are *not* in this set. The dry cells are frozen ground, where soil
+water is correctly ice rather than liquid. Expected physics, not a defect.
+
+**But the follow-up measurement was made wrong, and that mattered.** I counted
+the dangerous configuration — a thawed, bone-dry top layer over a saturated
+layer, the Taymyr profile that produced the NaN — on the **year-end snapshot**,
+got 21 cells, and called it negligible. December cannot see a summer thaw: the
+21 cells sat at mean |lat| 26°, subtropical, and none were the Arctic cells that
+actually failed. Counting month by month instead:
+
+```
+month  inverted  |lat|  maxlat   wpud<0   tsoi>310  maxtsoi
+    1         9   20.9    23.0     4057        620   313.24
+    7        20   27.7    71.0     6468       3465   318.54
+   11        28   24.2    34.0     4946        477   313.50
+```
+
+The inverted profile stays rare (9–28 cells) and reaches |lat| 71 only in July,
+as expected. **But `wpud < 0` in 4 000–6 800 cells in every month** — the
+puddle floor added with the NaN fix guarded the working variable and missed the
+value coming back out of `soilh2o`.
+
+Measured, that residue is round-off, not the physical bug: worst −2.4 × 10⁻⁷
+kg/m² against the −4.2 × 10⁻³ that drove the +339 W/m² spurious flux, four
+orders of magnitude smaller. `wpud + (fsqueez − fwpud)·dtime` is provably
+non-negative in exact arithmetic — `fsqueez` is a `maximum(…, 0)` and
+`fwpud·dtime ≤ wpud` by construction — so the two terms simply cancel in
+float32. Both `soilh2o` and `puddle_freeze_thaw` now enforce what the algebra
+guarantees. Verified: **0 negative puddles in all 12 months**, with the
+`inverted` and `tsoi>310` counts byte-identical, confirming nothing physical
+moved.
+
+**The hot cells check out.** 3 465 cells above 310 K in July, max 318.5 K
+(45.4 °C): 97.1 % lie between 15–40 °N and **none poleward of 50°**, the
+hottest at 22.5–23.5 °N / 48–51.5 °E — the Rub' al Khali. Realistic.
+
+**`use_pft_mortality` now defaults to True.** Uniform mortality kills a
+fire-adapted savanna tree and a thin-barked boreal conifer at the same rate.
+With burned area already within 8 % of GFED5, mortality was the largest
+remaining structural bias rather than a tuning detail. Values are literature
+priors benchmarked against FATES `bark_scaler`
+(`SFMainMod.F90:570 CalculatePostFireMortality`), documented in §4.4.
+
 ### 2026-08-26 — v8 spin-up complete: 200 years, no NaN, converged
 
 `spinup_fire_v8`, 200 years cycling 1901–2000, `isimfire=1`, seasonlength +

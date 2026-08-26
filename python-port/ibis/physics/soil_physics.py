@@ -341,8 +341,20 @@ def soilh2o(
         wflo = wflo.at[:, k].set(wflo_k)
         fsqueez = fsqueez_new
 
-    # Update puddle
-    wpud_new = wpud + (fsqueez - fwpud) * dtime
+    # Update puddle.
+    #
+    # In exact arithmetic this is already non-negative: `fsqueez` is a
+    # `jnp.maximum(..., 0.0)` and the caller forms `fwpud` as
+    # `max(0, min(wpud, zdpud)) / dtime`, so `fwpud * dtime <= wpud`. In
+    # float32 the two terms nearly cancel and the result leaks below zero --
+    # measured across the 200-year v8 spin-up, 4475 cells (5.1 %) ended with
+    # wpud down to -2.4e-7 kg/m2. That is round-off, four orders of magnitude
+    # below the -4.2e-3 that produced a spurious +339 W/m2 condensation flux
+    # before the caller's floor was added, but a negative puddle is still a
+    # negative heat capacity in `c0pud`/`c1pud`, so enforce what the algebra
+    # already guarantees rather than leaving a signed zero-crossing in the
+    # state.
+    wpud_new = jnp.maximum(wpud + (fsqueez - fwpud) * dtime, 0.0)
     wflo = wflo.at[:, 0].set(wflo[:, 0] + fsqueez - fwpud)
 
     return Soilh2oResult(wsoi=wsoi_new, wpud=wpud_new, wflo=wflo, fsqueez=fsqueez)
@@ -571,4 +583,8 @@ def puddle_freeze_thaw(
     chav = ch2o * wpud + cice * wipud + rwork
     tsoi_0 = tmelt + (dh2 - hfus * dw2) / chav
 
-    return tsoi_0, wpud, wipud
+    # Both phase changes are bounded by the mass available (`dw` by wpud,
+    # `dw2` by wipud), so these are non-negative in exact arithmetic. Enforce
+    # it against float32 round-off for the same reason as in `soilh2o`: a
+    # negative puddle is a negative heat capacity downstream.
+    return tsoi_0, jnp.maximum(wpud, 0.0), jnp.maximum(wipud, 0.0)
