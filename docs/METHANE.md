@@ -978,6 +978,65 @@ end of the credible gross range, not the centre.
   Part 2 and from restatements in TRIPLEX-GHG and PEATLAND-VU — mutually
   consistent but **second-hand**.
 
+### TRIPLEX-GHG's parameters resolve by biome — and they anti-correlate
+
+M0 recorded only the all-site means. The biome breakdown matters more:
+
+| | `r` (CH₄:CO₂) | `Q10p` |
+|---|---|---|
+| Boreal | 0.18 | 2.03 |
+| Temperate | **0.32** | 2.66 |
+| **Tropical** | **0.15** | **3.75** |
+| all-site mean | 0.23 | 2.48 |
+
+**`r` and `Q10p` move in opposite directions across biomes** — the tropics have
+the *lowest* ratio and the *highest* Q₁₀. Two consequences:
+
+1. **Expect the gradient fit to find this trade-off as a ridge.** A joint
+   optimisation of `r_CH4` and `Q10p` will be poorly conditioned along the
+   direction that trades one against the other. That is worth anticipating in
+   M7 rather than discovering as non-convergence — and it is precisely the
+   regime where a Jacobian beats random search.
+2. **The all-site mean may be the wrong global default.** ~70 % of global flux
+   is tropical, where TRIPLEX-GHG fits r = 0.15 and Q₁₀ = 3.75 — not 0.23 and
+   2.48. Worth testing a biome-varying pair against the single global pair at
+   M3, and it is the natural first application of dPL-style regionalisation
+   (attributes → parameters) at M7.
+
+Site extremes for context: Mer Bleue / Ruovesi / Quebec 0.10; Sanjiang 0.45;
+Loch Vale, Colorado 0.70.
+
+### Substrate proxy: three families, not one
+
+An earlier draft of §5e said "R_h as substrate proxy is dominant". Too clean.
+There are three, and **only the first exposes a parameter directly comparable to
+a CH₄:CO₂ ratio**:
+
+1. **R_h fraction** — CLM5, ELM, JSBACH, LPJ-WHyMe, LPJ-GUESS, CLASSIC,
+   **TRIPLEX-GHG**, VISIT-A, SDGVM
+2. **potential rate × multipliers** — TEM, ORCHIDEE (`a₀·C_labile`), VISIT-B,
+   WETMETH (`r·C`), JULES (`k·C_eff`)
+3. **substrate-pool Michaelis–Menten** — DLEM (DOC), **IBIS-CH4** (DOC →
+   acetate/H₂), ELM-SPRUCE
+
+Families 2 and 3 carry dimensional rate constants that are **not**
+interchangeable with a ratio. Of ~15 models, only about half can be compared on
+this axis at all — the third distinct comparability trap found today.
+
+**We are in family 1**, with `Rh` from `tco2mic`, alongside TRIPLEX-GHG. Good:
+our closest precedent is structurally identical on the axis that matters.
+
+Canonical taxonomy citation for all of this: **Xu et al. 2016, BG 13, 3735**,
+"Four decades of modeling methane cycling in terrestrial ecosystems", Table 3.
+
+### One more note on VISIT
+
+VISIT's `FP = 0.5` is a **gross** production fraction with oxidation applied
+separately at **60–90 %** (Scheme A, `O = P·(0.60 + 0.30·GPP/GPP_max)`), so its
+*net* factor is ~0.05–0.20 — in line with everyone else. The apparent 0.5
+outlier in §5e's table dissolves once oxidation placement is accounted for,
+which is the same lesson for the third time.
+
 ### Provenance of this section — what is verified and what is not
 
 This project has been burned repeatedly by claims that turned out to be search
