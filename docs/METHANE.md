@@ -285,8 +285,8 @@ inside this module.
 | Dataset | Purpose | On NAS? |
 |---|---|---|
 | **WAD2M v2.0** inundated fraction | `f_inund` (Phase 1) | ✅ **acquired 2026-08-21, reader written 2026-08-25** — `inputs/methane/wad2m/`, 499 MB, `Fw(time=252, lat=360, lon=720)`, monthly 2000–2020, **already on IBIS's 0.5° grid** (lat −89.75→89.75, lon −179.75→179.75). Read by `ibis/io/wad2m.py`; the half-cell centre-vs-corner offset is asserted, not assumed |
-| FLUXNET-CH4 | site evaluation | ☐ to check |
-| Global Methane Budget 2025 ensemble | global benchmark | ☐ to check |
+| FLUXNET-CH4 | site evaluation | ☑ v1.0, 79 sites / 293 site-yr, CC-BY-4.0, fluxnet.org — **not yet downloaded**; ~42 freshwater sites, only ~8 below 30°N |
+| Global Methane Budget 2025 ensemble | global benchmark | ☑ Saunois et al. 2025, ESSD 17, 1873 — wetlands 159 [119–203] Tg/yr BU, 165 [145–214] TD (2010–2019); ensemble 157 ± 24 |
 | Soil pH map (optional) | `f_pH` | ☐ to check |
 | Compound topographic index (Phase 2 only) | TOPMODEL | ☐ not needed yet |
 
@@ -420,6 +420,185 @@ inundation product** — unlike the fire module, nothing usable is already on di
 | all | `config.py`, `state/model_state.py` | `enable_methane: bool = False`; populate the existing `IBISState.wetland` slot. |
 
 ---
+
+## 5a. Benchmarks and the WAD2M area question — RESOLVED (2026-08-27)
+
+### The open question from M1 is closed: our numbers were right
+
+M1 flagged that our reader gives a global wetland area of 3.06 Mkm² (Jan 2010)
+against Zhang et al.'s published 7.5–13 Mkm², and that methane flux scales
+linearly with it. **It is a definitional difference, not an error.**
+
+WAD2M's headline figures are **per-grid-cell statistics summed globally**, not
+the global sum in any month:
+
+* `MAmin` / `MAmax` — each cell's own annual minimum / maximum, then summed
+* `MALt` — each cell's maximum over the whole record, then summed
+
+Different cells peak in different months (Amazon May–Jun, Congo Nov–Dec, West
+Siberia Jun–Jul, Sudd Sep), so those exceed any single month's global total by
+about 1.6–1.7×. The WAD2M v2.0 technical update (Zhang & Poulter, Oct 2021)
+Fig. 2a plots the *global monthly aggregate* on a 3.0–5.5 Mkm² axis — which is
+where our numbers sit.
+
+Computing their metrics their way, from our own file:
+
+| metric | ours (v2.0, 0.5°) | published |
+|---|---|---|
+| `MAmax` | 7.10 | 7.51 (v1.0, 0.25°); 7.9 v2.0 |
+| `MALt` | 12.07 | 13.02 (v1.0); 13.6 v2.0 |
+| `MAmin` | **1.72** | **3.51** ← unexplained |
+| global monthly total | 2.54 – 4.76 | Fig 2a spans 3.0 – 5.5 |
+
+`MAmax` within 5 % and `MALt` within 7 % across a version and a resolution
+change is good agreement, and it validates `io/wad2m.py` end to end.
+
+**`MAmin` at half the published value is not explained.** Coarsening 0.25° →
+0.5° should *raise* a per-cell temporal minimum, not halve it. Recorded as open;
+it does not affect M-lite, which uses monthly `Fw` directly — the quantity that
+does validate.
+
+**No scaling, masking, or add-back is needed.** `Fw` is a fraction of grid-cell
+area, so `Fw × cell_area` summed is correct. Rice paddies (0.59 Mkm²) and
+lakes/rivers (2.52 Mkm²) are deliberately excluded so wetland CH₄ does not
+double-count the inland-water budget.
+
+**Known data defect, and it constrains our evaluation period.** GMB 2025 warns
+that SWAMPS v3.2 "has had discontinuity issues over a few tropical hotspots
+since 2015", which propagates into WAD2M. Zhang et al. (2025, BG 22, 305)
+restricted their diagnostic runs for this reason. **M3 should evaluate on
+2000–2014 and treat post-2015 tropical trends as suspect.**
+
+### The number M6 has to hit
+
+Global Methane Budget 2025 (Saunois et al., ESSD 17, 1873–1958), wetlands,
+Tg CH₄ yr⁻¹:
+
+| period | bottom-up | top-down |
+|---|---|---|
+| 2000–2009 | 153 [116–189] | 158 [145–172] |
+| **2010–2019** | **159 [119–203]** | **165 [145–214]** |
+| 2020 | 161 [131–198] | 175 [151–229] |
+
+The 16-model GCP-CH₄ ensemble gives **157 ± 24** Tg CH₄ yr⁻¹ (prognostic range
+117–195). Zhang et al. (2025) report **158 ± 24** for 2010–2020.
+
+**What that spread means for us.** The ensemble 1σ is ±15 %, and the bottom-up
+range spans a factor of 1.7. A new model landing anywhere in 119–203 is inside
+the existing spread — so hitting the global total is a **necessary but very weak
+test**. M3 and M6 must lean on seasonality, latitudinal partitioning and
+site-level comparison, not on the global number alone.
+
+## 5c. Evaluation, benchmarks, and the complexity question (research 2026-08-27)
+
+### The headline: methane has its own FireMIP result
+
+**Liu et al. 2026, ACP 26, 1229** (26 Jan 2026) is the direct methane analogue
+of Hantson et al. (2020) for fire. 11 prognostic + 16 diagnostic GCP models over
+Arctic/boreal North America, fluxes pushed through STILT footprints and compared
+against 10 wetland-dominated tower sites:
+
+> "GCP models such as LPJ-wsl, SDGVM, and JULES produce smaller flux magnitudes,
+> and each of these models uses simple approaches to simulate CH₄ fluxes."
+
+> "models such as VISIT, JSBACH, and ISAM have the largest flux magnitudes, and
+> these models employ more complex equations that include multiple components of
+> CH₄ fluxes."
+
+> "in data-sparse regions, added process detail could potentially amplify input
+> and parameter uncertainty and enlarge the flux spread."
+
+The simple models both **agree better with atmospheric observations and have
+higher R²**. The GCP ensemble "likely overestimates wetland fluxes by a factor
+of two or more across Canada and Alaska", and the overshoot sits in the *complex*
+models. Independently, **Chang et al. 2023** (GCB) benchmarked 14 bottom-up
+models against 42 FLUXNET-CH₄ sites and found "the performance of BU models may
+not be determined by the complexity of the biogeochemical process
+representations", and that "models with finer grids do not necessarily show an
+improved model performance".
+
+**This is direct evidence for the tiered design in §4.0** — stronger than the
+WetCHARTs argument M0 verified, because it is a head-to-head skill comparison
+rather than an uncertainty attribution.
+
+**And it validates prescribing extent (§4.1): for 7 of 11 models the diagnostic
+run — shared, prescribed WAD2M — beat that model's own prognostic run.**
+
+**The honest counter-evidence, recorded so we do not overclaim.** WETCHIMP-WSL
+(Bohn et al. 2015) found the opposite over West Siberia: models "that lacked
+either soil thermal physics appropriate to the high latitudes or realistic
+emissions from unsaturated peatlands tended to be dominated by a single
+environmental driver". The defensible statement is *added complexity does not
+reliably buy skill and can hurt where the driving data cannot constrain it* —
+not "simpler is always better".
+
+### What M3/M6 must actually hit
+
+| target | value | source |
+|---|---|---|
+| global wetland CH₄ | **158 ± 24** Tg yr⁻¹ (range 119–203) | GCP 16-model, GMB 2025 |
+| **IBIS-CH4 precedent** | **152.67** (135.72–167.57) | Xiao et al. 2024 |
+| tropics 30°S–30°N | 110 [67–144] — **~70 %** | GCP prognostic 2010–2019 |
+| 30–60°N | 34 [17–64] — ~21 % | " |
+| 60–90°N | 12 [4–30] — ~8 % | " |
+| boreal/Arctic seasonal peak | **July–August**; 60–70 % of May–Oct flux in Jun–Aug | Liu et al. 2026 |
+| interannual variability | 4.7 ± 1.5 Tg yr⁻¹ (2010–2020) | Zhang et al. 2025 |
+| temperature sensitivity | 4.6 Tg yr⁻¹ °C⁻¹ (range −0.4 to 9.0) | " |
+
+**A spring peak is a known failure mode with names attached: CLM4.5 and CLM5
+both peak too early and fail against atmospheric data.** Worth an explicit test.
+
+### Realistic skill expectations — set these before evaluating, not after
+
+| metric | published range | what counts as good |
+|---|---|---|
+| site-level daily/monthly R² or NSE | **0.10–0.50** process-based; 0.45–0.73 ML | ≥ 0.5 |
+| mean seasonal cycle, extratropics | 0.5–0.65 | ≥ 0.6 |
+| **mean seasonal cycle, tropics** | **~0 or negative** | near-universal failure |
+| site-mean / spatial R² | 0.25–0.54 | ≥ 0.5 |
+| **interannual anomalies** | **NSE < 0 universally** | any positive NSE is a result |
+| RMSE, northern wetlands | 10–35 nmol m⁻² s⁻¹ | < 30 |
+
+Anchors: **UpCH4** (the ML state of the art) gets site-mean NSE 0.54 but
+**tropical R² 0.08 / NSE −0.12**, and **interannual monthly NSE −5.11**.
+**X-MethaneWet** reports R² ≈ 0.92 emulating a process model but **0.03–0.26
+with sites held out** — spatial generalisation is unsolved by anyone.
+
+**Consequence for our evaluation design.** Hold out *sites*, not observations —
+pooled cross-validation leaks site identity. Report IAV separately. Expect the
+tropics to fail and say so rather than hiding it in a global mean.
+
+### Evaluation data
+
+**FLUXNET-CH₄ v1.0** (Delwiche et al. 2021, ESSD 13, 3607): 79 sites, 293
+site-years, 37°S–69°N, **CC-BY-4.0**, free with registration via
+fluxnet.org / AmeriFlux. **The sampling bias must be stated in any paper**: ~42
+freshwater-wetland sites, of which only ~8 lie south of 30°N — while ~70 % of
+global wetland CH₄ is tropical.
+
+In-dataset benchmarks worth testing against: median annual flux 9.5 gC m⁻² yr⁻¹;
+annual-flux **Q₁₀ = 2.57** (close to TRIPLEX-GHG's 2.48, an independent
+corroboration of our prior); and a warning for process modellers — "the timing of
+peak summer CH₄ emissions does not correlate with the timing for either peak
+summer temperature or peak GPP."
+
+### Two cautions about benchmarking against inversions
+
+1. **Top-down "wetlands" silently includes inland freshwaters.** GMB 2025 says
+   so explicitly. On a like-for-like basis the 2010–2019 gap is BU 248 vs TD 165,
+   not the ~6 Tg the wetland rows imply. Never compare a wetland-only model to TD
+   "wetlands" without stating this.
+2. **The inversion constraint is weakest where wetlands are**: < ±5 % globally
+   but **> ±20 % at 60–90°N**, and wetland emissions often barely move from the
+   prior (3 degrees of freedom out of 155 in one TROPOMI inversion).
+
+### Sourcing caveat
+
+Two items are unverified against full text because the publishers block
+automated access: the FUMEMIP emergent-constraint figures (Nature Geoscience)
+and Xiao et al.'s site-level R²/RMSE (Wiley). The Xiao numbers matter most to us
+— it is the other IBIS methane implementation — and should be retrieved manually
+through the UW library before being cited.
 
 ## 5b. Build log
 
