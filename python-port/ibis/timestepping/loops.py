@@ -86,8 +86,12 @@ class SimParams(eqx.Module):
     bperm: float = 0.04               # Bottom permeability factor
 
     # Soil mineral properties (constant, independent of sand/clay)
-    rhosoi_val: float = 2650.0        # Mineral soil density (kg/m3)
-    csoi_mineral_val: float = 870.0   # Mineral specific heat (J/kg/K)
+    #: Density of the soil solid phase, kg/m3. Same provenance as above.
+    rhosoi_val: float = 2636.5     # = RHOSOI_VAL; see ibis.io.soil_init
+    #: Specific heat of the soil solid phase, J/kg/K. Includes the organic
+    #: fraction (Campbell & Norman 1998; F77 `initial.f:723`). Used only where
+    #: the state has not been populated -- see `_solid_phase`.
+    csoi_mineral_val: float = 880.5  # = CSOI_VAL; see ibis.io.soil_init
 
     # BGC decomposition parameters (needed by soilbgc, called daily)
     bgc_params: BGCParams = eqx.field(default_factory=default_bgc_params)
@@ -145,6 +149,34 @@ def _canopy_intermediates(
 # ---------------------------------------------------------------------------
 # timestep_body: one physics timestep (= Fortran lsxmain)
 # ---------------------------------------------------------------------------
+
+def _solid_phase(soil, params):
+    """Specific heat and density of the soil solid phase, per layer.
+
+    Read from the state when it has been populated, falling back to the
+    parameter otherwise. F77 uses `csoi(i,k)` and `rhosoi(i,k)` throughout
+    (`soil.f:362,419,491,955`, `canopy.f:667`); this port computed them
+    faithfully in `io/soil_init.py`, stored `csoi` into the state in
+    `run_global`, and then **never read either** -- the physics substituted
+    flat constants that omitted the organic correction entirely. Same class of
+    defect as the dead `firefac` and the three dead config flags
+    (docs/FIRE.md).
+
+    The fallback exists because checkpoints written before this fix carry
+    `csoi == 0` and no `rhosoi` field at all; zero heat capacity would be
+    catastrophic rather than merely wrong, so an unset state takes the
+    constant.
+    """
+    csoi_state = getattr(soil, "csoi", None)
+    rho_state = getattr(soil, "rhosoi", None)
+    csoi = (jnp.where(csoi_state > 0.0, csoi_state, params.csoi_mineral_val)
+            if csoi_state is not None
+            else jnp.full_like(soil.tsoi, params.csoi_mineral_val))
+    rho = (jnp.where(rho_state > 0.0, rho_state, params.rhosoi_val)
+           if rho_state is not None
+           else jnp.full_like(soil.tsoi, params.rhosoi_val))
+    return csoi, rho
+
 
 def timestep_body(
     state: IBISState,
@@ -314,8 +346,8 @@ def timestep_body(
         soil.tg, snow.ti,
         c.stef, c.epsilon,
         soil.wpud, soil.wipud, soil.poros[:, 0], soil.wsoi[:, 0], soil.wisoi[:, 0],
-        jnp.full_like(soil.tg, params.csoi_mineral_val),
-        jnp.full_like(soil.tg, params.rhosoi_val),
+        _solid_phase(soil, params)[0][:, 0],
+        _solid_phase(soil, params)[1][:, 0],
         c.ch2o, c.cice, c.rhow,
     )
 
@@ -780,10 +812,8 @@ def timestep_body(
 
     # =====================================================================
     # 11. Soil physics (matches Fortran soil.f soilctl)
-    # =====================================================================
-    # Soil mineral properties (constant)
-    csoi_mineral = jnp.full_like(soil.tsoi, params.csoi_mineral_val)
-    rhosoi = jnp.full_like(soil.tsoi, params.rhosoi_val)
+    # Soil solid-phase properties -- from the state, not a flat constant.
+    csoi_mineral, rhosoi = _solid_phase(soil, params)
 
     # Puddle heat capacity terms
     c0pud = jnp.zeros_like(soil.tsoi)

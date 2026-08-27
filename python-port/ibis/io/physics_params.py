@@ -29,6 +29,7 @@ from ibis.physics.canopy_exchange import CanopyParams
 from ibis.physics.interception import InterceptionParams
 from ibis.physics.stomata import StomataParams
 from ibis.io.parameters import PFTParams, BGCParams, default_pft_params, default_bgc_params
+from ibis.io.soil_init import CSOI_VAL, RHOSOI_VAL
 
 
 # ---------------------------------------------------------------------------
@@ -341,8 +342,11 @@ def build_sim_params(
         wpudmax=ss.get('wpudmax', 10.0),
         zwpmax=ss.get('zwpmax', 0.5),
         bperm=ss.get('bperm', 0.04),
-        rhosoi_val=ss.get('rhosoi_val', 2650.0),
-        csoi_mineral_val=ss.get('csoi_mineral_val', 870.0),
+        # Defaults from ibis.io.soil_init, which derives both from FORGANIC so
+        # the two cannot drift apart. They were 2650.0/870.0 here, which drops
+        # the organic correction F77 applies in initial.f:715-724.
+        rhosoi_val=ss.get('rhosoi_val', RHOSOI_VAL),
+        csoi_mineral_val=ss.get('csoi_mineral_val', CSOI_VAL),
         bgc_params=build_bgc_params(d),
     )
 

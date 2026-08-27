@@ -268,7 +268,7 @@ def _apply_soil(state: IBISState, soil_props: dict) -> IBISState:
             s.soil.bex, s.soil.suction, s.soil.hydraul,
             s.soil.sand, s.soil.clay, s.soil.hsoi,
             s.soil.albsav, s.soil.albsan, s.soil.z0soi,
-            s.soil.csoi,
+            s.soil.csoi, s.soil.rhosoi,
         ),
         state,
         (
@@ -276,7 +276,7 @@ def _apply_soil(state: IBISState, soil_props: dict) -> IBISState:
             soil_props['bex'], soil_props['suction'], soil_props['hydraul'],
             soil_props['sand'], soil_props['clay'], soil_props['hsoi'],
             soil_props['albsav'], soil_props['albsan'], soil_props['z0soi'],
-            soil_props['csoi'],
+            soil_props['csoi'], soil_props['rhosoi'],
         ),
     )
 

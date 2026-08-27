@@ -30,7 +30,8 @@ class SoilState(eqx.Module):
 
     # --- Diagnostic (recomputed each timestep) ---
     consoi: Float[Array, "npoi nsoilay"]   # Thermal conductivity (W/m/K)
-    csoi: Float[Array, "npoi nsoilay"]     # Volumetric heat capacity (J/m3/K)
+    csoi: Float[Array, "npoi nsoilay"]     # Specific heat of the solid phase (J/kg/K)
+    rhosoi: Float[Array, "npoi nsoilay"]   # Density of the solid phase (kg/m3)
     hflo: Float[Array, "npoi nsoilay_p1"]  # Heat flux at layer interfaces (W/m2)
     qglif: Float[Array, "npoi 4"]          # Evaporation source fractions
     heatg: Float[Array, "npoi"]            # Net heat flux into soil (W/m2)
@@ -71,6 +72,7 @@ def create_soil_state(npoi: int, nsoilay: int) -> SoilState:
         wipud=jnp.zeros((npoi,)),
         consoi=jnp.zeros((npoi, nsoilay)),
         csoi=jnp.zeros((npoi, nsoilay)),
+        rhosoi=jnp.zeros((npoi, nsoilay)),
         hflo=jnp.zeros((npoi, nsoilay + 1)),
         qglif=jnp.zeros((npoi, 4)),
         heatg=jnp.zeros((npoi,)),

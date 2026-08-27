@@ -87,6 +87,18 @@ def _build_texture_lookup() -> np.ndarray:
 _TEXTURE_LOOKUP = _build_texture_lookup()
 
 
+#: Organic fraction of the soil solid phase. A placeholder in IBIS 2.6b4 too
+#: (`initial.f:711`), not a map -- but it is the single place both the mineral
+#: density and the specific heat are derived from, so they cannot drift apart.
+FORGANIC = 0.010
+
+#: Density of the soil solid phase, kg m-3 (Campbell & Norman 1998).
+RHOSOI_VAL = 2650.0 * (1.0 - FORGANIC) + 1300.0 * FORGANIC      # 2636.5
+
+#: Specific heat of the soil solid phase, J kg-1 K-1 (Campbell & Norman 1998).
+CSOI_VAL = 870.0 * (1.0 - FORGANIC) + 1920.0 * FORGANIC          # 880.5
+
+
 def compute_soil_properties(
     sand: np.ndarray,
     clay: np.ndarray,
@@ -104,7 +116,7 @@ def compute_soil_properties(
                     csoi, rhosoi, z0soi, hsoi
     """
     npoi, nsoilay = sand.shape
-    forganic = 0.01  # 1% organic placeholder
+    forganic = FORGANIC
 
     ms = np.clip(np.round(sand).astype(np.int32), 0, 100)
     mc = np.clip(np.round(clay).astype(np.int32), 0, 100)
@@ -117,9 +129,13 @@ def compute_soil_properties(
     suction = _SUCTION[lmin]
     hydraul = _HYDRAUL[lmin]
 
-    # Soil mineral density and heat capacity
-    rhosoi = np.full((npoi, nsoilay), 2650.0 * (1 - forganic) + 1300.0 * forganic)
-    csoi   = np.full((npoi, nsoilay), 870.0 * (1 - forganic) + 1920.0 * forganic)
+    # Soil mineral density and heat capacity (Campbell & Norman 1998), matching
+    # F77 `initial.f:715-724`. Uniform today because `forganic` is a placeholder
+    # constant, but kept per-layer so a real organic-fraction map can be dropped
+    # in without touching the physics -- which the methane work will want, since
+    # peat is exactly where this correction stops being negligible.
+    rhosoi = np.full((npoi, nsoilay), RHOSOI_VAL)
+    csoi   = np.full((npoi, nsoilay), CSOI_VAL)
 
     # Surface albedo from top-layer texture
     fsand_top = 0.01 * np.round(sand[:, 0]).astype(int)
