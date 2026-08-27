@@ -263,8 +263,8 @@ inside this module.
 
 | Symbol | Meaning | Init | Calibrate? | Source |
 |---|---|---|---|---|
-| `r_CH4` | CH₄:CO₂ production ratio | **0.23** | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean (range 0.1–0.7) across 19 sites. Supersedes CLM5's 0.20 — TRIPLEX-GHG is built on IBIS, so its calibration is the closer prior. |
-| `Q10p` | production Q₁₀ | **2.48** | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean (range 1.6–4.5) across 19 sites. Supersedes the earlier guess of 3.0. |
+| `r_CH4` | CH₄:CO₂ ratio — **net** in M-lite, **gross** from M4 | **0.13** (M-lite, net) → 0.23 (M4+, gross) | **yes — primary** | ⚠️ **Corrected 2026-08-27, see §5e.** TRIPLEX-GHG's calibrated 0.23 (range 0.1–0.7, 19 sites) is a **gross** ratio with oxidation removed separately; M-lite has no oxidation term, so it needs a **net** ratio. Net comparators: CLASSIC δ_s 0.135, LPX-Bern tropics 0.024–0.0415. Independent groups converge on ~0.1 for the anoxic:oxic rate ratio (LPJ-WHyMe 0.10, ORCHIDEE q_MG 10, LPJmL6 r_k 0.1); LPJ-GUESS's 14-site MCMC posterior is 0.14 ± 0.007. Restore 0.23 only once M4 adds explicit oxidation. |
+| `Q10p` | production Q₁₀ | **2.48** | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean (range 1.6–4.5), 19 sites — and independently corroborated by FLUXNET-CH₄'s annual-flux Q₁₀ of **2.57**. Keep. Note three models (JULES, WETMETH, CLASSIC) make Q₁₀ *decline* with temperature and Zhu et al. 2025 reports constant-Q₁₀ forms bias against FLUXNET-CH₄; a temperature-dependent form is an M7 test, not an M2 default. |
 | `T_ref` | production reference T | 295.15 K | no | CLM5 `T_B = 22 °C` |
 | `sat_crit` | saturation defining "wet" | 0.95 | maybe | guess |
 | `z_max` | max diagnosed WT depth | 4.0 m | no | soil column depth |
@@ -642,6 +642,107 @@ conclusion §5c reaches from the skill side.
 **Residual contamination to be aware of:** SWAMPS retains desert false-positives
 (Sahel, Australia) that propagate into WAD2M, on top of the post-2015 tropical
 discontinuity already noted.
+
+## 5e. Model structures — and a correction to our own prior
+
+### The finding that changes M2
+
+**`f_CH4` values are not comparable across models unless you check whether
+oxidation sits inside or outside the ratio.**
+
+| model | ratio | oxidation |
+|---|---|---|
+| CLM4Me/CLM5/ELM/JSBACH | 0.20 | **outside** (double Michaelis–Menten) |
+| LPJ-WHyMe | 0.10 | outside (O₂ stoichiometry, f_oxid 0.5) |
+| LPJ-GUESS (14-site MCMC posterior) | **0.14 ± 0.007** | outside |
+| ORCHIDEE-PCH4 | 0.10 (`q_MG`=10) | outside |
+| **TRIPLEX-GHG / IBIS-CH4** | **0.23** | **outside** (single MM in CH₄) |
+| **CLASSIC** | **0.135** | **INSIDE — net emission factor** |
+| JULES | folded into `k_CH4` | **inside** |
+| LPX-Bern tropics | 0.024–0.0415 | inside (net) |
+| VISIT | 0.50 | outside |
+
+**M-lite has no oxidation term.** So the ratio it needs is a *net* one, and
+**TRIPLEX-GHG's 0.23 is gross**. Using 0.23 in a production-only scheme would
+roughly double the flux, because ~50 % of gross production is typically
+oxidised before it escapes.
+
+**This corrects the prior M0 established.** M0 was right that 0.23 is
+TRIPLEX-GHG's calibrated value and right that TRIPLEX-GHG is the closest
+precedent — but 0.23 belongs to a scheme that *then removes methane by
+oxidation*. The structurally correct comparators for M-lite are the **net**
+formulations: CLASSIC 0.135 and JULES. M2 should start from a net ratio near
+**0.1–0.15**, with 0.23 recoverable only once M4 adds explicit oxidation.
+
+Recorded as a correction rather than a silent edit, because the M0 commit
+message states 0.23 as the value to use.
+
+### A second convergence worth knowing
+
+**0.1 is where independent groups land** for the anoxic:oxic decomposition rate
+ratio — LPJ-WHyMe fitted 0.10, ORCHIDEE `q_MG` = 10 ⇒ 0.1, LPJmL6 `r_k` = 0.1.
+CLM's 0.2 and VISIT's 0.5 are the outliers. Our M-lite prior sitting near 0.1
+is therefore the consensus position, not a low-balled guess.
+
+### Q10: the value is agreed, the *sign of its temperature derivative* is not
+
+| model | production Q₁₀ |
+|---|---|
+| **TRIPLEX-GHG calibrated** | **2.48** (1.6–4.5) |
+| **FLUXNET-CH₄ annual flux** | **2.57** — independent corroboration |
+| CLM/ELM | 2, but **additional** to decomposition's 1.5 ⇒ effective ≈ **3.0** |
+| JULES | 3.7 at 273.15 K, **declining** as 3.7^(T₀/T) |
+| WETMETH | 4.2, **declining** as 1.7 + 2.5·tanh[0.1(308.15−T)] |
+| CLASSIC | **3.22 − 0.046·T**, clipped [1.5, 4.0] |
+| LPJ-WHyMe / LPJ-GUESS | **none** — Lloyd & Taylor on decomposition only |
+
+Three models make Q₁₀ *decline* with temperature; Zhu et al. (2023, L&O Letters)
+argues on thermodynamic grounds that CH₄:CO₂ should *rise* with it; and Zhu et
+al. (2025, ERL) reports that constant-Q₁₀ formulations "produce large biases
+across FLUXNET-CH4 because the real temperature response is hysteretic".
+
+**Our 2.48 is well supported and we should keep it for M2** — it is calibrated
+on the closest model and independently matched by FLUXNET-CH₄'s 2.57. But a
+constant Q₁₀ is a known, named limitation, and M7 should test whether a
+temperature-dependent form earns its place.
+
+### Structural landscape
+
+| complexity | models | params |
+|---|---|---|
+| **bulk flux, no transport, no explicit oxidation** | **JULES 3, CLASSIC ~4, WETMETH 6** | 3–6 |
+| ratio + MM oxidation + 3-pathway transport | TRIPLEX-GHG 13, ORCHIDEE-PCH4 7, LPJ-WHyMe 7, VISIT ~10 | 7–13 |
+| full vertical PDE, double MM | **CLM/ELM/JSBACH 35, LPJmL6 ~50** | 35–50 |
+
+A **10× spread in parameter count**, and §5c shows the light end wins on skill.
+Note also that much apparent independence is shared ancestry: the Walter &
+Heimann (2000) diffusivity polynomials, Schmidt numbers, Bunsen coefficients and
+the 750 µmol L⁻¹ ebullition threshold are reused near-verbatim across LPJ,
+LPJmL6, CLM, TRIPLEX-GHG, VISIT and ORCHIDEE.
+
+### 2023–2026 developments that bear on the design
+
+* **Moser et al. 2026** (BG 23, 605) — argues the fixed CO₂:CH₄ ratio is itself
+  a primary uncertainty and that three pathways (fermentation, acetoclastic,
+  hydrogenotrophic) are the minimum to capture ratio dynamics. Only 3 of 40
+  models reviewed resolve two pathways. **This is the strongest argument
+  against our M-lite form** and should be cited as a stated limitation.
+* **LPJmL6** (GMD 19, 7615, 2026) — **abandons the CH₄:CO₂ ratio entirely** for
+  competing oxic/anoxic decomposition, and uses Arrhenius rather than Q₁₀.
+  Uncalibrated as published.
+* **Kallingal et al. 2024/2025** (GMD 17, 2299; BG 22, 4061) — first rigorous
+  MCMC constraint on wetland CH₄ parameters; the tightest published posterior on
+  CH₄:CO₂ anywhere (0.14 ± 0.007). **Directly relevant to M7**, and the obvious
+  comparison for a gradient-based alternative.
+
+### Two implementation traps in CLM, if we ever borrow from it
+
+1. **CLM's `f_ch4` is not 0.2 in effect** — the code computes
+   `f_ch4_adj = f_ch4 · q10ch4^((T−22)/10)` and then divides out the
+   moisture/N limitation (`/fphr`). At 10 °C the effective ratio is ≈**0.09**.
+2. **CLM's Michaelis–Menten constants are hardcoded in current CTSM master** —
+   the netCDF reads for `k_m`, `vmax_ch4_oxid` etc. are commented out, so
+   editing the params file silently does nothing.
 
 ## 5b. Build log
 
