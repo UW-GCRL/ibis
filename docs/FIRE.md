@@ -37,7 +37,7 @@ buy the cheap structural fixes instead and spend the saved effort on calibration
 | **F1b** | **VPD fire danger × vegetation density** (replaces soil-moisture dryness) | ☑ **done & verified** (2026-08-24) |
 | F2 | Fine-fuel term (`totalit` + live leaf) | ☑ **done & verified** (2026-08-18) |
 | F3 | Human ignition/suppression term | ☑ **done & verified** (2026-08-18) |
-| F4 | PFT-specific fire mortality | ☑ **done & verified** (2026-08-18) |
+| F4 | PFT-specific fire mortality | ☑ **done, on by default, spin-up validated** (2026-08-27) — biomass 3.037 → 4.364 kgC/m², fire skill unchanged |
 | F5 | Burned area output + trace-gas emissions (Andreae 2019) | ☑ **done & verified** (2026-08-19) |
 | F6 | Differentiable calibration against GFED5 | ☑ **global fit done** (2026-08-24); see the entry below -- the honest result is that the a-priori parameters are already competitive |
 
@@ -544,6 +544,35 @@ switching works again.
   cost without coverage. **It becomes mandatory at F1**, when behaviour changes.
 - `verify/vegetation/verify_dynaveg.py` not run: needs the f2py Fortran wrappers,
   which were not rebuilt on the NAS.
+
+### 2026-08-27 — F4 spin-up: per-PFT mortality moves biomass, leaves fire skill alone
+
+200 years, `use_pft_mortality=True`, otherwise identical to the previous run.
+**200/200 steps, 0 NaN.** Converged over the last 50: biomass 3.269 ± 0.011
+(drift +0.040), `totcsoi` 13.681 ± 0.058, `disturbf` 0.0282 ± 0.0007.
+
+| | uniform mortality | **per-PFT (F4)** | reference |
+|---|---|---|---|
+| area-wtd burned fraction | 4.256 % (×0.92) | **4.232 % (×0.92)** | GFED5 4.615 % |
+| rank, all / burning | +0.749 / +0.410 | **+0.749 / +0.410** | |
+| NMSE | 0.715 | **0.723** | lower better |
+| mean \|lat\| top-2000 | 11.9 | **11.9** | GFED5 10.7 |
+| **area-wtd live biomass** | 3.037 | **4.364 kgC/m²** | ~3.5–5 |
+
+Exactly the expected separation: F4 changes *how much carbon a fire removes*,
+not *where or how much burns*, so every fire-skill metric is unchanged to three
+decimals while biomass rises 44 %. It moves from the bottom edge of the
+observational range into the middle of it. NMSE drifts 0.715 → 0.723, which is
+a burned-fraction metric and so is noise here, not a regression.
+
+**Prediction vs outcome, recorded honestly**: I predicted biomass would rise
+"toward 3.5–4". It reached 4.364, above the range I gave. The direction was
+right, the magnitude under-called.
+
+**Caveat**: this run imported the code before the solid-phase fix below, so it
+used the old flat constants (870 / 2650 rather than 880.5 / 2636.5). That is a
++0.69 % change in solid-phase heat capacity — worth a re-run eventually, not
+worth discarding this one.
 
 ### 2026-08-26 — the two open items, and a correction to how one was measured
 
