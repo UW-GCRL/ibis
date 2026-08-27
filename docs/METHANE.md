@@ -1089,6 +1089,70 @@ TRIPLEX-GHG.
    the structural mitigation, and is what per-site JULES-HIMMELI calibration
    failed to do.
 
+## 5g. Consolidated priors — the table M2 and M7 should actually use
+
+Every value below converted to a **common basis: gross molar CH₄:CO₂, oxidation
+excluded**. Half the published numbers needed transforming to get here.
+
+| model | as published | basis | **as gross molar CH₄:CO₂** |
+|---|---|---|---|
+| **TRIPLEX-GHG** (our lineage) | 0.23 | gross molar | **0.23** — boreal 0.18, temperate 0.32, tropical 0.15 |
+| CLM5 / ELM | 0.20 [0.1–0.3] | gross molar | 0.20 — *but effective ≈0.09 at 10 °C, see below* |
+| LPJ-GUESS (14-site MCMC) | 0.14 ± 0.007 | gross molar | **0.14** — tightest published posterior |
+| ORCHIDEE-PCH4 (multi-site) | q_MG 9.64 | gross molar (inverse) | 0.104 |
+| LPJ-WHyMe | 0.10 | gross molar | 0.10 |
+| CLASSIC | δ_s 0.135 × α_w 0.45 | **net** | ≈0.20 gross at 70 % oxidation |
+| VISIT scheme A | FP 0.50 | gross, 60–90 % oxidised | 0.50 → net 0.05–0.20 |
+| JSBACH / de Vrese / ICON-XPP | 0.35 / 0.40 / 0.24 | **carbon-atom fraction** | **÷ ~0.65** ⇒ 0.54 / 0.62 / 0.37 |
+
+**Consensus gross ratio: 0.10–0.23.** Our 0.23 is the top of it, which is
+defensible only because TRIPLEX-GHG is the closest precedent — same host model,
+same substrate family. Flagged for M7 to move.
+
+### Pre-fit checklist — three traps, each of which bit once today
+
+1. **Gross vs net of oxidation.** CLM 0.20 gross, CLASSIC 0.135 net, VISIT 0.50
+   gross-with-60–90 %-oxidation are three different quantities.
+2. **Molar ratio vs carbon-atom fraction.** JSBACH's `f_CH4` is the latter;
+   divide by ~0.65.
+3. **Substrate family.** Only R_h-fraction models expose a comparable ratio at
+   all; potential-rate and substrate-pool-MM models carry dimensional constants
+   that are not interchangeable.
+
+### Two implementation warnings, if we ever port from CLM
+
+* **CLM's effective `f_ch4` is not 0.20.** The code applies
+  `f_ch4 · q10ch4^((T−22)/10)` then divides out the moisture/N limitation — at
+  10 °C the effective ratio is **≈0.09**.
+* **CLM's Michaelis–Menten constants are hardcoded in current CTSM master.**
+  The netCDF reads are commented out; editing the params file silently does
+  nothing.
+
+### Which IBIS precedent we are following
+
+**TRIPLEX-GHG and IBIS-CH4 are two different schemes on the same host DGVM**, and
+we follow the former:
+
+* **TRIPLEX-GHG** (Zhu et al. 2014) — R_h-fraction, 13 params. **Our lineage.**
+* **IBIS-CH4** (Song et al. 2020; Xiao et al. 2024) — substrate-pool
+  Michaelis–Menten with prognostic microbial biomass, DOC → acetate/H₂,
+  double-MM oxidation, 30 params. Its closest thing to a ratio is a
+  stoichiometric yield (0.5 mol CH₄ per mol acetate), **not** an R_h fraction —
+  so its parameters are *not* transferable to M-lite⁺.
+
+Xiao et al.'s global total of **152.7 [135.7–167.6] Tg yr⁻¹ on prescribed
+WAD2M** remains the single most comparable benchmark, since it is the same host
+model on the same extent product.
+
+### Remaining holes, both paywall-driven
+
+* **Walter & Heimann (2000)** constants are second-hand — via Part 2 (NASA NTRS)
+  and restatements in TRIPLEX-GHG and PEATLAND-VU. Mutually consistent, not
+  primary.
+* **VISIT's biome-specific P₀** is not published in any accessible source.
+* **Xiao et al.'s site-level R²/RMSE** need manual retrieval through the UW
+  library (Wiley blocks automated access) before being cited.
+
 ## 5b. Build log
 
 ### 2026-08-25 — M1 done
