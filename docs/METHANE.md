@@ -32,7 +32,7 @@ biogeochemistry while inheriting the same extent uncertainty buys almost nothing
 
 | Stage | Description | Status |
 |---|---|---|
-| M0 | Read TRIPLEX-GHG and IBIS-CH4 papers; extract their parameter values | ☐ not started |
+| M0 | Read TRIPLEX-GHG and IBIS-CH4 papers; extract their parameter values | ☑ **done** (2026-08-21) — see §4.11 |
 | M1 | Inundated fraction + water table depth diagnostic | ☑ **done** (2026-08-25) — `io/wad2m.py`, `bgc/methane.py`, 18 tests |
 | M2 | **M-lite**: production only (`f_inund · r_CH4 · Rh · Q10`) | ☐ not started |
 | M3 | Evaluate M-lite: FLUXNET-CH4 + global total | ☐ not started |
@@ -263,8 +263,8 @@ inside this module.
 
 | Symbol | Meaning | Init | Calibrate? | Source |
 |---|---|---|---|---|
-| `r_CH4` | CH₄:CO₂ production ratio | 0.20 | **yes — primary** | CLM5 `f_CH4`; TRIPLEX-GHG top sensitivity |
-| `Q10p` | production Q₁₀ | 3.0 | **yes — primary** | TRIPLEX-GHG top sensitivity (CLM5 uses 2.0) |
+| `r_CH4` | CH₄:CO₂ production ratio | **0.23** | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean (range 0.1–0.7) across 19 sites. Supersedes CLM5's 0.20 — TRIPLEX-GHG is built on IBIS, so its calibration is the closer prior. |
+| `Q10p` | production Q₁₀ | **2.48** | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean (range 1.6–4.5) across 19 sites. Supersedes the earlier guess of 3.0. |
 | `T_ref` | production reference T | 295.15 K | no | CLM5 `T_B = 22 °C` |
 | `sat_crit` | saturation defining "wet" | 0.95 | maybe | guess |
 | `z_max` | max diagnosed WT depth | 4.0 m | no | soil column depth |
@@ -284,11 +284,125 @@ inside this module.
 
 | Dataset | Purpose | On NAS? |
 |---|---|---|
-| WAD2M / GIEMS-2 / SWAMPS inundated fraction | `f_inund` (Phase 1) | ☑ WAD2M v2.0 2000–2020, 0.5°, 499 MB |
+| **WAD2M v2.0** inundated fraction | `f_inund` (Phase 1) | ✅ **acquired 2026-08-21, reader written 2026-08-25** — `inputs/methane/wad2m/`, 499 MB, `Fw(time=252, lat=360, lon=720)`, monthly 2000–2020, **already on IBIS's 0.5° grid** (lat −89.75→89.75, lon −179.75→179.75). Read by `ibis/io/wad2m.py`; the half-cell centre-vs-corner offset is asserted, not assumed |
 | FLUXNET-CH4 | site evaluation | ☐ to check |
 | Global Methane Budget 2025 ensemble | global benchmark | ☐ to check |
 | Soil pH map (optional) | `f_pH` | ☐ to check |
 | Compound topographic index (Phase 2 only) | TOPMODEL | ☐ not needed yet |
+
+### 4.9 Provenance audit (2026-08-12)
+
+Same audit applied to `FIRE.md` §4.4b. Three tiers of confidence — **the tiering
+decision in §4.0 currently rests on the weakest tier**, which must be fixed before
+it is defended anywhere.
+
+**✅ Verified against CTSM source** (`ch4Mod.F90`, fetched and read):
+
+| Claim | Where |
+|---|---|
+| `vmax_ch4_oxid = 45e-6·1000/3600` = 1.25e-5 mol m⁻³ s⁻¹ | `:1406`, hardcoded |
+| `k_m = 5e-6·1000` = 5e-3 mol m⁻³ | `:1418`, hardcoded |
+| 35 parameters in `params_type` | declaration block |
+| Production/oxidation/aeration/ebullition/transport are separate routines | `ch4_prod :2324`, `ch4_oxid :2679`, `ch4_aere :2832`, `ch4_ebul :3202`, `ch4_tran :3345` |
+| CLM ships a **prescribed-inundation stream** | `use ch4FInundatedStreamType` `:41` |
+| `f_sat = 0.95`, `atmch4 = 1.7e-6`, `rob = 3` | values given in declaration comments |
+
+⚠ **Most CLM CH₄ parameters are *not* in the source** — they are read from a netCDF
+parameters file (`readParams`, `:1325`). So `f_ch4`, `q10ch4`, `q10_ch4oxid` and
+others come to us from the tech note, not from code.
+
+**⚠ Secondary source only — CLM5 tech note web page**, not verified against the
+params file: `f_ch4 = 0.2`; `q10ch4 = 2.0` at `T_B = 22 °C`; the pH factor
+`10^(−0.2235pH² + 2.7727pH − 8.6)`; aerenchyma porosity 0.3 grass / 0.1 woody;
+ebullition trigger at 15 % of local pressure; the seasonal inundation factor `S`
+with `β = 0.2`. Reasonable — a tech note documents the shipped defaults — but they
+should be confirmed against `ctsm_paramfile` before publication.
+
+**⚠⚠ Search-summary only — NOT yet read in the primary paper.** These are load
+bearing and the weakest link in the whole design:
+
+| Claim | Used to justify | Risk if wrong |
+|---|---|---|
+| WetCHARTs: decomposition rate + wetland extent = **>80 % of uncertainty** | **The entire M-lite-first tiering and the stop rule (§4.0)** | If oxidation/transport matter more than stated, M-lite is the wrong starting point |
+| TRIPLEX-GHG: `r` (CH₄:CO₂) and `Q10` are the **dominant sensitivities** | Choice of the two primary calibration knobs (§4.7) | We would calibrate the wrong parameters |
+| Gedney et al. 2004 is a **~3-parameter** scheme still used as the JULES default | The claim that a very light scheme is competitive | Weakens the light-model argument |
+| 16-model review: only **25 %** represent ebullition adequately | Decision to "do ebullition properly" (§4.4) | Minor — the cost is ~10 lines either way |
+| Global wetland CH₄ **153 (136–168) Tg yr⁻¹** | The global evaluation target (§6) | Wrong benchmark |
+
+**Action before M1:** read Bloom et al. (2017) and Zhu et al. (2014) in full and
+replace the two top rows with verified numbers. This is the M0 stage already in the
+build plan — the audit confirms M0 is not optional.
+
+**Not applicable:** no IBIS Fortran counterpart exists to verify against (§2.1),
+and no public JAX/Python implementation of any wetland CH₄ scheme was found.
+
+### 4.11 M0 — load-bearing claims verified against the primary papers (2026-08-21)
+
+Both claims the design rests on were checked in the published articles, not in
+search summaries. **Both hold**, and the second returned better priors than we had.
+
+**WetCHARTs — verified verbatim.** Bloom et al. (2017), *Geosci. Model Dev.* 10,
+2141, abstract:
+
+> "uncertainties in carbon decomposition rates and the wetland extent together
+> account for more than 80 % of the dominant uncertainty in the timing,
+> magnitude and seasonal variability in wetland CH₄ emissions"
+
+This is the sentence the whole **M-lite-first tiering and stop rule** (§4.0)
+depend on. It stands as quoted. Their ensemble varies satellite-derived surface
+water extent, precipitation reanalyses, **nine** heterotrophic-respiration
+simulations and **three** temperature-dependence parameterisations — i.e.
+exactly the two terms M-lite already contains.
+
+**TRIPLEX-GHG — verified, and it upgraded our parameters.** Zhu et al. (2014),
+*Geosci. Model Dev.* 7, 981, abstract:
+
+> "the most sensitive parameters to evaluate CH₄ emission processes from
+> wetlands are *r* (defined as the CH₄ to CO₂ release ratio) and *Q*₁₀ in the
+> CH₄ production process"
+
+and it gives **calibrated values**, which our first draft did not have:
+
+| parameter | calibrated mean | range | basis |
+|---|---|---|---|
+| `r` (CH₄:CO₂) | **0.23** | 0.1 – 0.7 | 19 sites, ~35 studies |
+| `Q₁₀` | **2.48** | 1.6 – 4.5 | 19 sites, ~35 studies |
+
+§4.7 now uses these instead of CLM5's `f_CH4 = 0.2` and a guessed `Q10 = 3.0`.
+**TRIPLEX-GHG is built on IBIS**, so its calibration is the closer prior — and
+the published ranges give F6-style optimisation sensible bounds rather than
+arbitrary ones.
+
+Still not read in full: the mechanism of TRIPLEX-GHG's water-table module, and
+IBIS-CH4 (Xiao et al. 2024) — paywalled at Wiley, though reachable through the
+UW–Madison library. Neither is on M2's critical path now that the priors are in
+hand.
+
+### 4.10 Second audit — assumptions about IBIS itself (2026-08-12)
+
+Ran alongside `FIRE.md` §4.4c, which found a 1000× unit error in the fire design.
+The same class of error is the main risk here, so units were checked first.
+
+| # | Assumption | Reality | Impact |
+|---|---|---|---|
+| 1 | `tco2mic` may only be an annual diagnostic (§7 open question 3) | ✅ **Resolved — it is a per-timestep field.** `VegetationState.tco2mic` (`state/vegetation.py:66`), computed in `physics/biogeochem.py:235`. | **M2 needs no plumbing work.** The open question is closed. |
+| 2 | Rh units | `tco2mic` is **mol CO₂ m⁻² s⁻¹**. `timestepping/loops_gswp3.py:414-415` already converts: `rh_day = tco2mic × 12.0e-3 × 86400` → **kgC m⁻² d⁻¹**. | §4.2 said "gC m⁻² d⁻¹". **Pick one and state it in code.** Reuse the existing conversion rather than writing a second one — the fire module's 1000× near-miss came from exactly this. |
+| 3 | Per-cell root profile for plant transport (§4.4 `f_root`) | ⚠ **`froot` has no `npoi` dimension**: `Float[Array, "nsoilay 2"]`, shape (6, 2) (`state/vegetation.py:44`). Root fraction is **spatially uniform** in the port, upper/lower canopy only. | Plant-mediated transport cannot vary by cell through `froot`. Either scale by `lai` (which *is* per-cell) or accept a uniform profile. **Decide at M3, do not assume.** |
+| 4 | Soil layers 0.10/0.15/0.25/0.50/1.00/2.00 m, 4 m total | ✅ Confirmed — `fortran/params.soi:33-38`, read via `readpars.f:221`. | Layer weighting `w_rh[k]` can be built on these as stated. |
+
+| 5 | `sat[k] = wsoi·(1−wisoi)` is the liquid saturation | ✅ **Correct, but subtle — document the reasoning.** `wsoi` and `wisoi` are both described as "fraction of soil pore space" (`comsoi.h:41-42`), which reads as if they simply add. They do not. IBIS's own combination is `water = wisoi + (1−wisoi)·wsoi` (`stats.f:1175`), i.e. **`wsoi` is the liquid fraction of the *ice-free* pore space.** So liquid-of-total-pore-space is `(1−wisoi)·wsoi` ✓ and total water is `wisoi + (1−wisoi)·wsoi`. | Writing `wsoi + wisoi` or `wsoi` alone would be wrong and would look right. We deliberately use **liquid only** (ice neither supports methanogenesis nor moves), with freeze gating `f_frz` on top — but this must be stated, not left implicit. |
+
+Also inherited from the fire audit and relevant here: IBIS **does** carry
+`rh(npoi)` and `ua(npoi)` (`comatm.h:21,25`) — more forcing is available than the
+first draft assumed, should any CH₄ term want it.
+
+**Data availability (checked 2026-08-12):** none of WAD2M / GIEMS-2 / SWAMPS /
+FLUXNET-CH4 is present anywhere under `/shared/nas2`, `/shared/nas` or
+`/home/hangkai`. The WIEMIP input tree reserves empty slots for `crujra`, `ndep`,
+`ozone` and `population` but not for inundation. **M1 is blocked on acquiring an
+inundation product** — unlike the fire module, nothing usable is already on disk.
+(For contrast, fire found 19 GB of MCD64A1 burned area on the same NAS; see
+`FIRE.md` §4.4d.)
 
 ---
 
@@ -383,8 +497,9 @@ deep peat" or quantify the bias. Do not leave it implicit.
    *Undecided.*
 2. Which inundation product? WAD2M, GIEMS-2 and SWAMPS disagree substantially and
    this is the largest single lever on our global total.
-3. Is `tco2mic` exposed at the timestep level, or only as an annual diagnostic
-   (`ayco2mic`)? Determines whether M2 needs plumbing work in `biogeochem.py`.
+3. ~~Is `tco2mic` exposed at the timestep level?~~ **CLOSED 2026-08-12** — it is a
+   per-timestep field on `VegetationState` (`state/vegetation.py:66`) and an
+   existing unit conversion lives at `loops_gswp3.py:415`. No plumbing needed.
 4. Depth weighting `w_rh[k]` — derive from IBIS's soil C profile, from `froot`,
    or fit? IBIS's CENTURY does not resolve soil C by layer, which may force a
    prescribed exponential profile.
