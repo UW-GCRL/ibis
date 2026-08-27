@@ -263,7 +263,7 @@ inside this module.
 
 | Symbol | Meaning | Init | Calibrate? | Source |
 |---|---|---|---|---|
-| `r_CH4` | **gross** CH₄:CO₂ production ratio | **0.23** (bounds 0.10–0.70) | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean, 19 sites — **restored as gross** now that M-lite⁺ carries an explicit `exp(−z/τ)` oxidation term (§5f). Consistency check: 0.23 × ~0.30 surviving fraction ⇒ net ≈ 0.07, matching CLASSIC's net 0.061 and CLM's 0.20 × 0.30 = 0.06 independently. |
+| `r_CH4` | **gross** CH₄:CO₂ production ratio | **0.23** (bounds **0.10–0.30**) | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean, 19 sites — **restored as gross** now that M-lite⁺ carries an explicit `exp(−z/τ)` oxidation term (§5f). Consistency check: 0.23 × ~0.30 surviving fraction ⇒ net ≈ 0.07, matching CLASSIC's net 0.061 and CLM's 0.20 × 0.30 = 0.06 independently. |
 | `Q10p` | production Q₁₀ | **2.48** | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean (range 1.6–4.5), 19 sites — and independently corroborated by FLUXNET-CH₄'s annual-flux Q₁₀ of **2.57**. Keep. Note three models (JULES, WETMETH, CLASSIC) make Q₁₀ *decline* with temperature and Zhu et al. 2025 reports constant-Q₁₀ forms bias against FLUXNET-CH₄; a temperature-dependent form is an M7 test, not an M2 default. |
 | `T_ref` | production reference T | 295.15 K | no | CLM5 `T_B = 22 °C` |
 | `sat_crit` | saturation defining "wet" | 0.95 | maybe | guess |
@@ -914,6 +914,69 @@ McNicol et al. (2023), the UpCH4 paper:
 
 Multi-site joint calibration through a differentiable model is exactly that, and
 the tooling gap they name is the one the JAX port has already closed.
+
+### Sensitivity analysis independently picks our two parameters
+
+**Chinta et al. (2024, JAMES)** ran Sobol sensitivity on **19 ELM CH₄
+parameters across 14 FLUXNET-CH₄ sites**:
+
+> "The production parameters Q₁₀ and f_CH4 emerged as sensitive parameters for
+> production **at all sites**."
+
+The top 5–6 parameters account for **> 90 % of emission variance**, and
+**13–14 are consistently negligible**. Their published sampling ranges are
+tighter than the ones we had:
+
+| parameter | ELM default | Chinta range | ours |
+|---|---|---|---|
+| Q₁₀ | 2 | **[1.5, 4]** | 2.48, bounds 1.6–4.5 |
+| f_CH4 | 0.2 | **[0.1, 0.3]** | 0.23, bounds 0.10–0.70 |
+
+Two independent lines — TRIPLEX-GHG's own sensitivity analysis (M0) and a Sobol
+decomposition of a *different* model — select the same two parameters. That is
+about as good a justification for a two-parameter primary calibration as this
+field offers.
+
+**We should tighten `r_CH4`'s upper bound from 0.70 to ~0.30.** TRIPLEX-GHG's
+0.1–0.7 is the spread of its per-site fits; ELM's [0.1, 0.3] is a considered
+sampling range, and the multi-model convergence (below) sits at 0.10–0.23.
+
+### Two constraints on Q₁₀ worth recording
+
+**Walter & Heimann's original production Q₁₀ is 6**, and it is the root of the
+whole LPJ/CLM/TRIPLEX/VISIT/ORCHIDEE family. **Ringeval et al. dropped it to ~3**
+on the explicit argument that 6 conflates substrate production with
+methanogenesis, and that **methanogenesis-only studies report 1.2–3.5**.
+
+Our 2.48 sits comfortably inside that range, and is independently matched by
+FLUXNET-CH₄'s annual-flux Q₁₀ of 2.57. Ringeval's per-band optima are worth
+keeping for a future latitude-varying test: **2.60 boreal / 3.20 temperate /
+1.20 tropical**.
+
+### The 0.1 convergence, confirmed and slightly corrected
+
+Salmon et al. compare `q_MG` (CO₂:CH₄, so the inverse) across models directly:
+LPJ-WHyMe 10, **CLM4Me 5**, Khvorostyanov 9, Morel 10 — i.e. CH₄:CO₂ of 0.10,
+**0.20**, 0.11, 0.10. ORCHIDEE-PCH4's own multi-site posterior is
+**q_MG = 9.64 ± 0.8 ⇒ f_ch4 = 0.104**. So the clustering at ~0.1 is real and
+CLM's 0.2 is genuinely the outlier — which makes TRIPLEX-GHG's 0.23 the *high*
+end of the credible gross range, not the centre.
+
+### Corrections to §5e's table
+
+* **ORCHIDEE-MICT and ORCHIDEE-PEAT have no CH₄ module at all** — verified by
+  full-text search. Qiu et al. 2019: "CH₄ and dissolved organic carbon (DOC) are
+  not yet included in the model." ORCHIDEE-PCH4 is a *branch* of PEAT.
+* **There are two non-overlapping ORCHIDEE CH₄ lineages and GCP uses the older
+  one** — every GCP release cites Ringeval et al. (2011), the Walter–Heimann
+  lineage, which has **no CH₄:CO₂ ratio at all**. Only PCH4 has one.
+* **GCP's headline configuration changed between budgets**: Saunois et al. 2020
+  reported the **diagnostic** ensemble at 148 [101–179]; Saunois et al. 2025
+  reports the **prognostic** ensemble at 157 [117–195]. When comparing against
+  "the GCP bottom-up wetland number", state which.
+* Walter & Heimann (2000) itself is paywalled; its constants above come from
+  Part 2 and from restatements in TRIPLEX-GHG and PEATLAND-VU — mutually
+  consistent but **second-hand**.
 
 ### Provenance of this section — what is verified and what is not
 
