@@ -1153,6 +1153,118 @@ model on the same extent product.
 * **Xiao et al.'s site-level R²/RMSE** need manual retrieval through the UW
   library (Wiley blocks automated access) before being cited.
 
+## 5h. Challenges to the §5f decision — recorded, not buried
+
+The last research thread returned material that pushes against parts of §5f.
+Written down so the decision is held with the right confidence.
+
+### 1. Chinta's seasonal result, which I missed on first reading
+
+§5g reported that Q₁₀ and `f_CH4` are the top sensitivity parameters. True of
+the **20-year annual mean**. The seasonal breakdown says something else:
+
+> Q₁₀ and f_CH4 dominate only in **cold months** (Dec–Mar at CH-Cha, Nov–Jun at
+> SE-Deg); in the remaining months sensitivity shifts to **`f_D0` (diffusion
+> multiplier) and `K_O2`** — neither of which is dominant in the annual mean.
+> **Annual averaging hides them.**
+
+`f_D0` is diffusion, which §5f removed from the plan. Two readings:
+
+* **Against the decision**: dropping transport may cost more in the warm season
+  than Chadburn's seasonal-mean correlation reveals.
+* **For it, and I think this is right**: M-lite⁺ has no resolved diffusion, so
+  **`τ_oxid` plays exactly the role `f_D0`/`K_O2` play in ELM** — it is the
+  single knob controlling how much produced CH₄ escapes. That it dominates in
+  warm months is *consistent* with WETMETH's finding that `τ_oxid` is its most
+  sensitive parameter by a wide margin (±10 % → ±37 % global).
+
+**Actionable consequence**: evaluate M3 **by season, not on annual means**, and
+expect `τ_oxid` to carry the warm-season skill. If a single constant `τ_oxid`
+underperforms in summer, that — not ebullition — is the first thing to relax.
+
+Also: Chinta's method was **Gaussian process regression, not gradient boosting**,
+on **14 sites × 190 LHS simulations**, not 20 sites × 1024 members. §5g's
+description came from a secondary source and was wrong on both.
+
+### 2. The fixed CH₄:CO₂ ratio is under sustained, explicit attack
+
+Three independent lines, all 2025–26:
+
+* **Moser et al. (2026, BG 23, 605)** — observed ratios span orders of
+  magnitude: Knoblauch et al. CO₂:CH₄ = 0.92 ± 0.18 in permafrost incubations
+  (after a multi-year lag while methanogen communities establish); Heslop et al.
+  13–134 by depth; Galera et al. in-situ medians of **12 and 373** by tundra
+  type. Minimum defensible representation: fermentation + acetoclastic +
+  hydrogenotrophic methanogenesis.
+* **Yvon-Durocher et al. (2014)** — methanogenesis activation energy **0.98 eV**
+  vs general respiration **0.65 eV**. Any model applying one Q₁₀ to R_h and
+  taking CH₄ as a fixed fraction has this wrong by construction.
+* **SatWetCH4 (2025)** deliberately uses **no ratio at all**, and the ES&T 2025
+  synthesis finds a **median 24.8-day lag** between GPP and CH₄ — a lag an
+  instantaneous `R_h × f_CH4` form cannot produce.
+
+**This does not overturn M-lite⁺** — a fixed ratio remains what most operational
+models use, and our M4 tier (microbial dormancy) is the cheap partial answer.
+But it is the **strongest stated limitation of the design** and belongs in any
+manuscript's discussion, not just its appendix.
+
+### 3. A globally uniform Q₁₀ is not defensible
+
+**Basso et al. (2026, BG 23, 2815)** — JSBACH + Jena CarboScope inversion over
+the Arctic. Best pan-Arctic Q₁₀ = 1.8, **but Western Siberia is best at 1.4 and
+Europe / northern Canada at 2.2**. Their conclusion is explicit: regionally
+specific parameters are required.
+
+This corroborates TRIPLEX-GHG's biome split (§5g: boreal 2.03 / temperate 2.66 /
+tropical 3.75) from a completely different model and method. **Two independent
+lines now say a single global Q₁₀ is wrong** — which strengthens the case for
+dPL-style regionalisation at M7 rather than a single global fit.
+
+### 4. Extent may matter less than §5d implies
+
+Measured sensitivity of the global total to the extent *product* is roughly
+**5 Tg** (GMB diagnostic ↔ prognostic) against an **~80 Tg inter-model range**.
+And GMB 2025 **switched its headline from the diagnostic (prescribed WAD2M) to
+the prognostic ensemble**, precisely because of the post-2015 tropical
+discontinuity.
+
+That is in tension with §5d's framing and with WetCHARTs' ">80 % is extent +
+carbon". The reconciliation: **within one model**, swapping extent products
+moves the total less than **across models**, structural differences do. Both
+statements are true; they answer different questions. WetCHARTs varied extent
+*within a fixed structure*, which is our situation.
+
+**Our Phase-1 prescribed-extent decision still holds** — Liu et al. 2026 found
+the diagnostic run beat the prognostic for 7 of 11 models — but the justification
+is "prognostic hydrology is not better and costs a module", not "extent is the
+dominant uncertainty".
+
+### 5. A genuinely open niche, if we want one
+
+> Nobody has run **one** model across WAD2M v2 / GIEMS-MC_ISW / GIEMS-MC_ISW+P /
+> GLWD v2-scaled over the same period and reported ΔTg.
+
+**GIEMS-MC** (Bernard et al. 2025, ESSD 17, 2985) is new and well suited: monthly
+**1992–2020** (29 years vs WAD2M's 21), and it ships **two** variables —
+inundated+saturated (MAmax 3.80 Mkm²) and +peatland (7.75 Mkm²). Its spatial
+correlation with WAD2M is only **0.61**, so the two disagree regionally while
+agreeing globally — Africa differs by a factor of 2.4.
+
+A differentiable model makes that experiment cheap: refit `r_CH4`, `Q10p`,
+`τ_oxid` under each extent product and report both ΔTg *and* Δparameters. **The
+parameter shift is the more interesting number**, and it is exactly what
+gradient calibration makes affordable.
+
+### The recurring theme in every thread
+
+**The tropics.** FLUXNET-CH₄ has 6–7 sub/tropical sites; UpCH4's tropical NSE is
+−0.12; SWAMPS is discontinuous there since 2015; GIEMS-MC misses the Congo by an
+order of magnitude; SatWetCH4's RMSD is 5× worse there than boreal. Every
+methodological family fails in the same place, and ~70 % of the flux is there.
+
+**Do not report a global total without a tropical caveat.** It is the one thing
+every paper in this literature has in common.
+
 ## 5b. Build log
 
 ### 2026-08-25 — M1 done
