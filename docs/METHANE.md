@@ -34,10 +34,10 @@ biogeochemistry while inheriting the same extent uncertainty buys almost nothing
 |---|---|---|
 | M0 | Read TRIPLEX-GHG and IBIS-CH4 papers; extract their parameter values | ☑ **done** (2026-08-21) — see §4.11 |
 | M1 | Inundated fraction + water table depth diagnostic | ☑ **done** (2026-08-25) — `io/wad2m.py`, `bgc/methane.py`, 18 tests |
-| M2 | **M-lite**: production only (`f_inund · r_CH4 · Rh · Q10`) | ☐ not started |
+| M2 | **M-lite⁺**: `f_inund · r_CH4 · Rh · Q10^((T−T_ref)/10) · exp(−z/τ)` — production **and** one-parameter oxidation | ☐ next — see §5f |
 | M3 | Evaluate M-lite: FLUXNET-CH4 + global total | ☐ not started |
-| M4 | **M-mid**: + oxidation, + upland sink — *only if M3 shows systematic bias* | ☐ not started |
-| M5 | **M-full**: + ebullition, plant transport, diffusion — *only if pathway partitioning is needed* | ☐ not started |
+| M4 | **microbial growth/dormancy** (2 params) — the only added process with a replicated skill gain; *only if M3 shows seasonal bias* | ☐ not started |
+| M5 | ~~ebullition, plant transport, diffusion~~ — **removed from the plan** (§5f); reinstate only for a question needing pathway partitioning | ✗ dropped |
 | M6 | Global evaluation vs Global Methane Budget 2025 | ☐ not started |
 | M7 | Differentiable calibration of `r_CH4`, `Q10p` (+ `Vmax` if M-mid) | ☐ not started |
 
@@ -263,7 +263,7 @@ inside this module.
 
 | Symbol | Meaning | Init | Calibrate? | Source |
 |---|---|---|---|---|
-| `r_CH4` | CH₄:CO₂ ratio — **net** in M-lite, **gross** from M4 | **0.13** (M-lite, net) → 0.23 (M4+, gross) | **yes — primary** | ⚠️ **Corrected 2026-08-27, see §5e.** TRIPLEX-GHG's calibrated 0.23 (range 0.1–0.7, 19 sites) is a **gross** ratio with oxidation removed separately; M-lite has no oxidation term, so it needs a **net** ratio. Net comparators: CLASSIC δ_s 0.135, LPX-Bern tropics 0.024–0.0415. Independent groups converge on ~0.1 for the anoxic:oxic rate ratio (LPJ-WHyMe 0.10, ORCHIDEE q_MG 10, LPJmL6 r_k 0.1); LPJ-GUESS's 14-site MCMC posterior is 0.14 ± 0.007. Restore 0.23 only once M4 adds explicit oxidation. |
+| `r_CH4` | **gross** CH₄:CO₂ production ratio | **0.23** (bounds 0.10–0.70) | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean, 19 sites — **restored as gross** now that M-lite⁺ carries an explicit `exp(−z/τ)` oxidation term (§5f). Consistency check: 0.23 × ~0.30 surviving fraction ⇒ net ≈ 0.07, matching CLASSIC's net 0.061 and CLM's 0.20 × 0.30 = 0.06 independently. |
 | `Q10p` | production Q₁₀ | **2.48** | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean (range 1.6–4.5), 19 sites — and independently corroborated by FLUXNET-CH₄'s annual-flux Q₁₀ of **2.57**. Keep. Note three models (JULES, WETMETH, CLASSIC) make Q₁₀ *decline* with temperature and Zhu et al. 2025 reports constant-Q₁₀ forms bias against FLUXNET-CH₄; a temperature-dependent form is an M7 test, not an M2 default. |
 | `T_ref` | production reference T | 295.15 K | no | CLM5 `T_B = 22 °C` |
 | `sat_crit` | saturation defining "wet" | 0.95 | maybe | guess |
@@ -657,7 +657,7 @@ oxidation sits inside or outside the ratio.**
 | LPJ-GUESS (14-site MCMC posterior) | **0.14 ± 0.007** | outside |
 | ORCHIDEE-PCH4 | 0.10 (`q_MG`=10) | outside |
 | **TRIPLEX-GHG / IBIS-CH4** | **0.23** | **outside** (single MM in CH₄) |
-| **CLASSIC** | **0.135** | **INSIDE — net emission factor** |
+| **CLASSIC** | δ_s 0.135 × α_w 0.45 = **0.061 net** (code: 0.029–0.046) | **INSIDE — net emission factor** |
 | JULES | folded into `k_CH4` | **inside** |
 | LPX-Bern tropics | 0.024–0.0415 | inside (net) |
 | VISIT | 0.50 | outside |
@@ -693,7 +693,7 @@ is therefore the consensus position, not a low-balled guess.
 | CLM/ELM | 2, but **additional** to decomposition's 1.5 ⇒ effective ≈ **3.0** |
 | JULES | 3.7 at 273.15 K, **declining** as 3.7^(T₀/T) |
 | WETMETH | 4.2, **declining** as 1.7 + 2.5·tanh[0.1(308.15−T)] |
-| CLASSIC | **3.22 − 0.046·T**, clipped [1.5, 4.0] |
+| CLASSIC | **1.44 + 0.56·tanh[0.075(46−T)]** ≈ **2.0** below 20 °C |
 | LPJ-WHyMe / LPJ-GUESS | **none** — Lloyd & Taylor on decomposition only |
 
 Three models make Q₁₀ *decline* with temperature; Zhu et al. (2023, L&O Letters)
@@ -705,6 +705,57 @@ across FLUXNET-CH4 because the real temperature response is hysteretic".
 on the closest model and independently matched by FLUXNET-CH₄'s 2.57. But a
 constant Q₁₀ is a known, named limitation, and M7 should test whether a
 temperature-dependent form earns its place.
+
+### Correction to the correction (same day) — the ratio has *three* denominators
+
+The follow-up research corrected two things in what is written above, and one of
+them corrects a number I had already written into §4.7 an hour earlier. Recorded
+in full because this is now the **second** time ratio comparability has bitten.
+
+**1. "CH₄:CO₂ ratio" is not one axis. It has at least three denominators:**
+
+| model | what the ratio is *of* | conversion |
+|---|---|---|
+| CLM, LPJ-WHyMe, CLASSIC | **molar CH₄:CO₂** | direct |
+| **JSBACH `f_CH4`** | fraction of anaerobically mineralised **carbon atoms** | 0.35 ⇒ CH₄:CO₂ ≈ **0.54**; 0.24 ⇒ ≈0.32 |
+| HIMMELI `f_m` | fraction of **anoxic respiration** | — |
+| WETMETH `r` | specific rate on the **carbon pool** | not on this axis at all |
+
+So JSBACH is not 3–5× CLASSIC as a naive reading of the table above suggests.
+**Roughly half the published `f_ch4` values need transformation before they can
+be compared at all** — once for the denominator, once for gross-vs-net.
+
+**2. CLASSIC's net ratio is 0.061, not 0.135.** The formulation is
+`E_w = R_h · f_w · α_w · δ_s`, so the effective net ratio is
+**δ_s 0.135 × α_w 0.45 = 0.061** (paper). The shipped code uses δ_s = 0.125 and
+α_w = 0.23/0.37/0.23 by latitude band ⇒ **0.029–0.046**, undocumented in any
+paper. Calibration history: 0.25 → 0.16 → 0.125.
+
+**3. CLASSIC's production Q₁₀ is ≈2.0, not 3.22−0.046·T** — that expression is
+CTEM's *maintenance respiration* Q₁₀. The heterotrophic one is
+`1.44 + 0.56·tanh[0.075(46−T)]`.
+
+**4. JULES has ~10–12 parameters, not 3**, and a `ch4_substrate` switch that
+resolves the 3.7-vs-2 Q₁₀ confusion: with soil carbon as substrate (default) the
+pool is time-invariant so the whole sensitivity (3.7) sits on the CH₄ term; with
+soil respiration as substrate the substrate already carries Q₁₀ = 2.0 and only
+1.5 is added. **The options are not temperature-interchangeable.**
+
+**Consequence for §4.7.** My earlier entry set M-lite's net `r_CH4` = 0.13 by
+treating CLASSIC's 0.135 as a net ratio. It is not — the net value is 0.061.
+The defensible net comparators are:
+
+```
+CLASSIC (paper)        0.061
+CLASSIC (code)         0.029 - 0.046
+LPX-Bern tropics       0.024 - 0.0415
+gross 0.10-0.23 with ~50 % oxidation  ->  0.05 - 0.12
+```
+
+**A net prior near 0.06–0.08 with wide bounds, not 0.13.** And the honest
+framing is that `r_CH4` in M-lite is an *effective* parameter absorbing
+production, oxidation and transport at once — it is the primary calibration
+target precisely because no published value transfers cleanly into this form.
 
 ### Structural landscape
 
@@ -743,6 +794,178 @@ LPJmL6, CLM, TRIPLEX-GHG, VISIT and ORCHIDEE.
 2. **CLM's Michaelis–Menten constants are hardcoded in current CTSM master** —
    the netCDF reads for `k_m`, `vmax_ch4_oxid` etc. are commented out, so
    editing the params file silently does nothing.
+
+## 5f. DECISION (2026-08-27): M-lite becomes M-lite⁺, and the tiers are re-cut
+
+### The decisive experiment
+
+**Chadburn et al. (2020), GBC 34, e2020GB006678** is a controlled ablation, not
+a model intercomparison — which makes it worth more than everything in §5c.
+They ran CLM5/CLM4Me (explicit O₂ transport, Michaelis–Menten oxidation
+co-limited by O₂ and CH₄, ebullition, aerenchyma, aqueous and gaseous diffusion)
+against **CLM-prod.only** — CLM's own production, with JULES's single
+`exp(−τz)` factor substituted for *all* of that machinery:
+
+> "The correlation coefficient of the weekly mean methane emissions in CLM and
+> CLM-prod.only is between **0.94 and 0.98 (R² 0.89–0.97)**. Thus, we conclude
+> that including transport and oxidation processes … **does not significantly
+> improve the predictive power of the model on a seasonal time scale**"
+
+and from the abstract: **"a more complex scheme used in recent Earth system
+models does not add predictive power."**
+
+One scalar reproduces CLM's entire kinetic scheme to R² ≥ 0.89. Corroborated by
+McNorton et al. (2016, GRL), by King et al. (1998) — aerenchyma changes
+*magnitude* but not *dynamics* — and by LPJ-Bern/LPJ-WSL, which ignore oxidation
+and transport entirely and were not WETCHIMP outliers.
+
+### The design this implies, and how it reconciles the ratio mess
+
+```
+F = f_inund · r_CH4 · Rh · Q10p^((T − T_ref)/10) · exp(−z_oxic / τ_oxid)
+```
+
+Gedney's production form with WETMETH's one-parameter exponential oxidation.
+**Four fitted parameters**: `r_CH4`, `Q10p`, `τ_oxid`, and `lai_ref`-style
+scaling if needed. `z_oxic` comes from M1's water-table diagnostic, which is
+already built and tested.
+
+**This resolves the CH₄:CO₂ confusion that bit twice today.** With an explicit
+oxidation factor, `r_CH4` is a **gross** ratio again — so TRIPLEX-GHG's 0.23 is
+the correct prior after all, and the net comparators become a *consistency
+check* rather than the target:
+
+```
+gross 0.23  x  exp(-z/tau) at Chadburn's tau = 6.5  (~70 % oxidised)
+   ->  net ~0.07
+   vs CLASSIC net 0.061, LPX-Bern tropics 0.024-0.0415     <- agrees
+   vs CLM gross 0.20 x 0.30 = 0.06                          <- agrees
+```
+
+Four independent formulations land on a net ratio of 0.06–0.07. **That
+agreement is the strongest single piece of evidence in this whole review**, and
+it only becomes visible once oxidation is separated out. §4.7 reverts to
+`r_CH4` = 0.23 gross, with the net value as a derived diagnostic to check.
+
+### Re-cut tiers
+
+| was | now | why |
+|---|---|---|
+| M2 = production only | **M2 = M-lite⁺: production × Q₁₀ × f_inund × exp(−z/τ)** | one extra parameter buys CLM-equivalent skill (Chadburn R² 0.89–0.97) |
+| M4 = oxidation kinetics + upland sink | **M4 = microbial growth/dormancy** | the *only* added process with a documented, replicated skill gain: seasonal-cycle RMSE improves at **6 of 7 sites** (Chadburn), and it reconciles the seasonal-vs-spatial Q₁₀ discrepancy. JULES-microbe adds just **2** fitted parameters |
+| M5 = ebullition, plant transport, diffusion | **M5 = deferred indefinitely** | Chadburn, McNorton 2016 and King 1998 all say these change magnitude, not dynamics — and magnitude is absorbed by a scalar we calibrate anyway. Zhang et al. 2023 shows the sub-15-day band where ebullition lives is unresolved by *all* models regardless of complexity |
+| M7 = differentiable calibration | **M7 = unchanged, and it is the novel contribution** | see below |
+
+Michaelis–Menten oxidation kinetics, multi-layer O₂ diffusion, aerenchyma and
+ebullition are **removed from the plan**, not merely deferred. Reinstating any of
+them now requires a specific science question that needs pathway partitioning.
+
+### The novelty claim, stated narrowly enough to survive review
+
+Systematic search (OpenAlex plus targeted review reading) found:
+
+* `differentiable AND wetland` — **0 relevant works**
+* `"differentiable parameter learning"` — **47 works, 100 % hydrology**
+* of the **432 works citing Shen et al. (2023)**, the field's authoritative
+  differentiable-modelling review, a methane keyword search returns **10 hits,
+  none of which is a methane study** (water quality, groundwater, CARDAMOM, a
+  lake model, river nitrogen, DSSAT). *Stated precisely: no methane-focused work
+  has picked up the differentiable-modelling framework. An earlier draft of this
+  section said "zero mention methane", which overstated what the query ran.*
+* Raoult et al. (2025, JAMES 17), the current review of LSM parameter
+  estimation, lists methane only as a *future* data-stream opportunity
+
+**The telling data point**: ORCHIDAS has a TAF-generated tangent linear and
+normally uses L-BFGS-B for carbon-cycle assimilation — but when the same group
+calibrated **methane**, they switched to a gradient-free **genetic algorithm**
+(Salmon et al. 2022, GMD 15, 2813; 7 parameters, 100 iterations).
+
+Defensible claim: **first end-to-end differentiable land-surface model used for
+gradient-based calibration of methane biogeochemistry parameters.** Not "first
+differentiable land model" — JAX-CanVeg, NoahPy, DifferLand, ADELM and
+clm-ml-jax all landed in 2025–26, and every one stops at water/energy/carbon.
+Not "first gradient-based BGC calibration" — CCDAS adjoints date to 2005.
+
+**The baselines are weak**: Kallingal et al. (2025, BG 22, 4061) needed
+**100 000 MCMC iterations ≈ 480 CPU-hours** for the LPJ-GUESS CH₄ module across
+14 sites. Tsai et al. (2021) report dPL reaching the same RMSE as SCE-UA in
+**9.9 min vs 253 min**, and full-CONUS calibration going from a 100-core cluster
+for 2–3 days to ~40 min on one GPU.
+
+**And there is a badly-conditioned direction that gradients are made for**:
+WETMETH's global emission changes **±37 % for a ±10 % change in τ_oxid**, and
+±77–120 % for ±30 %. Random search and perturbed-parameter ensembles handle that
+regime badly; a Jacobian handles it trivially. Our M-lite⁺ has exactly this
+parameter.
+
+**A controlled precedent in our favour**: Ahmad et al. (2025, GRL 52) found
+differentiable calibration of Noah-MP *via an LSTM surrogate* gave only marginal
+gains and parameters that did not transfer back to the real model. That is a
+**surrogate-gap** failure. A truly end-to-end differentiable IBIS is the
+controlled version of that experiment — we differentiate the model itself.
+
+### Open problem handed to us verbatim
+
+McNicol et al. (2023), the UpCH4 paper:
+
+> "To date, process-based models have yet to use networked data, for instance
+> FLUXNET-CH₄, for multi-site calibration, in part because this approach is more
+> technically challenging than for machine learning models."
+
+Multi-site joint calibration through a differentiable model is exactly that, and
+the tooling gap they name is the one the JAX port has already closed.
+
+### Provenance of this section — what is verified and what is not
+
+This project has been burned repeatedly by claims that turned out to be search
+summaries rather than sources, so the split is recorded explicitly.
+
+**First-hand, read from the paper text or a publisher API:**
+
+* **Everything the decision rests on** — Chadburn et al. 2020 (r 0.94–0.98,
+  R² 0.89–0.97, τ = 6.5, the per-site RMSE table, the "does not add predictive
+  power" quote), Melton et al. 2013 (ρ = 0.898, the equifinality passage), Riley
+  et al. 2011 (factor 4/10 regional/grid-cell, the tuning caveat), Zhang et al.
+  2023 wavelet, the Zhu et al. 2025 ERL quotes.
+* All the scheme equations and parameter values in §5e — Gedney/JULES, WETMETH,
+  WetCHARTs, SatWetCH4, Bloom 2012.
+* All UpCH4 numbers — six predictors, 26 clusters, NSE 0.54/0.53, tropical
+  R² 0.08 / NSE −0.12, IAV NSE −5.11, 146 ± 42.7 → 71.8 ± 22.6 on GIEMS-2, the
+  Sahel 3×, and the "yet to use networked data" quote.
+* 13 identifiers spot-checked against Crossref/arXiv — all resolve, including
+  the 2026 ones.
+
+**Second-hand — real papers, numbers not personally read from the PDF:**
+
+* **Essentially all the quantitative claims in the novelty argument above**:
+  Tsai et al. 9.9 vs 253 min, Feng et al. 0.732 vs 0.748, Aboelyazeed et al.
+  0.763/0.579, Chinta et al.'s 0.72 ms and five-parameter shortlist, Kallingal
+  et al.'s 100 000 iterations / 480 CPU-hours, Ahmad et al.'s RMSE,
+  clm-ml-jax's convergence, Raoult et al.'s adjoint-version claims.
+* X-MethaneWet's 0.92 / 0.55 / 0.09 split; Yuan et al. 2022; Irvin et al. 2021;
+  Peltola et al. 2019's NSE 0.25 and Q₁₀ 1.90; Chang et al. 2021's 77 %.
+
+**Consequence.** The M-lite⁺ decision is safe — it rests entirely on first-hand
+material. **The novelty and speed claims must be verified against the primary
+PDFs before they appear in any manuscript**, exactly as M0 did for WetCHARTs and
+TRIPLEX-GHG.
+
+### Two risks to design around
+
+1. **Upstream fields are load-bearing.** Zhang et al. (2023) wavelet benchmark
+   finds the **production substrate proxy** is what discriminates models, not the
+   transport machinery. M-lite⁺ inherits IBIS's soil temperature, soil carbon and
+   hydrology wholesale — so M3 failures may be IBIS failures, not CH₄ failures,
+   and must be diagnosed as such.
+2. **FLUXNET-CH₄ has a tropical hole**: 6 sites between 20°S and 20°N, ~9 % of
+   training data south of 23°N, against ~70 % of global flux being tropical.
+   UpCH4 assigns the Amazon and Congo — zero towers — to the constituencies of
+   two SE Asian peat-swamp towers, and is ~3× high in the Sahel with the
+   semi-arid→humid gradient inverted. **Gradient efficiency does not create
+   information where there are no towers.** The dPL regionalisation answer (a
+   network mapping cell attributes → parameters, rather than per-site fitting) is
+   the structural mitigation, and is what per-site JULES-HIMMELI calibration
+   failed to do.
 
 ## 5b. Build log
 
