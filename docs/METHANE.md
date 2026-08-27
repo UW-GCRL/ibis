@@ -600,6 +600,49 @@ and Xiao et al.'s site-level R²/RMSE (Wiley). The Xiao numbers matter most to u
 — it is the other IBIS methane implementation — and should be retrieved manually
 through the UW library before being cited.
 
+## 5d. Wetland extent: the definition *is* the uncertainty
+
+Global wetland area spans a **factor of eight** across published products, and
+almost all of it is definitional rather than observational:
+
+| definition tier | products | range (Mkm²) |
+|---|---|---|
+| satellite inundation **incl.** permanent water + rice, mean annual max | GIEMS-1 5.86, GIEMS-2 6.18–6.80, SWAMPS v3.2 8.26 | **5.9 – 8.3** |
+| **vegetated wetland only**, mean annual max | GIEMS-MC_ISW 3.80, **WAD2M v1.0 7.51, v2.0 7.9** | **3.8 – 7.9** |
+| long-term / intermittent-inclusive max | GIEMS-2 11.7, WAD2M 13.0–13.6, GIEMS-D15 17.3, GLWD v2 18.2 | **11.7 – 18.2** |
+| composite incl. groundwater-driven | Tootchi 27.5–29, Hu ~30, Lane 30.5 | **27.5 – 30.5** |
+
+Stripping permanent open water and rice out of GIEMS-2 nearly halves it —
+MAmax 6.80 → 3.80 Mkm². The same physical planet, two defensible definitions,
+a factor of 1.8.
+
+**Three consequences for us.**
+
+1. **We are on the community-standard product.** GMB 2025 prescribes WAD2M
+   v2.0 for its diagnostic protocol — the same file we read, one resolution
+   finer. Our extent choice needs no defence beyond naming it.
+2. **Our definition must be stated explicitly in any paper**, because WAD2M
+   excludes lakes, rivers, reservoirs, rice (0.59 Mkm²), open water (2.52 Mkm²)
+   and coastal vegetated systems. GMB's wetland definition matches: "inundated
+   or saturated soils or peats where anaerobic conditions below the water table
+   lead to CH₄ production… excludes exposed water surfaces… rice agriculture…
+   coastal vegetated ecosystems". A model calibrated against WAD2M extent is
+   *not* comparable to one calibrated against GLWD v2's 18.2 Mkm².
+3. **Prognostic extent is not a solved alternative.** Even tuned to satellite
+   flooded area, GMB's prognostic models spread ±25 % (1σ) on peak wetland area.
+   Combined with Liu et al. 2026's finding that the diagnostic run beat the
+   prognostic run for 7 of 11 models, Phase 2 (TOPMODEL-lite) should stay
+   deferred until there is a reason beyond completeness.
+
+GMB 2025's stated **priority #1** for the whole field is "producing a global,
+high-resolution map of water-saturated soils and inundated areas emitting CH₄" —
+extent is the acknowledged bottleneck, not process detail. That is the same
+conclusion §5c reaches from the skill side.
+
+**Residual contamination to be aware of:** SWAMPS retains desert false-positives
+(Sahel, Australia) that propagate into WAD2M, on top of the post-2015 tropical
+discontinuity already noted.
+
 ## 5b. Build log
 
 ### 2026-08-25 — M1 done
