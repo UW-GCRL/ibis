@@ -7,12 +7,12 @@ import equinox as eqx
 import optax
 import pytest
 
-from ibis.ml.base import PhysicsComponent, WrappedFunction, Identity
-from ibis.ml.wrappers import (
+from ibis.ml._legacy_unwired.base import PhysicsComponent, WrappedFunction, Identity
+from ibis.ml._legacy_unwired.wrappers import (
     MLP, NeuralPhysics, HybridPhysics, BlendedPhysics,
     make_neural_physics, make_hybrid_physics,
 )
-from ibis.ml.registry import ComponentRegistry
+from ibis.ml._legacy_unwired.registry import ComponentRegistry
 from ibis.ml.training import (
     TrainState, create_train_state, train_step, train_loop,
     mse_loss, mae_loss,

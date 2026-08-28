@@ -48,6 +48,10 @@ def _sources():
 #: Config flags with no production reader. Every entry is a switch a user can
 #: set that does nothing. Shrink this; do not grow it.
 KNOWN_DEAD_FLAGS = {
+    # selectors for the component-swapping framework quarantined to
+    # ibis/ml/_legacy_unwired/ -- nothing reads them
+    "ml_stomata",
+    "ml_canopy",
     "enable_bvoc",
     "enable_permafrost",
     "enable_soil_n2o",
@@ -62,7 +66,6 @@ KNOWN_DEAD_FLAGS = {
 KNOWN_DEAD_MODULES = {
     "ibis/bgc/bvoc.py", "ibis/bgc/nee.py",
     "ibis/bgc/permafrost.py", "ibis/bgc/soil_gases.py", "ibis/bgc/wetlands.py",
-    "ibis/ml/base.py", "ibis/ml/registry.py", "ibis/ml/wrappers.py",
 }
 
 
@@ -71,7 +74,8 @@ def test_no_new_dead_config_flags():
     src = _sources()
     prod = {p: s for p, s in src.items() if _kind(p) == "prod"}
     cfg = (ROOT / "python-port" / "ibis" / "config.py").read_text()
-    flags = set(re.findall(r"^\s{4}(enable_\w+|isim\w+|\w+_scheme)\s*:", cfg, re.M))
+    flags = set(re.findall(
+        r"^\s{4}(enable_\w+|isim\w+|\w+_scheme|ml_\w+)\s*:", cfg, re.M))
 
     dead = {
         f for f in flags

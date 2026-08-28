@@ -204,7 +204,7 @@ class TestMLGradientFlow:
     """Verify gradients flow through ML component swap."""
 
     def test_neural_stomata_grad(self):
-        from ibis.ml.wrappers import make_neural_physics
+        from ibis.ml._legacy_unwired.wrappers import make_neural_physics
 
         key = jax.random.PRNGKey(0)
         neural_stomata = make_neural_physics(
@@ -231,7 +231,7 @@ class TestMLGradientFlow:
                 assert jnp.all(jnp.isfinite(leaf))
 
     def test_hybrid_physics_grad(self):
-        from ibis.ml.wrappers import make_hybrid_physics
+        from ibis.ml._legacy_unwired.wrappers import make_hybrid_physics
 
         def simple_physics(inputs, params=None):
             return {"y": inputs["x"] * 2.0}
