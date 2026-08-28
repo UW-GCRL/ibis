@@ -52,10 +52,8 @@ KNOWN_DEAD_FLAGS = {
     # ibis/ml/_legacy_unwired/ -- nothing reads them
     "ml_stomata",
     "ml_canopy",
-    "enable_bvoc",
+    # unwired but deliberate -- permafrost is on the roadmap
     "enable_permafrost",
-    "enable_soil_n2o",
-    "enable_wetlands",
 }
 
 #: Modules with no production call site. Three groups:
@@ -64,8 +62,10 @@ KNOWN_DEAD_FLAGS = {
 #:   * tools whose callers are not committed — the io readers and ml/*, used
 #:     only by throwaway analysis scripts. Committing those callers is the fix.
 KNOWN_DEAD_MODULES = {
-    "ibis/bgc/bvoc.py", "ibis/bgc/nee.py",
-    "ibis/bgc/permafrost.py", "ibis/bgc/soil_gases.py", "ibis/bgc/wetlands.py",
+    # On the roadmap (active-layer depth for Arctic CH4). Unwired, but kept in
+    # ibis/bgc/ rather than quarantined because it is intended to be wired --
+    # see docs/AUDIT.md. Remove this entry when it is.
+    "ibis/bgc/permafrost.py",
 }
 
 

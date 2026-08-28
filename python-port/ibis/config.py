@@ -48,11 +48,14 @@ class RunConfig:
     o2init: float = 0.209       # O2 concentration (mol/mol)
 
     # New biogeochemical component flags
+    #: Wire `bgc/permafrost.py` into the timestep. Not yet read anywhere --
+    #: the module is on the roadmap (Arctic active-layer depth) but unwired.
+    #: Tracked in tests/test_no_dead_code.py so it cannot be forgotten.
     enable_permafrost: bool = False
-    enable_wetlands: bool = False
     enable_fire_emissions: bool = False
-    enable_soil_n2o: bool = False
-    enable_bvoc: bool = False
+    # enable_wetlands / enable_soil_n2o / enable_bvoc removed 2026-08-28: the
+    # modules they selected moved to bgc/_legacy_unwired/, so the flags could
+    # only ever have been set with no effect (docs/AUDIT.md).
 
     # ML component paths (None = use physics-only)
     ml_stomata: Optional[str] = None

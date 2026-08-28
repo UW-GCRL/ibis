@@ -1,10 +1,10 @@
-"""New biogeochemical components (permafrost, wetland CH4, fire, BVOC, etc.)."""
+"""Biogeochemical components.
 
-from ibis.bgc.wetlands import (
-    WetlandState, WetlandParams, create_wetland_state,
-    default_wetland_params, wetland_step,
-    wetland_fraction, ch4_production, ch4_oxidation, ch4_transport,
-)
+bvoc, nee, soil_gases and wetlands moved to _legacy_unwired/ on 2026-08-28 --
+nothing consumed them and re-exporting here implied otherwise. See
+_legacy_unwired/README.md and docs/AUDIT.md.
+"""
+
 from ibis.bgc.permafrost import (
     PermafrostState, PermafrostParams, create_permafrost_state,
     default_permafrost_params, permafrost_step,
@@ -13,15 +13,4 @@ from ibis.bgc.permafrost import (
 from ibis.bgc.fire_emissions import (
     FireEmissions, FireEmissionParams, create_fire_emissions, fire_emissions,
     fire_emissions_from_state,
-)
-from ibis.bgc.soil_gases import (
-    SoilGasState, SoilGasParams, create_soil_gas_state,
-    default_soil_gas_params, soil_gas_step,
-)
-from ibis.bgc.bvoc import (
-    BVOCState, create_bvoc_state, bvoc_emissions,
-    gamma_t_isop, gamma_par_isop, gamma_t_mono,
-)
-from ibis.bgc.nee import (
-    NEEState, create_nee_state, compute_nee,
 )

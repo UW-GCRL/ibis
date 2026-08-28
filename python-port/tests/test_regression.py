@@ -331,7 +331,7 @@ class TestBGCPhysicsIntegration:
 
     def test_wetland_from_physics(self, state, consts, params):
         """Wetland model can consume physics state directly."""
-        from ibis.bgc.wetlands import wetland_step, create_wetland_state, default_wetland_params
+        from ibis.bgc._legacy_unwired.wetlands import wetland_step, create_wetland_state, default_wetland_params
 
         st = state
         for _ in range(12):
@@ -347,7 +347,7 @@ class TestBGCPhysicsIntegration:
 
     def test_bvoc_from_physics(self, state, consts, params):
         """BVOC model driven by canopy physics output."""
-        from ibis.bgc.bvoc import bvoc_emissions
+        from ibis.bgc._legacy_unwired.bvoc import bvoc_emissions
 
         st = state
         for _ in range(12):
@@ -365,8 +365,8 @@ class TestBGCPhysicsIntegration:
 
     def test_full_nee_pipeline(self, state, consts, params):
         """Full NEE pipeline: physics → BGC → NEE."""
-        from ibis.bgc.wetlands import wetland_step, create_wetland_state, default_wetland_params
-        from ibis.bgc.nee import compute_nee
+        from ibis.bgc._legacy_unwired.wetlands import wetland_step, create_wetland_state, default_wetland_params
+        from ibis.bgc._legacy_unwired.nee import compute_nee
 
         st = state
         for _ in range(12):

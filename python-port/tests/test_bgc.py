@@ -7,7 +7,7 @@ import jax
 import jax.numpy as jnp
 import pytest
 
-from ibis.bgc.wetlands import (
+from ibis.bgc._legacy_unwired.wetlands import (
     WetlandState, WetlandParams, create_wetland_state,
     default_wetland_params, wetland_step,
     wetland_fraction, ch4_production, ch4_oxidation, ch4_transport,
@@ -17,17 +17,17 @@ from ibis.bgc.permafrost import (
     default_permafrost_params, permafrost_step,
     stefan_depth, diagnose_frozen_ground, thermokarst,
 )
-from ibis.bgc.soil_gases import (
+from ibis.bgc._legacy_unwired.soil_gases import (
     SoilGasState, SoilGasParams, create_soil_gas_state,
     default_soil_gas_params, soil_gas_step,
     wfps, nitrification, denitrification,
 )
-from ibis.bgc.bvoc import (
+from ibis.bgc._legacy_unwired.bvoc import (
     BVOCState, create_bvoc_state, bvoc_emissions,
     gamma_t_isop, gamma_par_isop, gamma_t_mono,
     T_STANDARD, PAR_STANDARD,
 )
-from ibis.bgc.nee import (
+from ibis.bgc._legacy_unwired.nee import (
     NEEState, create_nee_state, compute_nee,
 )
 
@@ -611,14 +611,22 @@ class TestBGCGradients:
 class TestBGCIntegration:
     def test_import_all(self):
         """All BGC modules importable from package."""
+        # Only the components the model actually reaches are re-exported from
+        # ibis.bgc. bvoc / nee / soil_gases / wetlands moved to
+        # _legacy_unwired/ on 2026-08-28 (docs/AUDIT.md) precisely because
+        # re-exporting them here implied they were wired.
         from ibis.bgc import (
-            WetlandState, WetlandParams, wetland_step,
             PermafrostState, PermafrostParams, permafrost_step,
             FireEmissions, FireEmissionParams, fire_emissions,
-            SoilGasState, SoilGasParams, soil_gas_step,
-            BVOCState, bvoc_emissions,
-            NEEState, compute_nee,
         )
+        from ibis.bgc._legacy_unwired.wetlands import (
+            WetlandState, WetlandParams, wetland_step,
+        )
+        from ibis.bgc._legacy_unwired.soil_gases import (
+            SoilGasState, SoilGasParams, soil_gas_step,
+        )
+        from ibis.bgc._legacy_unwired.bvoc import BVOCState, bvoc_emissions
+        from ibis.bgc._legacy_unwired.nee import NEEState, compute_nee
 
     def test_multi_step_wetland(self, soil_temps, soil_moisture, porosity):
         """Run 10 steps of wetland CH4 — pool should grow."""

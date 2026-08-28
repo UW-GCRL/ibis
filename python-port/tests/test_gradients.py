@@ -262,7 +262,7 @@ class TestBGCGradientStandalone:
     """Gradient through BGC modules without full physics."""
 
     def test_wetland_grad(self):
-        from ibis.bgc.wetlands import wetland_step, create_wetland_state, default_wetland_params
+        from ibis.bgc._legacy_unwired.wetlands import wetland_step, create_wetland_state, default_wetland_params
 
         ws = create_wetland_state(NPOI)
         wp = default_wetland_params()
@@ -280,7 +280,7 @@ class TestBGCGradientStandalone:
         assert jnp.any(grad != 0.0)
 
     def test_bvoc_grad(self):
-        from ibis.bgc.bvoc import bvoc_emissions
+        from ibis.bgc._legacy_unwired.bvoc import bvoc_emissions
 
         def loss(tleaf):
             par = jnp.full((NPOI,), 800.0)
@@ -295,7 +295,7 @@ class TestBGCGradientStandalone:
         assert jnp.any(grad != 0.0)
 
     def test_nee_grad(self):
-        from ibis.bgc.nee import compute_nee
+        from ibis.bgc._legacy_unwired.nee import compute_nee
 
         def loss(gpp):
             ra = jnp.full((NPOI,), 2.0)
@@ -308,7 +308,7 @@ class TestBGCGradientStandalone:
         assert jnp.allclose(grad, -1.0)  # d(nee)/d(gpp) = -1
 
     def test_soil_gas_grad(self):
-        from ibis.bgc.soil_gases import soil_gas_step, create_soil_gas_state, default_soil_gas_params
+        from ibis.bgc._legacy_unwired.soil_gases import soil_gas_step, create_soil_gas_state, default_soil_gas_params
 
         sg = create_soil_gas_state(NPOI)
         params = default_soil_gas_params()
@@ -347,7 +347,7 @@ class TestBGCGradientThroughPhysics:
 
     @pytest.mark.xfail(reason="Full physics chain produces NaN grads")
     def test_physics_to_wetland_grad(self):
-        from ibis.bgc.wetlands import wetland_step, create_wetland_state, default_wetland_params
+        from ibis.bgc._legacy_unwired.wetlands import wetland_step, create_wetland_state, default_wetland_params
 
         state = _make_state()
         consts = get_constants()

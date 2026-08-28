@@ -80,3 +80,56 @@ analysis is reproducible by anyone else.**
 `tests/test_no_dead_code.py` fails if a new dead flag or module appears, and
 *also* fails if a listed one is fixed without updating the list — so the debt
 can only shrink. The allowlists are debt, not permission.
+
+
+---
+
+# Resolution, 2026-08-28
+
+Worked through one at a time; every step verified before the next.
+
+| # | fix | dead modules after |
+|---|---|---|
+| — | audit baseline | **13** |
+| 1 | `verify/methane/evaluate_global.py` committed → `io/wad2m.py`, `bgc/methane.py` live | 11 |
+| 2 | `verify/fire/evaluate_gfed5.py` committed → `io/gfed5.py`, `io/popdens.py`, `ml/fire_calibration.py` live | 8 |
+| 3 | `ml/{base,registry,wrappers}.py` → `ml/_legacy_unwired/` | 5 |
+| 4 | `bgc/{bvoc,nee,soil_gases,wetlands}.py` → `bgc/_legacy_unwired/` | **1** |
+| 5 | `enable_wetlands`, `enable_soil_n2o`, `enable_bvoc` removed from `RunConfig` | 1 |
+
+**Final state: 1 of 48 modules unwired, 1 dead config flag — both
+`permafrost`, both deliberate and tracked.**
+
+## What each fix actually bought
+
+**Fixes 1–2 were the valuable ones.** The evaluation scripts existed only in
+`/tmp`. Every fire and methane number in FIRE.md and METHANE.md came from code
+nobody else could run. Both committed scripts were verified to reproduce their
+documented results exactly — the fire metrics (×0.92, rank +0.749/+0.410, NMSE
+0.723, |lat| 11.9) and all four methane configurations (473.6 / 353.1 / 474.5 /
+376.3 Tg CH₄/yr), including the calibration null result.
+
+**Fixes 3–4 removed traps rather than adding capability.** A newcomer reading
+`ibis.ml` would reasonably assume `NeuralPhysics` was wired; reading `ibis.bgc`
+would assume `wetland_step` ran. Neither was true. `training.py` and
+`fire_calibration.py` stayed — they have real callers.
+
+**Fix 5** removed flags a user could set that could no longer do anything.
+
+## Two incidental findings
+
+**My first audit script was wrong**, and its output was absurd enough to catch
+(`soil_physics` and `stomata` reported dead). A Python chained-comparison bug,
+`"_legacy" in str(p) is False`, emptied the production file list.
+
+**419 macOS AppleDouble files** (`._*.py`) sit in the working tree — resource
+forks from a Mac copy. **None is tracked in git.** They are inert, but they
+broke a `read_text()` and they hid from a bash glob, since `*` skips dotfiles.
+Worth deleting; left in place pending a decision.
+
+## The guard
+
+`tests/test_no_dead_code.py` fails when new dead code appears **and** when a
+listed item is fixed without updating the list. The allowlists shrank from 4
+flags + 13 modules to 1 + 1 across this session, which is the behaviour
+intended.
