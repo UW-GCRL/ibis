@@ -34,7 +34,7 @@ biogeochemistry while inheriting the same extent uncertainty buys almost nothing
 |---|---|---|
 | M0 | Read TRIPLEX-GHG and IBIS-CH4 papers; extract their parameter values | ☑ **done** (2026-08-21) — see §4.11 |
 | M1 | Inundated fraction + water table depth diagnostic | ☑ **done** (2026-08-25) — `io/wad2m.py`, `bgc/methane.py`, 18 tests |
-| M2 | **M-lite⁺**: `f_inund · r_CH4 · Rh · Q10^((T−T_ref)/10) · exp(−z/τ)` — production **and** one-parameter oxidation | ☐ next — see §5f |
+| M2 | **M-lite⁺**: `f_inund · r_CH4 · Rh · Q10^((T−T_ref)/10) · exp(−z/τ)` | ◐ **built & running globally** (2026-08-27), 26 tests; uncalibrated at 459 Tg/yr and too tropical — see §5i |
 | M3 | Evaluate M-lite: FLUXNET-CH4 + global total | ☐ not started |
 | M4 | **microbial growth/dormancy** (2 params) — the only added process with a replicated skill gain; *only if M3 shows seasonal bias* | ☐ not started |
 | M5 | ~~ebullition, plant transport, diffusion~~ — **removed from the plan** (§5f); reinstate only for a question needing pathway partitioning | ✗ dropped |
@@ -264,7 +264,7 @@ inside this module.
 | Symbol | Meaning | Init | Calibrate? | Source |
 |---|---|---|---|---|
 | `r_CH4` | **gross** CH₄:CO₂ production ratio | **0.23** (bounds **0.10–0.30**) | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean, 19 sites — **restored as gross** now that M-lite⁺ carries an explicit `exp(−z/τ)` oxidation term (§5f). Consistency check: 0.23 × ~0.30 surviving fraction ⇒ net ≈ 0.07, matching CLASSIC's net 0.061 and CLM's 0.20 × 0.30 = 0.06 independently. |
-| `Q10p` | production Q₁₀ | **2.48** | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean (range 1.6–4.5), 19 sites — and independently corroborated by FLUXNET-CH₄'s annual-flux Q₁₀ of **2.57**. Keep. Note three models (JULES, WETMETH, CLASSIC) make Q₁₀ *decline* with temperature and Zhu et al. 2025 reports constant-Q₁₀ forms bias against FLUXNET-CH₄; a temperature-dependent form is an M7 test, not an M2 default. |
+| `Q10p` | **additional** production Q₁₀ (Rh already carries respiration's) | **1.60** | **yes — primary** | ✅ TRIPLEX-GHG calibrated mean (range 1.6–4.5), 19 sites — and independently corroborated by FLUXNET-CH₄'s annual-flux Q₁₀ of **2.57**. Keep. Note three models (JULES, WETMETH, CLASSIC) make Q₁₀ *decline* with temperature and Zhu et al. 2025 reports constant-Q₁₀ forms bias against FLUXNET-CH₄; a temperature-dependent form is an M7 test, not an M2 default. |
 | `T_ref` | production reference T | 295.15 K | no | CLM5 `T_B = 22 °C` |
 | `sat_crit` | saturation defining "wet" | 0.95 | maybe | guess |
 | `z_max` | max diagnosed WT depth | 4.0 m | no | soil column depth |
@@ -1264,6 +1264,95 @@ methodological family fails in the same place, and ~70 % of the flux is there.
 
 **Do not report a global total without a tropical caveat.** It is the one thing
 every paper in this literature has in common.
+
+## 5i. M2 first global run — two bugs found, both now fixed
+
+Built M-lite⁺ and ran it on the validated fire spin-up state. Working end to
+end. The first run found two real defects, which is what a trial is for.
+
+### Bug 1: the water table was read from the wrong array
+
+M1's `water_table_depth` integrates the unsaturated deficit of the whole column
+from IBIS's **grid-cell-mean** moisture. But a cell that is 15 % wetland is 85 %
+upland, and the mean describes the upland. §4.1 specified "water table depth
+**within the inundated fraction**"; M1 implemented it against the cell mean.
+
+Measured on the spun-up state:
+
+```
+wetland cells      zwt      top-layer saturation    fraction escaping
+30S-30N           0.85 m          0.655                  0.205
+30-60N            2.57 m          0.123                  0.0006
+60-90N            3.60 m          0.001                  0.00000
+```
+
+A 3.6 m water table annihilates the flux through `exp(−zwt/τ)`. **Result: 99.8 %
+of global emission in the tropics and exactly zero north of 60°.**
+
+Two fixes, in `wetland_water_table`: bound the answer to a wetland-plausible
+range (0 to `z_wt_max` = 0.30 m), and **count ice as water** — a frozen bog is
+still saturated, its water is simply solid. Arctic wetland cells read liquid
+saturation 0.001 while being frozen ground; total pore fill (IBIS's own `zwsoi`)
+reads them correctly. Production is gated below freezing, so this cannot
+manufacture winter emissions.
+
+### Bug 2: temperature was counted twice
+
+`Rh` **already carries a temperature dependence** — that is why Arctic wetland
+Rh is 0.086 gC m⁻² d⁻¹ against the tropics' 1.923, a 22× drop. Multiplying by
+`Q10 = 2.48` applied temperature sensitivity a *second* time, a further 19×.
+Product: a **420× tropical:Arctic gradient**, which is the 93/4.7/0.5 split.
+
+The literature says this explicitly and I walked into it anyway. WetCHARTs:
+because Rh already carries temperature, their q₁₀ "parameterises only the
+temperature dependence of the CH₄:C **ratio**" — hence 1, 2, 3, not 3.7. CLM's
+source: `q10ch4` is "additional Q10 … **ABOVE** the soil decomposition
+temperature relationship".
+
+Yvon-Durocher et al. (2014) gives the right value directly:
+
+```
+Ea 0.98 eV (methanogenesis)  -> Q10 = 3.94
+Ea 0.65 eV (respiration)     -> Q10 = 2.48     <- already inside Rh
+Ea 0.33 eV (the difference)  -> Q10 = 1.59     <- what belongs on the CH4 term
+```
+
+**0.65 eV gives 2.48 — exactly TRIPLEX-GHG's calibrated value.** That confirms
+2.48 is the *respiration* Q₁₀ and is already in our substrate. `q10p` is now
+**1.60**.
+
+### Where it stands
+
+```
+                     before fixes    after     target
+global Tg CH4/yr           545.5     458.7     158 +- 24
+30S-30N                    93.3%     87.4%     70%
+30-60N                      4.7%      8.8%     21%
+60-90N                      0.5%      1.5%      8%
+seasonal peak                Jul       Jul     Jul-Aug
+```
+
+Every axis improved. **Two issues remain, and they are different in kind.**
+
+**Magnitude, 2.9× high — calibration, by design.** Mean surviving fraction is
+0.55, giving a net ratio of 0.23 × 0.55 = 0.127 against the 0.06–0.07 that four
+independent formulations agree on (§5f). `r_CH4` and `τ_oxid` are the primary
+calibration targets precisely because no literature value transfers into this
+form. This is M7's job, not a defect.
+
+**Distribution, still too tropical — and it is not ours.** Wetland *area* is
+well distributed (55/28/12 % against GCP's 70/21/8 % emission shares), so WAD2M
+is fine. The residual traces to **IBIS's own Rh gradient**: 1.923 / 0.444 /
+0.086 gC m⁻² d⁻¹, a 22× tropics-to-Arctic drop. Real peatland Rh is roughly
+1000–1500 gC m⁻² yr⁻¹ tropical against 100–300 boreal — a 5–10× ratio, not 22×.
+
+**IBIS's Arctic soil respiration looks too low, and that is a carbon-cycle
+problem, not a methane one.** Exactly the risk §5f flagged: "M-lite⁺ inherits
+IBIS's soil temperature, soil carbon and hydrology, so M3 failures may be IBIS
+failures and must be diagnosed as such." First real instance.
+
+Investigate before calibrating — fitting `r_CH4` against a biased substrate
+would bake the bias into the parameter.
 
 ## 5b. Build log
 

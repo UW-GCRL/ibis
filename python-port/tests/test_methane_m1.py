@@ -208,3 +208,133 @@ def test_wad2m_month_index_tracks_the_seasonal_cycle():
     jan = read_wad2m_month(WAD2M, 2010, 1, li, lo, mlat, mlon).mean()
     jul = read_wad2m_month(WAD2M, 2010, 7, li, lo, mlat, mlon).mean()
     assert jul > jan
+
+
+# --- M2: production, oxidation, and the two bugs the first global run found ---
+
+
+def test_frozen_soil_produces_no_methane():
+    """Methanogenesis stops in frozen ground; the Q10 would not stop it."""
+    from ibis.bgc.methane import gross_production
+
+    rh = jnp.full((3,), 2e-3)
+    warm = float(gross_production(rh, jnp.full((3,), 290.0))[0])
+    cold = float(gross_production(rh, jnp.full((3,), 260.0))[0])
+    assert warm > 0.0
+    assert cold == 0.0
+
+
+def test_deeper_water_table_means_less_methane_escapes():
+    from ibis.bgc.methane import surviving_fraction
+
+    z = jnp.asarray([0.0, 0.15, 0.30, 1.0])
+    f = np.asarray(surviving_fraction(z))
+    assert f[0] == pytest.approx(1.0)          # saturated to surface: no oxic zone
+    assert np.all(np.diff(f) < 0)              # monotone decreasing
+    assert f[-1] < 0.01
+
+
+def test_wetland_water_table_counts_ice_as_water():
+    """A frozen bog is still a bog.
+
+    Using liquid saturation alone read 0.001 in Arctic wetland cells and drove
+    the water table to the bottom of the column, which zeroed 60-90N emissions
+    entirely in the first global run.
+    """
+    from ibis.bgc.methane import wetland_water_table
+
+    n, ns = 2, 6
+    hsoi = jnp.asarray([0.10, 0.15, 0.25, 0.50, 1.00, 2.00])
+    frozen_bog = wetland_water_table(jnp.full((n, ns), 0.001),
+                                     jnp.full((n, ns), 0.95), hsoi)
+    liquid_bog = wetland_water_table(jnp.full((n, ns), 0.95),
+                                     jnp.zeros((n, ns)), hsoi)
+    assert float(frozen_bog[0]) < 0.05, "frozen bog must read as saturated"
+    assert float(liquid_bog[0]) < 0.05
+    dry = wetland_water_table(jnp.zeros((n, ns)), jnp.zeros((n, ns)), hsoi)
+    assert float(dry[0]) > 0.25, "genuinely dry soil must give a deep table"
+
+
+def test_wetland_water_table_is_bounded_to_a_wetland_range():
+    """It must never return the 2.6-3.6 m the column diagnostic gave."""
+    from ibis.bgc.methane import MethaneParams, wetland_water_table
+
+    n, ns = 4, 6
+    hsoi = jnp.asarray([0.10, 0.15, 0.25, 0.50, 1.00, 2.00])
+    rng = np.random.default_rng(0)
+    z = np.asarray(wetland_water_table(
+        jnp.asarray(rng.uniform(0, 1, (n, ns))),
+        jnp.asarray(rng.uniform(0, 1, (n, ns))), hsoi))
+    assert z.min() >= 0.0
+    assert z.max() <= MethaneParams().z_wt_max + 1e-6
+
+
+def test_q10_is_the_ADDITIONAL_sensitivity_not_the_total():
+    """Rh already carries temperature; Q10 here is only the ratio's own.
+
+    Yvon-Durocher et al. (2014): methanogenesis Ea 0.98 eV, respiration
+    0.65 eV. The difference, 0.33 eV, is what belongs on the CH4 term:
+
+        Q10 = exp(Ea * 10 / (k * T^2))  ->  1.59 at 288 K
+
+    Note 0.65 eV gives 2.48 -- exactly TRIPLEX-GHG's calibrated value, which
+    confirms 2.48 is the RESPIRATION Q10 and is already inside Rh. Applying it
+    again drove the first global run to 545 Tg/yr with 93 % of it tropical.
+    CLM's source says the same thing: q10ch4 is "additional Q10 ... ABOVE the
+    soil decomposition temperature relationship".
+    """
+    from ibis.bgc.methane import MethaneParams
+
+    k, T = 8.617e-5, 288.0
+    q10 = lambda ea: np.exp(ea * 10.0 / (k * T * T))
+    assert q10(0.65) == pytest.approx(2.48, abs=0.02)      # respiration
+    assert q10(0.98) == pytest.approx(3.94, abs=0.05)      # methanogenesis
+    assert q10(0.33) == pytest.approx(1.59, abs=0.02)      # the difference
+    assert MethaneParams().q10p == pytest.approx(1.60, abs=0.05)
+
+
+def test_methane_flux_runs_end_to_end_and_stays_finite():
+    from ibis.bgc.methane import methane_flux, to_mg_ch4
+
+    n, ns = 8, 6
+    hsoi = jnp.asarray([0.10, 0.15, 0.25, 0.50, 1.00, 2.00])
+    rng = np.random.default_rng(1)
+    f = methane_flux(jnp.asarray(rng.uniform(0, 1, n)),
+                     jnp.asarray(rng.uniform(0, 5e-3, n)),
+                     jnp.asarray(rng.uniform(270, 305, (n, ns))),
+                     jnp.asarray(rng.uniform(0, 1, (n, ns))),
+                     jnp.asarray(rng.uniform(0, 0.5, (n, ns))), hsoi)
+    a = np.asarray(f)
+    assert np.all(np.isfinite(a)) and np.all(a >= 0.0)
+    assert np.all(np.asarray(to_mg_ch4(f)) < 5000.0)       # sane magnitude
+
+
+def test_no_wetland_means_no_methane():
+    from ibis.bgc.methane import methane_flux
+
+    n, ns = 3, 6
+    hsoi = jnp.asarray([0.10, 0.15, 0.25, 0.50, 1.00, 2.00])
+    f = methane_flux(jnp.zeros(n), jnp.full((n,), 2e-3),
+                     jnp.full((n, ns), 295.0), jnp.ones((n, ns)),
+                     jnp.zeros((n, ns)), hsoi)
+    assert np.allclose(np.asarray(f), 0.0)
+
+
+def test_flux_is_differentiable_in_both_primary_parameters():
+    """r_CH4 and tau_oxid are the calibration targets; gradients must exist."""
+    import jax
+    from ibis.bgc.methane import MethaneParams, methane_flux
+
+    n, ns = 4, 6
+    hsoi = jnp.asarray([0.10, 0.15, 0.25, 0.50, 1.00, 2.00])
+
+    def total(theta):
+        p = MethaneParams(r_ch4=theta[0], q10p=theta[1], tau_oxid=theta[2])
+        return jnp.sum(methane_flux(
+            jnp.full((n,), 0.4), jnp.full((n,), 2e-3),
+            jnp.full((n, ns), 295.0), jnp.full((n, ns), 0.8),
+            jnp.zeros((n, ns)), hsoi, p))
+
+    g = jax.grad(total)(jnp.asarray([0.23, 1.60, 0.15]))
+    assert np.all(np.isfinite(np.asarray(g)))
+    assert float(g[0]) > 0.0        # more methane per unit carbon -> more flux
