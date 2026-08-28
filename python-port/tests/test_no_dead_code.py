@@ -62,9 +62,7 @@ KNOWN_DEAD_FLAGS = {
 KNOWN_DEAD_MODULES = {
     "ibis/bgc/bvoc.py", "ibis/bgc/nee.py",
     "ibis/bgc/permafrost.py", "ibis/bgc/soil_gases.py", "ibis/bgc/wetlands.py",
-    "ibis/io/gfed5.py", "ibis/io/popdens.py",
-    "ibis/ml/base.py", "ibis/ml/fire_calibration.py", "ibis/ml/registry.py",
-    "ibis/ml/wrappers.py",
+    "ibis/ml/base.py", "ibis/ml/registry.py", "ibis/ml/wrappers.py",
 }
 
 
