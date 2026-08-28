@@ -1451,6 +1451,59 @@ requirement.
 3× magnitude error into a single scalar while leaving the shape wrong, and bake
 a compensating bias into the one parameter we most need to be meaningful.
 
+## 5k. Regionalisation test — it works, and imported parameters do not
+
+One run, four parameter configurations evaluated offline against the same
+cached monthly fields. Bands used as a crude biome proxy.
+
+| configuration | Tg/yr | 30S-30N | 30-60N | 60-90N | shape err |
+|---|---|---|---|---|---|
+| **GCP target** | 158 | 70.0 % | 21.0 % | 8.0 % | — |
+| global `r`=0.23, `Q10`=1.6 | 473.6 | 84.5 % | 9.7 % | 3.4 % | 30.4 |
+| **biome `r` (TRIPLEX), `Q10`=1.6** | **353.1** | **73.9 %** | **18.1 %** | **3.6 %** | **11.2** |
+| biome `r` + biome `Q10` (TRIPLEX) | 474.5 | 88.1 % | 7.7 % | 1.7 % | 37.6 |
+| biome `r`, `Q10`=1.0 | 376.3 | 54.2 % | 31.7 % | 8.5 % | 27.0 |
+
+### Three findings
+
+**1. Regionalisation works.** Biome-varying `r` alone cuts the shape error by
+almost 3× and improves the magnitude at the same time (474 → 353 Tg/yr).
+Tropics land at 73.9 % against a target of 70, temperate at 18.1 % against 21.
+This confirms §5j's conclusion empirically rather than by inference.
+
+**2. Imported parameters actively hurt.** Adding TRIPLEX-GHG's *own* biome Q₁₀
+values (3.75 / 2.66 / 2.03) makes the shape **worse than the global default**.
+They were calibrated inside a scheme whose temperature structure differs from
+ours, so they double-count — the same trap that produced the `Q10` and
+`f_thawed` errors in §5i and §5j, now for the third time in one module.
+
+**The rule this establishes: parameters transfer only with their structure.**
+A calibrated value from another model is evidence about *that* model, not a
+prior for ours, unless the substrate and the temperature terms match.
+
+**3. The boreal share is entirely Q₁₀-controlled.** At `Q10` = 1.0 the 60-90N
+band hits **8.5 % against a target of 8.0 %**, while the tropics overcorrect to
+54 %. So the best fit needs `Q10` varying regionally — near 1.6 in the tropics
+and near 1.0 in the boreal — which no published table gives us.
+
+### What this means for M7
+
+The regionalisation is no longer a methodological preference or an inference
+from Basso et al.; it is a measured requirement with a **baseline to beat:
+shape error 11.2, global 353 Tg/yr**. A learned attribute→parameter map has to
+improve on that to justify itself.
+
+It also means the primary calibration cannot be a single global scalar. Fitting
+`r_CH4` alone would scale all bands equally and leave the shape at 11.2.
+
+### Still open, and not fixable by parameters
+
+Magnitude remains **2.2× high** at the best configuration. The net ratio
+implied by biome `r` with mean surviving fraction ~0.52 is 0.15 × 0.52 ≈ 0.08
+in the tropics, against the 0.06–0.07 that four independent formulations agree
+on (§5f) — so roughly a third of the excess is the ratio and the rest is
+elsewhere. Not diagnosed yet.
+
 ## 5b. Build log
 
 ### 2026-08-25 — M1 done
