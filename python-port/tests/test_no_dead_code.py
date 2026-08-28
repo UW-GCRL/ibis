@@ -60,9 +60,9 @@ KNOWN_DEAD_FLAGS = {
 #:   * tools whose callers are not committed — the io readers and ml/*, used
 #:     only by throwaway analysis scripts. Committing those callers is the fix.
 KNOWN_DEAD_MODULES = {
-    "ibis/bgc/bvoc.py", "ibis/bgc/methane.py", "ibis/bgc/nee.py",
+    "ibis/bgc/bvoc.py", "ibis/bgc/nee.py",
     "ibis/bgc/permafrost.py", "ibis/bgc/soil_gases.py", "ibis/bgc/wetlands.py",
-    "ibis/io/gfed5.py", "ibis/io/popdens.py", "ibis/io/wad2m.py",
+    "ibis/io/gfed5.py", "ibis/io/popdens.py",
     "ibis/ml/base.py", "ibis/ml/fire_calibration.py", "ibis/ml/registry.py",
     "ibis/ml/wrappers.py",
 }
