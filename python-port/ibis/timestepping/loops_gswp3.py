@@ -376,9 +376,21 @@ def _run_month_scan(
             fm_dry = jnp.exp((wfps - jnp.float32(60.0)) ** 2 / jnp.float32(-800.0))
             return jnp.where(wfps >= jnp.float32(60.0), fm_wet, fm_dry)
 
-        # decompl: top layer only
-        wice_top = jnp.zeros_like(st.soil.wsoi[:, 0])  # ice fraction approx 0
-        fl_top = _ftemp(st.soil.tsoi[:, 0]) * _fmoist(st.soil.wsoi[:, 0], wice_top)
+        # decompl: top layer only.
+        #
+        # The ice fraction is REQUIRED here, not "approx 0" as this previously
+        # assumed. F77 `stats.f` is explicit: "wsoi is relative to pore space
+        # not occupied by ice and water, thus must include the ice fraction in
+        # the calculation", giving wfps = (1 - wisoi) * wsoi * 100.
+        #
+        # Dropping it inflates water-filled pore space wherever soil is partly
+        # frozen. That is not a small error in the wrong direction: the
+        # moisture factor peaks at wfps = 60 and falls away on BOTH sides, so
+        # an inflated wfps pushes wet boreal soils past the optimum and
+        # suppresses decomposition exactly where the model already runs too
+        # slow (docs/METHANE.md 5j).
+        fl_top = _ftemp(st.soil.tsoi[:, 0]) * _fmoist(st.soil.wsoi[:, 0],
+                                                      st.soil.wisoi[:, 0])
         decompl_new = jnp.clip(fl_top, jnp.float32(0.001), jnp.float32(10.0))
 
         # decomps: weighted average of top 4 layers
@@ -389,7 +401,9 @@ def _run_month_scan(
                      st.soil.tsoi[:, 2] * hsoi[2] + st.soil.tsoi[:, 3] * hsoi[3]) / h4
         wsoi_avg = (st.soil.wsoi[:, 0] * hsoi[0] + st.soil.wsoi[:, 1] * hsoi[1] +
                     st.soil.wsoi[:, 2] * hsoi[2] + st.soil.wsoi[:, 3] * hsoi[3]) / h4
-        fs_avg = _ftemp(tsoil_avg) * _fmoist(wsoi_avg, jnp.zeros_like(wsoi_avg))
+        wice_avg = (st.soil.wisoi[:, 0] * hsoi[0] + st.soil.wisoi[:, 1] * hsoi[1] +
+                    st.soil.wisoi[:, 2] * hsoi[2] + st.soil.wisoi[:, 3] * hsoi[3]) / h4
+        fs_avg = _ftemp(tsoil_avg) * _fmoist(wsoi_avg, wice_avg)
         decomps_new = jnp.clip(fs_avg, jnp.float32(0.001), jnp.float32(10.0))
 
         # Update carbon state with new decomposition factors

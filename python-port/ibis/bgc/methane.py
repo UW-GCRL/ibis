@@ -186,6 +186,43 @@ def anaerobic_mean_temperature(
                      tsoi[:, 0])
 
 
+def thawed_anaerobic_zone(
+    tsoi: Float[Array, "npoi nsoilay"],
+    zwt: Float[Array, "npoi"],
+    hsoi: Float[Array, "nsoilay"],
+    tmelt: float = 273.15,
+) -> tuple[Float[Array, "npoi"], Float[Array, "npoi"]]:
+    """Temperature of, and fraction of, the anaerobic zone that is thawed.
+
+    Methanogenesis needs soil that is **both** below the water table **and**
+    unfrozen. Averaging temperature over the whole anaerobic zone conflates
+    those: in permafrost the zone runs from a water table near the surface down
+    through metres of frozen ground, so the mean sits below freezing all year
+    and a hard `T >= tmelt` gate switches the Arctic off entirely — even in
+    July, when a half-metre active layer is thawed and emitting.
+
+    That is what put 87 % of the first global run's emission in the tropics and
+    1.5 % north of 60, against GCP's 70/8. Annual `Rh` alone predicts 70/26/3,
+    so the substrate was never the problem (docs/METHANE.md 5j).
+
+    Returns
+    -------
+    (t_thawed, f_thawed)
+        Thickness-weighted mean temperature of the thawed anaerobic soil, and
+        the fraction of the anaerobic zone that is thawed. Production scales
+        with the second: a thin active layer emits from a thin active layer.
+    """
+    anaer = anaerobic_fraction(zwt, hsoi) * hsoi[None, :]
+    thawed = anaer * (tsoi >= tmelt).astype(tsoi.dtype)
+    tot_a = jnp.sum(anaer, axis=1)
+    tot_t = jnp.sum(thawed, axis=1)
+    t_thawed = jnp.where(tot_t > 1e-12,
+                         jnp.sum(thawed * tsoi, axis=1) / jnp.maximum(tot_t, 1e-12),
+                         tsoi[:, 0])
+    f_thawed = jnp.where(tot_a > 1e-12, tot_t / jnp.maximum(tot_a, 1e-12), 0.0)
+    return t_thawed, f_thawed
+
+
 def wetland_water_table(
     wsoi: Float[Array, "npoi nsoilay"],
     wisoi: Float[Array, "npoi nsoilay"],
@@ -300,8 +337,15 @@ def methane_flux(
     # The water table INSIDE the wetland, not the column-mean deficit -- see
     # wetland_water_table for why that distinction is load-bearing.
     zwt = wetland_water_table(wsoi, wisoi, hsoi, p)
-    t_anaer = anaerobic_mean_temperature(tsoi, zwt, hsoi)
-    prod = gross_production(rh, t_anaer, p)
+    # Only THAWED anaerobic soil sets the production temperature -- but do not
+    # multiply by the thawed fraction as well. `Rh` already collapses when the
+    # soil freezes (Arctic wetland Rh is 0.027 gC/m2/d in January against 0.995
+    # in July), so scaling by `f_thawed` would apply the freeze constraint a
+    # second time. Measured: doing so contributed a 2.6x tropics-to-Arctic
+    # suppression on top of Rh's own 3.4x. Same error as the Q10 double-count
+    # (docs/METHANE.md 5j).
+    t_thawed, _f_thawed = thawed_anaerobic_zone(tsoi, zwt, hsoi)
+    prod = gross_production(rh, t_thawed, p)
     return wetland_flux_area(f_inund) * prod * surviving_fraction(zwt, p)
 
 

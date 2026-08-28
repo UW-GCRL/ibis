@@ -1354,6 +1354,103 @@ failures and must be diagnosed as such." First real instance.
 Investigate before calibrating — fitting `r_CH4` against a biased substrate
 would bake the bias into the parameter.
 
+## 5j. Diagnosing the latitudinal bias — and correcting myself twice
+
+§5i blamed IBIS's Arctic soil respiration. **That was wrong, and wrong for the
+same reason as an earlier error in this project: I measured one month and
+generalised.**
+
+### Correction 1 — there is no Rh problem
+
+§5i reported a 22× tropics-to-Arctic Rh gradient from the December checkpoint.
+Run through a full year, the **annual** gradient is:
+
+```
+              30S-30N   30-60N   60-90N   ratio
+annual Rh      1.747    1.270    0.365    4.8x
+```
+
+**4.8×, inside the observed peatland range of 5–10×.** The seasonal cycle is
+right too: Arctic wetland Rh peaks at 0.995 gC m⁻² d⁻¹ in July and falls to
+0.027 in January — textbook active-layer behaviour. Soil carbon is also right:
+8.94 / 22.37 / 20.26 kgC m⁻², boreal correctly denser than tropical, global
+2351 PgC against an observed 1500–2400.
+
+**IBIS's carbon cycle was not the problem.** The claim in §5i is withdrawn.
+
+### A real but negligible bug, found on the way
+
+`loops_gswp3.py` computed the decomposition moisture factor with
+`wice_top = 0`, commented "ice fraction approx 0". F77 `stats.f` says the
+opposite explicitly: *"wsoi is relative to pore space not occupied by ice and
+water, thus **must include** the ice fraction"*, i.e.
+`wfps = (1 − wisoi)·wsoi·100`.
+
+Fixed. **A control run shows it accounts for almost nothing** — Arctic Rh 0.383
+(without) vs 0.365 (with), 4.6× vs 4.8×. Kept as a fidelity fix, not a
+performance one. Recorded because the whole apparent improvement in §5i came
+from correcting my sampling, not from this.
+
+### Correction 2 — I reproduced the very bug I had just diagnosed
+
+To fix a temperature gate, I made production scale with `f_thawed`, the thawed
+fraction of the anaerobic zone. That **double-counts**: `Rh` already collapses
+when soil freezes. Measured contribution: a further **2.6×** tropics-to-Arctic
+suppression on top of Rh's own 3.4×. Removed — `thawed_anaerobic_zone` now only
+selects *which layers set the temperature*, and does not scale the flux.
+
+This is the same error as the Q10 double-count in §5i, made an hour after
+diagnosing it.
+
+### The measured decomposition
+
+Each multiplicative term, by band, averaged over a year of wetland cells:
+
+| band | area % | Rh | Q₁₀ | f_thaw | zwt | surviving |
+|---|---|---|---|---|---|---|
+| 30S-30N | 55.0 | 2.248 | 1.347 | 1.000 | 0.116 | 0.532 |
+| 30-60N | 28.4 | 1.398 | 0.542 | 0.846 | 0.122 | 0.488 |
+| 60-90N | 12.1 | 0.652 | 0.327 | 0.390 | 0.101 | 0.551 |
+| **ratio** | **4.5×** | **3.4×** | **4.1×** | **2.6×** | — | **~1.0×** |
+
+`surviving_fraction` is flat across bands, so the water table is not
+implicated. The suppression is entirely temperature, applied up to three times.
+
+### Where it lands, and the finding that matters
+
+```
+                   first run   after fixes   target
+global Tg CH4/yr       545.5         473.6   158 +- 24
+30S-30N                93.3%         84.7%   70%
+30-60N                  4.7%          9.7%   21%
+60-90N                  0.5%          3.4%    8%
+```
+
+**Area × Rh alone predicts 70 / 26 / 3** against GCP's 70/21/8 — the tropics
+land exactly and 30-60N is close. Every temperature term added on top pushes the
+extratropics *down*, away from the target.
+
+**A single global `(r_CH4, Q10p)` pair cannot reproduce the latitudinal
+distribution.** Calibrating `r_CH4` scales all bands equally, so it can fix the
+3× magnitude error and cannot touch the shape.
+
+That is not a defeat — **it independently reproduces a published result.** Basso
+et al. (2026) found no single Q₁₀ fits the Arctic (W Siberia 1.4, Europe/N
+Canada 2.2), and TRIPLEX-GHG's own calibration splits by biome (boreal
+0.18/2.03, temperate 0.32/2.66, tropical 0.15/3.75) with `r` and `Q10` moving in
+*opposite* directions. We have now hit the same wall from a third direction.
+
+**It is also the concrete argument for M7's regionalisation**: parameters that
+vary with cell attributes, learned by gradient descent, rather than one global
+pair. That was previously a methodological preference; it is now a measured
+requirement.
+
+### What not to do next
+
+**Do not calibrate `r_CH4` against the global total yet.** It would absorb the
+3× magnitude error into a single scalar while leaving the shape wrong, and bake
+a compensating bias into the one parameter we most need to be meaningful.
+
 ## 5b. Build log
 
 ### 2026-08-25 — M1 done
