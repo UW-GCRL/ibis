@@ -404,3 +404,35 @@ def test_methane_is_diagnostic_not_prognostic():
     from ibis.bgc.methane import methane_step
     src = inspect.getsource(methane_step)
     assert "carbon" not in src.lower() or "not removed" in src.lower()
+
+
+def test_only_the_anaerobic_share_of_Rh_makes_methane():
+    """r_CH4 is a ratio for decomposition BELOW the water table.
+
+    IBIS's soilbgc is a bulk model, so tco2mic is whole-column Rh. Applying the
+    anaerobic ratio to all of it counts aerobic soil above the water table as
+    methanogenic -- the term M-lite+ was missing (docs/METHANE.md 5m).
+    """
+    from ibis.bgc.methane import MethaneParams, anaerobic_substrate_fraction
+
+    z = jnp.asarray([0.0, 0.25, 0.5, 2.0])
+    f = np.asarray(anaerobic_substrate_fraction(z))
+    assert f[0] == pytest.approx(1.0)        # saturated to surface: all of it
+    assert np.all(np.diff(f) < 0)            # deeper table -> less anaerobic
+    p = MethaneParams()
+    assert f[2] == pytest.approx(np.exp(-0.5 / p.z_tau), rel=1e-6)
+
+
+def test_oxidation_default_sits_in_the_observed_range():
+    """tau_oxid = 0.10 m gives ~70% oxidised at a typical water table.
+
+    Chadburn et al. (2020) fitted a value giving ~70%; observations give
+    40-70% (Bridgham 2013) and 60-90% (Popp 2000). The previous 0.15 gave 47%,
+    below the observed range.
+    """
+    from ibis.bgc.methane import MethaneParams, surviving_fraction
+
+    surviving = float(surviving_fraction(jnp.asarray([0.12]))[0])
+    assert 0.10 <= surviving <= 0.60, surviving
+    assert 0.40 <= (1 - surviving) <= 0.90, "oxidised fraction outside observations"
+    assert MethaneParams().tau_oxid == pytest.approx(0.10)

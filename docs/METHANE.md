@@ -1550,6 +1550,66 @@ latitudinal shape, and 810 sites of CO₂ flux is exactly the data to check it
 against. That is a carbon-cycle evaluation, not a methane one, and it does not
 need the CH₄ product.
 
+## 5m. Two structural fixes to the magnitude — and where I stopped
+
+### The term M-lite⁺ was missing
+
+`r_CH4` is a CH₄:CO₂ ratio for decomposition **below the water table** — CLM
+defines its `f_ch4` in exactly those words. IBIS's `soilbgc` is a bulk model, so
+`tco2mic` is whole-column Rh, and M-lite⁺ applied the anaerobic ratio to *all*
+of it. That counts the aerobic soil above the water table as methanogenic.
+
+`anaerobic_substrate_fraction` = `exp(−zwt / z_tau)` now weights the substrate.
+`z_tau` = 0.50 m is CLM's default with a published range [0.1, 0.8] — one of the
+five parameters carrying >90 % of ELM's CH₄ variance (Chinta et al. 2024).
+
+Not double-counting the moisture limitation already inside Rh: that sets how
+*fast* carbon decomposes, this sets what share does so *without oxygen*.
+
+### The oxidation default was outside the observed range
+
+`tau_oxid` = 0.15 m gave only **47 % oxidised** at a typical water table.
+Chadburn et al. (2020) fitted a value giving **~70 %**, and observations give
+40–70 % (Bridgham et al. 2013) and 60–90 % (Popp et al. 2000). **0.10 m gives
+70 %** and is inside every one of those.
+
+### Effect
+
+| | Tg CH₄/yr | shape err |
+|---|---|---|
+| before both fixes | 353.1 | 11.2 |
+| + anaerobic substrate weighting | 309.5 | 13.1 |
+| + `tau_oxid` 0.15 → 0.10 | **255.8** | 16.2 |
+| GMB 2025 target | **158 [119–203]** | — |
+
+**Still 1.6× high, and the shape got slightly worse.** Both fixes are justified
+independently of the target — the first is structurally required, the second
+moves a default into the observed range — so they stand regardless.
+
+### Why I stopped here
+
+The next lever would be fitting `r_CH4` or `tau_oxid` to hit 158. **§5k
+established that a global scalar cannot fix the shape**, so doing that would
+absorb a structural error into a parameter that then means nothing physically.
+It is also how the three double-counting bugs in §5i–5k got in: adjusting a
+term without first establishing what it should be.
+
+A useful check on where the remaining excess is *not*: with the anaerobic term
+in, the tropical net ratio is 0.15 × 0.79 × 0.30 ≈ **0.035**, now *below* the
+0.06–0.07 that four formulations agree on. So the ratio chain is no longer the
+excess — meaning the residual lives in Rh × area × Q₁₀, and per §5j the Rh
+gradient and the WAD2M area are both independently validated.
+
+**That points at the Q₁₀ term with biome-varying `r`.** TRIPLEX-GHG's biome `r`
+values were each calibrated *at that biome's own temperature*, so multiplying
+them by `Q10^((T−T_ref)/10)` applies the biome temperature difference a second
+time — the same trap as §5i and §5k, in a fourth guise. Testing that properly
+needs a target the global total cannot provide.
+
+**Which is the real blocker: M3 needs FLUXNET-CH₄.** Site-level fluxes
+discriminate between these hypotheses; a global total whose published range
+spans a factor of 1.7 does not.
+
 ## 5b. Build log
 
 ### 2026-08-25 — M1 done

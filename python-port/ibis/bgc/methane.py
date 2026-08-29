@@ -63,6 +63,13 @@ class MethaneParams(eqx.Module):
     #: surface water table sits.
     z_wt_ref: float = 0.50
 
+    #: e-folding depth of decomposition with soil depth, m. Sets what
+    #: fraction of Rh happens *below* the water table and is therefore
+    #: anaerobic. CLM's `z_tau`, default 0.5 m, published range [0.1, 0.8]
+    #: (Chinta et al. 2024, Table 2 -- one of the five parameters carrying
+    #: >90 % of ELM's CH4 variance).
+    z_tau: float = 0.50
+
     #: e-folding depth of the oxic zone, m. Methane produced below the water
     #: table must cross the aerobic soil above it, where methanotrophs consume
     #: most of it; a deeper water table means a thicker oxic zone and less
@@ -81,7 +88,7 @@ class MethaneParams(eqx.Module):
     #: (Bridgham et al. 2013; Popp et al. 2000). WETMETH reports its emissions
     #: change +-37 % for a +-10 % change in this parameter, so it is both the
     #: most sensitive knob and the one gradients handle best.
-    tau_oxid: float = 0.15
+    tau_oxid: float = 0.10
 
 
 def layer_saturation(
@@ -269,6 +276,27 @@ def wetland_water_table(
     return p.z_wt_max * (1.0 - wetness)
 
 
+def anaerobic_substrate_fraction(
+    zwt: Float[Array, "npoi"],
+    params: MethaneParams | None = None,
+) -> Float[Array, "npoi"]:
+    """Fraction of heterotrophic respiration occurring below the water table.
+
+    **The term M-lite+ was missing.** `r_CH4` is a CH4:CO2 ratio for anaerobic
+    decomposition -- CLM defines its `f_ch4` as the "ratio between CH4 and CO2
+    production *below the water table*". IBIS's `soilbgc` is a bulk model, so
+    `tco2mic` is whole-column Rh, and applying the anaerobic ratio to all of it
+    counts the aerobic soil above the water table as methanogenic.
+
+    Decomposition falls off with depth as `exp(-z / z_tau)`, so the share below
+    a water table at `zwt` is `exp(-zwt / z_tau)`. Not double-counting the
+    moisture limitation already inside Rh: that sets how *fast* carbon
+    decomposes, this sets what fraction does so *without oxygen*.
+    """
+    p = params or MethaneParams()
+    return jnp.exp(-jnp.maximum(zwt, 0.0) / jnp.maximum(p.z_tau, 1e-6))
+
+
 def gross_production(
     rh: Float[Array, "npoi"],
     t_anaer: Float[Array, "npoi"],
@@ -345,7 +373,10 @@ def methane_flux(
     # suppression on top of Rh's own 3.4x. Same error as the Q10 double-count
     # (docs/METHANE.md 5j).
     t_thawed, _f_thawed = thawed_anaerobic_zone(tsoi, zwt, hsoi)
-    prod = gross_production(rh, t_thawed, p)
+    # Only the share of Rh happening below the water table is anaerobic, and
+    # only that share can make methane.
+    rh_anaerobic = jnp.maximum(rh, 0.0) * anaerobic_substrate_fraction(zwt, p)
+    prod = gross_production(rh_anaerobic, t_thawed, p)
     return wetland_flux_area(f_inund) * prod * surviving_fraction(zwt, p)
 
 
