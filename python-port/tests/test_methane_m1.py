@@ -338,3 +338,69 @@ def test_flux_is_differentiable_in_both_primary_parameters():
     g = jax.grad(total)(jnp.asarray([0.23, 1.60, 0.15]))
     assert np.all(np.isfinite(np.asarray(g)))
     assert float(g[0]) > 0.0        # more methane per unit carbon -> more flux
+
+
+# --- M2 wiring: the module is part of the model, not a script that reads it ---
+
+
+def test_methane_state_accumulates_and_resets():
+    from ibis.bgc.methane import (create_methane_state, methane_step,
+                                  reset_annual)
+
+    n, ns = 5, 6
+    hsoi = jnp.asarray([0.10, 0.15, 0.25, 0.50, 1.00, 2.00])
+    m = create_methane_state(n)
+    assert float(jnp.sum(m.annual)) == 0.0
+    args = (jnp.full((n,), 0.5), jnp.full((n,), 2e-3),
+            jnp.full((n, ns), 295.0), jnp.full((n, ns), 0.9),
+            jnp.zeros((n, ns)), hsoi)
+    m = methane_step(m, *args, 31)
+    first = float(jnp.mean(m.annual))
+    assert first > 0.0
+    m = methane_step(m, *args, 28)
+    assert float(jnp.mean(m.annual)) > first          # accumulates
+    m = reset_annual(m)
+    assert float(jnp.sum(m.annual)) == 0.0            # and clears
+    assert float(jnp.mean(m.flux)) > 0.0              # flux survives the reset
+
+
+def test_runner_takes_f_inund_and_methane_params():
+    """The wiring M1 lacked: tested is not the same as called."""
+    import inspect
+
+    from ibis.timestepping.loops_gswp3 import (run_month_gswp3,
+                                               run_spinup_gswp3,
+                                               run_year_gswp3)
+    for fn, names in ((run_month_gswp3, ("f_inund", "methane_params")),
+                      (run_year_gswp3, ("f_inund_clim", "methane_params")),
+                      (run_spinup_gswp3, ("f_inund_clim", "methane_params"))):
+        sig = inspect.signature(fn).parameters
+        for nm in names:
+            assert nm in sig, f"{fn.__name__} is missing {nm}"
+            assert sig[nm].default is None, f"{fn.__name__}.{nm} must default to None"
+
+
+def test_enable_methane_flag_is_actually_read():
+    """A flag nothing reads is the defect-0 pattern (docs/AUDIT.md)."""
+    import pathlib
+
+    from ibis.config import RunConfig
+    assert hasattr(RunConfig(), "enable_methane")
+    root = pathlib.Path(__file__).resolve().parents[1]
+    src = (root / "scripts" / "run_global.py").read_text(encoding="utf-8")
+    assert "enable_methane" in src
+    assert "f_inund=" in src, "the flag must reach the runner"
+
+
+def test_methane_is_diagnostic_not_prognostic():
+    """The carbon is deliberately NOT removed from the soil pool yet.
+
+    docs/METHANE.md 5f: at ~7 % of Rh it is small, and coupling it before
+    either the methane or the carbon parameters are calibrated would bake one
+    bias into the other.
+    """
+    import inspect
+
+    from ibis.bgc.methane import methane_step
+    src = inspect.getsource(methane_step)
+    assert "carbon" not in src.lower() or "not removed" in src.lower()

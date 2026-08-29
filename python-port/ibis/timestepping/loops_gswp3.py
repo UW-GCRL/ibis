@@ -470,6 +470,8 @@ def run_month_gswp3(
     leap: bool = False,
     nband: int = 2,
     nsoilcall: int = 1,
+    f_inund=None,
+    methane_params=None,
 ) -> tuple[IBISState, jax.Array]:
     """Run one calendar month using GSWP3 daily forcing.
 
@@ -517,6 +519,30 @@ def run_month_gswp3(
         state, key, consts, params, xs,
         nsoilcall, ndaypy, dtime, nband,
     )
+
+    # --- wetland CH4, monthly (docs/METHANE.md) ---------------------------
+    # Monthly because that is WAD2M's resolution; a daily flux would imply a
+    # precision in `f_inund` the forcing does not have. Diagnostic only -- the
+    # carbon is not removed from the soil pool.
+    #
+    # Wired here rather than left to a script because M1 shipped tested and
+    # uncalled, which is the failure this project keeps repeating
+    # (docs/AUDIT.md).
+    if f_inund is not None:
+        from ibis.bgc.methane import create_methane_state, methane_step
+        so, veg = state_out.soil, state_out.vegetation
+        rh_kgc_day = veg.tco2mic * jnp.float32(12.0e-3 * 86400.0)
+        mstate = state_out.wetland
+        if mstate is None:
+            mstate = create_methane_state(rh_kgc_day.shape[0])
+        mstate = methane_step(
+            mstate, jnp.asarray(f_inund), rh_kgc_day,
+            so.tsoi, so.wsoi, so.wisoi, so.hsoi[:so.tsoi.shape[1]],
+            ndays, methane_params,
+        )
+        state_out = eqx.tree_at(lambda s: s.wetland, state_out, mstate,
+                                is_leaf=lambda x: x is None)
+
     return state_out, key_out, daily_diag
 
 
@@ -611,6 +637,8 @@ def run_year_gswp3(
     year: int,
     nband: int = 2,
     nsoilcall: int = 1,
+    f_inund_clim=None,
+    methane_params=None,
 ) -> tuple[IBISState, jax.Array]:
     """Run a full year using GSWP3 transient daily forcing.
 
@@ -649,6 +677,8 @@ def run_year_gswp3(
             state, consts, params, reader,
             latindex, lonindex, lat_rad,
             year, imonth, key, dtime, leap, nband, nsoilcall,
+            f_inund=None if f_inund_clim is None else f_inund_clim[imonth],
+            methane_params=methane_params,
         )
 
     return state, key
@@ -677,6 +707,8 @@ def run_spinup_gswp3(
     fire_scheme: str = None,
     fire_params=None,
     popd=None,
+    f_inund_clim=None,
+    methane_params=None,
 ):
     """Multi-year spin-up with the **complete** carbon chain.
 
@@ -767,6 +799,7 @@ def run_spinup_gswp3(
         state, key = run_year_gswp3(
             state, consts, params, reader, latindex, lonindex, lat_rad,
             key, dtime, year, nband=nband, nsoilcall=nsoilcall,
+            f_inund_clim=f_inund_clim, methane_params=methane_params,
         )
 
         # --- annual: climate normals, then grow biomass and disturb it ---

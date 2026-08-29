@@ -96,6 +96,10 @@ class ForcingSection:
     forcing_type: str = "climatology"
     gswp3_dir: str = ""
     vegtype_dir: str = ""
+    #: WAD2M inundated-fraction file, read only when RunConfig.enable_methane
+    #: is set. See docs/METHANE.md.
+    wad2m_file: str = ("/shared/nas2/Hangkai/ibis/inputs/methane/wad2m/"
+                       "WAD2M_wetlands_2000-2020_05deg_Ver2.0.nc")
     soil_file: str = ""
     land_mask_file: str = ""
     # Spinup: repeat [spinup_year_start, spinup_year_end] cyclically for nrun years.

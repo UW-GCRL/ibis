@@ -364,3 +364,61 @@ def to_mg_ch4(flux_kgc: Float[Array, "npoi"]) -> Float[Array, "npoi"]:
 def to_nmol_ch4(flux_kgc: Float[Array, "npoi"]) -> Float[Array, "npoi"]:
     """kgC m-2 d-1 -> nmol CH4 m-2 s-1, the FLUXNET-CH4 convention."""
     return flux_kgc * KGC_TO_NMOL_CH4
+
+
+# ---------------------------------------------------------------------------
+# State, so methane is part of the model rather than a script that reads it
+# ---------------------------------------------------------------------------
+
+
+class MethaneState(eqx.Module):
+    """Wetland CH4 diagnostics carried in `IBISState.wetland`.
+
+    Diagnostic, not prognostic: the carbon is not removed from the soil pool.
+    At ~7 % of Rh that is a small term, and making it prognostic would couple
+    the methane parameters to the carbon balance before either is calibrated
+    (docs/METHANE.md 5f). Revisit once M3 has evaluated the flux.
+    """
+
+    #: Most recent monthly-mean emission, kgC m-2 d-1.
+    flux: Float[Array, "npoi"]
+    #: Running annual total, kgC m-2 yr-1. Cleared by `reset_annual`.
+    annual: Float[Array, "npoi"]
+    #: Water table depth used for the most recent flux, m -- kept because it is
+    #: the term that broke first (docs/METHANE.md 5i) and is worth watching.
+    zwt: Float[Array, "npoi"]
+
+
+def create_methane_state(npoi: int) -> MethaneState:
+    z = jnp.zeros((npoi,))
+    return MethaneState(flux=z, annual=z, zwt=z)
+
+
+def methane_step(
+    mstate: MethaneState,
+    f_inund: Float[Array, "npoi"],
+    rh: Float[Array, "npoi"],
+    tsoi: Float[Array, "npoi nsoilay"],
+    wsoi: Float[Array, "npoi nsoilay"],
+    wisoi: Float[Array, "npoi nsoilay"],
+    hsoi: Float[Array, "nsoilay"],
+    ndays: int,
+    params: MethaneParams | None = None,
+) -> MethaneState:
+    """Advance the methane diagnostics by one month.
+
+    Monthly because that is WAD2M's resolution -- computing daily would imply a
+    precision in `f_inund` that the forcing does not have.
+
+    `rh` is heterotrophic respiration in kgC m-2 d-1 (`tco2mic * 12e-3 * 86400`).
+    """
+    p = params or MethaneParams()
+    flux = methane_flux(f_inund, rh, tsoi, wsoi, wisoi, hsoi, p)
+    zwt = wetland_water_table(wsoi, wisoi, hsoi, p)
+    return MethaneState(flux=flux, annual=mstate.annual + flux * ndays, zwt=zwt)
+
+
+def reset_annual(mstate: MethaneState) -> MethaneState:
+    """Clear the annual accumulator. Call at year end, after it is consumed."""
+    return MethaneState(flux=mstate.flux, annual=jnp.zeros_like(mstate.annual),
+                        zwt=mstate.zwt)

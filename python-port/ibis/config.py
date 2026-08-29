@@ -53,6 +53,10 @@ class RunConfig:
     #: Tracked in tests/test_no_dead_code.py so it cannot be forgotten.
     enable_permafrost: bool = False
     enable_fire_emissions: bool = False
+    #: Wetland CH4 (docs/METHANE.md). Requires a WAD2M inundated-fraction
+    #: climatology passed to the runner; diagnostic only, the carbon is not
+    #: removed from the soil pool.
+    enable_methane: bool = False
     # enable_wetlands / enable_soil_n2o / enable_bvoc removed 2026-08-28: the
     # modules they selected moved to bgc/_legacy_unwired/, so the flags could
     # only ever have been set with no effect (docs/AUDIT.md).

@@ -436,6 +436,20 @@ def run_global_simulation(config: IBISConfig) -> None:
     # ------------------------------------------------------------------
     # 8. Year loop
     # ------------------------------------------------------------------
+    # --- wetland CH4 (docs/METHANE.md) ------------------------------------
+    # `enable_methane` is read here so the flag actually does something. The
+    # runner keys off `f_inund` being present; loading the climatology is what
+    # the flag controls.
+    ch4_clim = None
+    if getattr(p, "enable_methane", False):
+        from ibis.io.wad2m import read_wad2m_climatology
+        mlat = np.arange(-90.0, 90.0, 0.5)
+        mlon = np.arange(-180.0, 180.0, 0.5)
+        ch4_clim = read_wad2m_climatology(
+            f.wad2m_file, gswp3_latindex, gswp3_lonindex, mlat, mlon)
+        logger.info("  wetland CH4 enabled: WAD2M climatology loaded, "
+                    "mean inundated fraction %.4f", float(ch4_clim.mean()))
+
     for iyear_offset in range(t.nrun):
         year = t.iyear0 + iyear_offset
         t0 = time.time()
@@ -492,6 +506,7 @@ def run_global_simulation(config: IBISConfig) -> None:
                 state, consts, params, reader,
                 gswp3_latindex, gswp3_lonindex, np.array(lat_rad),
                 forcing_year, imonth, key, t.dtime, leap, grid.nband, nsoilcall,
+                f_inund=None if ch4_clim is None else ch4_clim[imonth],
             )
 
             # Write monthly output

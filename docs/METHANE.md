@@ -34,7 +34,7 @@ biogeochemistry while inheriting the same extent uncertainty buys almost nothing
 |---|---|---|
 | M0 | Read TRIPLEX-GHG and IBIS-CH4 papers; extract their parameter values | ☑ **done** (2026-08-21) — see §4.11 |
 | M1 | Inundated fraction + water table depth diagnostic | ☑ **done** (2026-08-25) — `io/wad2m.py`, `bgc/methane.py`, 18 tests |
-| M2 | **M-lite⁺**: `f_inund · r_CH4 · Rh · Q10^((T−T_ref)/10) · exp(−z/τ)` | ◐ **built & running globally** (2026-08-27), 26 tests; uncalibrated at 459 Tg/yr and too tropical — see §5i |
+| M2 | **M-lite⁺**: `f_inund · r_CH4 · Rh · Q10^((T−T_ref)/10) · exp(−z/τ)` | ☑ **built and wired** (2026-08-28), 30 tests. Runs inside the timestep, `enable_methane` read by `run_global`. Uncalibrated: 353 Tg/yr and too tropical at the best configuration — §5i–5k |
 | M3 | Evaluate M-lite: FLUXNET-CH4 + global total | ☐ not started |
 | M4 | **microbial growth/dormancy** (2 params) — the only added process with a replicated skill gain; *only if M3 shows seasonal bias* | ☐ not started |
 | M5 | ~~ebullition, plant transport, diffusion~~ — **removed from the plan** (§5f); reinstate only for a question needing pathway partitioning | ✗ dropped |
@@ -1503,6 +1503,52 @@ implied by biome `r` with mean surviving fraction ~0.52 is 0.15 × 0.52 ≈ 0.08
 in the tropics, against the 0.06–0.07 that four independent formulations agree
 on (§5f) — so roughly a third of the excess is the ratio and the rest is
 elsewhere. Not diagnosed yet.
+
+## 5l. M2 wired — the module is now part of the model
+
+M1 shipped tested and uncalled, which is the failure docs/AUDIT.md is about.
+M2 is wired end to end:
+
+* **`MethaneState`** in `IBISState.wetland` — monthly flux, running annual
+  total, and the water table depth used (kept because it is the term that broke
+  first, §5i).
+* **`methane_step`** called at month end in `run_month_gswp3`, and threaded
+  through `run_year_gswp3` → `run_spinup_gswp3`. Monthly, because that is
+  WAD2M's resolution — a daily flux would imply a precision the forcing lacks.
+* **`enable_methane`** read by `scripts/run_global.py`, which loads the WAD2M
+  climatology when set. `forcing.wad2m_file` gives the path.
+
+Verified through the runner rather than in isolation: `state.wetland` goes from
+`None` to a populated state, the flux is finite and non-negative, and July
+(5.55 mg CH₄ m⁻² d⁻¹ mean) exceeds January (3.08) as it should.
+
+**A dead flag caught in the act.** The first version keyed the wiring off
+`f_inund` being present and left `enable_methane` read by nothing — the exact
+pattern this project keeps repeating, created an hour after finishing the audit
+that removed twelve instances of it. Wiring it into `run_global` fixed it, and
+`test_enable_methane_flag_is_actually_read` now pins it.
+
+**Still diagnostic, deliberately.** The carbon is not removed from the soil
+pool. At ~7 % of Rh it is a small term, and coupling it before either the
+methane or the carbon parameters are calibrated would bake one bias into the
+other. Revisit after M3.
+
+### M3 is blocked on data we do not have
+
+FLUXNET-CH₄ is **not on the NAS**. `/shared/nas2/Min/FLUXNET2015` holds 810
+sites of the CO₂/energy/water product, which carries **no CH₄ columns** —
+FLUXNET-CH₄ (Delwiche et al. 2021, ESSD 13, 3607) is a separate community
+product. It is free under CC-BY-4.0 but needs a fluxnet.org registration.
+
+Until it is downloaded, the only available test is the global total against
+GMB — and §5c already established that is a **weak** test, since the published
+range 119–203 Tg yr⁻¹ spans a factor of 1.7.
+
+**FLUXNET2015 is still worth using**, for a different purpose: validating
+IBIS's Rh and GPP directly. §5j showed the substrate is what drives the
+latitudinal shape, and 810 sites of CO₂ flux is exactly the data to check it
+against. That is a carbon-cycle evaluation, not a methane one, and it does not
+need the CH₄ product.
 
 ## 5b. Build log
 
