@@ -74,6 +74,7 @@ from ibis.io.physics_params import load_physics_params, build_all_params
 from ibis.constants import PhysicalConstants
 from ibis.dimensions import GridConfig
 from ibis.state.model_state import IBISState, create_ibis_state
+from ibis.physics.bedrock import BedrockParams, initialize_bedrock_temperature
 from ibis.timestepping.loops import SimParams
 from ibis.timestepping.loops_gswp3 import run_month_gswp3
 from ibis.physics.climate_analysis import climanl, climanl2, existence
@@ -336,7 +337,8 @@ def run_global_simulation(config: IBISConfig) -> None:
     # ------------------------------------------------------------------
     # 4. Create or load state
     # ------------------------------------------------------------------
-    grid = GridConfig(nlon=nlon, nlat=nlat, npoi=npoi, xres=g.xres, yres=g.yres)
+    grid = GridConfig(nlon=nlon, nlat=nlat, npoi=npoi, xres=g.xres, yres=g.yres,
+                      nbedrock=getattr(g, 'nbedrock', 0))
 
     if t.irestart > 0:
         rpath = restart_path(out.restart_dir, t.irestart)
@@ -407,6 +409,20 @@ def run_global_simulation(config: IBISConfig) -> None:
     lat_rad = jnp.array(np.deg2rad(lat_land_deg))
     _pdict = load_physics_params(config.params_file) if config.params_file else None
     params, pft_params, bgc_params = build_all_params(npoi, lat_rad, _pdict)
+
+    # Seed thermal-only bedrock on a cold start. Downward continuation along a
+    # geothermal gradient puts the new layers near equilibrium immediately;
+    # a uniform guess would need centuries of spin-up to diffuse away. On a
+    # restart the temperatures come from the checkpoint, so leave them alone.
+    if t.irestart == 0 and state.soil.tsoi_deep is not None:
+        bp = params.bedrock if params.bedrock is not None else BedrockParams()
+        state = eqx.tree_at(
+            lambda s: s.soil.tsoi_deep, state,
+            initialize_bedrock_temperature(
+                state.soil.tsoi[:, -1], state.soil.hsoi[:grid.nsoilay], bp))
+        logger.info("  Seeded %d bedrock layers to %.1f m by downward continuation",
+                    bp.nlayer, float(jnp.sum(state.soil.hsoi[:grid.nsoilay]))
+                    + sum(bp.hsoi))
 
     # Set PFT existence from (re)seeded climate normals
     exist_init = existence(

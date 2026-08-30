@@ -36,6 +36,7 @@ from ibis.dimensions import GridConfig
 
 from ibis.physics.radiation import compute_radiation, VegRadParams, default_veg_rad_params
 from ibis.physics.soil_physics import setsoi, soilh2o, soilheat, freeze_thaw, wadjust
+from ibis.physics.bedrock import BedrockParams, soilheat_with_bedrock
 from ibis.io.parameters import BGCParams, default_bgc_params
 from ibis.physics.snow_physics import vadapt, snowheat, snow_melt, snow_coverage
 from ibis.physics.canopy_exchange import (
@@ -95,6 +96,10 @@ class SimParams(eqx.Module):
 
     # BGC decomposition parameters (needed by soilbgc, called daily)
     bgc_params: BGCParams = eqx.field(default_factory=default_bgc_params)
+
+    # Thermal-only bedrock below the soil column (docs/BEDROCK.md). Only used
+    # when the state carries `soil.tsoi_deep`; None keeps the Fortran column.
+    bedrock: BedrockParams | None = None
 
 
 def default_sim_params(npoi: int) -> SimParams:
@@ -984,16 +989,31 @@ def timestep_body(
     # --- Issue 18: Update c1pud after soilh2o ---
     c1pud = c0pud.at[:, 0].set(c.ch2o * h2o.wpud + c.cice * wipud_w)
 
-    # soilheat
-    heat = soilheat(
-        tsoi_pre_trans, otsoi, owsoi,
-        h2o.wsoi, wisoi_work, soil.poros,
-        setsoi_res.consoi, csoi_mineral, rhosoi,
-        soil.hsoi[:nsoilay],
-        c0pud, c1pud,
-        fhtop_soil, h2o.wflo,
-        c.ch2o, c.cice, c.rhow, dtime,
-    )
+    # soilheat. When the state carries thermal-only bedrock layers, they are
+    # appended to the tridiagonal system so the zero-flux boundary sits at 12 m
+    # instead of 4 m; `heat` is trimmed back to the soil layers either way.
+    if soil.tsoi_deep is None:
+        heat = soilheat(
+            tsoi_pre_trans, otsoi, owsoi,
+            h2o.wsoi, wisoi_work, soil.poros,
+            setsoi_res.consoi, csoi_mineral, rhosoi,
+            soil.hsoi[:nsoilay],
+            c0pud, c1pud,
+            fhtop_soil, h2o.wflo,
+            c.ch2o, c.cice, c.rhow, dtime,
+        )
+        tsoi_deep_new = None
+    else:
+        heat, tsoi_deep_new = soilheat_with_bedrock(
+            tsoi_pre_trans, soil.tsoi_deep, otsoi, soil.tsoi_deep, owsoi,
+            h2o.wsoi, wisoi_work, soil.poros,
+            setsoi_res.consoi, csoi_mineral, rhosoi,
+            soil.hsoi[:nsoilay],
+            c0pud, c1pud,
+            fhtop_soil, h2o.wflo,
+            c.ch2o, c.cice, c.rhow, dtime,
+            params.bedrock if params.bedrock is not None else BedrockParams(),
+        )
 
     # wadjust before freeze_thaw
     wsoi_pre, wisoi_pre, gadjust1 = wadjust(
@@ -1101,6 +1121,12 @@ def timestep_body(
          stresstu, stresstl, stressu, stressl,
          porosflo_ft),
     )
+
+    # Bedrock temperatures, when the column carries thermal-only layers. Guarded
+    # because tsoi_deep is None in the default (Fortran) configuration, and a
+    # None field is not a pytree leaf tree_at can address.
+    if tsoi_deep_new is not None:
+        new_soil = eqx.tree_at(lambda s: s.tsoi_deep, new_soil, tsoi_deep_new)
 
     # Updated snow state (includes persistent tlsub)
     new_snow = eqx.tree_at(

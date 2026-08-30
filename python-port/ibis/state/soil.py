@@ -60,9 +60,18 @@ class SoilState(eqx.Module):
     albsav: Float[Array, "npoi"]          # Base soil albedo, visible
     albsan: Float[Array, "npoi"]          # Base soil albedo, near-IR
 
+    # --- Optional thermal-only bedrock (prognostic, restart-required) ---
+    # Temperatures of the hydrologically-inactive layers below the soil column.
+    # None means the column ends at the soil base with a zero-flux boundary,
+    # which is the Fortran configuration. See ibis.physics.bedrock.
+    tsoi_deep: Float[Array, "npoi nbedrock"] | None = None
 
-def create_soil_state(npoi: int, nsoilay: int) -> SoilState:
-    """Create a zero-initialised SoilState."""
+
+def create_soil_state(npoi: int, nsoilay: int, nbedrock: int = 0) -> SoilState:
+    """Create a zero-initialised SoilState.
+
+    `nbedrock` > 0 allocates thermal-only layers below the soil column.
+    """
     return SoilState(
         tsoi=jnp.full((npoi, nsoilay), 278.0),
         wsoi=jnp.full((npoi, nsoilay), 0.5),
@@ -96,4 +105,6 @@ def create_soil_state(npoi: int, nsoilay: int) -> SoilState:
         hsoi=jnp.zeros((nsoilay + 1,)),
         albsav=jnp.full((npoi,), 0.1),
         albsan=jnp.full((npoi,), 0.2),
+        tsoi_deep=(None if nbedrock == 0
+                   else jnp.full((npoi, nbedrock), 278.0)),
     )

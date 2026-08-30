@@ -388,12 +388,20 @@ def soilheat(
     cice: float,
     rhow: float,
     dtime: float,
+    n_hydro: int | None = None,
 ) -> SoilheatResult:
     """Implicit soil heat conduction solver.
 
     Matches Fortran soilheat().
+
+    `n_hydro` is the number of leading layers that carry water. It defaults to
+    every layer, which is the Fortran behaviour. Passing a smaller value lets
+    thermal-only layers (bedrock) sit below the hydrologic column: heat still
+    conducts across the seam, but drainage leaves the domain at the base of the
+    hydrologic layers instead of being advected into rock that holds no water.
     """
     npoi, nsoilay = tsoi.shape
+    n_hyd = nsoilay if n_hydro is None else n_hydro
     RIMP = 1.0
 
     # --- Conduction coefficients ---
@@ -407,14 +415,18 @@ def soilheat(
     for k in range(1, nsoilay):
         con_k = 1.0 / (0.5 * (hsoi[k - 1] / jnp.maximum(consoi[:, k - 1], 1e-12)
                                + hsoi[k] / jnp.maximum(consoi[:, k], 1e-12)))
-        t_avg = ((hsoi[k] * tsoi[:, k - 1] + hsoi[k - 1] * tsoi[:, k])
-                 / (hsoi[k - 1] + hsoi[k]))
-        whflo_k = wflo[:, k] * ch2o * t_avg
         con = con.at[:, k].set(con_k)
-        whflo = whflo.at[:, k].set(whflo_k)
+        if k < n_hyd:
+            t_avg = ((hsoi[k] * tsoi[:, k - 1] + hsoi[k - 1] * tsoi[:, k])
+                     / (hsoi[k - 1] + hsoi[k]))
+            whflo = whflo.at[:, k].set(wflo[:, k] * ch2o * t_avg)
 
-    # Bottom interface: zero conduction
-    whflo = whflo.at[:, nsoilay].set(wflo[:, nsoilay] * ch2o * tsoi[:, nsoilay - 1])
+    # Base of the hydrologic column: drainage carries heat out of the domain.
+    # Holding whflo constant below that interface makes its divergence vanish in
+    # every thermal-only layer, so bedrock neither absorbs nor emits drainage heat.
+    drain = wflo[:, n_hyd] * ch2o * tsoi[:, n_hyd - 1]
+    for k in range(n_hyd, nsoilay + 1):
+        whflo = whflo.at[:, k].set(drain)
 
     # --- Heat capacity terms ---
     rwork1 = (1.0 - poros) * csoi_mineral * rhosoi

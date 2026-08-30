@@ -27,6 +27,11 @@ class GridConfig:
     # State-space dimensions
     nband: int = 2         # Solar radiation wavebands (VIS, NIR)
     nsoilay: int = 6       # Number of soil layers
+    #: Thermal-only bedrock layers below the soil column. 0 reproduces the
+    #: Fortran configuration (zero-flux at 4 m); 3 gives the 12 m column that
+    #: keeps the annual wave from reflecting into the deepest soil node.
+    #: See ibis/physics/bedrock.py.
+    nbedrock: int = 0
     nsnolay: int = 3       # Number of snow layers
     npft: int = 12         # Number of plant functional types
 

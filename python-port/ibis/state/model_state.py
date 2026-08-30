@@ -61,7 +61,7 @@ def create_ibis_state(grid: GridConfig,
         O2 concentration (mol/mol).
     """
     return IBISState(
-        soil=create_soil_state(grid.npoi, grid.nsoilay),
+        soil=create_soil_state(grid.npoi, grid.nsoilay, grid.nbedrock),
         snow=create_snow_state(grid.npoi, grid.nsnolay),
         canopy=create_canopy_state(grid.npoi),
         atm=create_atm_state(grid.npoi, grid.nband, co2, o2),

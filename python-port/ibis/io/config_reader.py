@@ -23,6 +23,9 @@ class GridSection:
     seast: float = 95.5
     xres: float = 0.5
     yres: float = 0.5
+    #: Thermal-only bedrock layers below the 4 m soil column. 0 keeps the
+    #: Fortran configuration; 3 gives the 12 m column. See ibis/physics/bedrock.py.
+    nbedrock: int = 0
 
 
 @dataclass
