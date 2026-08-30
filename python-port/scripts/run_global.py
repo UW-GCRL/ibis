@@ -616,6 +616,25 @@ def run_global_simulation(config: IBISConfig) -> None:
             logger.info("  dynaveg: allocation, disturbance and PFT "
                         "reclassification (fire_scheme=%s)", p.fire_scheme)
 
+            # Permafrost diagnostics. Active-layer only -- the 4 m soil column
+            # cannot hold deep thermal memory; see loops_gswp3 for why.
+            if getattr(p, "enable_permafrost", False):
+                from ibis.bgc.permafrost import (create_permafrost_state,
+                                                 default_permafrost_params,
+                                                 permafrost_step)
+                pf = state.permafrost
+                if pf is None:
+                    pf = create_permafrost_state(state.soil.tsoi.shape[0])
+                pf = permafrost_step(pf, state.soil.tsoi, consts.tmelt,
+                                     state.vegetation.gdd0,
+                                     default_permafrost_params())
+                state = eqx.tree_at(lambda s: s.permafrost, state, pf,
+                                    is_leaf=lambda x: x is None)
+                logger.info("  permafrost: active layer %.2f m mean, "
+                            "frozen ground %.1f%% of cells",
+                            float(jnp.mean(pf.active_layer)),
+                            float(jnp.mean(pf.frozen_ground)) * 100.0)
+
             # `enable_fire_emissions` was declared in RunConfig and read
             # nowhere, so the whole F5 module -- Andreae factors, CO/CH4/N2O/
             # NOx -- was unreachable from a production run.

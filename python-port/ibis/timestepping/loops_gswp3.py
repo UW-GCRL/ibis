@@ -472,6 +472,8 @@ def run_month_gswp3(
     nsoilcall: int = 1,
     f_inund=None,
     methane_params=None,
+    enable_permafrost=False,
+    permafrost_params=None,
 ) -> tuple[IBISState, jax.Array]:
     """Run one calendar month using GSWP3 daily forcing.
 
@@ -528,6 +530,30 @@ def run_month_gswp3(
     # Wired here rather than left to a script because M1 shipped tested and
     # uncalled, which is the failure this project keeps repeating
     # (docs/AUDIT.md).
+    # --- permafrost, monthly (docs/AUDIT.md group A) ----------------------
+    # MONTHLY, not annually: permafrost_step reads the *instantaneous* soil
+    # temperature profile, so calling it once at year end reads December --
+    # winter, nothing thawed, active layer 0. `thaw_depth` takes a running
+    # maximum internally, so monthly calls accumulate the annual thaw correctly.
+    #
+    # LIMITATION: IBIS's soil column is 4.0 m and the annual damping depth in
+    # wet soil is ~3.2 m, so the bottom boundary still sees ~28 % of the surface
+    # amplitude. Read `active_layer` and `frozen_ground` as seasonal; treat
+    # `talik` and deep `thaw_depth` as unresolved until the column is deepened.
+    if enable_permafrost:
+        from ibis.bgc.permafrost import (create_permafrost_state,
+                                         default_permafrost_params,
+                                         permafrost_step)
+        pf = state_out.permafrost
+        if pf is None:
+            pf = create_permafrost_state(state_out.soil.tsoi.shape[0])
+        pf = permafrost_step(pf, state_out.soil.tsoi, consts.tmelt,
+                             state_out.vegetation.gdd0,
+                             permafrost_params or default_permafrost_params(),
+                             hsoi=state_out.soil.hsoi)
+        state_out = eqx.tree_at(lambda s: s.permafrost, state_out, pf,
+                                is_leaf=lambda x: x is None)
+
     if f_inund is not None:
         from ibis.bgc.methane import create_methane_state, methane_step
         so, veg = state_out.soil, state_out.vegetation
@@ -639,6 +665,8 @@ def run_year_gswp3(
     nsoilcall: int = 1,
     f_inund_clim=None,
     methane_params=None,
+    enable_permafrost=False,
+    permafrost_params=None,
 ) -> tuple[IBISState, jax.Array]:
     """Run a full year using GSWP3 transient daily forcing.
 
@@ -679,6 +707,8 @@ def run_year_gswp3(
             year, imonth, key, dtime, leap, nband, nsoilcall,
             f_inund=None if f_inund_clim is None else f_inund_clim[imonth],
             methane_params=methane_params,
+            enable_permafrost=enable_permafrost,
+            permafrost_params=permafrost_params,
         )
 
     return state, key
@@ -709,6 +739,8 @@ def run_spinup_gswp3(
     popd=None,
     f_inund_clim=None,
     methane_params=None,
+    enable_permafrost=False,
+    permafrost_params=None,
 ):
     """Multi-year spin-up with the **complete** carbon chain.
 
@@ -800,6 +832,8 @@ def run_spinup_gswp3(
             state, consts, params, reader, latindex, lonindex, lat_rad,
             key, dtime, year, nband=nband, nsoilcall=nsoilcall,
             f_inund_clim=f_inund_clim, methane_params=methane_params,
+            enable_permafrost=enable_permafrost,
+            permafrost_params=permafrost_params,
         )
 
         # --- annual: climate normals, then grow biomass and disturb it ---

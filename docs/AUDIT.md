@@ -133,3 +133,66 @@ Worth deleting; left in place pending a decision.
 listed item is fixed without updating the list. The allowlists shrank from 4
 flags + 13 modules to 1 + 1 across this session, which is the behaviour
 intended.
+
+
+---
+
+# Closed, 2026-08-29
+
+**0 dead config flags, 0 of 48 modules without a production caller.**
+`KNOWN_DEAD_MODULES` is now empty; `KNOWN_DEAD_FLAGS` holds only the two
+selectors for the quarantined ML framework.
+
+| # | fix | dead modules |
+|---|---|---|
+| 1–5 | (see above) | 13 → 1 |
+| 6 | `bgc/permafrost.py` wired; `enable_permafrost` read | **0** |
+| — | 419 AppleDouble files deleted (already `.gitignore`d at lines 57–60) | — |
+
+## Wiring permafrost found two bugs in it
+
+Not a formality: it was wired, tested against observations, and produced wrong
+numbers twice before it was right.
+
+**1. A hardcoded layer thickness.** `diagnose_frozen_ground` used
+`layer_thickness = 0.5  # approximate` while IBIS's layers are
+`[0.10, 0.15, 0.25, 0.50, 1.00, 2.00]`. A first-frozen layer at index 2 reported
+1.0 m where the truth is 0.25 m — 4× — and the frozen fraction counted the
+0.10 m surface layer equally with the 2.00 m bottom one. Now thickness-weighted,
+with `hsoi` threaded through.
+
+**2. A unit error in the Stefan equation, worth a factor of 294.** `k` is
+W m⁻¹ K⁻¹ = J s⁻¹ m⁻¹ K⁻¹, so `2·k·TDD / (ρ·L_f·θ)` has units of m² only if TDD
+is in degree-**seconds**. `gdd0` is degree-**days**, passed straight in.
+Measured: **0.0039 m** against an observed Arctic active layer of 0.3–2 m; with
+the ×86400, **1.31 m**.
+
+**3. And a wiring bug of mine.** I first called `permafrost_step` annually. It
+reads the *instantaneous* temperature profile, so a year-end call reads December
+— winter, nothing thawed, active layer 0. It is now monthly, which lets
+`thaw_depth`'s internal running maximum accumulate the annual thaw.
+
+## Result against observations
+
+```
+                              ours     observed
+NH permafrost extent        23.2 Mkm2  21.8 (Obu et al. 2019)   +6%
+NH annual max thaw depth     1.14 m    0.3-2 m                  in range
+seasonal peak                August    Aug-Sep                  correct
+active layer, Jan -> Aug     0.025 -> 1.059 m
+```
+
+**A comparison error of mine, for the record.** I first reported extent as
+"43 % of land, 35.9 Mkm² against an observed 15 %, 22 Mkm²" and treated it as a
+model failure. Obu et al.'s figure is **Northern Hemisphere excluding ice
+sheets**; ours was global including Antarctica's 12.5 Mkm². Like for like it is
+23.2 vs 21.8. Third time this session I compared against the wrong reference.
+
+## Known limitation, unchanged by any of this
+
+IBIS's soil column is **4.0 m** and the annual damping depth in wet soil is
+**~3.2 m**, so the bottom boundary still sees ~28 % of the surface annual
+amplitude. `active_layer` and `frozen_ground` are seasonal quantities and read
+correctly; **`talik` and deep `thaw_depth` are boundary-controlled and should
+not be trusted.** Fixing that means 10–15 layers to ~30 m, with a longer
+spin-up and a migration of every checkpoint — deliberately not done here.

@@ -17,6 +17,10 @@ from jaxtyping import Float, Array
 # State
 # ---------------------------------------------------------------------------
 
+#: IBIS's soil layer thicknesses, m. Used when `hsoi` is not supplied.
+DEFAULT_HSOI = (0.10, 0.15, 0.25, 0.50, 1.00, 2.00)
+
+
 class PermafrostState(eqx.Module):
     """Permafrost diagnostic state."""
 
@@ -84,7 +88,14 @@ def stefan_depth(tsoi, tmelt, dtime_annual, params: PermafrostParams):
     k_eff = (params.ksoil_thawed + params.ksoil_frozen) / 2.0
 
     # Stefan equation: ALD = sqrt(2 * k * TDD / (rho_ice * Lf * porosity))
-    tdd = jnp.maximum(dtime_annual, 0.0)
+    #
+    # TDD must be in degree-SECONDS: k is W m-1 K-1 = J s-1 m-1 K-1, so the
+    # numerator is J m-1 only if TDD carries seconds. `gdd0` is degree-DAYS,
+    # and passing it straight in dropped a factor of 86400 -- under the square
+    # root, a factor of 294. Measured on the reference state: 0.0039 m against
+    # an observed Arctic active layer of 0.3-2 m; with the conversion, 1.3 m.
+    SECONDS_PER_DAY = 86400.0
+    tdd = jnp.maximum(dtime_annual, 0.0) * SECONDS_PER_DAY
     porosity = params.porosity_excess + 0.4  # total porosity estimate
     ald = jnp.sqrt(
         2.0 * k_eff * tdd / (params.rho_ice * params.Lf * porosity + 1e-10)
@@ -93,7 +104,7 @@ def stefan_depth(tsoi, tmelt, dtime_annual, params: PermafrostParams):
     return ald
 
 
-def diagnose_frozen_ground(tsoi, tmelt):
+def diagnose_frozen_ground(tsoi, tmelt, hsoi=None):
     """Diagnose frozen ground from soil temperature profile.
 
     Parameters
@@ -106,23 +117,28 @@ def diagnose_frozen_ground(tsoi, tmelt):
     frozen : (npoi,) fraction of layers below freezing [0,1]
     active_layer : (npoi,) depth of first frozen layer proxy (m)
     """
-    frozen_layers = (tsoi < tmelt).astype(jnp.float32)
-    frozen_frac = jnp.mean(frozen_layers, axis=1)
+    frozen_layers = (tsoi < tmelt).astype(tsoi.dtype)
 
-    # Active layer = depth at which soil first freezes
-    # Use number of unfrozen layers from top as proxy
-    unfrozen_from_top = jnp.cumsum(1.0 - frozen_layers, axis=1)
-    # Count consecutive unfrozen layers
-    first_frozen = jnp.argmax(frozen_layers, axis=1).astype(jnp.float32)
-    # If no frozen layer, active_layer = full depth
-    any_frozen = jnp.any(frozen_layers > 0, axis=1).astype(jnp.float32)
-    nsoilay = tsoi.shape[1]
-    layer_thickness = 0.5  # approximate layer thickness (m)
-    active_layer = jnp.where(
-        any_frozen > 0,
-        first_frozen * layer_thickness,
-        nsoilay * layer_thickness,
-    )
+    # Real layer thicknesses. This previously assumed a uniform 0.5 m, but
+    # IBIS's layers are [0.10, 0.15, 0.25, 0.50, 1.00, 2.00] -- so a first
+    # frozen layer at index 2 reported 1.0 m when the true depth is 0.25 m, a
+    # 4x overestimate, and the unweighted layer mean counted the 0.10 m surface
+    # layer equally with the 2.00 m bottom one.
+    if hsoi is None:
+        hsoi = jnp.asarray(DEFAULT_HSOI[:tsoi.shape[1]], dtype=tsoi.dtype)
+    hsoi = jnp.asarray(hsoi[:tsoi.shape[1]], dtype=tsoi.dtype)
+    total = jnp.sum(hsoi)
+
+    # Thickness-weighted frozen fraction of the column.
+    frozen_frac = jnp.sum(frozen_layers * hsoi[None, :], axis=1) / total
+
+    # Active layer = depth of the top of the first frozen layer, i.e. the
+    # cumulative thickness of the unfrozen layers above it.
+    depth_to_top = jnp.concatenate([jnp.zeros(1, dtype=tsoi.dtype),
+                                    jnp.cumsum(hsoi)[:-1]])
+    first_frozen = jnp.argmax(frozen_layers, axis=1)
+    any_frozen = jnp.any(frozen_layers > 0, axis=1)
+    active_layer = jnp.where(any_frozen, depth_to_top[first_frozen], total)
 
     return frozen_frac, active_layer
 
@@ -158,6 +174,7 @@ def permafrost_step(
     tsoi, tmelt,
     gdd0,
     params: PermafrostParams,
+    hsoi=None,
 ) -> PermafrostState:
     """One annual timestep of the permafrost model.
 
@@ -174,7 +191,7 @@ def permafrost_step(
     PermafrostState — updated
     """
     # Diagnose frozen ground
-    frozen_frac, active_layer = diagnose_frozen_ground(tsoi, tmelt)
+    frozen_frac, active_layer = diagnose_frozen_ground(tsoi, tmelt, hsoi)
 
     # Stefan equation active layer depth
     ald_stefan = stefan_depth(tsoi, tmelt, gdd0, params)

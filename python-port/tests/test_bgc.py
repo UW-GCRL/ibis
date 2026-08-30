@@ -228,7 +228,12 @@ class TestDiagnoseFrozenGround:
         tsoi = jnp.full((NPOI, NSOILAY), 290.0)
         frozen, al = diagnose_frozen_ground(tsoi, 273.16)
         assert jnp.allclose(frozen, 0.0)
-        assert jnp.all(al == NSOILAY * 0.5)
+        # The full column depth, 0.10+0.15+0.25+0.50+1.00+2.00 = 4.0 m.
+        # This asserted NSOILAY * 0.5 = 3.0 until 2026-08-29, encoding the
+        # hardcoded 0.5 m layer thickness that diagnose_frozen_ground used
+        # instead of the real hsoi -- see docs/AUDIT.md.
+        from ibis.bgc.permafrost import DEFAULT_HSOI
+        assert jnp.all(al == pytest.approx(sum(DEFAULT_HSOI)))
 
     def test_all_frozen(self):
         tsoi = jnp.full((NPOI, NSOILAY), 260.0)
@@ -673,3 +678,58 @@ class TestBGCIntegration:
         assert isinstance(ns, NEEState)
         assert ns.nee_co2.shape == (NPOI,)
         assert ns.nee_ch4.shape == (NPOI,)
+
+
+class TestPermafrostWiring:
+    """Permafrost wired 2026-08-29, with two bugs fixed on the way."""
+
+    def test_stefan_depth_uses_degree_seconds(self):
+        """TDD must carry seconds, or the depth is 294x too small.
+
+        k is W/m/K = J/s/m/K, so `2*k*TDD / (rho*Lf*porosity)` is metres-squared
+        only if TDD is in degree-SECONDS. `gdd0` is degree-DAYS. Passing it
+        straight in gave 0.0039 m on the reference state against an observed
+        Arctic active layer of 0.3-2 m; with the conversion, 1.31 m.
+        """
+        import numpy as np
+
+        from ibis.bgc.permafrost import default_permafrost_params, stefan_depth
+
+        gdd0 = jnp.full((3,), 765.7)          # Arctic mean on the reference state
+        ald = float(stefan_depth(jnp.full((3, 6), 270.0), 273.16, gdd0,
+                                 default_permafrost_params())[0])
+        assert 0.3 <= ald <= 2.5, f"{ald} m outside the observed 0.3-2 m"
+        assert ald == pytest.approx(1.31, abs=0.05)
+
+    def test_active_layer_uses_real_layer_thicknesses(self):
+        """Not a hardcoded 0.5 m.
+
+        IBIS's layers are [0.10, 0.15, 0.25, 0.50, 1.00, 2.00]. With the top
+        two thawed the active layer is 0.10+0.15 = 0.25 m, not 2*0.5 = 1.0 m.
+        """
+        import numpy as np
+
+        from ibis.bgc.permafrost import DEFAULT_HSOI, diagnose_frozen_ground
+
+        hsoi = jnp.asarray(DEFAULT_HSOI)
+        tsoi = jnp.asarray([[280.0, 280.0, 270.0, 270.0, 270.0, 270.0]])
+        _, al = diagnose_frozen_ground(tsoi, 273.16, hsoi)
+        assert float(al[0]) == pytest.approx(0.25)
+
+    def test_frozen_fraction_is_thickness_weighted(self):
+        """The 0.10 m surface layer must not count equally with the 2.00 m one."""
+        from ibis.bgc.permafrost import DEFAULT_HSOI, diagnose_frozen_ground
+
+        hsoi = jnp.asarray(DEFAULT_HSOI)
+        # only the thin top layer frozen -> a small fraction of the column
+        tsoi = jnp.asarray([[270.0, 280.0, 280.0, 280.0, 280.0, 280.0]])
+        ff, _ = diagnose_frozen_ground(tsoi, 273.16, hsoi)
+        assert float(ff[0]) == pytest.approx(0.10 / 4.0, abs=1e-6)
+
+    def test_runner_exposes_enable_permafrost(self):
+        import inspect
+
+        from ibis.timestepping.loops_gswp3 import (run_month_gswp3,
+                                                   run_spinup_gswp3)
+        for fn in (run_month_gswp3, run_spinup_gswp3):
+            assert "enable_permafrost" in inspect.signature(fn).parameters
