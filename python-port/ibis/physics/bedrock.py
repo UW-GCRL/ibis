@@ -43,11 +43,19 @@ class BedrockParams(eqx.Module):
     #: granite density and specific heat so it enters soilheat's (1-poros)*c*rho.
     rhosoi: float = 2700.0
     csoi: float = 740.74074074074076   # 2700 * 740.74... = 2.0e6
-    #: Geothermal gradient used only to initialise new layers, K/m. This seeds
-    #: the profile; it is NOT applied as a bottom flux (the base stays zero-flux,
-    #: as in CLM, JULES and JSBACH -- see Ross et al. 2024 on why prescribing a
-    #: geothermal flux at shallow depth injects spurious heat).
-    dtdz: float = 0.025
+    #: Gradient used only to initialise new layers, K/m. Default 0.0.
+    #:
+    #: Under a zero-flux base the steady state of the diffusion equation is
+    #: ISOTHERMAL: d2T/dz2 = 0 makes T linear, and zero gradient at the base
+    #: forces the slope to zero. So isothermal continuation -- not a geothermal
+    #: gradient -- is the equilibrium seed for OUR boundary condition, and a
+    #: seeded gradient would simply decay away over the diffusive timescale.
+    #:
+    #: The geothermal-gradient form of downward continuation belongs to models
+    #: that impose a basal heat flux (CryoGrid, GIPL, UVic). We deliberately do
+    #: not: prescribing one at shallow depth injects spurious heat. Set this
+    #: non-zero only alongside such a flux.
+    dtdz: float = 0.0
 
     @property
     def nlayer(self) -> int:
@@ -65,9 +73,10 @@ def initialize_bedrock_temperature(
 ) -> Float[Array, "npoi nbedrock"]:
     """Seed bedrock temperatures by downward continuation.
 
-    Each new node is placed on a geothermal gradient hanging off the deepest
-    soil node, which starts the column near its equilibrium profile and avoids
-    the long diffusive spin-up a uniform guess would need.
+    New nodes are continued downward from the deepest soil node. With the
+    default `dtdz = 0.0` this is isothermal, which IS the equilibrium profile
+    under a zero-flux base, so the column starts settled rather than spending
+    decades relaxing a seeded gradient away. See `BedrockParams.dtdz`.
     """
     h = jnp.asarray(params.hsoi, dtype=tsoi_bottom.dtype)
     # Depth of each bedrock node below the centre of the deepest soil layer.

@@ -99,9 +99,15 @@ Bedrock properties follow CLM: `thk_bedrock = 3.0 W/m/K`,
 +5.9% on a full timestep (measured, 4 points, CPU). The soil column appears in
 one tridiagonal solve, which grows from 6 to 9 rows. There is no new hydrology
 state and no extra spin-up: new layers are seeded by downward continuation
-along a geothermal gradient (`BedrockParams.dtdz`, 0.025 K/m), which starts
-them near equilibrium. The gradient is used **only** to initialise; it is not
-applied as a bottom flux.
+from the deepest soil node.
+
+That continuation is **isothermal** (`BedrockParams.dtdz = 0.0`), because
+isothermal is the equilibrium under a zero-flux base: `d2T/dz2 = 0` makes the
+steady profile linear, and zero gradient at the base forces the slope to zero.
+Seeding a geothermal gradient instead would create a transient that our own
+boundary condition then takes decades to erase. The geothermal form of downward
+continuation belongs to models that impose a basal heat flux (CryoGrid, GIPL,
+UVic); set `dtdz` non-zero only alongside such a flux.
 
 ## Using it
 

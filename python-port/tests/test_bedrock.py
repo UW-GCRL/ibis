@@ -136,13 +136,27 @@ def test_energy_is_conserved_across_the_seam():
     assert jnp.allclose(dE, a["fhtop"] * a["dtime"], rtol=2e-2)
 
 
-def test_downward_continuation_seeds_a_geothermal_profile():
+def test_default_continuation_is_isothermal():
+    """Isothermal IS the equilibrium under a zero-flux base.
+
+    Steady state of the diffusion equation with a Neumann-zero base is uniform,
+    so seeding a geothermal gradient would only create a transient our own
+    boundary condition then spends decades erasing.
+    """
     p = BedrockParams()
+    assert p.dtdz == 0.0
     tb = jnp.array([275.0, 260.0])
     deep = initialize_bedrock_temperature(tb, HSOI, p)
     assert deep.shape == (2, p.nlayer)
+    assert jnp.allclose(deep, tb[:, None])
+
+
+def test_continuation_honours_a_nonzero_gradient():
+    """Only for a configuration that also imposes a basal flux."""
+    p = BedrockParams(dtdz=0.025)
+    tb = jnp.array([275.0, 260.0])
+    deep = initialize_bedrock_temperature(tb, HSOI, p)
     assert jnp.all(jnp.diff(deep, axis=1) > 0)          # warms with depth
-    assert jnp.all(deep[:, 0] > tb)                     # below the soil base
     # Soil nodes sit at [.05 .175 .375 .75 1.5 3.0] m, so with (2, 2, 4) m of
     # rock the bedrock nodes are at 5, 7 and 10 m -- i.e. 2, 4 and 7 m below
     # the deepest soil node.
