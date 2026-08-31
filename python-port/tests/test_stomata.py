@@ -532,3 +532,48 @@ class TestStomata:
         grad_fn = jax.grad(loss)
         g = grad_fn(inputs['tu'])
         assert jnp.all(jnp.isfinite(g))
+
+
+def test_stressfac_reaches_drystress_from_params():
+    """StomataParams.stressfac must actually control the water-stress curve.
+
+    timestep_body called drystress() without passing stressfac, so the
+    hardcoded default of -5.0 always won and the configured value -- loaded
+    from YAML in io/physics_params.py -- was populated and never read. A user
+    could set it and nothing happened, and the CMA-ES calibration would have
+    measured it as having zero effect and compensated through other
+    parameters.
+    """
+    from pathlib import Path
+    import ibis.timestepping.loops as L
+
+    src = Path(L.__file__).read_text()
+    assert "stressfac=sp.stressfac" in src, (
+        "drystress must be called with the parameterised stressfac")
+
+
+def test_stressfac_sign_convention():
+    """Toward zero = stronger stress. Guards against tuning it backwards.
+
+    zwilt = (1 - exp(sf*awc)) / (1 - exp(sf)). More NEGATIVE sf makes the curve
+    saturate faster, i.e. LESS stress at intermediate water content -- the
+    opposite of the intuitive reading.
+    """
+    import jax.numpy as jnp
+    from ibis.physics.stomata import drystress
+
+    npoi, nsoi = 1, 6
+    # awc = 0.3: a semi-arid soil, where the curves differ most
+    wsoi = jnp.full((npoi, nsoi), 0.3)
+    wisoi = jnp.zeros((npoi, nsoi))
+    swilt = jnp.zeros((npoi, nsoi))
+    sfield = jnp.ones((npoi, nsoi))
+    froot = jnp.full((nsoi, 2), 1.0 / nsoi)
+
+    weak = drystress(wsoi, wisoi, swilt, sfield, froot, stressfac=-10.0)[0]
+    mid = drystress(wsoi, wisoi, swilt, sfield, froot, stressfac=-5.0)[0]
+    strong = drystress(wsoi, wisoi, swilt, sfield, froot, stressfac=-1.0)[0]
+    assert float(strong[0]) < float(mid[0]) < float(weak[0]), (
+        f"stressfac toward zero must increase stress: "
+        f"-1 -> {float(strong[0]):.3f}, -5 -> {float(mid[0]):.3f}, "
+        f"-10 -> {float(weak[0]):.3f}")

@@ -338,9 +338,15 @@ def timestep_body(
     # (stresstu, stresstl, stressu, stressl) which silently swapped upper/
     # lower canopy stress through the entire timestep_body. This was the
     # root cause of the multi-day heat-wave drift (finding #16).
+    # `stressfac` must come from the parameters, not drystress's default.
+    # It was omitted here, so StomataParams.stressfac -- loaded from the
+    # config in io/physics_params.py -- was populated and never read, and the
+    # hardcoded -5.0 always won. A user could set it and nothing happened, and
+    # the CMA-ES calibration would have measured it as having zero effect and
+    # compensated through other parameters.
     stresstl, stresstu, stressl, stressu = drystress(
         soil.wsoi, soil.wisoi, soil.swilt, soil.sfield,
-        veg.froot,
+        veg.froot, stressfac=sp.stressfac,
     )
 
     # 6c. Compute canopy intermediates
