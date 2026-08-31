@@ -199,6 +199,8 @@ class DiagnosticWriter:
         ds.attrs["year"] = year
 
         # Annual accumulators
+        self._add_2d(ds, "aynpptot", state.summary.aynpptot, "kgC/m2/yr",
+                     "Annual total NPP")
         self._add_2d(ds, "ayanpptot", state.summary.ayanpptot, "kgC/m2/yr",
                      "Annual above-ground NPP")
         self._add_2d(ds, "ayneetot", state.summary.ayneetot, "kgC/m2/yr",

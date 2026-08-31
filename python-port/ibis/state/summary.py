@@ -30,7 +30,13 @@ class SummaryState(eqx.Module):
     adneetot: Float[Array, "npoi"]         # Daily NEE (kgC/m2)
 
     # --- Annual accumulators ---
-    ayanpptot: Float[Array, "npoi"]        # Annual above-ground NPP (kgC/m2/yr)
+    ayanpptot: Float[Array, "npoi"]        # Annual ABOVE-GROUND NPP (kgC/m2/yr)
+    #: Annual TOTAL NPP (kgC/m2/yr). Distinct from ayanpptot, exactly as in
+    #: F77 (`comsum.h:117-118`: "annual above-ground npp" vs "annual total
+    #: npp"). The port previously accumulated total NPP into ayanpptot while
+    #: dynaveg overwrote the same field with the above-ground sum, so the two
+    #: quantities collided and the published field silently became ANPP.
+    aynpptot: Float[Array, "npoi"]
     ayneetot: Float[Array, "npoi"]         # Annual NEE (kgC/m2/yr)
     ayprcp: Float[Array, "npoi"]           # Annual precipitation (mm/yr)
     ayaet: Float[Array, "npoi"]            # Annual AET (mm/yr)
@@ -67,7 +73,7 @@ def create_summary_state(npoi: int, npft: int = 12) -> SummaryState:
         a10ancl3=z, a10ancl4=z,
         a10scalparamu=z, a10scalparaml=z,
         adrain=z, adsnow=z, adaet=z, adneetot=z,
-        ayanpptot=z, ayneetot=z, ayprcp=z, ayaet=z,
+        ayanpptot=z, aynpptot=z, ayneetot=z, ayprcp=z, ayaet=z,
         aynpp=jnp.zeros((npoi, npft)),
         ayanpp=jnp.zeros((npoi, npft)),
         aygpptot=z, ayco2mic=z, ayco2root=z, aytrunof=z, aytdrain=z,

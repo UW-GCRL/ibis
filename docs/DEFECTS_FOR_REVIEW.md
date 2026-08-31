@@ -387,18 +387,50 @@ GPP was 1.4x high per unit area.
 
 ### Two diagnostics that obstructed this, one fixed
 
-**`ayneetot` was structurally wrong.** NEE = Rh - NPP, but only the `-NPP` half
-was ever accumulated (`loops_gswp3.py`: `sm.ayneetot - npp_step`); nothing
-added Rh. It reported **-106 PgC/yr** for a converged spin-up where equilibrium
-demands roughly zero. **Fixed** -- the Rh term is now added alongside
-`ayco2mic`, sign convention unchanged.
+**Both fixed 2026-08-31, following F77 rather than inventing a convention.**
 
-**`ayanpptot` has two writers that mean different things.** The timestepper
-accumulates *total* NPP into it (`sm.ayanpptot + npp_step`, commented "total
-annual NPP"), while `dynaveg` overwrites it with *aboveground* NPP
-(`(aleaf[j] + awood[j]) * aynpp_j`). The yearly netCDF is written after
-`dynaveg`, so the published field is aboveground -- and cannot be compared
-against published NPP, which is what made the 75.8 PgC/yr figure look like a
-32% overestimate when it is not measuring the same thing. Not fixed: the
-collision wants deciding, not patching. **Until it is, treat `ayanpptot` in the
-output as ANPP.**
+**`ayneetot` was structurally wrong, twice over.** Only the `-NPP` half was
+ever accumulated (`loops_gswp3.py`: `sm.ayneetot - npp_step`); nothing added
+Rh, so it reported **-106 PgC/yr** for a converged spin-up. And that sign was
+inverted against `dynaveg`'s `ayneetot - cdisturb` (copied faithfully from
+`vegetation.f:481`), which made **biomass burning increase the apparent sink**
+instead of reducing it.
+
+F77 forms it once at year end (`stats.f:1200`):
+
+    ayneetot(i) = aynpptot(i) - ayco2mic(i)
+
+POSITIVE = sink. The port now does the same, in both `run_spinup_gswp3` and
+`run_global`'s own year loop, which makes `- cdisturb` correct.
+
+**`aynpptot` and `ayanpptot` are now separate fields, as in F77.**
+`comsum.h:117-118` declares them distinctly -- "annual above-ground npp" and
+"annual total npp". The port had the timestepper accumulating *total* NPP into
+`ayanpptot` while `dynaveg` overwrote the same field with the *above-ground*
+sum, so whichever wrote last won. The netCDF is written after `dynaveg`, so the
+published field was silently ANPP. Now the timestepper owns `aynpptot` (total)
+and `dynaveg` owns `ayanpptot` (above-ground); both are published, and
+`run_global`'s monthly NPP/NEE diagnostics read the right one.
+
+Verified on a 3-year run:
+
+| ratio | measured | expected |
+|---|---|---|
+| ANPP / NPP | **0.654** | 0.5-0.7 |
+| NPP / GPP | **0.464** | 0.45-0.50 |
+| NEE sign | **+46.2 PgC/yr** (sink) | positive for a young cold start |
+
+NEE also reconciles: NPP - Rh = 52.3, less ~6 PgC/yr of fire, against the
+reported 46.2.
+
+### A number this corrects
+
+The entry above reported "NPP 75.8 PgC/yr, 1.32x published". **That was ANPP**,
+read from the colliding field, and is withdrawn. `NPP/GPP` correspondingly read
+0.345 rather than the correct 0.464 -- the model's internal partitioning was
+never wrong, only the field it was read from.
+
+Equilibrium *total* NPP is not recoverable from the v10 run, whose output
+predates the `aynpptot` field. **The GPP and Rh findings are unaffected**:
+`aygpptot` and `ayco2mic` were always correct, so GPP 219.7 PgC/yr (1.76x) and
+Rh 89.6 PgC/yr (1.67x) stand, and GPP remains the root cause.

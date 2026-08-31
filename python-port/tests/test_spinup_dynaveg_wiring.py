@@ -201,3 +201,53 @@ def test_all_annual_accumulators_are_reset_each_year():
         f"annual accumulators never reset: {sorted(missing)}. They are labelled "
         f"per-year in summary.py and diagnostics.py but would accumulate across "
         f"the whole run.")
+
+
+def test_nee_is_npp_minus_rh_with_a_sink_positive_sign():
+    """NEE must be formed from both halves, with F77's sign.
+
+    The port accumulated `ayneetot - npp_step` every timestep and never added
+    Rh, reporting -106 PgC/yr for a spin-up whose soil carbon had converged.
+    That also inverted the sign against dynaveg's `ayneetot - cdisturb`
+    (vegetation.f:481), so biomass burning increased the apparent sink.
+
+    F77 (stats.f:1200): ayneetot(i) = aynpptot(i) - ayco2mic(i), POSITIVE =
+    sink, formed once at year end.
+    """
+    from pathlib import Path
+    import ibis.timestepping.loops_gswp3 as L
+
+    src = Path(L.__file__).read_text()
+    assert "state.summary.aynpptot - state.summary.ayco2mic" in src, (
+        "NEE must be aynpptot - ayco2mic, formed at year end as in F77")
+    assert "sm.ayneetot  - npp_step" not in src, (
+        "NEE must not be accumulated from NPP alone -- that omits Rh entirely")
+
+
+def test_total_and_aboveground_npp_are_separate_fields():
+    """aynpptot (total) and ayanpptot (above-ground) must not collide.
+
+    F77 comsum.h:117-118 declares them separately: "annual above-ground npp"
+    and "annual total npp". The port accumulated TOTAL npp into ayanpptot while
+    dynaveg overwrote the same field with the ABOVE-GROUND sum, so whichever
+    wrote last won and the published field silently became ANPP.
+    """
+    from pathlib import Path
+    from ibis.state.summary import SummaryState
+    import ibis.timestepping.loops_gswp3 as L
+    import ibis.physics.vegetation_dynamics as V
+
+    for f in ("aynpptot", "ayanpptot"):
+        assert f in SummaryState.__dataclass_fields__, f"{f} missing"
+
+    loops = Path(L.__file__).read_text()
+    assert "sm.aynpptot  + npp_step" in loops, (
+        "the timestepper must accumulate TOTAL npp into aynpptot")
+    assert "sm.ayanpptot + npp_step" not in loops, (
+        "the timestepper must not write above-ground npp -- dynaveg owns it")
+
+    veg = Path(V.__file__).read_text()
+    assert "ayanpptot = jnp.sum(local_ayanpp, axis=1)" in veg, (
+        "dynaveg must own ayanpptot, the above-ground sum")
+    assert "aynpptot" not in veg.replace("ayanpptot", ""), (
+        "dynaveg must not touch total npp")

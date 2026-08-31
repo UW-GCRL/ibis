@@ -515,8 +515,7 @@ def run_global_simulation(config: IBISConfig) -> None:
             if out.imonthout > 0:
                 prcp_before = state.summary.ayprcp
                 aet_before  = state.summary.ayaet
-                npp_before  = state.summary.ayanpptot
-                nee_before  = state.summary.ayneetot
+                npp_before  = state.summary.aynpptot
                 gpp_before  = state.summary.aygpptot
                 rh_before   = state.summary.ayco2mic
                 runof_before = state.summary.aytrunof
@@ -534,8 +533,12 @@ def run_global_simulation(config: IBISConfig) -> None:
                 monthly_fluxes = {
                     'amprcp':   (state.summary.ayprcp   - prcp_before, 'mm',      'Monthly precipitation'),
                     'amaet':    (state.summary.ayaet    - aet_before,  'mm',      'Monthly AET'),
-                    'amnpptot': (state.summary.ayanpptot - npp_before, 'kgC/m2', 'Monthly NPP'),
-                    'amneetot': (state.summary.ayneetot  - nee_before, 'kgC/m2', 'Monthly NEE'),
+                    'amnpptot': (state.summary.aynpptot - npp_before, 'kgC/m2', 'Monthly NPP'),
+                    # NEE is only formed at year end, so a monthly value has to
+                    # be built from its two parts rather than differenced.
+                    'amneetot': ((state.summary.aynpptot - npp_before)
+                                 - (state.summary.ayco2mic - rh_before),
+                                 'kgC/m2', 'Monthly NEE (positive = sink)'),
                     'amgpptot': (state.summary.aygpptot  - gpp_before, 'kgC/m2', 'Monthly GPP'),
                     'amco2mic': (state.summary.ayco2mic  - rh_before,  'kgC/m2', 'Monthly Rh'),
                     'amtrunof': (state.summary.aytrunof  - runof_before, 'mm',   'Monthly runoff'),
@@ -611,6 +614,14 @@ def run_global_simulation(config: IBISConfig) -> None:
         # SAME uncleared `summary.aynpp`, so every dynamic-vegetation year
         # advanced the biomass pools twice -- measured at 1.42x the correct
         # annual change. Call one or the other, never both.
+        # NEE = total NPP - Rh, formed once at year end from the two annual
+        # accumulators, as F77 does (stats.f:1200). POSITIVE = carbon sink,
+        # which is the sign dynaveg's `ayneetot - cdisturb` assumes.
+        state = eqx.tree_at(
+            lambda s: s.summary.ayneetot, state,
+            state.summary.aynpptot - state.summary.ayco2mic,
+        )
+
         from ibis.physics.vegetation_dynamics import biomass_update, dynaveg
         if p.isimveg > 0:
             new_veg, new_carbon, new_summary = dynaveg(
@@ -677,11 +688,11 @@ def run_global_simulation(config: IBISConfig) -> None:
 
         # Write yearly output (before resetting accumulators)
         logger.info("  Accumulators: ayprcp_max=%.1f mm  ayaet_max=%.1f mm  "
-                    "ayanpptot_max=%.4f kgC/m2  ayneetot_min=%.4f kgC/m2",
+                    "aynpptot_max=%.4f kgC/m2  ayneetot_max=%.4f kgC/m2",
                     float(jnp.max(state.summary.ayprcp)),
                     float(jnp.max(state.summary.ayaet)),
-                    float(jnp.max(state.summary.ayanpptot)),
-                    float(jnp.min(state.summary.ayneetot)))
+                    float(jnp.max(state.summary.aynpptot)),
+                    float(jnp.max(state.summary.ayneetot)))
         if out.iyearout > 0 and (iyear_offset + 1) % out.iyearout == 0:
             path = writer.write_yearly(state, year)
             logger.info("Wrote yearly output: %s", path)
@@ -689,7 +700,7 @@ def run_global_simulation(config: IBISConfig) -> None:
         # Reset annual accumulators for the next year
         state = eqx.tree_at(
             lambda s: (s.summary.aynpp, s.summary.ayanpp, s.summary.ayanpptot,
-                       s.summary.ayneetot,
+                       s.summary.aynpptot, s.summary.ayneetot,
                        s.summary.ayprcp, s.summary.ayaet,
                        s.summary.aygpptot, s.summary.ayco2mic,
                        s.summary.ayco2root,
@@ -698,6 +709,7 @@ def run_global_simulation(config: IBISConfig) -> None:
             (jnp.zeros_like(state.summary.aynpp),
              jnp.zeros_like(state.summary.ayanpp),
              jnp.zeros_like(state.summary.ayanpptot),
+             jnp.zeros_like(state.summary.aynpptot),
              jnp.zeros_like(state.summary.ayneetot),
              jnp.zeros_like(state.summary.ayprcp),
              jnp.zeros_like(state.summary.ayaet),

@@ -215,7 +215,7 @@ def _run_day_inner(
         new_sm = eqx.tree_at(
             lambda s: (s.adrain, s.adsnow, s.adaet,
                        s.a10ancub, s.a10ancls, s.a10ancl3, s.a10ancl4,
-                       s.aynpp, s.ayanpptot, s.ayneetot,
+                       s.aynpp, s.aynpptot,
                        s.aygpptot, s.aytrunof, s.aytdrain),
             sm,
             (sm.adrain + st.atm.raina * dtime,
@@ -226,8 +226,7 @@ def _run_day_inner(
              sm.a10ancl3 + an_l3 * dtime,
              sm.a10ancl4 + an_l4 * dtime,
              aynpp,
-             sm.ayanpptot + npp_step,       # total annual NPP (kgC/m2/yr)
-             sm.ayneetot  - npp_step,       # NEE: negative = C sink
+             sm.aynpptot  + npp_step,       # annual TOTAL NPP (kgC/m2/yr)
              sm.aygpptot  + gpp_step,       # total annual GPP (kgC/m2/yr)
              sm.aytrunof  + runof_step,     # annual surface runoff (mm/yr)
              sm.aytdrain  + drain_step),    # annual drainage (mm/yr)
@@ -430,17 +429,10 @@ def _run_month_scan(
         # tco2mic/tco2root are in mol CO2/m2/s → kgC/m2/day: ×12e-3 ×86400
         rh_day = st.vegetation.tco2mic * jnp.float32(12.0e-3 * 86400.0)
         rr_day = st.vegetation.tco2root * jnp.float32(12.0e-3 * 86400.0)
-        # NEE = Rh - NPP. The -NPP half is accumulated in the timestep block;
-        # the +Rh half was missing entirely, so ayneetot reported -106 PgC/yr
-        # for a spin-up whose soil carbon had converged to 0.017 %/yr drift,
-        # where equilibrium demands roughly zero. Sign convention is unchanged:
-        # negative = carbon sink.
         new_sm = eqx.tree_at(
-            lambda s: (s.summary.ayco2mic, s.summary.ayco2root,
-                       s.summary.ayneetot),
+            lambda s: (s.summary.ayco2mic, s.summary.ayco2root),
             st,
-            (st.summary.ayco2mic + rh_day, st.summary.ayco2root + rr_day,
-             st.summary.ayneetot + rh_day),
+            (st.summary.ayco2mic + rh_day, st.summary.ayco2root + rr_day),
         )
         st = new_sm
         # Ensure all floats stay float32 so lax.scan carry types match
@@ -893,6 +885,21 @@ def run_spinup_gswp3(
                           state.vegetation.gdd0, state.vegetation.gdd5,
                           pft_params),
             )
+            # NEE = total NPP - Rh, formed once at year end from the two
+            # annual accumulators, exactly as F77 does (`stats.f:1200`:
+            # `ayneetot(i) = aynpptot(i) - ayco2mic(i)`). Sign follows F77:
+            # POSITIVE = carbon sink.
+            #
+            # The port used to accumulate `ayneetot - npp_step` every timestep
+            # and never add Rh at all, so it reported -106 PgC/yr for a spin-up
+            # whose soil carbon had converged. That also inverted the sign
+            # against dynaveg's `ayneetot - cdisturb` (copied from
+            # `vegetation.f:481`), which made biomass burning INCREASE the
+            # apparent sink instead of reducing it.
+            state = eqx.tree_at(
+                lambda s: s.summary.ayneetot, state,
+                state.summary.aynpptot - state.summary.ayco2mic,
+            )
             new_veg, new_carbon, new_summary = dynaveg(
                 state.vegetation, state.carbon, state.summary,
                 pft_params, isimfire, consts.epsilon,
@@ -924,12 +931,13 @@ def run_spinup_gswp3(
         sm = state.summary
         state = eqx.tree_at(
             lambda s: (s.summary.aynpp, s.summary.aygpptot, s.summary.ayanpptot,
+                       s.summary.aynpptot,
                        s.summary.ayneetot, s.summary.ayco2mic,
                        s.summary.ayco2root, s.summary.ayprcp, s.summary.ayaet,
                        s.summary.aytrunof, s.summary.aytdrain),
             state,
             tuple(jnp.zeros_like(x) for x in
-                  (sm.aynpp, sm.aygpptot, sm.ayanpptot, sm.ayneetot,
+                  (sm.aynpp, sm.aygpptot, sm.ayanpptot, sm.aynpptot, sm.ayneetot,
                    sm.ayco2mic, sm.ayco2root, sm.ayprcp, sm.ayaet,
                    sm.aytrunof, sm.aytdrain)),
         )
