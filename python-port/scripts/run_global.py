@@ -485,13 +485,17 @@ def run_global_simulation(config: IBISConfig) -> None:
                                          gswp3_latindex, gswp3_lonindex, lat_land_deg)
             state = _apply_vegetation(state, veg_props)
 
-        # nsoilcall: number of soilbgc calls per simulated day.
-        # nsoilcall > 1 fast-forwards BGC equilibration but multiplies
-        # the GPU kernel size and compile time proportionally.
-        # For the global domain (>50k land points) the physics kernel
-        # already dominates; nsoilcall=1 keeps the kernel manageable
-        # and BGC equilibrates naturally over the 200-year spinup.
-        nsoilcall = 1
+        # nsoilcall: number of soilbgc calls per simulated day. Each call
+        # advances the pools one day and applies one day of litterfall, so it
+        # is a consistent clock acceleration rather than a bias.
+        #
+        # This was hardcoded to 1, with a comment claiming BGC "equilibrates
+        # naturally over the 200-year spinup". That holds for a warm start, not
+        # a cold one: the passive soil pool turns over on century to millennium
+        # timescales, so 200 years at 1x leaves it far from equilibrium. It is
+        # also why physics.soilcspin -- documented as "0=no spinup,
+        # 1=acceleration" -- was a dead flag, read nowhere in the codebase.
+        nsoilcall = p.nsoilcall if p.soilcspin else 1
 
         # Inline month loop so we can snapshot accumulators for monthly output
         leap = is_leap_year(forcing_year)

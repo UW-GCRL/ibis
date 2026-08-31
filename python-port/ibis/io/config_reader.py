@@ -45,7 +45,14 @@ class PhysicsSection:
     isimco2: int = 0       # 0=fixed, 1=ramped
     co2init: float = 350.0e-6
     o2init: float = 0.209
-    soilcspin: int = 1     # 0=no spinup, 1=acceleration
+    soilcspin: int = 1     # 0=no spinup, 1=acceleration (see nsoilcall)
+    #: soilbgc calls per simulated day when soilcspin=1. Each call advances the
+    #: pools one day AND applies one day of litterfall, so it is a consistent
+    #: clock acceleration: nsoilcall=10 buys 10 soil-years per simulated year.
+    #: Needed for a cold start -- the passive pool turns over on century to
+    #: millennium timescales, so 200 years at 1x does not equilibrate it. Costs
+    #: GPU kernel size and compile time proportionally.
+    nsoilcall: int = 1
 
 
 @dataclass

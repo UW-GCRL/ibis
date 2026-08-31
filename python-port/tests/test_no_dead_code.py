@@ -52,6 +52,14 @@ KNOWN_DEAD_FLAGS = {
     # ibis/ml/_legacy_unwired/ -- nothing reads them
     "ml_stomata",
     "ml_canopy",
+    # Surfaced 2026-08-31 when this guard was widened to scan
+    # io/config_reader.py and to count every scalar field rather than only
+    # names matching enable_*/isim*/*_scheme/ml_*. All three are output/input
+    # options a user can set that nothing reads. Recorded rather than wired
+    # so the guard keeps its teeth; wire or remove them.
+    "idailyout",    # OutputSection: daily output switch
+    "iyrdaily",     # OutputSection: first year of daily output
+    "param_dir",    # InputSection: directory for parameter files
 }
 
 #: Modules with no production call site. Three groups:
@@ -64,16 +72,32 @@ KNOWN_DEAD_MODULES: set[str] = set()
 
 
 def test_no_new_dead_config_flags():
-    """Every enable_*/isim* flag must be read somewhere outside config.py."""
+    """Every user-settable config field must be read somewhere outside its declaration.
+
+    This used to scan only ibis/config.py, and only for names matching
+    enable_*/isim*/*_scheme/ml_*. `soilcspin` in io/config_reader.py --
+    documented as "0=no spinup, 1=acceleration" -- was therefore invisible on
+    both counts, and appeared exactly once in the whole codebase: its own
+    declaration. Both config modules are now scanned, and every scalar field
+    counts, not just the ones matching a name pattern.
+    """
     src = _sources()
     prod = {p: s for p, s in src.items() if _kind(p) == "prod"}
-    cfg = (ROOT / "python-port" / "ibis" / "config.py").read_text()
-    flags = set(re.findall(
-        r"^\s{4}(enable_\w+|isim\w+|\w+_scheme|ml_\w+)\s*:", cfg, re.M))
+    decl_files = ["config.py", "io/config_reader.py"]
+    flags = {}
+    for rel in decl_files:
+        path = ROOT / "python-port" / "ibis" / rel
+        if not path.exists():
+            continue
+        # any dataclass field with an annotation and a default -- covers
+        # Optional[str]/`x | None` as well as bare int/float/str/bool
+        for name in re.findall(
+                r"^\s{4}(\w+)\s*:\s*[\w\[\]|., ]+?\s*=", path.read_text(), re.M):
+            flags[name] = path.name
 
     dead = {
-        f for f in flags
-        if not any(p.name != "config.py" and re.search(rf"\b{f}\b", s)
+        f for f, owner in flags.items()
+        if not any(p.name != owner and re.search(rf"\b{f}\b", s)
                    for p, s in prod.items())
     }
     new = dead - KNOWN_DEAD_FLAGS
