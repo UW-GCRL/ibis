@@ -1656,6 +1656,84 @@ including non-inundated peatland) or an error here is **not yet established**.
 Total flux scales linearly with this, so it must be settled against the paper
 before any M3 evaluation is believed.
 
+## 5n. The Q10 double-count hypothesis: right about the boreal, not a fix
+
+§5m ended by naming the leading suspect for the remaining excess -- `t_ref` is a
+single global 295.15 K (22 C, a tropical value) while `r_ch4` varies by biome.
+TRIPLEX-GHG's biome ratios were each calibrated AT that biome's own
+temperature, so referencing them all to a tropical `T_ref` applies the biome
+temperature difference a second time. That is the same trap as 5i, 5j and 5k,
+in a fourth guise.
+
+§5m also said testing it needed FLUXNET-CH4. **That was wrong -- it is testable
+against the latitudinal shape**, because the double-count is a *gradient* error
+and the shape is what a gradient error distorts.
+
+### The prediction, made before running
+
+The suppression is `1.60^((275 - 295.15)/10) = 0.388`, i.e. boreal production
+is cut **2.58x too much**. Boreal share was 3.7% against a target of 8.0%, so
+it needed roughly **2.2x more**. Those two numbers were derived independently
+and agree.
+
+### The test
+
+`verify/methane/evaluate_global.py --config all` gained `biome_tref`, which
+sets each biome's `T_ref` to that biome's own production-weighted anaerobic
+temperature, taken from the model's own fields rather than fitted. Measured:
+30S-30N 300.2 K, 30-60N 280.4 K, 60-90N 275.6 K.
+
+| configuration | Tg/yr | 30S-30N | 30-60N | 60-90N | shape err |
+|---|---|---|---|---|---|
+| GMB 2025 target | 158 | 70.0% | 21.0% | 8.0% | -- |
+| `biome` (current default) | 256.3 | 76.7% | 16.4% | 3.7% | **15.5** |
+| `biome_tref` | 279.2 | 55.5% | 30.1% | 8.5% | 24.2 |
+| `biome_noq10` | 269.6 | 57.1% | 29.7% | 8.9% | 22.5 |
+
+Deviations from target:
+
+| configuration | 30S-30N | 30-60N | 60-90N |
+|---|---|---|---|
+| `biome` | +6.7 | -4.6 | **-4.3** |
+| `biome_tref` | **-14.5** | +9.1 | **+0.5** |
+
+### What this establishes
+
+**The hypothesis is right about the thing it predicted.** The boreal deficit
+was the specific claim, and removing the double-count closes it almost exactly:
+3.7% -> 8.5% against a target of 8.0%, a deviation of -4.3 -> +0.5. A
+prediction made from the Q10 arithmetic alone landed within half a point.
+
+**It is not a fix.** Aggregate shape error gets *worse*, 15.5 -> 24.2, because
+the tropics then fall from +6.7 to -14.5. Removing the boreal suppression also
+removes the tropical amplification, and the tropics were being held up by it.
+So a second error opposes the first, and the current default is partly right
+for the wrong reason -- a Q10 double-count compensating for something that
+inflates the tropics independently.
+
+**`biome_tref` is NOT adopted as the default.** It trades a known error for a
+larger one. It is kept as a diagnostic configuration because it isolates the
+boreal term cleanly.
+
+### Where this leaves M3
+
+The target sits between the two configurations in every band, which invites
+fitting a partial correction. §5k already established why not: a parameter that
+absorbs two opposing structural errors means nothing physically, and that is
+exactly how the bugs in 5i-5k got in.
+
+What this narrows: the remaining excess is **not** uniformly distributed. It is
+concentrated in the tropics, and it is large enough to have been masking the
+boreal double-count. Candidates, none testable against a global total:
+tropical wetland extent in WAD2M, tropical Rh, and the tropical `r_ch4` of 0.15.
+
+Site-level fluxes still discriminate; a global total whose published range
+spans a factor of 1.7 does not. **M3 remains the blocker** -- but the question
+it now has to answer is sharper than in 5m: not "where is the excess" but "what
+inflates the tropics by enough to hide a 2.6x boreal suppression".
+
+---
+
 ## 6. Verification plan
 
 No F77 counterpart exists, so `verify/STATUS.md`'s two-layer pattern is replaced by:
