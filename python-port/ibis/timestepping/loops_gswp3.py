@@ -904,13 +904,27 @@ def run_spinup_gswp3(
             state, (new_veg, new_carbon, new_summary),
         )
 
-        # --- clear the annual accumulators the update just consumed ---
+        # --- clear the annual accumulators ---
+        # Every ay* field is an annual total: summary.py and diagnostics.py both
+        # label them "/yr". Only the three dynaveg consumes were being cleared,
+        # so the rest accumulated across the whole run -- after 200 years
+        # ayco2mic reached 921.9 kgC/m2 and ayprcp 3.2e6 mm, both written to
+        # netCDF as per-year quantities. No physics reads them (dynaveg takes
+        # only aynpp/ayanpptot/ayneetot, and the daily diagnostics difference
+        # against a saved value), so this corrects the reported output rather
+        # than the simulation. ayneetot IS consumed by dynaveg, so like aynpp it
+        # is cleared here, after that consumption.
         sm = state.summary
         state = eqx.tree_at(
-            lambda s: (s.summary.aynpp, s.summary.aygpptot, s.summary.ayanpptot),
+            lambda s: (s.summary.aynpp, s.summary.aygpptot, s.summary.ayanpptot,
+                       s.summary.ayneetot, s.summary.ayco2mic,
+                       s.summary.ayco2root, s.summary.ayprcp, s.summary.ayaet,
+                       s.summary.aytrunof, s.summary.aytdrain),
             state,
-            (jnp.zeros_like(sm.aynpp), jnp.zeros_like(sm.aygpptot),
-             jnp.zeros_like(sm.ayanpptot)),
+            tuple(jnp.zeros_like(x) for x in
+                  (sm.aynpp, sm.aygpptot, sm.ayanpptot, sm.ayneetot,
+                   sm.ayco2mic, sm.ayco2root, sm.ayprcp, sm.ayaet,
+                   sm.aytrunof, sm.aytdrain)),
         )
 
         if on_year_end is not None:

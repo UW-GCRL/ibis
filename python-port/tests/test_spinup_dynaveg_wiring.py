@@ -168,3 +168,36 @@ def test_seeding_and_averaging_agree_on_a_steady_climate():
                    jnp.zeros(n))
     for seeded, averaged in zip((tc, tw, tcmin, gdd0, gdd5), out):
         assert np.allclose(np.asarray(seeded), np.asarray(averaged), rtol=1e-3)
+
+
+def test_all_annual_accumulators_are_reset_each_year():
+    """Every ay* field is labelled "/yr"; none may survive into the next year.
+
+    Only the three dynaveg consumes were cleared, so the rest accumulated over
+    the whole run -- ayco2mic reached 921.9 kgC/m2 and ayprcp 3.2e6 mm after
+    200 years, both written to netCDF as per-year quantities. Guards the whole
+    set, so a new accumulator cannot quietly join the unreset ones.
+    """
+    import re
+    from pathlib import Path
+    from ibis.state.summary import SummaryState
+
+    # ayanpp is derived, not accumulated: dynaveg builds it from zeros out of
+    # aynpp and overwrites it wholesale every year (vegetation_dynamics.py:207,
+    # 588-593). Clearing it here would zero the value dynaveg had just written.
+    OVERWRITTEN = {"ayanpp"}
+    annual = {f for f in SummaryState.__dataclass_fields__
+              if f.startswith("ay")} - OVERWRITTEN
+    assert annual, "no ay* fields found -- has the naming convention changed?"
+
+    loops = Path(
+        __import__("ibis.timestepping.loops_gswp3", fromlist=["x"]).__file__
+    ).read_text()
+    # the year-end clear block
+    block = loops.split("# --- clear the annual accumulators")[1].split(")\n")[0]
+    cleared = set(re.findall(r"s\.summary\.(ay\w+)", block))
+    missing = annual - cleared
+    assert not missing, (
+        f"annual accumulators never reset: {sorted(missing)}. They are labelled "
+        f"per-year in summary.py and diagnostics.py but would accumulate across "
+        f"the whole run.")

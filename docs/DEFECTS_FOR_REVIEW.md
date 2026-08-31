@@ -201,3 +201,62 @@ Its `state_latest.pkl` carries the PRNG key, so it is reproducibly resumable.
 Branch **`fire-test`** (35 commits). `main` is untouched at `605800c`. Each
 defect above has its own commit with the evidence in the message. Test suite:
 614 passing.
+
+
+---
+
+## Annual accumulators never reset, and dead productivity diagnostics
+
+**Found 2026-08-30, while auditing Rh for the methane tropical excess
+(METHANE.md 5p). Both affect reported output, not the simulation.**
+
+### 1. Seven annual accumulators accumulated over the whole run
+
+`SummaryState`'s `ay*` fields are annual totals -- `summary.py` and
+`io/diagnostics.py` both label them `/yr`. The year-end block in
+`loops_gswp3.py` cleared only the three `dynaveg` consumes, its own comment
+saying "the annual accumulators the update just consumed". The rest were never
+cleared. Measured in the 200-year `spinup_bedrock_v9_3lay` checkpoint:
+
+| field | value after 200 yr | plausible for one year |
+|---|---|---|
+| `ayprcp` | 3.22e6 mm | ~3 000 mm |
+| `ayaet` | 8.97e5 mm | ~1 000 mm |
+| `aytrunof` | 1.98e7 mm | ~300 mm |
+| `ayco2mic` | 921.9 kgC/m2 | ~1-5 kgC/m2 |
+
+`ayco2root`, `aytdrain` and `ayneetot` were in the same state.
+
+**Impact is confined to netCDF diagnostics.** No physics reads these:
+`dynaveg` takes only `aynpp`, `ayanpptot` and `ayneetot`, and the daily
+diagnostics difference against a value saved at the start of the day. Any
+analysis that read `ayco2mic`, `ayprcp`, `ayaet` or `aytrunof` out of the
+netCDF output as a per-year quantity was reading a run-cumulative total.
+
+**Fixed:** the year-end block now clears every accumulated `ay*` field.
+`ayanpp` is deliberately excluded -- `dynaveg` derives it from zeros and
+overwrites it wholesale each year, so clearing it afterwards would destroy the
+value just written. `tests/test_spinup_dynaveg_wiring.py::
+test_all_annual_accumulators_are_reset_each_year` guards the whole set, so a
+new accumulator cannot quietly join the unreset ones.
+
+**Still open:** `ayanpptot` is accumulated during the year, then overwritten by
+`dynaveg`, then cleared by the year-end block -- so it reads 0 in every
+checkpoint. That predates this fix and is left alone; the three-way write wants
+deciding rather than patching.
+
+### 2. `tgpp`, `tnpp`, `tgpptot`, `tnpptot`, `tco2root` are dead
+
+All exactly zero in the 200-year checkpoint, and **never assigned anywhere in
+production code** -- `tgpp`, `tnpp`, `tgpptot` and `tnpptot` have no references
+at all outside the `VegetationState` definition; `tco2root` is read twice and
+written never. Same class as the dead `firefac` and the three dead config flags
+in FIRE.md, but these are state fields, which `tests/test_no_dead_code.py` does
+not cover -- it checks modules and config flags.
+
+**Consequence:** the model has no usable GPP or NPP diagnostic. Rh could not be
+cross-checked against the model's own productivity when auditing it, which is
+the check that would have said whether an Rh of 80.2 PgC/yr reflects a
+decomposition problem or a productivity one. Not fixed here: wiring them means
+deciding where GPP/NPP are summed, which is a change to the physics path rather
+than to reporting.
