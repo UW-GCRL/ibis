@@ -32,7 +32,6 @@ import jax  # noqa: E402
 jax.config.update("jax_enable_x64", False)
 import jax.numpy as jnp  # noqa: E402
 
-from ibis.bgc.permafrost import diagnose_frozen_ground  # noqa: E402
 from verify.timestepping.pipeline.global_gswp3_test import (  # noqa: E402
     build_global_cell_grid,
 )
@@ -42,10 +41,6 @@ ARMS = {"control (4 m)": ROOT / "spinup_bedrock_v9_control",
         "bedrock (12 m)": ROOT / "spinup_bedrock_v9_3lay"}
 TMELT = 273.16
 HSOI = jnp.array([0.10, 0.15, 0.25, 0.50, 1.00, 2.00])
-#: Obu (2021) Northern Hemisphere permafrost extent, Mkm2. Our v8 gave 23.2
-#: on a like-for-like NH-only basis.
-OBU_NH = 21.8
-
 
 def cell_area_km2(lat_deg, dlat=0.5, dlon=0.5):
     """Spherical cell area, so the extent total is not a cell count."""
@@ -77,14 +72,13 @@ def main():
             print(f"  {name}: no checkpoint yet at {d}")
             continue
         tsoi = st.soil.tsoi
-        frozen, alt = diagnose_frozen_ground(tsoi, TMELT, HSOI)
-        # Permafrost proxy: any frozen layer in the column, NH only, the same
-        # basis the 23.2 Mkm2 figure was computed on.
-        perma = np.asarray(jnp.any(tsoi < TMELT, axis=1))
+        # NO permafrost extent or active layer depth here. Both need the
+        # seasonal cycle: in a final-state snapshot most of the boreal zone is
+        # frozen, so "any frozen layer" counts seasonal frost and reports ~41
+        # Mkm2 against a true ~23. Use verify/bedrock/seasonal_amplitude.py,
+        # which tests "frozen in all 12 months" over a simulated year.
         out[name] = dict(
             step=step,
-            extent=float((area * perma * nh).sum()) / 1e6,
-            alt=float(np.nanmean(np.asarray(alt)[perma & nh])) if (perma & nh).any() else float("nan"),
             tbase=float(jnp.mean(tsoi[:, -1])),
             tbase_nh=float(np.mean(np.asarray(tsoi[:, -1])[nh])),
             tdeep=(float(jnp.mean(st.soil.tsoi_deep[:, -1]))
@@ -102,8 +96,6 @@ def main():
     print(f"\n  Bedrock A/B, step {a['step']} vs {b['step']}\n")
     print(f"  {'quantity':34} {'control':>11} {'bedrock':>11} {'delta':>11}")
     rows = [
-        ("NH permafrost extent (Mkm2)", "extent", 1.0),
-        ("active layer depth (m)", "alt", 1.0),
         ("soil base T, global mean (K)", "tbase", 1.0),
         ("soil base T, NH mean (K)", "tbase_nh", 1.0),
         ("mean biomass (kgC/m2)", "biomass", 1.0),
@@ -114,12 +106,9 @@ def main():
         print(f"  {label:34} {a[k]:11.3f} {b[k]:11.3f} {d:+11.3f}")
     print(f"  {'bedrock base T (K)':34} {'--':>11} {b['tdeep']:11.3f} {'':>11}")
     print(f"  {'NaN in tsoi':34} {a['nan']:11d} {b['nan']:11d}")
-    print(f"\n  Obu (2021) NH permafrost extent: {OBU_NH} Mkm2 "
-          f"(control {a['extent']:.1f}, bedrock {b['extent']:.1f})")
-
-    print("\n  Seasonal amplitude at the deepest soil node needs the monthly "
-          "series, not the final state; read spinup_log.csv tsoi_base "
-          "columns for the year-to-year swing.")
+    print("\n  Permafrost extent, active layer depth and seasonal amplitude "
+          "all need the\n  seasonal cycle rather than this final state -- run "
+          "verify/bedrock/seasonal_amplitude.py.")
 
 
 if __name__ == "__main__":

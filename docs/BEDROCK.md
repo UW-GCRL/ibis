@@ -134,6 +134,60 @@ template (and vice versa) -- `load_state` will fail on the structure mismatch
 rather than silently corrupting the column. Re-seed from a cold start, or
 extend the checkpoint with `scripts/convert_restart.py`.
 
+## Validated in the full model
+
+Two identical 200-year GSWP3 spin-ups from the same `spinup_fire_v8` state,
+differing only in the column (`verify/timestepping/pipeline/spinup_bedrock_v9.py
+--nbedrock 0|3`). Both 0 NaN. Wall clock 201.9 vs 203.0 min -- **+0.5% at
+scale**, well under the +5.9% micro-benchmark, because at 88 484 cells the
+timestep is dominated by other physics.
+
+**Seasonal amplitude of soil temperature** (`verify/bedrock/seasonal_amplitude.py`),
+the quantity the change exists for:
+
+| node | 30S-30N | 30-60N | 60-90N |
+|------|---------|--------|--------|
+| 0.05-0.75 m | +0.1 to +1.6% | +0.2 to +1.7% | +0.7 to +2.0% |
+| 1.50 m | +4.0% | +3.8% | +0.1% |
+| **3.00 m** | **-22.9%** | **-23.3%** | **-31.5%** |
+
+This matches the idealised 1-D prediction quantitatively. The driver predicted
+a +52% amplitude inflation at the Arctic 3.0 m node, so removing it should cut
+the swing by 1 - 1/1.52 = **-34.6%**; the full model gives **-31.5%**. For
+30-60N, predicted -25.4%, measured -23.3%. The remaining gap is the ~1.5%
+residual error of the 12 m column plus the moisture and phase-change physics
+the idealised driver does not carry.
+
+**Everything else moved little, as predicted:**
+
+| quantity | control | bedrock |
+|---|---|---|
+| NH perennially-frozen extent (Mkm2) | 22.87 | 23.90 |
+| active layer depth (m) | 1.375 | 1.376 |
+| global CH4 (Tg/yr) | 256.5 | 256.3 |
+| CH4 latitudinal shape error | 15.8 | 15.5 |
+| mean biomass (kgC/m2) | 3.292 | 3.292 |
+| mean soil carbon (kgC/m2) | 14.347 | 14.330 |
+| soil base T, NH mean (K) | 283.727 | 282.619 |
+
+Methane moving by 0.08% was the falsification test: had it moved
+substantially, the claim that the bias was confined to the 3.0 m node -- below
+the active layer -- would have been wrong. It holds.
+
+**One result went the wrong way.** NH perennially-frozen extent rose from 22.87
+to 23.90 Mkm2 against Obu (2021)'s 21.8, so the deeper column sits slightly
+*further* from observations, not closer. It is a 4.5% change on a diagnostic
+whose one-year "frozen in all 12 months" definition is itself an upper bound,
+so it is not strong evidence either way -- but it does mean this change should
+not be advertised as improving permafrost extent. It improves the deep thermal
+solution; extent was already close and stayed close.
+
+**A note on measuring this.** Permafrost extent and active layer depth cannot
+be read from a final state: in a December snapshot most of the boreal zone is
+frozen, and "any frozen layer" reports ~41 Mkm2 against a true ~23. The first
+version of `compare_ab.py` made exactly that error. Both quantities need the
+seasonal cycle, which is why they live in `seasonal_amplitude.py`.
+
 ## Known limitation
 
 Deepening the column does not by itself buy taliks. The DECP phase-change
