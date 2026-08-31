@@ -260,3 +260,87 @@ the check that would have said whether an Rh of 80.2 PgC/yr reflects a
 decomposition problem or a productivity one. Not fixed here: wiring them means
 deciding where GPP/NPP are summed, which is a change to the physics path rather
 than to reporting.
+
+
+---
+
+## The global grid duplicated 75% of its cells
+
+**Found 2026-08-31. Affects the resolution and cost of every global run; does
+NOT affect the global totals already reported. Fixed.**
+
+`build_global_cell_grid` sampled latitudes and longitudes on cell BOUNDARIES --
+`np.arange(-85.0, 85.0, 0.5)`, i.e. X.0 and X.5 -- while `latlon_to_grid_idx`
+rounds against a grid whose centres are at X.25 / X.75:
+
+    j = int(round((89.75 - lat) / 0.5))
+
+Every sample therefore evaluated `round()` on an exact .5, and Python rounds
+half to EVEN, collapsing adjacent samples in pairs:
+
+    lat -85.0 -> 349.50 -> 350        lat -84.0 -> 347.50 -> 348
+    lat -84.5 -> 348.50 -> 348        lat -83.5 -> 346.50 -> 346
+
+In both axes, so four rows per cell.
+
+| | before | after |
+|---|---|---|
+| rows | 88 484 | 95 333 |
+| distinct cells simulated | **22 301** | **95 333** |
+| duplicate rows | 66 183 (74.8%) | 0 |
+| area integrated | 164.0 Mkm2 | 165.0 Mkm2 |
+
+### What it cost
+
+* **4x the computation for no extra information.** 21 941 cells were simulated
+  four times over.
+* **Effective resolution was 1 deg** while every run, document and file name
+  said 0.5 deg.
+* **77% of the mask's land cells were never simulated** -- their climate was
+  represented by a neighbour.
+* **The four copies were not even consistent.** Each row carries its own
+  sampled latitude into the solar zenith calculation while sharing GSWP3
+  forcing, so copies of a single cell drifted apart by 1 K on average and up to
+  **21.6 K** over the 200-year spin-up (`tsoi[:,0]`; `ayco2mic` spread up to
+  266.9, `totcsoi` up to 122.1).
+
+### What it did NOT cost
+
+Checked rather than assumed, because the natural fear is that every global
+number is 4x too large:
+
+* **Global totals are not inflated.** Each duplicate carried its own 0.5 deg
+  cell area, and four of those sum to the area of the four cells they stood
+  for: 164.0 Mkm2 integrated against 165.0 Mkm2 of land in the mask. Rh,
+  CH4, burned area and permafrost extent were computed over the right total
+  area -- at 1 deg resolution.
+* **Geography is intact.** corr(|lat|, deep soil T) = **-0.907**, with 300.9 K
+  in the tropics and 247.4 K poleward of 75 deg, so the row-to-cell
+  correspondence never broke and every latitude-band result stands.
+
+### Fixed
+
+Rows now sample cell centres, giving exactly one row per land cell, with an
+explicit `seen` set so a coarser `lat_step` stays an honest subsample.
+`tests/test_grid_no_duplicates.py` guards it at 0.5, 1 and 2 deg and checks
+that the 0.5 deg grid has exactly one row per land cell.
+
+**Cost of the fix: +8% rows for 4.3x the distinct cells.**
+
+### Consequence: existing checkpoints cannot be loaded
+
+`npoi` changes 88 484 -> 95 333, so every checkpoint in `verify_outputs/`
+(including `spinup_fire_v8` and both `spinup_bedrock_v9` arms) is on the old
+grid. `spinup_*.py` asserts `len(cells) == npoi` and will now fail loudly on
+them, which is the correct behaviour. Re-running requires either a cold start
+or remapping each new cell onto the old duplicate that covered it.
+
+### Separately: the domain is larger than Earth's land
+
+`surta.nc`'s `landfrac` is binary and its area-weighted sum is **165.0 Mkm2**,
+against Earth's ~149 Mkm2 of land (~130 ice-free). Our global totals are over
+that 165 Mkm2 domain. This is independent of the duplication bug and is not
+fixed here -- it needs the mask itself examined -- but it means any per-area
+comparison against an observational product must account for an 11% larger
+domain. It directly weakens METHANE.md 5p: correcting Rh for the domain gives
+72 rather than 80.2 PgC/yr against a published 49-58.

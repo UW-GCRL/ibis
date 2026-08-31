@@ -125,16 +125,40 @@ def build_global_cell_grid(lat_step: float = 10.0, lon_step: float = 20.0) -> li
     land_mask = load_land_mask()
     print(f"  Land mask: {int(land_mask.sum())} land cells out of {land_mask.size}")
 
-    lats_sample = np.arange(-85.0, 85.0 + 1e-9, lat_step)
-    lons_sample = np.arange(-180.0, 180.0 - 1e-9, lon_step)
-    cells = []
+    # Sample on the GSWP3 cell CENTRES (X.25 / X.75), not on cell boundaries.
+    #
+    # This used to sample np.arange(-85.0, 85.0, lat_step), i.e. X.0 and X.5.
+    # Against a grid whose centres are at X.25/X.75, `latlon_to_grid_idx`'s
+    # `round((89.75 - lat)/0.5)` then evaluates on an exact .5 for EVERY
+    # sample, and Python's round-half-to-even collapses adjacent samples in
+    # pairs -- in both latitude and longitude, so four samples per cell:
+    #
+    #     lat -85.0 -> 349.50 -> 350      lat -84.0 -> 347.50 -> 348
+    #     lat -84.5 -> 348.50 -> 348      lat -83.5 -> 346.50 -> 346
+    #
+    # At 0.5 deg that produced 88 484 rows covering only 22 301 distinct cells
+    # (74.8% duplicates, 21 941 cells four times over): 4x the computation for
+    # no extra information, an effective resolution of 1 deg while everything
+    # was labelled 0.5 deg, and 77% of the mask's land cells never simulated.
+    # The duplicates were not even consistent -- each row carries its own
+    # sampled latitude into the solar zenith, so copies of one cell drifted
+    # apart by 1 K on average and up to 21 K over a 200-year spin-up.
+    #
+    # Sampling centres makes the mapping exactly one-to-one at 0.5 deg, and
+    # keeps a coarser lat_step/lon_step an honest subsample.
+    half = 0.25
+    lats_sample = np.arange(-89.75, 89.75 + 1e-9, lat_step) if lat_step < 1.0 \
+        else np.arange(-85.0 + half, 85.0, lat_step)
+    lons_sample = np.arange(-179.75, 180.0 - 1e-9, lon_step)
+    cells, seen = [], set()
     for lat in lats_sample:
         for lon in lons_sample:
             j, i = latlon_to_grid_idx(lat, lon)
-            if not land_mask[j, i]:
+            if not land_mask[j, i] or (j, i) in seen:
                 continue
+            seen.add((j, i))
             t = soil_template_for_lat(lat)
-            label = f"L{lat:+05.1f}_{lon:+06.1f}".replace(".", "p")
+            label = f"L{lat:+06.2f}_{lon:+07.2f}".replace(".", "p")
             cells.append((label, float(lat), float(lon), t, t))
     return cells
 
