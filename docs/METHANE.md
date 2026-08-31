@@ -1783,6 +1783,77 @@ not a reader bug.**
 
 ---
 
+## 5p. Rh is ~1.5x too high — and methane scales linearly with it
+
+§5o eliminated wetland extent, leaving `Rh` and `r_ch4`. Measured from the
+`spinup_bedrock_v9_3lay` state over one simulated year
+(`verify/methane/rh_audit.py`):
+
+| | IBIS | published |
+|---|---|---|
+| global Rh | **80.2 PgC/yr** | **49–58 PgC/yr** |
+
+Published range spans Potter & Klooster (1998), Bond-Lamberty & Thomson (2010),
+Hashimoto et al. (2015) at 51–57; Yao et al. (2020) at 48.8 ± 0.9; and the
+partitioning of a 91–102 PgC/yr total soil respiration at an Rh:Rs ratio of
+0.56–0.63. We are **1.4–1.6x high**.
+
+**Methane scales linearly with Rh in M-lite⁺, and our methane is 1.6x high**
+(256.3 against a GMB target of 158). The two ratios coincide closely enough
+that Rh is now the leading explanation of the magnitude error, ahead of
+`r_ch4`.
+
+### What was checked before believing it
+
+* **Sampling.** `evaluate_global.py` samples `tco2mic` at each month's end and
+  scales by days in month -- a snapshot method, and every methane number in
+  this document rests on it. `summary.ayco2mic` accumulates Rh *daily*, so it
+  is the true annual integral. Both give 80.2 PgC/yr. The snapshot method is
+  sound here. (`ayco2mic` had to be differenced against its starting value --
+  see the reset bug below.)
+* **Equilibrium.** Soil carbon drifts −0.07 %/yr over the final spin-up year,
+  so the state is converged and Rh ≈ carbon input rather than a transient.
+* **Units.** Per-area values are 0.644 kgC/m²/yr in the tropics and 0.469 in
+  30–60N -- the right order, not a factor-of-1000 slip.
+
+### What could NOT be checked, and why it matters
+
+**Whether this is a decomposition problem or a productivity one.** At
+equilibrium Rh ≈ carbon input, so an Rh of 80 implies an NPP of 80 -- also well
+above the published 55–60. If NPP is equally high, the cause is upstream in
+productivity and `soilbgc` is faithfully respiring what it is given; if NPP is
+~57 and Rh is 80, decomposition is genuinely too fast.
+
+That check is unavailable: **`tgpp`, `tnpp`, `tgpptot`, `tnpptot` and
+`tco2root` are dead** -- exactly zero in the checkpoint and never assigned
+anywhere in production code (docs/DEFECTS_FOR_REVIEW.md). The model has no
+usable GPP or NPP diagnostic. **Wiring one is the next step for M3**, and it is
+worth more than any further methane parameter work.
+
+### The tropical chain
+
+| stage | tropical share |
+|---|---|
+| inundated area (§5o) | 55.8% |
+| wetland-weighted Rh | 66.3% |
+| CH₄ flux (§5n) | 76.7% |
+| GMB target | 70.0% |
+
+Each stage amplifies the tropics. Wetland Rh is 0.824 kgC/m²/yr in the tropics
+against 0.514 (30–60N) and 0.491 (60–90N). So the tropical excess is *partly*
+Rh and partly the Q₁₀/`r_ch4` step, consistent with §5n finding that removing
+the Q₁₀ double-count alone overshoots.
+
+### Bug found while doing this
+
+Seven annual accumulators were never reset and grew across the whole run
+(`ayco2mic` reached 921.9 kgC/m², `ayprcp` 3.2×10⁶ mm), while being written to
+netCDF labelled `/yr`. No physics reads them, so simulations are unaffected and
+only reported output was wrong. Fixed, with a guard test; see
+docs/DEFECTS_FOR_REVIEW.md.
+
+---
+
 ## 6. Verification plan
 
 No F77 counterpart exists, so `verify/STATUS.md`'s two-layer pattern is replaced by:
