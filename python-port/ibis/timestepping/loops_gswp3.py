@@ -430,10 +430,17 @@ def _run_month_scan(
         # tco2mic/tco2root are in mol CO2/m2/s → kgC/m2/day: ×12e-3 ×86400
         rh_day = st.vegetation.tco2mic * jnp.float32(12.0e-3 * 86400.0)
         rr_day = st.vegetation.tco2root * jnp.float32(12.0e-3 * 86400.0)
+        # NEE = Rh - NPP. The -NPP half is accumulated in the timestep block;
+        # the +Rh half was missing entirely, so ayneetot reported -106 PgC/yr
+        # for a spin-up whose soil carbon had converged to 0.017 %/yr drift,
+        # where equilibrium demands roughly zero. Sign convention is unchanged:
+        # negative = carbon sink.
         new_sm = eqx.tree_at(
-            lambda s: (s.summary.ayco2mic, s.summary.ayco2root),
+            lambda s: (s.summary.ayco2mic, s.summary.ayco2root,
+                       s.summary.ayneetot),
             st,
-            (st.summary.ayco2mic + rh_day, st.summary.ayco2root + rr_day),
+            (st.summary.ayco2mic + rh_day, st.summary.ayco2root + rr_day,
+             st.summary.ayneetot + rh_day),
         )
         st = new_sm
         # Ensure all floats stay float32 so lax.scan carry types match

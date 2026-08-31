@@ -344,3 +344,61 @@ fixed here -- it needs the mask itself examined -- but it means any per-area
 comparison against an observational product must account for an 11% larger
 domain. It directly weakens METHANE.md 5p: correcting Rh for the domain gives
 72 rather than 80.2 PgC/yr against a published 49-58.
+
+
+---
+
+## The carbon cycle is inflated, and the cause is GPP
+
+**Found 2026-08-31 from the cold-start spin-up (`configs/spinup_cold_v10.yaml`),
+300 years on the corrected grid. This is a physics finding, not a reporting one.**
+
+The run converged cleanly -- soil carbon drift +0.017 %/yr over the last 50
+years, **0 NaN across all 300 years** -- so the numbers below are equilibrium
+values, not a transient.
+
+| flux | IBIS | published | total | per-area |
+|---|---|---|---|---|
+| **GPP** | **219.7 PgC/yr** | 120-130 | **1.76x** | **1.39x** |
+| Rh | 89.6 PgC/yr | 49-58 | 1.67x | 1.33x |
+
+Two separate factors, and they should not be conflated:
+
+* **per-area**: GPP is 1.39x too high per square metre. This is a physics
+  problem in photosynthesis.
+* **domain**: our land mask is 164 Mkm2 against ~130 Mkm2 of ice-free land,
+  a further 1.26x on any total.
+
+**Rh follows GPP.** At equilibrium Rh is set by carbon input, so a 1.39x
+photosynthesis gives a 1.33x decomposition -- the two ratios agree. METHANE.md
+5p framed this as "Rh is ~1.5x too high" and pointed at decomposition; that was
+looking at the symptom. **soilbgc is faithfully respiring what it is handed.**
+
+This also explains the methane magnitude. CH4 scales linearly with Rh in
+M-lite+, we are 1.6x high on CH4, and Rh is 1.67x high. **No methane parameter
+needs adjusting for magnitude** -- and fitting one would have buried a
+photosynthesis error inside `r_ch4`.
+
+### Fixing GPP is now the highest-value work in the model
+
+It propagates to NPP, biomass, litterfall, soil carbon, Rh, fire fuel load and
+methane. Every one of those was tuned or evaluated against observations while
+GPP was 1.4x high per unit area.
+
+### Two diagnostics that obstructed this, one fixed
+
+**`ayneetot` was structurally wrong.** NEE = Rh - NPP, but only the `-NPP` half
+was ever accumulated (`loops_gswp3.py`: `sm.ayneetot - npp_step`); nothing
+added Rh. It reported **-106 PgC/yr** for a converged spin-up where equilibrium
+demands roughly zero. **Fixed** -- the Rh term is now added alongside
+`ayco2mic`, sign convention unchanged.
+
+**`ayanpptot` has two writers that mean different things.** The timestepper
+accumulates *total* NPP into it (`sm.ayanpptot + npp_step`, commented "total
+annual NPP"), while `dynaveg` overwrites it with *aboveground* NPP
+(`(aleaf[j] + awood[j]) * aynpp_j`). The yearly netCDF is written after
+`dynaveg`, so the published field is aboveground -- and cannot be compared
+against published NPP, which is what made the 75.8 PgC/yr figure look like a
+32% overestimate when it is not measuring the same thing. Not fixed: the
+collision wants deciding, not patching. **Until it is, treat `ayanpptot` in the
+output as ANPP.**
