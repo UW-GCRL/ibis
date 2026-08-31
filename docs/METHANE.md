@@ -1649,12 +1649,10 @@ make it the model's largest methane source. A test pins this.
 seasonal cycle for spin-up. Silently returning zeros would delete every wetland
 before 2000.
 
-**Open question for M2.** Global wetland area through this reader is 3.06 Mkm²
-in January 2010 and 4.64 Mkm² in July. Zhang et al. (2021) quote larger
-figures, but whether that reflects a different definition (inundated-only vs
-including non-inundated peatland) or an error here is **not yet established**.
-Total flux scales linearly with this, so it must be settled against the paper
-before any M3 evaluation is believed.
+**~~Open question for M2.~~ CLOSED 2026-08-30 — definitional, not an error.**
+Global wetland area through this reader is 3.06 Mkm² in January 2010 and
+4.64 Mkm² in July, against the larger figures in Zhang et al. (2021). Settled
+by `verify/methane/wad2m_area_audit.py`; see §5o.
 
 ## 5n. The Q10 double-count hypothesis: right about the boreal, not a fix
 
@@ -1731,6 +1729,57 @@ Site-level fluxes still discriminate; a global total whose published range
 spans a factor of 1.7 does not. **M3 remains the blocker** -- but the question
 it now has to answer is sharper than in 5m: not "where is the excess" but "what
 inflates the tropics by enough to hide a 2.6x boreal suppression".
+
+---
+
+## 5o. Wetland area is not the problem — the M2 open question, closed
+
+§5l left this blocking M3: our area is 3.06 Mkm² in January 2010 and 4.64 in
+July, Zhang et al. (2021) quote larger figures, and *"whether that reflects a
+different definition or an error here is not yet established. Total flux scales
+linearly with this, so it must be settled before any M3 evaluation is
+believed."* §5n then narrowed the excess to the tropics, which made area the
+obvious first suspect.
+
+**It is definitional, and the distinction is easy to miss.** WAD2M's headline
+`MAmin` / `MAmax` / `MALt` are **per-grid-cell** statistics summed globally,
+not the extremes of the global sum. Different cells peak in different months,
+so sum-of-per-cell-maxima is far larger than max-of-global-sum. Reduced the
+paper's way, our file agrees:
+
+| statistic | ours (Ver 2.0, 0.5°) | Zhang et al. 2021 (Ver 1.0, 0.25°) | ratio |
+|---|---|---|---|
+| MAmin | 1.71 | 3.5 | 0.49 |
+| **MAmax** | **7.09** | **7.5** | **0.95** |
+| **MALt** | **12.04** | **13.0** | **0.93** |
+
+MAmax and MALt agree to 5–7%, which the version difference and the 0.25°→0.5°
+bilinear regrid comfortably explain. MAmin is the outlier and is the least
+robust of the three: a per-cell *minimum* is destroyed by smoothing, since any
+month a coarsened cell reads dry drives that cell's minimum to near zero.
+
+Two further checks:
+
+* the `Fw` variable's own metadata reads **"Fraction inundated"**, confirming
+  it is inundated area, not inundated-plus-peatland;
+* computing the January/July 2010 totals on the **full WAD2M grid** gives 3.05
+  and 4.63 Mkm² against the reader's 3.06 and 4.64, so the reader loses
+  essentially nothing to the IBIS land mask.
+
+### Consequence for 5n
+
+Mean monthly inundated area splits **55.6% tropics / 28.3% (30–60N) / 12.0%
+(60–90N)**, while our methane flux is **76.7%** tropical. The tropics are
+emitting far out of proportion to their wetland area, and the area itself is
+faithful to the product. **So the tropical excess in §5n is not extent** — it
+lives in `Rh × Q10 × r_ch4`, and the remaining candidates are tropical Rh and
+the tropical `r_ch4` of 0.15.
+
+That does not make the inundation product *correct* — §7 open question 2 stands,
+since WAD2M, GIEMS-2 and SWAMPS disagree substantially and that remains the
+largest single lever on the global total. What is now established is narrower
+and sufficient for M3: **we are reproducing WAD2M faithfully, so our error is
+not a reader bug.**
 
 ---
 
