@@ -360,7 +360,25 @@ values, not a transient.
 | flux | IBIS | published | total | per-area |
 |---|---|---|---|---|
 | **GPP** | **219.7 PgC/yr** | 120-130 | **1.76x** | **1.39x** |
+| **NPP (total)** | **98.7 PgC/yr** | 55-60 | **1.72x** | **1.36x** |
 | Rh | 89.6 PgC/yr | 49-58 | 1.67x | 1.33x |
+
+**The whole cycle is scaled up by a single, nearly uniform factor** -- 1.76x,
+1.72x, 1.67x -- while the ratios BETWEEN the fluxes are right:
+
+| ratio | IBIS | expected |
+|---|---|---|
+| NPP / GPP | **0.450** | 0.45-0.50 |
+| Rh / NPP | **0.907** | <1 at equilibrium, remainder to fire |
+| NEE | **+1.6 PgC/yr** | ~0 at equilibrium |
+
+That is the signature of ONE upstream error, not several independent ones. The
+carbon allocation, the autotrophic respiration fraction and the decomposition
+are all doing the right thing with too much carbon.
+
+(`ANPP/NPP = 0.768` sits above the 0.5-0.7 usually quoted, but that range is
+strongly biome-dependent and is a much weaker constraint than the others; it is
+noted, not treated as a second finding.)
 
 Two separate factors, and they should not be conflated:
 
@@ -430,7 +448,9 @@ read from the colliding field, and is withdrawn. `NPP/GPP` correspondingly read
 0.345 rather than the correct 0.464 -- the model's internal partitioning was
 never wrong, only the field it was read from.
 
-Equilibrium *total* NPP is not recoverable from the v10 run, whose output
-predates the `aynpptot` field. **The GPP and Rh findings are unaffected**:
-`aygpptot` and `ayco2mic` were always correct, so GPP 219.7 PgC/yr (1.76x) and
-Rh 89.6 PgC/yr (1.67x) stand, and GPP remains the root cause.
+v10 was re-run with the corrected diagnostics (2026-08-31 12:17-16:35, 300
+years, 0 NaN, soil carbon drift +0.017 %/yr). Equilibrium total NPP is
+**98.7 PgC/yr, 1.72x published**, and NEE now reads **+1.6 PgC/yr** against the
+-106 the broken accumulator reported -- the check that the fix works. The
+carbon state reproduced the archived run almost exactly, as it must, since the
+fixes were to diagnostics and not to physics.

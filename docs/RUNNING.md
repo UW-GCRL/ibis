@@ -51,6 +51,31 @@ expected, not a fault.
 ## 2. The canonical reference state
 
 ```
+/shared/nas2/Hangkai/ibis/verify_outputs/spinup_cold_v10/
+  restart/ibis_restart_2200.npz    the blessed state (year 300)
+  output/ibis_yearly_{1901..2200}.nc
+  cold_v10.yaml                    the config that produced it
+  run.log
+  output_olddiag/, restart_olddiag/  superseded -- see README.txt there
+```
+
+300-year cold start, global 0.5 deg, 95 333 land points, fire on
+(seasonlength + VPD + combustion completeness), 12 m thermal column
+(`nbedrock=3`), `nsoilcall=10`. 258 min on the RTX 4090. **0 NaN, soil carbon
+drift +0.017 %/yr over the last 50 years.** Reproduce with
+`configs/spinup_cold_v10.yaml`.
+
+**Use this rather than `spinup_fire_v8`.** v8 and its whole v7 ancestry were
+produced through `verify/`'s grid builder, which duplicated 75% of its cells
+and gave an effective 1 deg resolution behind a 0.5 deg label
+(docs/DEFECTS_FOR_REVIEW.md). Their global totals are not inflated by that, but
+their spatial detail is coarser than labelled, and they predate the NEE and
+total-vs-above-ground-NPP fixes. They also cannot be loaded any more: `npoi`
+changed 88 484 -> 95 333.
+
+### 2a. The superseded reference state
+
+```
 /shared/nas2/Hangkai/ibis/verify_outputs/spinup_fire_v8/
   checkpoints/state_latest.pkl     the blessed state (step 200)
   checkpoints/state_step{025..200}.pkl
