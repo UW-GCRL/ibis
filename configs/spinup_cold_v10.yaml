@@ -1,0 +1,53 @@
+# Cold-start 0.5-degree global spin-up on the CORRECTED grid.
+#
+# Runs through scripts/run_global.py, not the verify/ pipeline, because
+# run_global enumerates land cells with np.argwhere(mask > 0) -- direct, no
+# rounding -- and so was never affected by the cell-duplication bug that gave
+# the v7/v8/v9 chain an effective 1-degree resolution.
+#
+# Cold rather than remapped: a remap would hand every cell a state equilibrated
+# to a 1-degree climate, and soil carbon is slow enough that a short re-spin
+# would leave that signature in the pool that feeds Rh -- the quantity under
+# investigation in METHANE.md 5p.
+grid:
+  snorth: 90.0
+  ssouth: -90.0
+  swest: -180.0
+  seast: 180.0
+  xres: 0.5
+  yres: 0.5
+  nbedrock: 3            # 12 m thermal column (docs/BEDROCK.md)
+
+time:
+  iyear0: 1901
+  nrun: 300
+  dtime: 3600.0
+  irestart: 0
+
+physics:
+  isimveg: 1             # dynamic vegetation -> dynaveg
+  isimfire: 1
+  fire_scheme: seasonlength
+  enable_fire_emissions: true
+  co2init: 350.0e-6
+  o2init: 0.209
+  soilcspin: 1
+  nsoilcall: 10          # 10 soil-years per simulated year; needed from cold
+
+output:
+  output_dir: /shared/nas2/Hangkai/ibis/verify_outputs/spinup_cold_v10/output
+  restart_dir: /shared/nas2/Hangkai/ibis/verify_outputs/spinup_cold_v10/restart
+  iyearout: 1
+  imonthout: 0
+
+input:
+  input_dir: /shared/nas2/Hangkai/ibis/inputs
+
+forcing:
+  forcing_type: gswp3
+  gswp3_dir: /shared/nas2/Min/GSWP3
+  vegtype_dir: /shared/nas2/Min/ESACCI_LC/ibis_vegtype
+  soil_file: /shared/nas2/Min/HWSD/soita.nc
+  land_mask_file: /shared/nas2/Min/HWSD/surta.nc
+  spinup_year_start: 1901
+  spinup_year_end: 2000

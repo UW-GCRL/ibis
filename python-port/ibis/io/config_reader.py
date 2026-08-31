@@ -54,6 +54,17 @@ class PhysicsSection:
     #: GPU kernel size and compile time proportionally.
     nsoilcall: int = 1
 
+    #: Fire scheme selector, read by run_global when isimveg > 0. Mirrors
+    #: RunConfig.fire_scheme (docs/FIRE.md). This and enable_fire_emissions
+    #: were READ by scripts/run_global.py but never declared here, so every
+    #: dynamic-vegetation run raised AttributeError on p.fire_scheme -- which
+    #: is why the 200-year spin-ups went through verify/ rather than the
+    #: production runner.
+    fire_scheme: str = "seasonlength"
+    #: Route fire-killed carbon to emissions rather than litter. Requires
+    #: isimfire == 1.
+    enable_fire_emissions: bool = False
+
 
 @dataclass
 class OutputSection:
