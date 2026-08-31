@@ -38,10 +38,11 @@ Worst where it is dry, closest where it is wet. Two things follow:
 
 * **This is not a uniform photosynthesis scaling.** A global `vmax` error would
   bias all bands equally.
-* **LAI is unbounded.** It reaches 8.74 in the wettest bin, above any real
-  ecosystem (tropical rainforest is ~6), and never saturates. Global mean
-  effective LAI (`laiu*fu + lail*fl`) is **4.11** against a MODIS land mean
-  of ~1.2.
+* **LAI is inflated in step with NPP, not independently.** See below -- an
+  earlier draft of this document claimed LAI was 3.4x too high by comparing
+  our area-weighted vegetated-cell mean of 4.11 against a MODIS *global land*
+  mean of ~1.2, which includes barren ground. That comparison was not
+  like-for-like and is withdrawn.
 
 The aridity signature is the documented LSM failure mode: models overestimate
 GPP in seasonally dry systems because soil-moisture stress is under-represented
@@ -107,9 +108,23 @@ nothing in the wettest. **Water stress alone cannot close a 1.6x gap.**
    `vmax` and `specla` were fitted with one degree of freedom silently pinned,
    and several needed manual capping. Hand-picking replacements would repeat
    the mistake that produced them.
-3. **LAI needs a ceiling or a stronger sink.** LAI of 8.74 is unphysical
-   regardless of what GPP does, and `plai = cbiol * specla` has nothing
-   bounding it.
+3. ~~**LAI needs a ceiling.**~~ **Dropped -- LAI is a symptom, not a second
+   cause.** Compared per-biome against typical observed values rather than
+   against a global land mean, LAI is high by a nearly constant factor:
+
+   | precip mm/yr | model | typical | ratio |
+   |---|---|---|---|
+   | 200-400 | 1.26 | 0.8 semi-arid shrub | 1.57x |
+   | 400-700 | 2.91 | 1.8 grass/savanna | 1.62x |
+   | 700-1000 | 5.00 | 3.0 woodland | 1.67x |
+   | 1000-1500 | 6.72 | 4.0 temperate forest | 1.68x |
+   | 1500-2500 | 8.04 | 5.0 moist forest | 1.61x |
+   | 2500+ | 8.74 | 6.0 tropical rainforest | 1.46x |
+
+   That is the NPP inflation (1.72x) passed through
+   `LAI = NPP * aleaf * tauleaf * specla`, and `aleaf`/`aroot` match F77
+   exactly. F77 itself has only a minimum (`xminlai`), no maximum, so capping
+   LAI would both deviate from IBIS and treat the symptom.
 
 ## References
 
