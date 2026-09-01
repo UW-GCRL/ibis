@@ -236,6 +236,17 @@ larger.
    Antarctic MODIS cells and reported MODIS LAI = 0.00 at 60-90N.
 3. **Cropland.** Handled by the `--min-natveg` filter above.
 
+### The MODIS product validates
+
+Checked before relying on it, since the whole diagnosis now rests on it:
+
+| check | result |
+|---|---|
+| Amazon box (0-10S, 55-70W) | LAI **5.44**, against an observed ~5-6 |
+| its PCT_NATVEG / bare soil | 97% / 0% -- no dilution there |
+| global max LAI per grid cell | 6.30 -- physically sensible ceiling |
+| bare-soil fraction over land | 27% |
+
 ### What it implies
 
 GPP is 1.6x high while LAI is 2.7x high, so GPP per unit leaf area is about
@@ -243,11 +254,23 @@ GPP is 1.6x high while LAI is 2.7x high, so GPP per unit leaf area is about
 observations imply. The canopy light saturation is working; that is precisely
 why GPP is "only" 1.6x when LAI is 2.7x.
 
-**The target is now unambiguous: LAI, not photosynthesis.** At equilibrium
-`LAI = aleaf * aynpp * tauleaf * specla`, and `aleaf`/`tauleaf` match F77 while
-`specla` is already biased low. NPP being 1.72x high explains part of a 2.7x
-LAI, but not all of it -- roughly 1.6x remains unaccounted for in that chain,
-which is where the next investigation should start.
+**The target is now unambiguous: LAI, not photosynthesis.**
+
+Verified directly from the year-2200 restart:
+
+* `plai = cbiol * specla` holds **exactly** (max relative error 0.00e+00), so
+  the conversion is not the bug.
+* mean leaf carbon `cbiol` = **0.147 kgC/m2**, mean total `plai` = 2.95
+  (unweighted; 4.1-4.5 area-weighted, which is what meets MODIS).
+* implied mean `specla` = **20.0 m2/kgC**.
+
+So one of the two factors is too large, and they pull in opposite directions on
+plausibility: 0.147 kgC/m2 of foliage carbon is at the high end but within the
+published range, and 20 m2/kgC is if anything a LOW specific leaf area. Their
+product is nonetheless 2.7x MODIS. That tension is unresolved and is the next
+thing to settle -- it decides whether the fix belongs in allocation or in
+`specla`, and guessing wrong would hide the real error behind a fitted
+parameter.
 
 ## Superseded: where it was blocked
 
