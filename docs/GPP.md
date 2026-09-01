@@ -344,16 +344,38 @@ moving LAI from the model's value to MODIS's scales GPP by
 | 2500+ | 8.81 | 3.48 | 1.21x | 0.94x | 1.07x | 1.14x |
 | **mean** | | | **1.65x** | **1.02x** | **1.17x** | **1.28x** |
 
-**A single LAI correction plausibly fixes GPP as well**, landing it between
-1.0x and 1.3x depending on the canopy extinction coefficient, and flattening
-the band-to-band spread from 1.21-2.00 to roughly 0.9-1.2. That is a far better
-prospect than the aridity-only story suggested, and it means the two headline
-biases have one lever rather than two.
+**This projection was WRONG and is retained only as a record.** It was tested
+directly (below) rather than by measuring `extpar`, and the measured GPP
+response to an LAI change is far smaller than any column above.
 
-**Measure `extpar` first.** It selects which column above applies and is one
-instrumented run. `canopy_scaling` clips it to [0.1, 10]; its actual
-distribution is unknown and decides whether the LAI fix leaves GPP on target or
-~25% high.
+### Tested: specla x0.63, 60-year spin-up
+
+| | LAI vs MODIS | GPP vs FLUXCOM |
+|---|---|---|
+| baseline | 2.69x | 1.61x |
+| `specla` x 0.63 | **1.67x** | **1.55x** |
+
+Two results, one expected and one not:
+
+* **LAI responds almost exactly linearly to `specla`** -- 2.69 x 0.63 = 1.69
+  predicted, 1.67 measured. There is NO feedback amplification, contrary to the
+  caveat recorded above. `specla` is a clean, proportional lever on LAI.
+* **GPP barely moves** -- 1.61x to 1.55x for a 37% cut in leaf area.
+
+The second kills the projection. The canopy is **light-saturated**, so GPP is
+nearly independent of LAI: `GPP ~ (1 - exp(-k(L+S)))/k`, and the measured
+response implies an effective `k` near 1.0, at which `k*L = 4.5` and the
+exponential is spent. Correcting LAI the whole way to MODIS would take GPP to
+roughly **1.3x**, not 1.0x.
+
+**So LAI and GPP are not one lever after all.** Fixing LAI fixes LAI, and buys
+perhaps a fifth of the GPP error. With GPP saturated, `GPP ~ ag * fu / k`, so
+the remaining bias sits in per-leaf assimilation `ag`, the canopy fraction `fu`
+(which has a hard 0.25 floor), or the extinction `k` -- not in leaf area.
+
+A uniform `specla` scale also breaks the spatial pattern: 60-90N drops to 0.37x
+(now too LOW) while 60-30S stays at 3.40x. Any real `specla` calibration has to
+be per-PFT, not a single factor.
 
 **The caveat is the feedback.** Lowering `specla` lowers LAI, which lowers GPP,
 NPP, `cbiol` and LAI again. The equilibrium response is therefore LARGER than
