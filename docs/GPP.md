@@ -99,12 +99,32 @@ Driving `stressfac` to the strongest defensible value moves global GPP only
 1.58x -> 1.51x. It genuinely fixes the driest bin (1.36 -> 1.10) and does
 nothing in the wettest. **Water stress alone cannot close a 1.6x gap.**
 
-## Open: what to do next
+### ...and it does not compound at equilibrium either
 
-1. **The equilibrium response may exceed the direct one.** The sweep above
-   holds LAI fixed; stronger stress should also reduce LAI, which compounds.
-   A 60-year run at `stressfac = -1` is the test.
-2. **The parameter set should be recalibrated now that `stressfac` is live.**
+The sweep above holds LAI fixed. Stronger stress should also shrink LAI, which
+would compound, so a 60-year run at `stressfac = -1` was run from the v10
+restart with LAI free to adjust. It does not:
+
+| precip mm/yr | base (sf=-5, 300 yr) | sf=-1, 60 yr |
+|---|---|---|
+| 0-200 | 0.99x | **0.85x** |
+| 200-400 | 2.51x | 2.28x |
+| 400-700 | 2.09x | 1.98x |
+| 700-1000 | 1.87x | 1.78x |
+| 1000-1500 | 1.66x | 1.62x |
+| 1500-2500 | 1.34x | 1.31x |
+| 2500+ | 1.21x | 1.19x |
+| **global** | **1.61x** | **1.56x** |
+
+A 3% improvement after 60 years, no better than the direct 1-year response. And
+it **overshoots the driest bin**: 0-200 mm/yr is already right at 0.99x and
+`stressfac = -1` drives it to 0.85x, 15% too LOW. So `stressfac` should be left
+at its F77 value of -5.0; the fix was to make it live, not to retune it.
+
+**The cheap lever is exhausted.** Water stress cannot close a 1.6x gap.
+
+## Open: what to do next
+1. **The parameter set should be recalibrated now that `stressfac` is live.**
    `vmax` and `specla` were fitted with one degree of freedom silently pinned,
    and several needed manual capping. Hand-picking replacements would repeat
    the mistake that produced them.
