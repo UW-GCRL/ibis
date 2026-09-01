@@ -303,6 +303,34 @@ have a validated per-cell LAI target. Because the leaf pool has been shown
 self-consistent, fitting `specla` is setting a parameter against data rather
 than hiding a defect.
 
+### The projection: correcting LAI should also correct GPP
+
+Worth computing before spending compute, since it decides whether this is even
+the right lever. GPP goes as `(1 - exp(-k*LAI))/k` through `canopy_scaling`, so
+moving LAI from the model's value to MODIS's scales GPP by
+`(1-exp(-k*L_obs))/(1-exp(-k*L_now))`:
+
+| band | LAI now | LAI obs | GPP now | GPP after (k=0.4) | (k=0.6) | (k=0.8) |
+|---|---|---|---|---|---|---|
+| 200-400 | 1.68 | 0.77 | 2.00x | 1.08x | 1.17x | 1.24x |
+| 400-700 | 3.35 | 1.45 | 1.93x | 1.15x | 1.29x | 1.42x |
+| 700-1000 | 5.26 | 1.71 | 1.86x | 1.05x | 1.25x | 1.41x |
+| 1000-1500 | 6.94 | 2.20 | 1.55x | 0.97x | 1.15x | 1.29x |
+| 1500-2500 | 8.11 | 2.72 | 1.34x | 0.92x | 1.09x | 1.19x |
+| 2500+ | 8.81 | 3.48 | 1.21x | 0.94x | 1.07x | 1.14x |
+| **mean** | | | **1.65x** | **1.02x** | **1.17x** | **1.28x** |
+
+**A single LAI correction plausibly fixes GPP as well**, landing it between
+1.0x and 1.3x depending on the canopy extinction coefficient, and flattening
+the band-to-band spread from 1.21-2.00 to roughly 0.9-1.2. That is a far better
+prospect than the aridity-only story suggested, and it means the two headline
+biases have one lever rather than two.
+
+**Measure `extpar` first.** It selects which column above applies and is one
+instrumented run. `canopy_scaling` clips it to [0.1, 10]; its actual
+distribution is unknown and decides whether the LAI fix leaves GPP on target or
+~25% high.
+
 **The caveat is the feedback.** Lowering `specla` lowers LAI, which lowers GPP,
 NPP, `cbiol` and LAI again. The equilibrium response is therefore LARGER than
 the direct one, so the naive scaling (2.68 -> 1.69 needs specla x0.63, mean
