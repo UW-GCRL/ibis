@@ -50,8 +50,9 @@ GPP in seasonally dry systems because soil-moisture stress is under-represented
 
 ## Published IBIS reports about half our GPP
 
-Yuan et al. (2014), PLOS One 9(11), e110407, validating IBIS against 62 eddy
-covariance sites:
+Liu, D., Cai, W., Xia, J., Dong, W., Zhou, G., Chen, Y., Zhang, H. & Yuan, W.
+(2014), *PLoS ONE* 9(11), e110407, doi:10.1371/journal.pone.0110407 --
+validating IBIS against 62 eddy covariance sites:
 
 > "Global mean GPP estimated by the IBIS model was **107.50 +- 1.37 Pg C
 > year-1** (mean value +- standard deviation) across the vegetated area for the
@@ -60,12 +61,34 @@ covariance sites:
 and describes IBIS as having *"underestimated GPP for the majority of PFTs"*.
 Our 219.7 PgC/yr, or 185.0 on FLUXCOM-matched cells, is roughly **2x** that.
 
-**Read this as suggestive, not conclusive.** Their run is 2000-2006 under a
-different configuration; ours is a 300-year dynamic-vegetation equilibrium
-spin-up. Spin-up length and whether vegetation is prognostic or prescribed both
-move GPP substantially, so this is not a like-for-like comparison. What it does
-say is that IBIS is *capable* of a realistic global GPP, so a 1.6-1.8x
-overestimate is not simply what the model does.
+**And they prescribed LAI.** From the methods, verbatim:
+
+> "To decrease model uncertainty, we used the satellite-based leaf area index
+> (LAI) from the Moderate Resolution Imaging Spectroradiometer (MODIS) as a
+> model input."
+
+So their 107.5 PgC/yr is IBIS running on **exactly the MODIS LAI field our
+model overshoots by 2.7x**. IBIS did not compute LAI in that study at all.
+
+That makes the comparison decisive rather than suggestive:
+
+| configuration | LAI | global GPP |
+|---|---|---|
+| Liu et al. 2014 | MODIS, prescribed | 107.5 PgC/yr |
+| this port, 300-yr spin-up | prognostic, equilibrated | 219.7 PgC/yr |
+| our LAI vs that same MODIS field | -- | **2.7x** |
+
+**The entire difference between published IBIS and ours is the leaf area.**
+Photosynthesis, allocation and turnover are all faithful; what the port does
+that the published evaluation never exercised is let IBIS choose its own LAI.
+
+Note also that the paper reports IBIS performing worst for **evergreen
+broadleaf forests and savannas**, attributing it to *"inadequate soil moisture
+simulation and phenology algorithms"* -- independent support for the semi-arid
+water-stress residual characterised above.
+
+The paper reports no LAI bias; it mentions LAI only as an input. The 2.7x
+figure is this project's, from `verify/lai_vs_modis.py`.
 
 ## It is not a port defect
 
