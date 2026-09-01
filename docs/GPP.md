@@ -264,13 +264,51 @@ Verified directly from the year-2200 restart:
   (unweighted; 4.1-4.5 area-weighted, which is what meets MODIS).
 * implied mean `specla` = **20.0 m2/kgC**.
 
-So one of the two factors is too large, and they pull in opposite directions on
-plausibility: 0.147 kgC/m2 of foliage carbon is at the high end but within the
-published range, and 20 m2/kgC is if anything a LOW specific leaf area. Their
-product is nonetheless 2.7x MODIS. That tension is unresolved and is the next
-thing to settle -- it decides whether the fix belongs in allocation or in
-`specla`, and guessing wrong would hide the real error behind a fitted
-parameter.
+### The fork, resolved: allocation is self-consistent
+
+`verify/leaf_carbon_balance.py` runs a year forward from the restart and reads
+`summary.aynpp` before `dynaveg` consumes it (`run_global` resets the
+accumulators at line 700 and writes the restart at line 724, so a restart
+always shows zero).
+
+| quantity | value |
+|---|---|
+| annual `aynpp` summed over PFTs | 98.0 PgC/yr |
+| `cbiol` actual | 0.1291 kgC/m2 |
+| `cbiol` predicted = `aleaf * aynpp * tauleaf` | 0.1301 kgC/m2 |
+| **ratio actual / predicted** | **0.992** |
+
+**The leaf pool is exactly what allocation and turnover predict.** Nothing is
+feeding or retaining leaf carbon beyond what `aleaf` and `tauleaf` allow, so
+there is no upstream bug for a `specla` change to bury.
+
+### Which means the bias is IBIS's dynamic-vegetation attractor
+
+Putting the chain together: photosynthesis per unit leaf is right, the leaf
+pool follows allocation exactly, `aleaf`/`tauleaf` match F77, and `specla` is
+already below F77's values. The whole system is internally consistent -- it
+simply equilibrates to a state 2.7x too leafy, and GPP/NPP/Rh follow.
+
+That also reconciles the published IBIS figure. Yuan et al. ran **2000-2006**,
+seven years. LAI has nowhere near equilibrated on that timescale, so their run
+reports GPP at close-to-observed leaf area. Our 300-year spin-up lets LAI reach
+IBIS's own attractor, which overshoots. A short run does not reveal this bias;
+an equilibrium run does. Note also that with F77's `specla` (25 vs our 13-20)
+IBIS's equilibrium LAI would be *higher* than ours, not lower.
+
+### So calibrating specla is now defensible -- with one caveat
+
+`specla` is the one free parameter mapping leaf carbon to leaf area, and we now
+have a validated per-cell LAI target. Because the leaf pool has been shown
+self-consistent, fitting `specla` is setting a parameter against data rather
+than hiding a defect.
+
+**The caveat is the feedback.** Lowering `specla` lowers LAI, which lowers GPP,
+NPP, `cbiol` and LAI again. The equilibrium response is therefore LARGER than
+the direct one, so the naive scaling (2.68 -> 1.69 needs specla x0.63, mean
+20 -> 12.6 m2/kgC) overshoots. The calibration must be run against full
+spin-ups, not one-year evaluations -- which is exactly the mistake the previous
+CMA-ES setup could have made.
 
 ## Superseded: where it was blocked
 
