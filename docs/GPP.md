@@ -384,6 +384,77 @@ the direct one, so the naive scaling (2.68 -> 1.69 needs specla x0.63, mean
 spin-ups, not one-year evaluations -- which is exactly the mistake the previous
 CMA-ES setup could have made.
 
+## The decisive test: prescribe MODIS LAI
+
+`physics.prescribe_lai` sets LAI to the observed field exactly
+(`ibis/physics/prescribed_lai.py`), which is the configuration Liu et al. used.
+10-year run from the v10 restart.
+
+| run | LAI vs MODIS | GPP vs FLUXCOM |
+|---|---|---|
+| baseline | 2.69x | 1.63x |
+| `specla` x 0.63 | 1.67x | 1.56x |
+| **prescribed MODIS LAI** | **1.00x** | **1.46x** |
+
+The prescription lands exactly (ratio 1.00). **With leaf area exactly right,
+GPP is still 46% too high.**
+
+### Decomposition
+
+| | |
+|---|---|
+| total GPP bias | 1.63x |
+| with LAI set exactly to MODIS | 1.46x |
+| **attributable to excess leaf area** | **1.12x -- about 10% of the error** |
+| residual, per unit leaf area | 1.46x |
+
+**Leaf area is not the main cause.** It accounts for roughly a tenth of the
+GPP bias; the rest is per-leaf assimilation. This overturns the conclusion
+recorded above that "the target is unambiguously LAI, not photosynthesis" --
+that inference came from dividing bias ratios, and the direct experiment
+contradicts it. LAI at 2.7x is still a real defect worth fixing on its own
+terms; it is simply not what makes GPP high.
+
+### The residual is aridity-structured
+
+With LAI exactly correct, by precipitation band:
+
+| precip mm/yr | GPP bias |
+|---|---|
+| 0-200 | 0.81x |
+| **200-400** | **1.94x** |
+| 400-700 | 1.74x |
+| 700-1000 | 1.62x |
+| 1000-1500 | 1.53x |
+| 2500+ | 1.21x |
+
+The same semi-arid signature the aridity analysis found at the very start,
+undiminished by fixing leaf area. The driest band is now slightly LOW (0.81x).
+So the dominant remaining cause is water limitation on assimilation -- and
+`stressfac`, the obvious knob, was already shown to move the global figure only
+1.58x -> 1.51x at its strongest defensible value.
+
+### Same LAI, same model, 1.55x apart
+
+Liu et al. get 107.5 PgC/yr with prescribed MODIS LAI. This port gets
+**166.9 PgC/yr with the same prescribed MODIS LAI** -- a factor of **1.55**
+that leaf area, `vmax`, the GPP formula, the temperature reference, the canopy
+scaling, `fu`/`fl`, turnover and allocation have all been individually verified
+NOT to explain.
+
+What has not been ruled out, and is where the next work belongs:
+
+1. **Forcing.** They used their own meteorology; we use GSWP3. Radiation and
+   VPD differences propagate straight into assimilation.
+2. **Domain.** Their "vegetated area" versus our 165 Mkm2 land mask, which is
+   already known to exceed Earth's ice-free land by ~27%.
+3. **Soil water supply.** `awc = (wsoi(1-wisoi) - swilt)/(sfield - swilt)`
+   depends on the soil hydraulic properties from `soita.nc`. If the profile
+   holds too much plant-available water, `stressfac` cannot bite however it is
+   shaped -- which would explain why retuning it barely moved anything.
+
+Option 3 is the cheapest to check and the best fit to the aridity signature.
+
 ## Superseded: where it was blocked
 
 At equilibrium `LAI = NPP * aleaf * tauleaf * specla`. `aleaf` and `tauleaf`
