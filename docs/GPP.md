@@ -48,6 +48,25 @@ The aridity signature is the documented LSM failure mode: models overestimate
 GPP in seasonally dry systems because soil-moisture stress is under-represented
 (Green et al. 2025, GCB; Harper et al. 2021, GMD, for JULES).
 
+## Published IBIS reports about half our GPP
+
+Yuan et al. (2014), PLOS One 9(11), e110407, validating IBIS against 62 eddy
+covariance sites:
+
+> "Global mean GPP estimated by the IBIS model was **107.50 +- 1.37 Pg C
+> year-1** (mean value +- standard deviation) across the vegetated area for the
+> period 2000-2006"
+
+and describes IBIS as having *"underestimated GPP for the majority of PFTs"*.
+Our 219.7 PgC/yr, or 185.0 on FLUXCOM-matched cells, is roughly **2x** that.
+
+**Read this as suggestive, not conclusive.** Their run is 2000-2006 under a
+different configuration; ours is a 300-year dynamic-vegetation equilibrium
+spin-up. Spin-up length and whether vegetation is prognostic or prescribed both
+move GPP substantially, so this is not a like-for-like comparison. What it does
+say is that IBIS is *capable* of a realistic global GPP, so a 1.6-1.8x
+overestimate is not simply what the model does.
+
 ## It is not a port defect
 
 Checked against F77 rather than assumed:
@@ -124,10 +143,35 @@ at its F77 value of -5.0; the fix was to make it live, not to retune it.
 **The cheap lever is exhausted.** Water stress cannot close a 1.6x gap.
 
 ## Open: what to do next
-1. **The parameter set should be recalibrated now that `stressfac` is live.**
-   `vmax` and `specla` were fitted with one degree of freedom silently pinned,
-   and several needed manual capping. Hand-picking replacements would repeat
-   the mistake that produced them.
+1. **The parameter set is NOT the obvious culprit** -- checked, 2026-08-31.
+   IBIS's own defaults live in `fortran/params.can` (found one directory above
+   the `ibis_2.6b4/` tree, which lacks it):
+
+   | parameter | ours | IBIS params.can | verdict |
+   |---|---|---|---|
+   | `vmax_pft` | 65, 65, 40, 30, 30, 25, 30, 30, 27.5, 27.5, 15, 25 (e-6) | identical | **already IBIS's** |
+   | `tauleaf` | 1.01, 1.0, 1.0, 2.0, 1.0, 2.5, ... | identical | match |
+   | `aleaf`/`aroot`/`awood` | 0.30/0.20/0.50 ... | identical | match |
+   | `specla` | 13.0, 21.6, 30.0, 10.8, 35.0, 6.6 ... | 25, 25, 25, 12.5, 25, 12.5 ... | ours are LOWER |
+
+   Two things follow. **The CMA-ES `vmax` never reached the physics**:
+   `PFTParams.vmax_pft` is read only by `scripts/calibrate_*.py`, while
+   `stomata` consumes `StomataParams.vmax_pft`, whose default is IBIS's set.
+   The model has been running IBIS's own vmax all along. And **`specla` points
+   the wrong way** -- ours are roughly half IBIS's for several PFTs, and since
+   `plai = cbiol * specla`, reverting to IBIS defaults would raise LAI and make
+   the bias worse. The tuning was already compensating in the right direction.
+
+   Also verified: `vmax_pft` is defined at **15 C** (`params.can` line 92), and
+   the port's `tempvm` references `3.47e-03 = 1/288.18 K`, so there is no
+   reference-temperature mix-up -- a hypothesis that would have explained a
+   uniform 2x neatly, and does not hold.
+
+2. **What remains.** With the formula, `vmax`, the temperature reference,
+   turnover and allocation all matching F77, and `specla` already biased
+   downward, the excess has to enter through the LAI/NPP feedback itself
+   (`GPP -> NPP -> cbiol -> LAI -> GPP`) or through the canopy fractions
+   `fu`/`fl` that multiply it. Those are the untested terms.
 3. ~~**LAI needs a ceiling.**~~ **Dropped -- LAI is a symptom, not a second
    cause.** Compared per-biome against typical observed values rather than
    against a global land mean, LAI is high by a nearly constant factor:
