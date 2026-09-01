@@ -167,11 +167,52 @@ at its F77 value of -5.0; the fix was to make it live, not to retune it.
    reference-temperature mix-up -- a hypothesis that would have explained a
    uniform 2x neatly, and does not hold.
 
-2. **What remains.** With the formula, `vmax`, the temperature reference,
-   turnover and allocation all matching F77, and `specla` already biased
-   downward, the excess has to enter through the LAI/NPP feedback itself
-   (`GPP -> NPP -> cbiol -> LAI -> GPP`) or through the canopy fractions
-   `fu`/`fl` that multiply it. Those are the untested terms.
+2. **`fu`/`fl` and the canopy light scaling also match F77.** `dynaveg`'s
+   `fu = (1-exp(-wood))/(1-exp(-woodnorm))`, the `(1 - disturbf - disturbo)`
+   term and the `max(0.25, min(0.975, .))` clamp all match `vegetation.f:525-530`.
+   `canopy_scaling` reproduces `physiology.f:418`'s
+   `(1 - exp(-extpar*xai)) / (extpar*lai)` exactly, so GPP does saturate with
+   LAI rather than growing linearly. Every component checked is faithful.
+
+## The decomposition that matters
+
+Dividing the GPP bias by the LAI bias separates "too much leaf" from "too much
+photosynthesis per leaf":
+
+| precip mm/yr | LAI bias | GPP bias | GPP per unit LAI |
+|---|---|---|---|
+| 200-400 | 1.57x | 2.00x | **1.27x** |
+| 400-700 | 1.62x | 1.93x | 1.19x |
+| 700-1000 | 1.67x | 1.86x | 1.11x |
+| 1000-1500 | 1.68x | 1.55x | 0.92x |
+| 1500-2500 | 1.61x | 1.34x | 0.83x |
+| 2500+ | 1.46x | 1.21x | **0.83x** |
+
+**Photosynthesis per unit leaf area is roughly right** -- slightly low in the
+wet tropics, ~1.2-1.3x high in semi-arid, which is the water-stress residual
+already characterised above. **LAI is uniformly 1.46-1.68x high in every
+band.** If LAI were right, GPP would be close to right.
+
+So this is a vegetation-carbon problem, not a photosynthesis problem.
+
+## Where it is blocked
+
+At equilibrium `LAI = NPP * aleaf * tauleaf * specla`. `aleaf` and `tauleaf`
+match F77 exactly and `specla` is already biased LOW relative to F77, so on
+parameters alone our LAI should sit BELOW IBIS's, not 1.6x above it. Nothing in
+the checked chain accounts for that.
+
+**The blocker is that the LAI reference values used above are my own
+biome-typical estimates, not a dataset.** Given that three separate
+apples-to-oranges reference comparisons have already been caught in this
+project, the 1.46-1.68x LAI bias should not be acted on until it is confirmed
+against a real global LAI product. `/shared/nas2` has only per-PFT forest LAI
+(`MODISPFTLAI_0.5x0.5_*.nc`), which needs PFT cover weights we do not have.
+
+**Next step: obtain a global gridded LAI climatology** (MODIS MOD15A2 or
+GIMMS/GLASS LAI at 0.5 deg) and repeat the per-band comparison. That either
+confirms LAI as the single remaining target or removes it, and it is the one
+piece of evidence the diagnosis now turns on.
 3. ~~**LAI needs a ceiling.**~~ **Dropped -- LAI is a symptom, not a second
    cause.** Compared per-biome against typical observed values rather than
    against a global land mean, LAI is high by a nearly constant factor:
