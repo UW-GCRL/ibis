@@ -455,6 +455,35 @@ What has not been ruled out, and is where the next work belongs:
 
 Option 3 is the cheapest to check and the best fit to the aridity signature.
 
+### Preliminary: option 3 looks WEAK
+
+Computing `awc` from the year-2200 restart exactly as `drystress` does, and the
+`stresstu` it implies at `stressfac = -5`:
+
+| precip mm/yr | root-weighted `awc` | `stresstu` |
+|---|---|---|
+| 0-200 | 0.023 | 0.076 |
+| **200-400** | **0.053** | **0.135** |
+| 400-700 | 0.169 | 0.340 |
+| 700-1000 | 0.437 | 0.670 |
+| 2500+ | 0.881 | 0.959 |
+
+Water stress is already severe where the GPP bias is worst -- `vmax` cut to
+13.5% of nominal in the 200-400 mm band, which still runs 1.94x high with LAI
+prescribed. The soil is not holding too much plant-available water, so the
+"stressfac cannot bite" explanation does not survive, and this also explains why
+retuning `stressfac` moved so little: the stress term is already near its floor
+there.
+
+**Treat as preliminary.** `wsoi` here is a year-END snapshot, not an annual
+mean, while GPP is a growing-season integral -- the same snapshot trap that has
+produced several wrong answers in this project. Settling it needs `awc`
+accumulated over a simulated year, which is a small addition to the daily
+diagnostics rather than a new run.
+
+That leaves **forcing** and **domain** as the live candidates for the 1.55x gap
+against published IBIS at identical prescribed LAI.
+
 ## Superseded: where it was blocked
 
 At equilibrium `LAI = NPP * aleaf * tauleaf * specla`. `aleaf` and `tauleaf`
