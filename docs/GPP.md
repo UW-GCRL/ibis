@@ -312,12 +312,13 @@ pool follows allocation exactly, `aleaf`/`tauleaf` match F77, and `specla` is
 already below F77's values. The whole system is internally consistent -- it
 simply equilibrates to a state 2.7x too leafy, and GPP/NPP/Rh follow.
 
-That also reconciles the published IBIS figure. Yuan et al. ran **2000-2006**,
-seven years. LAI has nowhere near equilibrated on that timescale, so their run
-reports GPP at close-to-observed leaf area. Our 300-year spin-up lets LAI reach
-IBIS's own attractor, which overshoots. A short run does not reveal this bias;
-an equilibrium run does. Note also that with F77's `specla` (25 vs our 13-20)
-IBIS's equilibrium LAI would be *higher* than ours, not lower.
+That also reconciles the published IBIS figure, and more directly than a
+spin-up argument would: **Liu et al. prescribed MODIS LAI** (see above), so
+their run reports GPP at observed leaf area by construction. Ours lets LAI
+reach IBIS's own attractor, which overshoots by 2.7x. Note too that with F77's
+`specla` (25 vs our 13-20) IBIS's equilibrium LAI would be *higher* than ours,
+not lower -- so this is inherited IBIS behaviour that the published evaluation
+simply never exercised.
 
 ### So calibrating specla is now defensible -- with one caveat
 
