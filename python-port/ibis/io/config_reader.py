@@ -64,6 +64,11 @@ class PhysicsSection:
     #: Route fire-killed carbon to emissions rather than litter. Requires
     #: isimfire == 1.
     enable_fire_emissions: bool = False
+    #: Prescribe leaf area index from MODIS instead of growing it. This is the
+    #: configuration behind the published IBIS GPP of 107.5 PgC/yr (Liu et al.
+    #: 2014). Carbon totals from such a run are diagnostic, not a closed
+    #: budget -- see ibis/physics/prescribed_lai.py.
+    prescribe_lai: bool = False
 
 
 @dataclass

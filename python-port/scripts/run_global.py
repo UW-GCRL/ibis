@@ -75,6 +75,8 @@ from ibis.constants import PhysicalConstants
 from ibis.dimensions import GridConfig
 from ibis.state.model_state import IBISState, create_ibis_state
 from ibis.physics.bedrock import BedrockParams, initialize_bedrock_temperature
+from ibis.physics.prescribed_lai import apply_prescribed_lai
+from ibis.io.modis_lai import read_modis_lai_max
 from ibis.timestepping.loops import SimParams
 from ibis.timestepping.loops_gswp3 import run_month_gswp3
 from ibis.physics.climate_analysis import climanl, climanl2, existence
@@ -424,6 +426,18 @@ def run_global_simulation(config: IBISConfig) -> None:
                     bp.nlayer, float(jnp.sum(state.soil.hsoi[:grid.nsoilay]))
                     + sum(bp.hsoi))
 
+    # Prescribed LAI: load the observed field once. Applied after every annual
+    # vegetation update so the model's own growth is overwritten each year.
+    lai_obs = None
+    if getattr(p, "prescribe_lai", False):
+        lai_obs = jnp.asarray(read_modis_lai_max(gswp3_latindex, gswp3_lonindex))
+        logger.info("  prescribed LAI from MODIS: mean %.2f max %.2f over %d pts",
+                    float(jnp.mean(lai_obs)), float(jnp.max(lai_obs)), npoi)
+        # Apply once up front too, so year 1 runs on the observed field rather
+        # than whatever LAI the restart or cold start happens to carry.
+        state = apply_prescribed_lai(state, lai_obs, pft_params.specla,
+                                     consts.epsilon)
+
     # Set PFT existence from (re)seeded climate normals
     exist_init = existence(
         state.vegetation.tcmin, state.vegetation.tw,
@@ -640,6 +654,11 @@ def run_global_simulation(config: IBISConfig) -> None:
             lambda s: (s.vegetation, s.carbon, s.summary),
             state, (new_veg, new_carbon, new_summary),
         )
+
+        # Overwrite the model's grown LAI with the observed field.
+        if lai_obs is not None:
+            state = apply_prescribed_lai(state, lai_obs, pft_params.specla,
+                                         consts.epsilon)
         if p.isimveg > 0:
             # `p.fire_scheme` used to be read nowhere: the call omitted it, so
             # every run took the legacy scheme no matter what the config said.
