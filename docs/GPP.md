@@ -481,8 +481,75 @@ produced several wrong answers in this project. Settling it needs `awc`
 accumulated over a simulated year, which is a small addition to the daily
 diagnostics rather than a new run.
 
-That leaves **forcing** and **domain** as the live candidates for the 1.55x gap
-against published IBIS at identical prescribed LAI.
+That leaves **forcing**, **domain**, and -- from the literature search below --
+**canopy structure** as candidates for the 1.55x gap against published IBIS at
+identical prescribed LAI.
+
+## The leading candidate: IBIS is a one-big-leaf model
+
+**IBIS does not separate sunlit from shaded leaves.** `canopy_scaling` computes
+a single scale factor `(1 - exp(-k(L+S)))/(kL)` and applies it to one `ag` per
+canopy layer. The `sunlit` variable in `radiation.py` is a daylight mask (is the
+sun above the horizon), not a leaf partition.
+
+This is a documented, quantified structural bias:
+
+> "About half of state-of-the-art earth system models use a 'two-big-leaf'
+> scheme that partitions canopies into direct and diffusely illuminated
+> fractions **to reduce high bias of GPP simulated by one-big-leaf models**."
+
+> "A big-leaf model assumes a canopy to be a single big leaf without a shaded
+> leaf component... **It will overestimate canopy-level GPP when the shaded
+> leaf contribution is less than the average (i.e., low LAI)**."
+
+The mechanism is Jensen's inequality: leaf photosynthesis saturates with light,
+so applying the canopy-MEAN light to a single leaf overestimates the integral
+over a canopy with a light gradient. Reported magnitude at low-GPP sites is a
+mean prediction error of **1.09 +- 0.12 gC m-2 d-1** -- against 1.0-2.2
+gC m-2 d-1 of actual GPP in our driest vegetated bands, i.e. a 50-100% error,
+which is the size of ours.
+
+### It predicts our residual almost exactly
+
+Big-leaf theory says the overestimate is largest at LOW LAI. With LAI
+prescribed to MODIS, so leaf area is exactly right and cannot confound:
+
+| MODIS LAI | GPP bias |
+|---|---|
+| 0.77 | 1.94x |
+| 1.45 | 1.74x |
+| 1.71 | 1.62x |
+| 2.20 | 1.53x |
+| 2.72 | 1.29x |
+| 3.48 | 1.21x |
+
+**r(LAI, bias) = -0.985**, monotonic. (The 0-200 mm band at LAI 0.11 and 0.81x
+is excluded -- essentially unvegetated, a different regime.)
+
+### The honest caveat
+
+LAI covaries with precipitation, temperature and radiation, so a water-stress
+explanation produces the same correlation. This is a strong *consistency*
+result, not proof. What raises it above the alternatives is that the mechanism
+is structural and specific, IBIS's code matches the failing design exactly, the
+published error magnitude matches ours, and the competing water-stress
+explanation has already been weakened twice -- `stressfac` retuning barely
+moved the total, and `stresstu` is already at 0.135 in the worst band.
+
+### Testing it
+
+Adding a sunlit/shaded split is two photosynthesis calls with an analytic
+sunlit fraction `f_sun = (1 - exp(-k*L))/(k*L)` -- no new state, no iteration,
+and squarely within "keep IBIS light". If the bias flattens across the LAI
+gradient, that is the answer; if the slope survives, the residual is climatic
+and the search moves to forcing.
+
+## References (canopy structure)
+
+- Big-leaf vs two-leaf LUE comparisons: https://www.sciencedirect.com/science/article/abs/pii/S0168192321004470
+- Two-big-leaf advantages at ecosystem level: https://www.sciencedirect.com/science/article/pii/S0168192322003720
+- Bridging big-leaf and two-leaf for MODIS GPP: https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2023JG007737
+- Global sunlit/shaded GPP dataset: https://www.nature.com/articles/s41597-022-01309-2
 
 ## Superseded: where it was blocked
 
