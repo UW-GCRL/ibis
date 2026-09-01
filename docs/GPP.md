@@ -195,7 +195,61 @@ band.** If LAI were right, GPP would be close to right.
 
 So this is a vegetation-carbon problem, not a photosynthesis problem.
 
-## Where it is blocked
+## LAI against real MODIS data: 2.7x too high
+
+**Unblocked 2026-08-31.** `verify/lai_vs_modis.py` builds a grid-cell total LAI
+from the MODIS PFT LAI that ships with CLM's 0.5 deg surface dataset (Peter
+Lawrence, NCAR), weighted by the matching surfdata's cover fractions:
+
+    LAI_total = sum_i LAI_i * PCT_NAT_PFT_i/100 * PCT_NATVEG/100
+
+Both files are on disk under `ELM Edge Effects/inputdata/`, already on our grid.
+
+| | model | MODIS | ratio |
+|---|---|---|---|
+| **global** | **4.53** | **1.69** | **2.69x** |
+| 200-400 mm/yr | 1.68 | 0.77 | 2.18x |
+| 700-1000 | 5.26 | 1.71 | 3.08x |
+| 1000-1500 | 6.94 | 2.20 | 3.15x |
+| 2500+ | 8.81 | 3.48 | 2.53x |
+| 60-90N | 1.44 | 1.10 | 1.31x |
+| 30-60N | 4.75 | 1.55 | 3.08x |
+
+Restricted to cells >=90% natural vegetation. Robust to that restriction:
+2.69x at >=90%, 2.73x at >=50%, 2.75x over all land, so cropland (which the
+MODIS total scores as zero LAI and IBIS vegetates) is not driving it.
+
+**This supersedes the 1.46-1.68x figure above**, which came from biome-typical
+LAI values typed into a diagnostic script. The real bias is substantially
+larger.
+
+### Three comparability traps, all of which had to be fixed first
+
+1. **Seasonality.** IBIS carries leaf drop in `frac`
+   (`frac = plai * dropu / avglaiu`, `vegetation.f:150`), NOT in `lai`, so
+   `laiu`/`lail` are FULL-LEAF values. They must be compared against MODIS
+   annual *maximum*, not December or annual mean. A December comparison
+   reported 8.6x at 30-60N purely from deciduous dormancy.
+2. **Grid orientation.** CLM surface datasets run SOUTH->NORTH
+   (`LATIXY` -89.75 -> 89.75); IBIS output runs NORTH->SOUTH. Unflipped, the
+   comparison is latitude-mirrored -- it matched Arctic model cells against
+   Antarctic MODIS cells and reported MODIS LAI = 0.00 at 60-90N.
+3. **Cropland.** Handled by the `--min-natveg` filter above.
+
+### What it implies
+
+GPP is 1.6x high while LAI is 2.7x high, so GPP per unit leaf area is about
+**0.6x** -- the model is producing *less* photosynthesis per leaf than
+observations imply. The canopy light saturation is working; that is precisely
+why GPP is "only" 1.6x when LAI is 2.7x.
+
+**The target is now unambiguous: LAI, not photosynthesis.** At equilibrium
+`LAI = aleaf * aynpp * tauleaf * specla`, and `aleaf`/`tauleaf` match F77 while
+`specla` is already biased low. NPP being 1.72x high explains part of a 2.7x
+LAI, but not all of it -- roughly 1.6x remains unaccounted for in that chain,
+which is where the next investigation should start.
+
+## Superseded: where it was blocked
 
 At equilibrium `LAI = NPP * aleaf * tauleaf * specla`. `aleaf` and `tauleaf`
 match F77 exactly and `specla` is already biased LOW relative to F77, so on
