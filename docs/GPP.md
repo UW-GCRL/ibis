@@ -702,6 +702,82 @@ about right) and fixing both -- and "both" now has a concrete second target.
   That only holds because `r_ch4` was never fitted to close the gap.
 * Anything else calibrated against the biased state carries the same exposure.
 
+## Fixing both: the result
+
+`vmax` x0.54 plus soil-OM terminal loss rates (`knb`, `kpb`, `ksb`) x0.67,
+300 years from the v10 restart. Config and params under
+`verify_outputs/both_fix/`.
+
+**Why 300 years.** The passive pool turns over in 3425 years
+(`ksb = 8e-7 day-1`). The 60-year `vmax`-only run gave 600 soil-years and was
+still drifting -0.89 %/yr, which is why its soil-carbon figure was unusable.
+300 years gives 3000 soil-years; final drift is **+0.003 %/yr**.
+
+**Why only those three rates.** `kbn`/`kbp` are inputs TO the OM pools --
+scaling them would have lowered soil carbon. Litter rates were left alone
+because litter was already inside its observed range. All 16 BGC rates were
+first verified to match F77 `params.soi` exactly, so this is a deliberate
+deviation from IBIS, not a bug fix.
+
+| quantity | base | both-fix | observed | verdict |
+|---|---|---|---|---|
+| GPP PgC/yr | 219.2 | 138.2 | 120-130 | slightly high |
+| NPP PgC/yr | 98.3 | 63.8 | 55-60 | slightly high |
+| **Rh PgC/yr** | 89.3 | **57.9** | 49-58 | **in range** |
+| **ET mm/yr** | 530 | **513** | 500-550 | **in range** |
+| **soil C kgC/m2** | 15.11 | **12.14** | 10-15 | **in range** |
+| **litter kgC/m2** | 1.17 | **0.60** | 0.4-0.8 | **in range** |
+| veg C kgC/m2 | 4.61 | **2.93** | 3.5-5.0 | **LOW** |
+
+Against FLUXCOM on matched cells, GPP goes **1.61x -> 1.01x**, with the four
+mid bands (200-1500 mm/yr, most vegetated land) at 1.10-1.19x. 0 NaN across all
+300 years. LAI improves 2.69x -> 1.79x but is still high.
+
+### What is fixed and what is not
+
+**Fixed:** the global carbon fluxes and every carbon pool except vegetation.
+Soil carbon landed at 12.14 against a target of 12.0, and Rh, ET and litter are
+all inside their observed ranges without being targeted.
+
+**Not fixed:**
+
+* **Vegetation carbon, 2.93 against a 3.5 floor.** Predicted in advance as the
+  outcome that would implicate `tauwood0` rather than the BGC rates, and it
+  does -- woody biomass is set by woody turnover, which the soil OM rates do
+  not touch. With NPP now correct, woody residence time is ~1.2-1.5x too short.
+  `tauwood0` (25/50/100 yr by PFT) is F77-faithful, exactly as the BGC rates
+  were.
+* **The spatial extremes.** 0-200 mm/yr at 0.49x and >1500 mm/yr at 0.82-0.89x.
+  A single `vmax` scalar corrects the mean, not the pattern.
+* **LAI at 1.79x MODIS.**
+
+### One story, not three patches
+
+| bias | magnitude | status |
+|---|---|---|
+| carbon flux (GPP/NPP) | 1.6x too high | fixed empirically |
+| soil OM residence time | ~1.5x too short | fixed empirically |
+| woody residence time | ~1.2-1.5x too short | open |
+
+**IBIS's carbon residence times are systematically too short, and the 1.6x flux
+inflation masked it** -- the pools looked right because two errors cancelled.
+That is one interpretable finding rather than three independent fudge factors,
+and it is the substantive result of this whole investigation. It also
+retro-explains soil carbon "agreeing reasonably well" in the original IBIS
+evaluations: both errors were present there too.
+
+### Before this is used
+
+* **Fire must be re-validated.** Its 0.92x GFED5 was obtained with fuel load
+  ~1.7x too high, and vegetation carbon has now fallen 36%. Expect burned area
+  to drop.
+* **Methane should be re-run.** Rh fell 89.3 -> 57.9, so the 1.6x CH4 excess
+  should fall to roughly 1.05x. That only holds because `r_ch4` was never
+  fitted to close the gap.
+* **Two fitted factors are now in play.** They are empirical corrections to
+  biases whose cause is still unknown, not physics. The elimination trail in
+  this document is the durable part.
+
 ## Superseded: where it was blocked
 
 At equilibrium `LAI = NPP * aleaf * tauleaf * specla`. `aleaf` and `tauleaf`
