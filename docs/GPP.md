@@ -590,6 +590,67 @@ anything internal to the model.
 - Bridging big-leaf and two-leaf for MODIS GPP: https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2023JG007737
 - Global sunlit/shaded GPP dataset: https://www.nature.com/articles/s41597-022-01309-2
 
+## The empirical correction: vmax x 0.54
+
+**This is a fitted parameter, not a physical finding.** It is recorded here with
+its full provenance so nobody later mistakes it for one.
+
+### Why fitting is defensible here, and was not earlier
+
+Every component of the photosynthesis chain has been individually verified
+faithful to F77 or eliminated as a cause: the GPP formula (`stats.f:118`),
+`vmax` (already IBIS's `params.can` values), the 15 C reference temperature,
+`canopy_scaling` (`physiology.f:418`), `fu`/`fl` (`vegetation.f:525-530`),
+`tauleaf`/`aleaf`/`aroot`/`awood`, `specla`, leaf area (prescribing MODIS LAI
+leaves 1.46x), and soil water supply (`stresstu` already 0.135 where the bias
+is worst). A calibration is therefore correcting an unexplained residual rather
+than masking a known defect -- which is the distinction that made the same move
+inadvisable while `stressfac` was still dead and the grid still duplicated.
+
+### The response, measured
+
+1-year runs from the v10 restart, everything except `vmax` held at its live
+default (verified: `specla`, `tauleaf`, `stressfac` all unchanged):
+
+| `vmax` factor | GPP vs FLUXCOM |
+|---|---|
+| 1.00 | 1.66x |
+| 0.70 | 1.23x |
+| **0.54 (interpolated)** | **~1.00x** |
+| 0.50 | 0.95x |
+
+Near-linear, so two runs sufficed. A 1-year evaluation is adequate because GPP
+was already shown insensitive to LAI (`specla` x0.63 moved LAI 2.69x -> 1.67x
+but GPP only 1.61x -> 1.55x), so the LAI feedback does not shift the fitted
+factor materially at equilibrium.
+
+### What a single scalar does NOT fix
+
+The spatial pattern. At `vmax` x0.5:
+
+| precip mm/yr | GPP bias |
+|---|---|
+| 0-200 | 0.62x |
+| **200-400** | **1.32x** |
+| 700-1000 | 1.08x |
+| 2500+ | 0.71x |
+
+Roughly +/-40% around the corrected mean, with the semi-arid band still high
+and both extremes low. **One scalar was chosen deliberately over twelve
+per-PFT values**: per-PFT fitting would absorb this structure into
+plausible-looking numbers instead of leaving it visible, which is exactly how
+the pre-existing `specla`/`vmax` set acquired its manual caps.
+
+### Conditions on using it
+
+* It is an **empirical correction to an unexplained 1.6x**. The elimination
+  trail above is the useful part; the number is a stopgap.
+* **Fire must be re-validated.** Its 0.92x GFED5 was achieved with fuel load
+  ~1.7x too high; cutting GPP cuts fuel, and that agreement will move.
+* Methane should improve to ~1.2x for free, since it scales linearly with Rh.
+  That only holds because `r_ch4` was never fitted to close the gap.
+* Anything else calibrated against the biased state carries the same exposure.
+
 ## Superseded: where it was blocked
 
 At equilibrium `LAI = NPP * aleaf * tauleaf * specla`. `aleaf` and `tauleaf`
