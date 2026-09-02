@@ -641,6 +641,57 @@ per-PFT values**: per-PFT fitting would absorb this structure into
 plausible-looking numbers instead of leaving it visible, which is exactly how
 the pre-existing `specla`/`vmax` set acquired its manual caps.
 
+### Validated -- and it is NOT shippable as it stands
+
+60-year run at `vmax` x0.54 from the v10 restart.
+
+**Fluxes come right:**
+
+| | base | vmax x0.54 | published |
+|---|---|---|---|
+| GPP PgC/yr | 219.2 | **138.2** | 120-130 |
+| NPP PgC/yr | 98.3 | **64.2** | 55-60 |
+| Rh PgC/yr | 89.3 | **59.2** | 49-58 |
+| ET mm/yr | 530 | **515** | ~500-550 |
+
+Against FLUXCOM on matched cells, GPP goes **1.61x -> 1.01x**, and the four
+mid bands covering most vegetated land land at 1.11-1.17x. LAI improves
+2.69x -> 1.77x as a side effect.
+
+**But the pools go too low, and are still falling:**
+
+| | base | vmax x0.54 (60 yr) | trend | observed |
+|---|---|---|---|---|
+| veg C kgC/m2 | 4.61 | **3.13** | still falling | 3.5-5.0 |
+| soil C kgC/m2 | 15.11 | **9.23** | **-0.89 %/yr, NOT equilibrated** | ~10-15 |
+
+Soil carbon fell 15.20 -> 9.07 over the 60 years and is asymptoting toward
+roughly 8 -- below the observed range. The stop signal set beforehand (veg C
+below 3.0) was not tripped, but 3.13 is under the 3.5 floor of the
+observational range and still declining.
+
+### What that reveals: two compensating errors
+
+`pool ~ NPP x residence_time`. Before calibration NPP was 1.72x high and the
+pools were about right, which means **residence time is roughly 1.5-1.7x too
+short**. Correcting NPP alone therefore exposes the second error rather than
+fixing the model:
+
+| | NPP | residence time | pools |
+|---|---|---|---|
+| before | 1.7x high | ~0.6x | about right |
+| after `vmax` x0.54 | right | ~0.6x | ~0.7x, too low |
+
+**And the turnover parameters are F77-faithful.** `BGCParams` is documented as
+"all values from mod_bgc_params.f90 / params.soi", and `tauleaf`, `tauroot`,
+`tauwood0` match `params.can` exactly. So this is not a tuning slip in the
+port; it is either inherited IBIS behaviour or a defect in the decomposition
+path that the compensating NPP error has been hiding all along.
+
+**Conclusion: do not ship `vmax` x0.54 on its own.** It trades a flux bias for
+a pool bias. The choice is between the original state (fluxes 1.6x high, pools
+about right) and fixing both -- and "both" now has a concrete second target.
+
 ### Conditions on using it
 
 * It is an **empirical correction to an unexplained 1.6x**. The elimination
