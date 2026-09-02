@@ -536,13 +536,52 @@ published error magnitude matches ours, and the competing water-stress
 explanation has already been weakened twice -- `stressfac` retuning barely
 moved the total, and `stresstu` is already at 0.135 in the worst band.
 
-### Testing it
+### REFUTED before implementation -- the sign is backwards
 
-Adding a sunlit/shaded split is two photosynthesis calls with an analytic
-sunlit fraction `f_sun = (1 - exp(-k*L))/(k*L)` -- no new state, no iteration,
-and squarely within "keep IBIS light". If the bias flattens across the LAI
-gradient, that is the answer; if the slope survives, the residual is climatic
-and the search moves to forcing.
+Checked the arithmetic before writing any code. IBIS computes
+
+    agc = A(I_top) * scale,   scale = (1 - exp(-k*L)) / (k*L)
+
+i.e. assimilation at TOP-OF-CANOPY light multiplied by the MEAN LIGHT fraction.
+Because `A` saturates with light, that **underestimates** the true canopy
+integral `mean_x A(I_top * exp(-k*x))`, and the underestimate grows with LAI:
+
+| LAI | IBIS scheme / true canopy integral |
+|---|---|
+| 0.5 | 0.91x |
+| 1 | 0.84x |
+| 2 | 0.73x |
+| 4 | 0.61x |
+| 8 | 0.54x |
+
+**So the big-leaf scaling is not causing the high bias -- at high LAI it is
+masking one.** Replacing it with a two-leaf or quadrature scheme would RAISE
+GPP by ~1.2x at low LAI and ~1.5x at high LAI, making the bias worse everywhere
+and inverting its gradient.
+
+The `r = -0.985` correlation is real, but its cause is the opposite of what the
+big-leaf literature describes: our bias falls with LAI because the scaling
+scheme's own underestimate grows with LAI, partially cancelling a roughly
+uniform overestimate underneath.
+
+**Which implies the underlying per-leaf overestimate is LARGER than measured.**
+Correcting the canopy integration would leave a roughly uniform ~2-2.5x
+per-leaf excess rather than the 1.2-1.9x gradient we observe.
+
+Two readings, and the distinction matters:
+
+1. IBIS's `vmax` values are EFFECTIVE parameters, tuned within a scheme that
+   under-integrates the canopy, so scheme and parameter are only meaningful
+   together. Changing one without the other breaks a calibration that the F77
+   model depends on. This is the more likely reading, and it is a reason NOT to
+   touch the canopy scheme.
+2. The scheme is simply wrong and `vmax` should be re-derived with it. That is
+   a research project, not a fix, and it would invalidate every parameter
+   inherited from F77.
+
+Either way, the canopy scheme is the wrong place to intervene, and the 1.55x
+gap against published IBIS at identical prescribed LAI remains unexplained by
+anything internal to the model.
 
 ## References (canopy structure)
 
