@@ -727,7 +727,14 @@ deviation from IBIS, not a bug fix.
 | **ET mm/yr** | 530 | **513** | 500-550 | **in range** |
 | **soil C kgC/m2** | 15.11 | **12.14** | 10-15 | **in range** |
 | **litter kgC/m2** | 1.17 | **0.60** | 0.4-0.8 | **in range** |
-| veg C kgC/m2 | 4.61 | **2.93** | 3.5-5.0 | **LOW** |
+| **veg C kgC/m2** | 4.61 | **2.93** | 2.74-3.96 * | **in range** |
+
+\* **Corrected.** An earlier version of this table judged vegetation carbon
+"LOW" against 3.5-5.0 kgC/m2. That range is normalised to ice-free land
+(130 Mkm2); our model mean is over a 164 Mkm2 domain that includes Antarctica
+and barren ground. Normalisation-free: **481 PgC total against a published
+450-650 PgC -- in range.** The BASE run was 757 PgC, *above* the range, so the
+calibration brought vegetation carbon INTO range rather than out of it.
 
 Against FLUXCOM on matched cells, GPP goes **1.61x -> 1.01x**, with the four
 mid bands (200-1500 mm/yr, most vegetated land) at 1.10-1.19x. 0 NaN across all
@@ -741,12 +748,21 @@ all inside their observed ranges without being targeted.
 
 **Not fixed:**
 
-* **Vegetation carbon, 2.93 against a 3.5 floor.** Predicted in advance as the
-  outcome that would implicate `tauwood0` rather than the BGC rates, and it
-  does -- woody biomass is set by woody turnover, which the soil OM rates do
-  not touch. With NPP now correct, woody residence time is ~1.2-1.5x too short.
-  `tauwood0` (25/50/100 yr by PFT) is F77-faithful, exactly as the BGC rates
-  were.
+* ~~**Vegetation carbon.**~~ **Withdrawn -- it is in range.** See the note on
+  the table above: the "LOW" verdict came from comparing a 164 Mkm2 domain mean
+  against a range normalised to 130 Mkm2 of ice-free land. Total vegetation
+  carbon is 481 PgC against a published 450-650. Two checks support this: veg C
+  tracked NPP linearly through the calibration (ratios 0.649 vs 0.636, so
+  `tauwood0` never moved), and the base run's 757 PgC was ABOVE the range.
+  **No `tauwood0` adjustment is needed, and the third fitted factor this
+  document was about to propose is not warranted.**
+
+  This was the sixth normalisation or comparability error caught in this
+  investigation, after the December-vs-annual-max LAI comparison, the CLM
+  latitude flip, cropland weighting, bare-soil dilution, and the invented
+  biome-typical LAI references. Every quantity compared here now needs its
+  normalising area and temporal convention stated explicitly, and a
+  definition-free total (PgC, Mkm2) checked alongside any per-area figure.
 * **The spatial extremes.** 0-200 mm/yr at 0.49x and >1500 mm/yr at 0.82-0.89x.
   A single `vmax` scalar corrects the mean, not the pattern.
 * **LAI at 1.79x MODIS.**
@@ -757,10 +773,11 @@ all inside their observed ranges without being targeted.
 |---|---|---|
 | carbon flux (GPP/NPP) | 1.6x too high | fixed empirically |
 | soil OM residence time | ~1.5x too short | fixed empirically |
-| woody residence time | ~1.2-1.5x too short | open |
+| woody residence time | -- | **no evidence of a bias** |
 
-**IBIS's carbon residence times are systematically too short, and the 1.6x flux
-inflation masked it** -- the pools looked right because two errors cancelled.
+**IBIS's SOIL carbon residence time is too short, and the 1.6x flux inflation
+masked it** -- soil carbon looked right because two errors cancelled. The
+vegetation pool shows no such problem once normalised correctly.
 That is one interpretable finding rather than three independent fudge factors,
 and it is the substantive result of this whole investigation. It also
 retro-explains soil carbon "agreeing reasonably well" in the original IBIS
