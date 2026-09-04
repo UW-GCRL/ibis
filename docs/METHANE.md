@@ -1952,7 +1952,45 @@ IBIS does not represent. Lengthening the decomposition timescale would slow the
 approach without changing the destination, because the model's equilibrium is
 set by modern input and modern decomposition.
 
-This is a known and general LSM failure, not specific to this port.
+### It is a documented, near-universal ESM failure
+
+Literature search, 2026-09-03. Both halves of the problem are known:
+
+**Soil carbon.** Evaluating soil carbon in CMIP6 Earth system models
+(https://bg.copernicus.org/articles/19/4671/2022/) finds the
+*"underestimation of northern high-latitude soil carbon stocks"* to be
+systematic -- **all ESMs largely underestimate the stocks except CESM2-WACCM**,
+and it is a common problem in CMIP5 as well as CMIP6. The named cause is that
+most models *"lack critical permafrost-specific features in their soil carbon
+modules"*:
+
+| mechanism | present in IBIS? |
+|---|---|
+| vertically resolved decomposition | **no** -- CENTURY here is a bulk scheme (§7 Q4) |
+| freezing-induced decomposition inhibition | **no** explicit term; only the generic `ftemp` |
+| cryoturbation-driven SOC mixing | **no** |
+| SOC thermal insulation | **no** -- `FORGANIC` is a constant 0.010, not prognostic |
+| deep carbon (~10 m peat, ~20 m Yedoma) | **no** -- 4 m hydrological column |
+
+IBIS lacks all five, which is why our deficit (~12x) exceeds the CMIP6
+ensemble's. CESM2-WACCM, the exception, runs CLM5's vertically resolved soil
+carbon.
+
+**Methane.** Model comparisons against atmospheric observations over Arctic and
+boreal North America (https://acp.copernicus.org/articles/26/1229/2026/) find
+Global Carbon Project models average **a factor of 1.5 smaller across Canada
+and Alaska**. That is the same GCP ensemble our 158 Tg target comes from -- so
+the benchmark itself is low in the north, and our 8x deficit is a severe case
+of a field-wide bias rather than a defect unique to this port.
+
+Recent Boreal-Arctic work (https://www.nature.com/articles/s41558-024-01933-3)
+also reports GCP models failing to capture the observed +8.9% emission trend.
+
+**What this changes.** Closing our high-latitude gap is not a calibration
+exercise; it requires mechanisms neither IBIS nor most ESMs have. The honest
+options remain prescribing northern soil carbon, or reporting high-latitude CH4
+as a known underestimate -- now with the qualification that the GCP benchmark
+shares the bias, so matching it would not mean being right.
 
 ### Recommendation
 
