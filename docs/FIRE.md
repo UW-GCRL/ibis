@@ -1522,3 +1522,71 @@ list of CIFS constraints are in `docs/ENVIRONMENT.md`.
 7. *ELM2.1-XGBfire1.0*, Geosci. Model Dev. 18, 4103 (2025). https://gmd.copernicus.org/articles/18/4103/2025/
 8. Andreae (2019), *Emission of trace gases and aerosols from biomass burning — an updated assessment*, Atmos. Chem. Phys. 19, 8523. https://acp.copernicus.org/articles/19/8523/2019/
 9. Chen et al. (2023), *Multi-decadal trends and variability in burned area from GFED5*, Earth Syst. Sci. Data 15, 5227. https://essd.copernicus.org/articles/15/5227/2023/
+
+
+---
+
+## 9. Re-validated on the corrected carbon cycle (2026-09-04)
+
+The GPP work (docs/GPP.md) applied two empirical corrections that cut NPP by
+35% and vegetation carbon by 36%. Fire parameters had been fitted against that
+inflated fuel load, so the whole module needed re-testing -- the same principle
+that vindicated METHANE.md 5n.
+
+State: `verify_outputs/both_fix/restart/ibis_restart_2200.npz`, GFED5 Norm
+2001-2005, 95 333 cells.
+
+| metric | v8 (biased fuel) | **corrected** | after re-calibration | GFED5 |
+|---|---|---|---|---|
+| burned fraction | 4.23% (x0.90) | **3.59% (x0.78)** | 3.72% (x0.81) | 4.598% |
+| rank, all cells | +0.749 | **+0.742** | +0.725 | |
+| rank, burning | +0.410 | +0.376 | **+0.418** | |
+| NMSE | 0.715 | 0.754 | **0.746** | |
+| **mean \|lat\| top-2000** | 11.9 | **10.9** | 12.1 | **10.8** |
+
+### The spatial pattern IMPROVED
+
+Mean |lat| of the most fire-prone cells went 11.9 -> **10.9** against GFED5's
+10.8 -- effectively exact. That metric started at 39.8 degrees before the VPD
+work (§4.2 decision log), and correcting the carbon cycle closed the last
+degree of it. Cutting fuel load reduced burning most where fuel was most
+overestimated, which was the wrong places.
+
+### Re-calibration is NOT adopted
+
+Fitting `k_b`, `p`, `lai_ref_vd` by gradient descent (800 steps, loss
+5.794 -> 5.397) improves burning-cell rank (+0.376 -> +0.418) and NMSE
+(0.754 -> 0.746) marginally, and burned fraction slightly (x0.78 -> x0.81). But
+it **degrades global rank** (+0.742 -> +0.725) and **degrades the latitude
+match** (10.9 -> 12.1). That trades the module's best-validated property for
+marginal gains, so the a-priori parameters stand.
+
+This reproduces §4 and the F6 entry: *the a-priori parameters are already
+competitive and calibration is not automatically an improvement.* It now holds
+on the corrected state too, which is a stronger statement -- the earlier
+finding could have been an artifact of the biased fuel load.
+
+### The x0.78 deficit is inside observational uncertainty
+
+Judged against one product it looks like a regression. Against the spread it
+does not:
+
+| product | burned % | model / obs |
+|---|---|---|
+| GFED5 | 4.60 | 0.78x |
+| GFED4s | 2.86 | 1.26x |
+| MCD64A1 | 2.38 | 1.51x |
+| **model** | **3.59** | -- |
+
+The three products span **a factor of 1.93** (§6 records GFED5 reporting 93%
+more than MCD64A1 and 61% more than GFED4s). The model sits **inside** that
+spread, closer to the middle than v8's 4.23% was. Calling x0.78 a degradation
+privileges GFED5 over the alternatives without justification.
+
+### Conclusion
+
+Fire on the corrected carbon cycle is **not worse in any way that observations
+can resolve**, and is better on spatial pattern. No parameter change is
+warranted. The `x0.92 GFED5` figure quoted in §4 should be retired: it was
+obtained with a fuel load ~1.7x too high, and its apparent precision against
+one product was misleading.

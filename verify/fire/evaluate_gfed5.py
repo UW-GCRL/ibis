@@ -43,15 +43,51 @@ DEFAULT_POPD = ("/shared/nas2/Hangkai/ibis/inputs/fire/popdens/"
                 "simyr1850-2100_c181205.nc")
 
 
-def _grid():
-    cells = build_global_cell_grid(lat_step=0.5, lon_step=0.5)
-    lat = np.array([c[1] for c in cells])
-    lon = np.array([c[2] for c in cells])
+def _grid(state_path=""):
+    """Grid matching the state's own ordering.
+
+    Two orderings coexist: verify/'s build_global_cell_grid walks latitude
+    SOUTH->NORTH, while run_global enumerates land with argwhere on a
+    NORTH->SOUTH mask. Indexing a state with the wrong one silently permutes
+    every cell, so the format decides.
+    """
     mlat = np.arange(-90.0, 90.0, 0.5)
     mlon = np.arange(-180.0, 180.0, 0.5)
+    if str(state_path).endswith(".npz"):
+        from scripts.run_global import (_load_land_mask_from_file,
+                                        _subset_land_mask)
+        mask, glat, glon = _load_land_mask_from_file(
+            "/shared/nas2/Min/HWSD/surta.nc")
+        _, _, _, _, gli, glo = _subset_land_mask(mask, glat, glon,
+                                                 90.0, -90.0, -180.0, 180.0)
+        lat = glat[gli]; lon = glon[glo]
+    else:
+        cells = build_global_cell_grid(lat_step=0.5, lon_step=0.5)
+        lat = np.array([c[1] for c in cells])
+        lon = np.array([c[2] for c in cells])
     li = np.rint((lat - mlat[0]) / 0.5).astype(int).clip(0, 359)
     lo = np.rint((lon - mlon[0]) / 0.5).astype(int).clip(0, 719)
     return lat, lon, li, lo, mlat, mlon
+
+
+def _load(state_path):
+    """Load either a verify/ pickle checkpoint or a run_global .npz restart."""
+    if str(state_path).endswith(".npz"):
+        from ibis.io.restart import load_state
+        from ibis.state.model_state import create_ibis_state
+        from ibis.dimensions import GridConfig
+        from scripts.run_global import (_load_land_mask_from_file,
+                                        _subset_land_mask)
+        mask, glat, glon = _load_land_mask_from_file(
+            "/shared/nas2/Min/HWSD/surta.nc")
+        _, _, _, _, gli, _ = _subset_land_mask(mask, glat, glon,
+                                               90.0, -90.0, -180.0, 180.0)
+        grid = GridConfig(nlon=720, nlat=360, npoi=len(gli), xres=0.5,
+                          yres=0.5, nbedrock=3)
+        st, _meta = load_state(state_path, create_ibis_state(grid))
+        return st
+    st = pickle.load(open(state_path, "rb"))
+    return st["jax_state"] if isinstance(st, dict) else st
 
 
 def observed(gfed5_dir, li, lo, mlat, mlon, years, component="Norm"):
@@ -91,9 +127,10 @@ def main():
     ap.add_argument("--steps", type=int, default=800)
     a = ap.parse_args()
 
-    lat, lon, li, lo, mlat, mlon = _grid()
-    st = pickle.load(open(a.state, "rb"))
-    st = st["jax_state"] if isinstance(st, dict) else st
+    lat, lon, li, lo, mlat, mlon = _grid(a.state)
+    st = _load(a.state)
+    print(f"  state: {len(lat)} pts, "
+          f"{'N->S argwhere' if str(a.state).endswith('.npz') else 'S->N cell-grid'} ordering")
     obs = observed(a.gfed5, li, lo, mlat, mlon,
                    range(a.years[0], a.years[1] + 1))
     pred = np.asarray(st.vegetation.disturbf)
