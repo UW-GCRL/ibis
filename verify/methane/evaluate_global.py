@@ -83,17 +83,40 @@ def configurations(lat):
 
 
 def run(state_path, wad2m_path, gswp3_dir, year, nsoilcall, configs):
-    ck = pickle.load(open(state_path, "rb"))
-    st = ck["jax_state"] if isinstance(ck, dict) else ck
-    key = jnp.asarray(ck.get("key"), dtype=jnp.uint32) if isinstance(ck, dict) \
-        and ck.get("key") is not None else jax.random.PRNGKey(0)
-
-    cells = build_global_cell_grid(lat_step=0.5, lon_step=0.5)
-    lat = np.array([c[1] for c in cells])
-    lon = np.array([c[2] for c in cells])
-    idx = [latlon_to_grid_idx(a, b) for a, b in zip(lat, lon)]
-    li = np.array([i[0] for i in idx])
-    lo = np.array([i[1] for i in idx])
+    # Two state formats and, critically, TWO GRID ORDERINGS coexist in this
+    # project. verify/'s build_global_cell_grid walks latitude SOUTH->NORTH,
+    # while run_global enumerates land with argwhere on a NORTH->SOUTH mask.
+    # A state written by one cannot be indexed with the other's grid -- the
+    # cells would be silently permuted. Detect from the file extension.
+    if str(state_path).endswith(".npz"):
+        from ibis.io.restart import load_state
+        from ibis.state.model_state import create_ibis_state
+        from ibis.dimensions import GridConfig
+        from scripts.run_global import (_load_land_mask_from_file,
+                                        _subset_land_mask)
+        mask, glat, glon = _load_land_mask_from_file(
+            "/shared/nas2/Min/HWSD/surta.nc")
+        _, _, _, _, li, lo = _subset_land_mask(mask, glat, glon,
+                                               90.0, -90.0, -180.0, 180.0)
+        npoi = len(li)
+        grid = GridConfig(nlon=720, nlat=360, npoi=npoi, xres=0.5, yres=0.5,
+                          nbedrock=3)
+        st, _meta = load_state(state_path, create_ibis_state(grid))
+        key = jax.random.PRNGKey(0)
+        lat = glat[li]; lon = glon[lo]
+        print(f"  run_global restart: {npoi} pts, N->S argwhere ordering")
+    else:
+        ck = pickle.load(open(state_path, "rb"))
+        st = ck["jax_state"] if isinstance(ck, dict) else ck
+        key = jnp.asarray(ck.get("key"), dtype=jnp.uint32) if isinstance(ck, dict) \
+            and ck.get("key") is not None else jax.random.PRNGKey(0)
+        cells = build_global_cell_grid(lat_step=0.5, lon_step=0.5)
+        lat = np.array([c[1] for c in cells])
+        lon = np.array([c[2] for c in cells])
+        idx = [latlon_to_grid_idx(a, b) for a, b in zip(lat, lon)]
+        li = np.array([i[0] for i in idx])
+        lo = np.array([i[1] for i in idx])
+        print(f"  verify/ checkpoint: {len(cells)} pts, S->N cell-grid ordering")
     latr = np.deg2rad(lat).astype(np.float32)
 
     mlat = np.arange(-90.0, 90.0, 0.5)
@@ -102,7 +125,7 @@ def run(state_path, wad2m_path, gswp3_dir, year, nsoilcall, configs):
     wlo = np.rint((lon - mlon[0]) / 0.5).astype(int).clip(0, 719)
     clim = read_wad2m_climatology(wad2m_path, wli, wlo, mlat, mlon)
 
-    params = build_sim_params(len(cells), jnp.asarray(latr), None)
+    params = build_sim_params(len(lat), jnp.asarray(latr), None)
     reader = GSWP3Reader(gswp3_dir)
     hsoi = jnp.asarray(np.asarray(st.soil.hsoi)[:6])
     area = (111.32 * 0.5) ** 2 * np.cos(np.deg2rad(lat)) * 1e6

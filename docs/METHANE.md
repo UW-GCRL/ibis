@@ -1854,6 +1854,56 @@ docs/DEFECTS_FOR_REVIEW.md.
 
 ---
 
+## 5q. Re-validated on the corrected carbon cycle -- and 5n is vindicated
+
+The GPP investigation (docs/GPP.md) ended with two empirical corrections --
+`vmax` x0.54 and soil-OM loss rates x0.67 -- that brought Rh from 89.3 to
+**57.9 PgC/yr**, inside the published 49-58. Since CH4 scales linearly with Rh,
+the methane evaluation had to be repeated on that state.
+
+**Like-for-like on the same grid** (both from `run_global` restarts, 95 333
+points, N->S ordering -- the 256 Tg figure in 5m came from the OLD duplicated
+88 484-cell v9 checkpoint and is not comparable):
+
+| configuration | v10 baseline | **both-fix** | GMB 2025 |
+|---|---|---|---|
+| `biome` | 458.0 Tg, shape 37.2 | 328.3, shape 48.2 | 158 [119-203] |
+| **`biome_tref`** | 290.3, shape 19.3 | **182.0, shape 11.0** | **in range** |
+
+Latitudinal split of `biome_tref` on the corrected state: **72.7 / 19.8 / 1.0 %**
+against a target of 70 / 21 / 8.
+
+### Three findings
+
+**1. Magnitude is essentially solved, without touching a methane parameter.**
+182 Tg sits inside the GMB range, and the improvement came entirely from fixing
+the carbon cycle. `r_ch4` was never fitted -- 5m explicitly refused to -- and
+that restraint is what let the correction propagate cleanly instead of being
+double-counted.
+
+**2. The tropical and mid-latitude shares are now nearly right** (72.7 vs 70,
+19.8 vs 21). The residual is the high latitudes at 1.0 % against 8.0 %.
+
+**3. 5n was right and its test was confounded.** 5n introduced `biome_tref` --
+per-biome reference temperatures, removing the Q10 double-count -- and rejected
+it because aggregate shape error rose 15.5 -> 24.2. **That test ran on a model
+with a 1.6x carbon-cycle bias and a duplicated grid.** On the corrected state
+`biome_tref` is decisively the better configuration: 182 vs 328 Tg and shape
+error 11.0 vs 48.2. The physical reasoning in 5n was sound; the evaluation it
+was judged against was not.
+
+That is a general caution for this project: **a parameter change tested against
+a biased baseline can be rejected for the baseline's faults.** Anything
+evaluated before the carbon-cycle correction deserves re-testing before it is
+treated as settled.
+
+### Recommendation
+
+Adopt `biome_tref` as the default methane configuration, and re-open the
+high-latitude deficit as the remaining structural question.
+
+---
+
 ## 6. Verification plan
 
 No F77 counterpart exists, so `verify/STATUS.md`'s two-layer pattern is replaced by:
