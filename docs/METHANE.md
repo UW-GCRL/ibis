@@ -1897,10 +1897,74 @@ a biased baseline can be rejected for the baseline's faults.** Anything
 evaluated before the carbon-cycle correction deserves re-testing before it is
 treated as settled.
 
+### The high-latitude deficit, diagnosed
+
+`verify/methane/highlat_decompose.py` breaks M-lite+ into its factors, weighted
+the way the flux weights them. Inundated-area-weighted means by band:
+
+| band | area % | **Rh** | f_anaer | Q10 | unfrozen | f_surv | flux % |
+|---|---|---|---|---|---|---|---|
+| 30S-30N | 58.2 | **0.0019** | 0.807 | 1.304 | 1.000 | 0.431 | 94.1 |
+| 30-60N | 29.6 | 0.0008 | 0.764 | 0.570 | 0.998 | 0.288 | 5.5 |
+| **60-90N** | **12.3** | **0.0003** | 0.795 | 0.417 | 0.985 | 0.344 | **0.4** |
+
+(Default `MethaneParams`, so the Q10 column still shows the double-count that
+`biome_tref` removes.)
+
+**Wetland extent is not the problem** -- 12.3% of inundated area is north of
+60N, matching WAD2M. **The freeze gate is not the problem** -- it reads 0.985,
+barely firing. `f_anaer` is uniform. **Rh carries the deficit**: Arctic wetland
+respiration is 6x lower per unit area than the tropics.
+
+### Which traces to Arctic soil carbon
+
+| band | model soil C | observed |
+|---|---|---|
+| **60-90N** | **4.33 kgC/m2** (85 PgC over 19.7 Mkm2) | NCSCD **~1035 PgC** in 0-3 m over ~18 Mkm2, ~55 kgC/m2 |
+| 30-60N | 16.37 | -- |
+| 30S-30N | 12.55 | -- |
+
+The model holds **~12x too little Arctic soil carbon**, and less there than the
+global mean (12.16) -- when the Arctic in fact has the highest soil carbon
+density on Earth.
+
+### Two factors, each ~3.5x
+
+`pool = input x residence_time`, and both terms are short:
+
+| band | soil C | Rh (= input at equilibrium) | residence yr | expected |
+|---|---|---|---|---|
+| **60-90N** | 4.33 | **0.042** | **103** | centuries to millennia |
+| 30-60N | 16.37 | 0.315 | 52 | ~30-60 |
+| 30S-30N | 12.55 | 0.507 | 25 | ~10-20 |
+
+The temperature limitation IS working -- Arctic residence time is 4x the
+tropics, and the mid-latitude and tropical values are about right. But reaching
+55 kgC/m2 needs `input x residence = 55`; we have `0.042 x 103 = 4.33`. Both
+terms are roughly 3.5x too low.
+
+### Why this is structural, not a parameter
+
+Even with a correct residence time, **a 300-year spin-up cannot build a pool
+that took the Holocene to accumulate.** Northern peat carbon formed over
+~10 000 years under frozen protection, waterlogging and burial -- mechanisms
+IBIS does not represent. Lengthening the decomposition timescale would slow the
+approach without changing the destination, because the model's equilibrium is
+set by modern input and modern decomposition.
+
+This is a known and general LSM failure, not specific to this port.
+
 ### Recommendation
 
-Adopt `biome_tref` as the default methane configuration, and re-open the
-high-latitude deficit as the remaining structural question.
+1. **Adopt `biome_tref`** as the default methane configuration -- 182 Tg,
+   inside the GMB range, shape error 11.0.
+2. **Do not tune methane parameters to close the high-latitude gap.** The gap
+   is in the carbon pool that feeds them; a methane parameter fitted to
+   compensate would be absorbing a soil-carbon error, which is the trap
+   documented throughout 5i-5n.
+3. The tractable options are **prescribing northern soil carbon from NCSCD**,
+   or accepting the deficit and reporting high-latitude CH4 as a known
+   underestimate. The former is a data question, not a modelling one.
 
 ---
 
