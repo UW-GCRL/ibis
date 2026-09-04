@@ -453,3 +453,55 @@ def reset_annual(mstate: MethaneState) -> MethaneState:
     """Clear the annual accumulator. Call at year end, after it is consumed."""
     return MethaneState(flux=mstate.flux, annual=jnp.zeros_like(mstate.annual),
                         zwt=mstate.zwt)
+
+
+# ---------------------------------------------------------------------------
+# The validated production configuration
+# ---------------------------------------------------------------------------
+
+#: Biome-varying CH4:CO2 ratios, TRIPLEX-GHG (docs/METHANE.md 5k).
+_R_CH4_BIOME = (0.15, 0.32, 0.18)          # tropical, temperate, boreal
+
+#: Per-biome reference temperatures for the Q10 term, K.
+#:
+#: TRIPLEX-GHG's `r_ch4` values were each calibrated AT their own biome's
+#: temperature, so referencing them all to one tropical `T_ref` applies the
+#: biome temperature difference a second time -- the double-count diagnosed in
+#: METHANE.md 5n. These are the production-weighted mean anaerobic-zone
+#: temperatures of the corrected reference state (`both_fix`, 2026-09-02), so
+#: the Q10 factor is ~1 in each biome's normal state and modulates only
+#: departures from it.
+#:
+#: They are fixed constants rather than recomputed per run: deriving them from
+#: the state being simulated would make the parameters depend on the answer.
+_T_REF_BIOME = (299.6, 283.0, 277.9)       # tropical, temperate, boreal
+
+
+def biome_methane_params(lat_deg, base: MethaneParams | None = None
+                         ) -> MethaneParams:
+    """MethaneParams with per-biome `r_ch4` and `t_ref`, keyed on latitude.
+
+    This is the configuration validated in docs/METHANE.md 5q -- **182 Tg/yr,
+    inside the GMB 2025 range of 158 [119-203], shape error 11.0** -- and is
+    what a production run should use. `MethaneParams()` alone is the "global"
+    configuration, which gives 458 Tg on the same state.
+
+    Latitude is a crude biome proxy, matching how TRIPLEX-GHG and the GCP both
+    report. Note the asymmetry: only `lat >= 60` is treated as boreal, so
+    southern high latitudes take temperate values. That follows the evaluation
+    this was validated against, and matters little because there is almost no
+    land south of 60 S outside Antarctica.
+    """
+    p = base or MethaneParams()
+    lat = jnp.asarray(lat_deg)
+    trop = (lat > -30.0) & (lat < 30.0)
+    boreal = lat >= 60.0
+
+    def band(vals):
+        t, m, b = vals
+        return jnp.where(trop, t, jnp.where(boreal, b, m))
+
+    return eqx.tree_at(
+        lambda q: (q.r_ch4, q.t_ref), p,
+        (band(_R_CH4_BIOME), band(_T_REF_BIOME)),
+    )

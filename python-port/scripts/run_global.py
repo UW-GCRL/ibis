@@ -471,14 +471,24 @@ def run_global_simulation(config: IBISConfig) -> None:
     # runner keys off `f_inund` being present; loading the climatology is what
     # the flag controls.
     ch4_clim = None
+    ch4_params = None
     if getattr(p, "enable_methane", False):
         from ibis.io.wad2m import read_wad2m_climatology
+        from ibis.bgc.methane import biome_methane_params
         mlat = np.arange(-90.0, 90.0, 0.5)
         mlon = np.arange(-180.0, 180.0, 0.5)
         ch4_clim = read_wad2m_climatology(
             f.wad2m_file, gswp3_latindex, gswp3_lonindex, mlat, mlon)
+        # The VALIDATED configuration: per-biome r_ch4 and t_ref
+        # (docs/METHANE.md 5q, 182 Tg/yr inside the GMB range). MethaneParams()
+        # alone is the "global" configuration, which gives 458 Tg on the same
+        # state -- and was silently what production used until 2026-09-04,
+        # because methane_params was never passed to run_month_gswp3.
+        ch4_params = biome_methane_params(lat_land_deg)
         logger.info("  wetland CH4 enabled: WAD2M climatology loaded, "
                     "mean inundated fraction %.4f", float(ch4_clim.mean()))
+        logger.info("  CH4 params: per-biome r_ch4 and t_ref "
+                    "(docs/METHANE.md 5q)")
 
     for iyear_offset in range(t.nrun):
         year = t.iyear0 + iyear_offset
@@ -540,6 +550,7 @@ def run_global_simulation(config: IBISConfig) -> None:
                 gswp3_latindex, gswp3_lonindex, np.array(lat_rad),
                 forcing_year, imonth, key, t.dtime, leap, grid.nband, nsoilcall,
                 f_inund=None if ch4_clim is None else ch4_clim[imonth],
+                methane_params=ch4_params,
             )
 
             # Write monthly output

@@ -1995,7 +1995,22 @@ shares the bias, so matching it would not mean being right.
 ### Recommendation
 
 1. **Adopt `biome_tref`** as the default methane configuration -- 182 Tg,
-   inside the GMB range, shape error 11.0.
+   inside the GMB range, shape error 11.0. **Done 2026-09-04**:
+   `ibis.bgc.methane.biome_methane_params(lat)` builds it, and `run_global`
+   now passes it.
+
+   This closed a real gap. `run_global` set `enable_methane`, loaded the WAD2M
+   climatology, and passed `f_inund` -- but **never passed `methane_params`**,
+   so every production run silently used `MethaneParams()`, the "global"
+   configuration worth **458 Tg** on the reference state. The flag worked, the
+   forcing loaded, and the parameters did not. `tests/
+   test_methane_production_config.py` now guards both the constants and the
+   wiring.
+
+   The per-biome `t_ref` values (299.6 / 283.0 / 277.9 K) are fixed constants
+   taken from the corrected reference state, not recomputed per run --
+   deriving them from the state being simulated would make the parameters
+   depend on the answer.
 2. **Do not tune methane parameters to close the high-latitude gap.** The gap
    is in the carbon pool that feeds them; a methane parameter fitted to
    compensate would be absorbing a soil-carbon error, which is the trap
