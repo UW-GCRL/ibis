@@ -51,6 +51,39 @@ expected, not a fault.
 ## 2. The canonical reference state
 
 ```
+/shared/nas2/Hangkai/ibis/verify_outputs/both_fix/
+  restart/ibis_restart_2200.npz     the blessed state
+  out/ibis_yearly_{1901..2200}.nc
+  params.yaml  cfg.yaml             (repo copies: configs/params_corrected_carbon.yaml,
+                                     configs/spinup_corrected_carbon.yaml)
+```
+
+300 years from `spinup_cold_v10` with the corrected carbon cycle -- `vmax`
+x0.54 and soil-OM loss rates x0.67, both **empirical corrections** documented in
+docs/GPP.md. 0 NaN, soil-carbon drift +0.003 %/yr.
+
+| quantity | value | observed |
+|---|---|---|
+| GPP | 138.2 PgC/yr | 120-130 |
+| NPP | 63.8 | 55-60 |
+| Rh | 57.9 | 49-58 |
+| ET | 513 mm/yr | 500-550 |
+| soil C | 12.14 kgC/m2 | 10-15 |
+| litter | 0.60 | 0.4-0.8 |
+| vegetation C | 481 PgC | 450-650 |
+
+GPP is 1.01x FLUXCOM on matched cells. **Use this for carbon, water and
+methane.**
+
+**Do NOT use it for fire without re-calibrating.** Burned area falls
+0.90x -> 0.78x GFED5 because the fire parameters were fitted against a fuel
+load ~1.7x too high. Fire work should start from `spinup_cold_v10` until that
+re-calibration is done, and should not treat the old 0.92x agreement as
+validation.
+
+### 2a. The previous reference state
+
+```
 /shared/nas2/Hangkai/ibis/verify_outputs/spinup_cold_v10/
   restart/ibis_restart_2200.npz    the blessed state (year 300)
   output/ibis_yearly_{1901..2200}.nc
