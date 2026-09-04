@@ -196,3 +196,51 @@ amplitude. `active_layer` and `frozen_ground` are seasonal quantities and read
 correctly; **`talik` and deep `thaw_depth` are boundary-controlled and should
 not be trusted.** Fixing that means 10–15 layers to ~30 m, with a longer
 spin-up and a migration of every checkpoint — deliberately not done here.
+
+
+---
+
+## The defect-0 pattern, and the guard that now covers it (2026-09-04)
+
+`test_no_dead_code.py` catches two shapes: a module with no production caller,
+and a config field never read outside its own declaration. A third shape kept
+slipping through, and has now been found **six times** in this project:
+
+| instance | shape | found in |
+|---|---|---|
+| `firefac` | computed, never used | docs/FIRE.md |
+| `soilcspin` | declared, read nowhere | docs/GPP.md |
+| `stressfac` | loaded into `StomataParams`, never passed to `drystress`, so the hardcoded -5.0 always won | docs/GPP.md |
+| `methane_params` | never passed to `run_month_gswp3`, so production used the 458 Tg "global" CH4 config instead of the validated 182 Tg one | docs/METHANE.md 5q |
+| `tgpp`/`tnpp`/`tco2root` | state fields never assigned | docs/DEFECTS_FOR_REVIEW.md |
+| `upsoil`/`upsoiu` | state fields never assigned (physics live via locals) | below |
+
+**The common shape: the NAME appears.** It is declared, imported, loaded into a
+params object, threaded through a signature -- so any test that greps for the
+name passes, while the VALUE never reaches the physics. Every one of these was
+found by accident, while investigating something else.
+
+`tests/test_no_dead_wiring.py` checks reachability instead:
+
+1. **Config-carrying keyword parameters must be passed by some caller.** Any
+   optional kwarg matching `*_params`, `stressfac`, `nsoilcall`, `f_inund`,
+   `fire_scheme` or `n_hydro` must be passed explicitly somewhere in
+   `ibis/`, `scripts/` or `verify/`. If nothing passes it, its default is the
+   only behaviour the model can have -- which is exactly what happened to
+   `methane_params` and `stressfac`.
+2. **Every state field must be written somewhere.** A field that is only ever
+   read stays at its initial value, which for a zero-initialised state means
+   the quantity silently reads zero everywhere.
+
+Both carry explicit allowlists with a reason per entry, so suppressing an
+entry requires stating why.
+
+### It immediately found a seventh
+
+`upsoil`/`upsoiu` -- canopy water uptake per soil layer. **The physics is
+live**: `loops.py:953-954` computes `upsoiu_k`/`upsoil_k` as locals and uses
+them to remove water (`:956`) and heat (`:973-974`) from each layer. But the
+results are never stored back onto the state, so transpiration extraction is
+correct while `state.soil.upsoil` reads zero. Anyone inspecting it expecting a
+flux gets nothing. Allowlisted with that distinction recorded, because the fix
+is a diagnostic write, not a physics change.
