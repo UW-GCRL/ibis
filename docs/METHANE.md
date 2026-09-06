@@ -1926,6 +1926,43 @@ double-count moves the peak five months and leaves a residual one to two months
 early -- a real, separate discrepancy, and now the sharpest open question in
 this module after the high-latitude deficit.
 
+### Seasonal phase: the deficit is NOT the cause
+
+The obvious hypothesis was that the early peak follows from the high-latitude
+deficit -- boreal wetlands peak in late summer, so if they contribute 1%
+instead of 8% the global peak is pulled toward the tropical cycle. Tested with
+`verify/methane/seasonal_phase.py`, and **refuted**.
+
+Monthly CH4, Tg/yr-equivalent per month, `biome_tref` on `both_fix`:
+
+| band | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec | peak | share |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 30S-30N | 11.1 | 10.4 | 12.7 | 11.6 | 12.4 | 11.7 | 12.2 | 11.0 | 9.8 | 9.7 | 9.7 | 10.0 | Mar | 77.8% |
+| 30-60N | 2.1 | 2.0 | 2.8 | 3.6 | 3.9 | **4.9** | 4.4 | 3.4 | 2.8 | 2.6 | 1.6 | 1.9 | **Jun** | 21.1% |
+| 60-90N | 0.0 | 0.0 | 0.0 | 0.1 | 0.3 | **0.4** | 0.4 | 0.3 | 0.2 | 0.1 | 0.0 | 0.0 | **Jun** | 1.1% |
+| GLOBAL | 13.2 | 12.4 | 15.5 | 15.2 | 16.5 | **17.0** | **17.0** | 14.7 | 12.9 | 12.4 | 11.3 | 11.9 | Jun/Jul | |
+
+Scaling 60-90N from 1.1% to its observed 8% moves the global peak **earlier**,
+to June -- because **both northern bands already peak in June**. Amplifying a
+band that peaks too early cannot fix a peak that is too early.
+
+**Two corrections to the earlier framing:**
+
+1. **The global phase error is smaller than 5q implied.** June and July are
+   tied at 17.0, so the peak is on the edge of the Jul-Aug target rather than
+   one to two months early. `evaluate_global.py` reports "peak 6" because
+   `argmax` breaks the tie toward the earlier month.
+2. **The phase error is in the NORTHERN bands, not the global aggregate.**
+   30-60N and 60-90N both peak in June against an observed July-August. That is
+   a real, localised discrepancy and it is independent of the high-latitude
+   magnitude deficit -- the two open questions do not collapse into one.
+
+A one-to-two month early peak in northern wetlands is the classic signature of
+insufficient soil thermal inertia: soil temperature tracking air temperature
+too closely, so the anaerobic zone warms before it should. Worth noting that
+the 12 m bedrock column (docs/BEDROCK.md) increased that inertia and this run
+already includes it, so whatever remains is not the shallow-column error.
+
 ### The high-latitude deficit, diagnosed
 
 `verify/methane/highlat_decompose.py` breaks M-lite+ into its factors, weighted
