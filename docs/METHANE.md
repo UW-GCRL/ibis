@@ -1897,6 +1897,35 @@ a biased baseline can be rejected for the baseline's faults.** Anything
 evaluated before the carbon-cycle correction deserves re-testing before it is
 treated as settled.
 
+### All five configurations, re-ranked on the corrected state
+
+5k ranked four parameter configurations against a model carrying a 1.6x carbon
+bias on a duplicated grid. Re-run on `both_fix`:
+
+| configuration | Tg/yr | 30S-30N | 30-60N | 60-90N | peak | shape err |
+|---|---|---|---|---|---|---|
+| GMB 2025 target | 158 | 70.0% | 21.0% | 8.0% | 7-8 | -- |
+| `global` | 271.1 | 92.5% | 5.4% | 0.4% | 3 | 45.7 |
+| `biome` | 328.3 | 93.6% | 3.9% | 0.4% | 3 | 48.2 |
+| `biome_q10` | 412.8 | 97.0% | 1.6% | 0.1% | 3 | 54.3 |
+| `biome_noq10` | 283.1 | 87.5% | 8.1% | 1.2% | 3 | 37.3 |
+| **`biome_tref`** | **182.0** | **72.7%** | **19.8%** | 1.0% | **6** | **11.0** |
+
+`biome_tref` wins on magnitude and shape simultaneously, by a wide margin --
+shape error 11.0 against 37.3 for the next best. **On the biased model `biome`
+looked best; here it is second-worst.** The ranking inverted, which is the
+clearest demonstration in this project of why anything evaluated before the
+carbon-cycle correction had to be re-tested.
+
+**Seasonality also separates them.** Every configuration except `biome_tref`
+peaks in **March**; `biome_tref` peaks in **June** against a target of July-
+August. The March peak is the Q10 double-count driving southern-hemisphere wet
+season emissions: with a single tropical `T_ref`, the Q10 term amplifies warm
+tropical wetlands so strongly that they dominate the annual cycle. Removing the
+double-count moves the peak five months and leaves a residual one to two months
+early -- a real, separate discrepancy, and now the sharpest open question in
+this module after the high-latitude deficit.
+
 ### The high-latitude deficit, diagnosed
 
 `verify/methane/highlat_decompose.py` breaks M-lite+ into its factors, weighted
