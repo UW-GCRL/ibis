@@ -442,6 +442,51 @@ that leaf area, `vmax`, the GPP formula, the temperature reference, the canopy
 scaling, `fu`/`fl`, turnover and allocation have all been individually verified
 NOT to explain.
 
+### Forcing: refuted (2026-09-07)
+
+`verify/forcing_vs_fluxnet.py` compares GSWP3 against tower measurements at
+169 FLUXNET2015 sites with >=3 years of QC-passed data. This tests the forcing
+hypothesis without building a tower-driven site model.
+
+| variable | GSWP3 | tower | bias | r | n |
+|---|---|---|---|---|---|
+| temperature | 10.21 C | 10.69 | -0.47 C | 0.977 | 169 |
+| **shortwave** | 164.9 W/m2 | 167.7 | **-1.7%** | 0.959 | 169 |
+| **VPD** | 5.63 hPa | 6.06 | **-7.2%** | 0.917 | 163 |
+
+**GSWP3 is essentially unbiased where it matters.** Shortwave drives GPP and is
+within 2%. The -7% VPD bias acts in the direction that raises GPP -- less
+stomatal closure -- but cannot produce a 60% excess.
+
+A first pass reported VPD 33% low. That was mostly an error of mine:
+`esat` is convex in temperature, so computing it from a monthly-mean
+temperature underestimates the mean of daily values. Computing VPD daily and
+then averaging moved the bias to -7.2% and improved the correlation. The
+script now documents that ordering.
+
+**Residual caveat.** These are daily-mean comparisons, and the model runs
+hourly by downscaling daily GSWP3. If that downscaling gives too little
+diurnal VPD amplitude, the model's *effective* VPD would be lower than the
+daily means suggest. That is not tested here and is the one forcing-side
+avenue left.
+
+### So the excess is in the model, and remains unexplained
+
+With forcing refuted and domain already controlled for (the FLUXCOM comparison
+uses matched cells), every external candidate is gone. Yet each internal
+component has been individually verified faithful to F77.
+
+The sharpest statement of the contradiction: **Liu et al. get 107.5 PgC/yr with
+prescribed MODIS LAI; this port gets 166.9 with the same prescribed MODIS LAI**
+-- 1.55x apart on the same leaf area and nominally the same parameters. Either
+F77 IBIS carries the same bias and the published evaluation avoided exposing it
+by prescribing LAI, or something in the port is wrong in a way per-component
+verification cannot catch -- an interaction, or a unit error somewhere not yet
+examined.
+
+`vmax` x0.54 is an empirical correction to that gap. The elimination trail
+above is the durable contribution; the factor is a stopgap.
+
 What has not been ruled out, and is where the next work belongs:
 
 1. **Forcing.** They used their own meteorology; we use GSWP3. Radiation and
