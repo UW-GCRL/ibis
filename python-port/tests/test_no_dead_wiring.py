@@ -205,3 +205,29 @@ def test_climate_normals_not_reseeded_on_restart():
     treeat = before.rfind("eqx.tree_at(")
     assert guard != -1 and guard < treeat, (
         "climate normals are written without a cold-start guard")
+
+
+def test_transient_co2_reaches_the_state():
+    """`transient_co2` must set atm.co2conc each year, not merely parse."""
+    from pathlib import Path
+    from ibis.io.config_reader import PhysicsSection
+
+    assert hasattr(PhysicsSection(), "transient_co2")
+    src = Path(__file__).resolve().parents[1] / "scripts" / "run_global.py"
+    text = src.read_text()
+    assert 'getattr(p, "transient_co2", False)' in text
+    loop = text.split("for iyear_offset in range")[1]
+    assert "apply_co2(state, year)" in loop, (
+        "transient_co2 read but CO2 never applied inside the annual loop")
+
+
+def test_co2_trajectory_matches_known_values():
+    """Guard the hand-entered table against silent corruption."""
+    from ibis.io.co2 import co2_ppm
+    # Mauna Loa annual means
+    assert abs(co2_ppm(1960) - 316.91) < 0.01
+    assert abs(co2_ppm(1990) - 354.39) < 0.01
+    assert abs(co2_ppm(2010) - 389.85) < 0.01
+    # monotonic across the historical period
+    v = [co2_ppm(y) for y in range(1901, 2011)]
+    assert all(b >= a for a, b in zip(v, v[1:])), "CO2 must be non-decreasing"

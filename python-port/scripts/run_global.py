@@ -531,6 +531,15 @@ def run_global_simulation(config: IBISConfig) -> None:
         else:
             forcing_year = year
 
+        # Historical CO2. `year`, not `forcing_year`: during a spin-up the
+        # forcing cycles but calendar time does not advance, and a spin-up is
+        # meant to equilibrate at one CO2 level rather than replay a
+        # trajectory -- so this is only meaningful on a transient.
+        if getattr(p, "transient_co2", False):
+            from ibis.io.co2 import apply_co2, co2_ppm
+            state = apply_co2(state, year)
+            logger.info("  CO2: %.1f ppm", co2_ppm(year))
+
         # Optionally update vegetation annually from ESACCI (transient only)
         if p.isimveg > 0 and f.vegtype_dir and not spinup:
             logger.info("  Updating vegetation from ESACCI year %d ...", forcing_year)

@@ -82,6 +82,13 @@ class PhysicsSection:
     #: attractor, and true tundra collapses back to the floor -- so this flag
     #: changes the answer only where the model has two stable branches.
     seed_lai: bool = False
+    #: Follow the historical CO2 trajectory instead of holding `co2init`.
+    #: `co2init` is applied once at state creation, so every run in this
+    #: project -- including Min's `calibration_transient` -- held CO2 fixed
+    #: while the meteorology varied. 1901-2010 CO2 rose ~296 -> 390 ppm and
+    #: photosynthesis responds to it directly, so a historical run validated
+    #: against towers needs this on. See ibis/io/co2.py for provenance.
+    transient_co2: bool = False
 
 
 @dataclass
