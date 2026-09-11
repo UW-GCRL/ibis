@@ -181,3 +181,27 @@ def test_seed_lai_is_declared_in_config():
     """Read-but-undeclared flags raised AttributeError on every dynamic run."""
     from ibis.io.config_reader import PhysicsSection
     assert hasattr(PhysicsSection(), "seed_lai")
+
+
+def test_climate_normals_not_reseeded_on_restart():
+    """Restarts must keep the normals the run accumulated, not clobber them.
+
+    The reseed is derived from a SINGLE forcing year and `existence` reads
+    tcmin/tw/gdd0/gdd5 directly, so running it on a restart flipped PFT
+    existence in 6.3% of cells (3,173 of them north of 50N) against the
+    both_fix year-2200 checkpoint. Inverse of the defect-0 pattern: a value
+    written where it should not be.
+    """
+    from pathlib import Path
+
+    src = Path(__file__).resolve().parents[1] / "scripts" / "run_global.py"
+    text = src.read_text()
+
+    marker = "s.vegetation.tc, s.vegetation.tw, s.vegetation.tcmin"
+    assert marker in text, "climate-normal write not found"
+    before = text.split(marker)[0]
+    # the nearest enclosing guard must be a cold-start test
+    guard = before.rfind("if t.irestart == 0:")
+    treeat = before.rfind("eqx.tree_at(")
+    assert guard != -1 and guard < treeat, (
+        "climate normals are written without a cold-start guard")

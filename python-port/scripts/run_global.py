@@ -384,12 +384,28 @@ def run_global_simulation(config: IBISConfig) -> None:
                                      gswp3_latindex, gswp3_lonindex, lat_land_deg,
                                      tw_override=tw_gswp3)
         state = _apply_vegetation(state, veg_props)
-    state = eqx.tree_at(
-        lambda s: (s.vegetation.tc, s.vegetation.tw, s.vegetation.tcmin,
-                   s.vegetation.gdd0, s.vegetation.gdd5),
-        state, (tc0, tw0, tcmin0, gdd0_0, gdd5_0),
-    )
-    logger.info("  Climate normals seeded (tc range: %.1f–%.1f °C)",
+    # Seed the 30-year climate normals ONLY on a cold start.
+    #
+    # This used to run unconditionally, with the comment "always reseed at the
+    # start of every run". On a cold start that is necessary -- the state
+    # carries zeros. On a RESTART it overwrites normals the model spent
+    # hundreds of years accumulating with values derived from a SINGLE year,
+    # and `existence` reads tcmin/tw/gdd0/gdd5 directly. Measured against the
+    # both_fix year-2200 checkpoint: mean |dtc| = 1.47 K (max 10.9), |dgdd5| =
+    # 73 (max 774), and PFT existence flips in 6,034 cells (6.3%), of which
+    # 3,173 are north of 50N -- precisely where leaf area is marginal. Since
+    # climanl2 is a 30-year running mean, a restarted run needs ~30 years to
+    # recover, so anything shorter carries the perturbation.
+    #
+    # Inverse of the defect-0 pattern this project keeps finding: a value that
+    # IS written where it should not be, rather than one that never arrives.
+    if t.irestart == 0:
+        state = eqx.tree_at(
+            lambda s: (s.vegetation.tc, s.vegetation.tw, s.vegetation.tcmin,
+                       s.vegetation.gdd0, s.vegetation.gdd5),
+            state, (tc0, tw0, tcmin0, gdd0_0, gdd5_0),
+        )
+        logger.info("  Climate normals seeded (tc range: %.1f–%.1f °C)",
                 float(jnp.nanmin(np.array(tc0))), float(jnp.nanmax(np.array(tc0))))
 
     if t.irestart == 0:

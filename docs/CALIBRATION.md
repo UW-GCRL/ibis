@@ -257,3 +257,75 @@ maritime climates. Checked against `vegetation.f:100-105`: IBIS 2.6b4 does
 exactly the same. It is also functionally harmless, since
 `templ = min(1, (agddl-150)/50)` saturates at 1 above `agddl = 200` and
 float32 carries 3.4e6 without difficulty. Recorded as checked, not fixed.
+
+## 8. The global test refutes section 6's bistability, and finds a restart defect
+
+Section 6 concluded from two tower cells that sub-Arctic vegetation is
+bistable. Run at all 95,333 cells for 30 years from `both_fix` year 2200, with
+a control arm on identical forcing, that does not hold:
+
+| cell | 2200 | control+30 | seed+5 | seed+30 |
+|---|---|---|---|---|
+| FI-Sod | 1.02 | 0.74 | 0.88 | **0.75** |
+| FI-Lom | 0.96 | 0.67 | 0.63 | **0.67** |
+| FI-Hyy | 4.45 | 1.54 | 2.44 | **1.53** |
+| RU-Che | 0.02 | 0.01 | 0.23 | **0.02** |
+
+Seeding gives a transient bump that decays back to the control within 30
+years, in every band (60-70N: control 0.41, seeded 0.42) and with GPP
+identical between arms to three decimals. **Withdrawn: there is no
+exploitable bistability, and `seed_lai` does not change the equilibrium.**
+
+**The tower result was a different experiment, not a wrong one.** The tower
+run used 1997-2006 forcing with transient CO2 (~370 ppm); the global run
+cycles 1901-2000 at a fixed 350 ppm. What looked like bistability is the
+attractor being **higher under recent climate and CO2**. That matters for the
+LAI comparison itself: MODIS LAI is a 2000-2020 product, `both_fix` is
+equilibrated to 1901-2000 at 350 ppm, so part of the "Arctic LAI deficit
+against MODIS" in section 3 is a temporal mismatch rather than a model error.
+Comparing them requires a transient to the present -- which is what Hangkai
+asked for at the outset.
+
+Also corrected: section 6 reported `both_fix` vegetation drifting -13.6%.
+The 2100-2200 trajectory is stationary (LAI 1.77-1.81, GPP 0.535-0.557); that
+figure came from comparing one year against a high year.
+
+### The restart clobbered the 30-year climate normals
+
+`run_global` wrote `tc`, `tw`, `tcmin`, `gdd0`, `gdd5` unconditionally at the
+start of **every** run, from a SINGLE forcing year, over normals the model had
+accumulated for 300 years. `existence` reads them directly. Against the
+year-2200 checkpoint:
+
+| normal | restart | 1901 reseed | mean abs diff | max |
+|---|---|---|---|---|
+| tc / tcmin | -14.38 | -15.24 | **1.47 K** | 10.9 |
+| tw | 9.27 | 8.55 | 1.10 K | 7.7 |
+| gdd0 | 3438.2 | 3400.0 | 82.4 | 774.8 |
+| gdd5 | 2531.6 | 2500.5 | 73.4 | 773.5 |
+
+**PFT existence flipped in 6,034 cells (6.3%), 3,173 of them north of 50N** --
+exactly where leaf area is marginal. `climanl2` is a 30-year running mean, so
+a restarted run needed ~30 years to recover and anything shorter carried the
+perturbation. This affected the v9/v10 restart chain the fire and methane
+validations were built on. It explains the step-down between `both_fix` year
+2200 and the continuation arms.
+
+Inverse of the defect-0 pattern: a value that IS written where it should not
+be, rather than one that never arrives.
+
+**Fixed** -- gated on `irestart == 0`, guarded by
+`test_climate_normals_not_reseeded_on_restart`. Verified empirically: after one
+restarted year the normals move by 0.048 K (tc) and 2.4 GDD, i.e. 1/30 of the
+reseed perturbation, which is the correct one-year `climanl2` update.
+
+Neither the seed-vs-control comparison (both arms carried the same
+perturbation) nor the `site_transient` results (that harness never reseeded)
+are invalidated by this.
+
+### Consequence for the calibration state
+
+The cleanest path is a cold start followed by a transient to the present with
+rising CO2, not a restart-and-continue. That supersedes `both_fix`, which the
+fire and methane validations rest on, so it is a decision about scope rather
+than a detail.
