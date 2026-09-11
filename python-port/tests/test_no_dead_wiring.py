@@ -142,3 +142,42 @@ def test_state_fields_are_written_somewhere():
     assert not unwritten, (
         "state field(s) never touched by production code -- they will read "
         "their initial value forever:\n" + "\n".join(f"  {u}" for u in unwritten))
+
+
+def test_seed_lai_flag_reaches_the_state():
+    """`seed_lai` must actually change leaf area, not just parse.
+
+    Added because this project has now found thirteen flags, parameters and
+    state fields that were declared, documented and read but never reached
+    the physics -- `firefac`, `stressfac`, `soilcspin`, `methane_params`,
+    `fire_scheme`, `specla` in the FLUXNET harness, `tco2root`, and the seven
+    unreset annual accumulators. A new flag gets a reachability test before it
+    gets a run.
+    """
+    import re
+    from pathlib import Path
+
+    src = Path(__file__).resolve().parents[1] / "scripts" / "run_global.py"
+    text = src.read_text()
+
+    # the flag is read
+    assert 'getattr(p, "seed_lai", False)' in text, "seed_lai never read"
+
+    # ... and the value it loads is passed to apply_prescribed_lai
+    block = text.split('getattr(p, "seed_lai", False)')[1]
+    block = block.split('getattr(p, "prescribe_lai"')[0]
+    assert "apply_prescribed_lai" in block, (
+        "seed_lai is read but never applied -- defect-0 pattern")
+    assert "lai_seed" in block, "seeded field not passed through"
+
+    # and it must NOT be re-imposed inside the annual loop: that is
+    # `prescribe_lai`, a different experiment.
+    after = text.split("for iyear_offset in range")[1]
+    assert "lai_seed" not in after, (
+        "seed_lai must apply once, not every year -- that is prescribe_lai")
+
+
+def test_seed_lai_is_declared_in_config():
+    """Read-but-undeclared flags raised AttributeError on every dynamic run."""
+    from ibis.io.config_reader import PhysicsSection
+    assert hasattr(PhysicsSection(), "seed_lai")

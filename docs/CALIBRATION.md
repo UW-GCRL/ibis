@@ -179,3 +179,81 @@ published 120-130.
   fall within GSWP3's 2010 cutoff, and only 25 of 170 north of 60N. The CH4
   sites carry their own gap-filled meteorology, so they will be driven from
   tower forcing rather than GSWP3. 43 EuroFlux sites additionally available.
+
+## 6. The bare Arctic is two different problems
+
+At the dead high-latitude cells `plai` sat at **exactly 0.010** per PFT for
+evergreen shrub, deciduous shrub and C3 grass -- `xminlai`, the floor the code
+permits -- with leaf carbon 0.0022 kgC m-2. Not "low vegetation": the minimum
+and nothing more. All three PFTs pass `exist`, so the bioclimatic filter is
+not the gate.
+
+`verify/calibration/arctic_seed_test.py` seeded every cell with MODIS
+annual-maximum LAI, changed **no parameters**, and ran 20 years with
+`dynaveg`:
+
+| site | lat | seeded | before | after 20 yr | GPP final | GPP obs |
+|---|---|---|---|---|---|---|
+| FI-Sod | 67.4 | 2.04 | 1.10 | **1.89** | 0.453 | 0.616 |
+| FI-Lom | 68.0 | 2.06 | 0.93 | **1.88** | 0.486 | 0.455 |
+| US-Ivo | 68.5 | 1.07 | 0.030 | 0.057 | 0.009 | 0.290 |
+| RU-Che | 68.6 | 1.08 | 0.036 | 0.115 | 0.023 | 0.306 |
+| US-Atq | 70.5 | 0.86 | 0.030 | 0.049 | 0.008 | 0.190 |
+| RU-Cok | 70.8 | 0.88 | 0.030 | 0.060 | 0.010 | 0.381 |
+| GL-ZaH/ZaF | 74.5 | 0.12 | 0.030 | **0.030** | 0.001 | 0.08 / 0.36 |
+
+**Sub-Arctic cells are bistable and the cold start chose the wrong branch.**
+FI-Sod and FI-Lom hold ~1.88 for twenty years from a seed of ~2.0, against a
+cold-start state near 1.0, with GPP landing near observed. Nothing changed but
+the initial condition. `both_fix` was a cold start (its own cfg says so), so
+leaf area had to bootstrap from `xminlai`; warm cells escaped, these did not.
+
+**True tundra and Greenland collapse back to the floor.** Seeded LAI decays to
+0.03-0.115 within twenty years and GPP to 0.001-0.023 against an observed
+0.19-0.38. There the bare state IS the model's equilibrium, and the `vmax`
+experiment showed restoring photosynthetic capacity does not reach it either
+(RU-Cok 0.00 -> 0.10 against 0.38; GL-ZaF 0.00 -> 0.00). **No calibration of
+`vmax` or `specla` will fix the Arctic carbon input.** That is the origin of
+the Arctic soil-carbon and CH4 deficits, and it is a structural limitation to
+declare rather than a target to fit.
+
+The aggregate verdict the script printed -- "partially retained", Arctic mean
+LAI 1.027 -> 0.514 -- averages these two opposite behaviours and should not be
+quoted on its own.
+
+### The mid-latitude LAI excess is an attractor too
+
+Seeding pushed all-cell mean LAI from 4.95 to 2.28 (MODIS); it climbed back to
+4.49 within four years and sat at 4.60 at year 20. Since equilibrium LAI is
+`NPP x aleaf x tauleaf x specla`, forcing the state does not move the
+attractor. So **LAI can only be corrected through `specla` or allocation,
+never through initialisation** -- and `specla` is reachable in the
+`site_transient` harness because it calls `dynaveg`.
+
+### `seed_lai`
+
+`run_global` gained `seed_lai`, which applies the observed field ONCE and then
+lets `dynaveg` evolve it -- distinct from `prescribe_lai`, which re-imposes it
+every year. Guarded by two reachability tests in
+`tests/test_no_dead_wiring.py`, because thirteen flags, parameters and state
+fields in this project have now been found declared, documented, read and
+never reaching the physics.
+
+## 7. Two corrections to findings recorded earlier in this document
+
+**Reco was never compared.** Section 0 said the fix for Min's `reco =
+ayco2mic` was `ayco2mic + ayco2root`. `tco2root` is **never written** --
+`ayco2root` is exactly 0.000000 in all 1710 evaluation rows -- so the fix
+changed nothing and the reported "Reco 0.52x" was Rh against tower Reco.
+Rh/Reco is *expected* to be ~0.5, so that figure indicates nothing wrong and
+is withdrawn. The model has no autotrophic respiration diagnostic, so Reco
+cannot currently be evaluated at all. Thirteenth instance of defect-0, and the
+first to defeat one of my own corrections.
+
+**`agddl` growing without bound is NOT a port defect.** It reaches 3,364,903
+at DK-Sor and 2,121,381 at FI-Hyy against an annual scale of ~2,000, because
+it resets only when the 10-day mean falls below -5 C, which never happens in
+maritime climates. Checked against `vegetation.f:100-105`: IBIS 2.6b4 does
+exactly the same. It is also functionally harmless, since
+`templ = min(1, (agddl-150)/50)` saturates at 1 above `agddl = 200` and
+float32 carries 3.4e6 without difficulty. Recorded as checked, not fixed.

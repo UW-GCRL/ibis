@@ -429,6 +429,19 @@ def run_global_simulation(config: IBISConfig) -> None:
     # Prescribed LAI: load the observed field once. Applied after every annual
     # vegetation update so the model's own growth is overwritten each year.
     lai_obs = None
+    lai_seed = None
+    if getattr(p, "seed_lai", False):
+        lai_seed = jnp.asarray(read_modis_lai_max(gswp3_latindex,
+                                                  gswp3_lonindex))
+        logger.info("  SEEDING leaf area from MODIS once: mean %.2f over %d "
+                    "pts (then dynaveg evolves it)",
+                    float(jnp.mean(lai_seed)), npoi)
+        _before = float(jnp.mean(jnp.sum(state.vegetation.plai, axis=1)))
+        state = apply_prescribed_lai(state, lai_seed, pft_params.specla,
+                                     consts.epsilon)
+        logger.info("  seeded LAI: %.2f -> %.2f (mean total). Not re-imposed "
+                    "again; dynaveg evolves it from here.", _before,
+                    float(jnp.mean(jnp.sum(state.vegetation.plai, axis=1))))
     if getattr(p, "prescribe_lai", False):
         lai_obs = jnp.asarray(read_modis_lai_max(gswp3_latindex, gswp3_lonindex))
         logger.info("  prescribed LAI from MODIS: mean %.2f max %.2f over %d pts",

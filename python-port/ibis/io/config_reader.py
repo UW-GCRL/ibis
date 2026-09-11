@@ -69,6 +69,19 @@ class PhysicsSection:
     #: 2014). Carbon totals from such a run are diagnostic, not a closed
     #: budget -- see ibis/physics/prescribed_lai.py.
     prescribe_lai: bool = False
+    #: Seed leaf area from MODIS ONCE at the start of the run, then let
+    #: `dynaveg` evolve it. Distinct from `prescribe_lai`, which re-imposes
+    #: the observed field every year.
+    #:
+    #: This exists because vegetation in IBIS is bistable in marginal
+    #: climates. `both_fix` was a cold start, so leaf area had to bootstrap
+    #: from the `xminlai` floor; verify/calibration/arctic_seed_test.py showed
+    #: that sub-Arctic cells seeded to MODIS LAI stay there for 20 years
+    #: (FI-Sod 1.10 -> 1.89, FI-Lom 0.93 -> 1.88) while their cold-start state
+    #: sat near the floor. Mid-latitude cells instead climb back to their own
+    #: attractor, and true tundra collapses back to the floor -- so this flag
+    #: changes the answer only where the model has two stable branches.
+    seed_lai: bool = False
 
 
 @dataclass
