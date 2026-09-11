@@ -231,3 +231,16 @@ def test_co2_trajectory_matches_known_values():
     # monotonic across the historical period
     v = [co2_ppm(y) for y in range(1901, 2011)]
     assert all(b >= a for a, b in zip(v, v[1:])), "CO2 must be non-decreasing"
+
+
+def test_fit_carbon_has_no_dead_co2_flag():
+    """The fit must not carry a CO2 flag that `one_year` silently overrides."""
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[2] / "verify" / "calibration"
+           / "fit_carbon.py")
+    if not src.exists():
+        return
+    text = src.read_text()
+    assert "--co2-year" not in text, (
+        "fit_carbon declares --co2-year, but one_year calls apply_co2(state, "
+        "year) and overrides it")

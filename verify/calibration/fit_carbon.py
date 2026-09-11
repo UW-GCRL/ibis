@@ -51,7 +51,6 @@ import jax.numpy as jnp
 
 from ibis.constants import PhysicalConstants
 from ibis.dimensions import GridConfig
-from ibis.io.co2 import co2_molmol
 from ibis.io.gswp3_reader import GSWP3Reader
 from ibis.io.physics_params import build_all_params
 from ibis.io.restart import load_state
@@ -160,7 +159,6 @@ def main():
     ap.add_argument("--adjust-years", type=int, default=10)
     ap.add_argument("--eval-years", type=int, default=3)
     ap.add_argument("--year0", type=int, default=2001)
-    ap.add_argument("--co2-year", type=int, default=2005)
     ap.add_argument("--exclude-poleward", type=float, default=68.0)
     ap.add_argument("--w-lai", type=float, default=0.5)
     ap.add_argument("--holdout", type=float, default=0.3)
@@ -205,7 +203,10 @@ def main():
     state0 = jax.tree.map(
         lambda x: jnp.nan_to_num(x, nan=0.0) if isinstance(x, jnp.ndarray)
         and jnp.issubdtype(x.dtype, jnp.floating) else x, state0)
-    state0 = eqx.tree_at(lambda s: s.atm.co2conc, state0, co2_molmol(a.co2_year))
+    # CO2 is NOT set here: `one_year` calls apply_co2(state, year) itself, so
+    # it follows the evaluation year (2001-2005 -> 371-380 ppm). Setting it
+    # here as well would have been a flag that parses and does nothing, which
+    # is the defect this project has now found fourteen times.
     del full
 
     sp0, pft0, _ = build_all_params(len(sel), lat_rad, None)
