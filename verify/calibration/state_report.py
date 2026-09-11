@@ -70,6 +70,25 @@ def load_run(outdir, nyear):
     return acc, len(fs), fs[-1]
 
 
+def _wmean(x, w):
+    """Area-weighted mean that tolerates isolated NaN cells.
+
+    v11 carries one fully-NaN cell (index 8028, 68.75N -26.75E, the Greenland
+    ice-sheet margin) out of 95,333. np.average would return NaN for the whole
+    domain on the strength of it, which is how a 0.001% blow-up turns into a
+    missing row in a table.
+    """
+    ok = np.isfinite(x) & np.isfinite(w)
+    if not ok.any():
+        return float("nan")
+    return float(np.sum(x[ok] * w[ok]) / np.sum(w[ok]))
+
+
+def _wsum(x, w):
+    ok = np.isfinite(x) & np.isfinite(w)
+    return float(np.sum(x[ok] * w[ok]))
+
+
 def pools(restart):
     from ibis.dimensions import GridConfig
     from ibis.io.restart import load_state
@@ -133,18 +152,18 @@ def main():
     vals = {}
     for name, (d, rst, _) in runs.items():
         v = {}
-        v["GPP PgC/yr"] = float((d["aygpptot"] * area)[m].sum()) / 1e12
-        v["NPP PgC/yr"] = float((d["aynpptot"] * area)[m].sum()) / 1e12
-        v["Rh PgC/yr"] = float((d["ayco2mic"] * area)[m].sum()) / 1e12
-        v["ET mm/yr"] = float(np.average(d["ayaet"][m], weights=area[m]))
-        v["veg C PgC"] = float((d["cveg"] * area)[m].sum()) / 1e12
-        v["LAI mean"] = float(np.average(d["lai"][m], weights=area[m]))
+        v["GPP PgC/yr"] = _wsum(d["aygpptot"][m], area[m]) / 1e12
+        v["NPP PgC/yr"] = _wsum(d["aynpptot"][m], area[m]) / 1e12
+        v["Rh PgC/yr"] = _wsum(d["ayco2mic"][m], area[m]) / 1e12
+        v["ET mm/yr"] = _wmean(d["ayaet"][m], area[m])
+        v["veg C PgC"] = _wsum(d["cveg"][m], area[m]) / 1e12
+        v["LAI mean"] = _wmean(d["lai"][m], area[m])
         if rst:
             cs, lt = pools(rst)
             fl = np.where(m.ravel())[0]
             w = area.ravel()[fl]
-            v["soil C kgC/m2"] = float(np.average(cs, weights=w))
-            v["litter kgC/m2"] = float(np.average(lt, weights=w))
+            v["soil C kgC/m2"] = _wmean(cs, w)
+            v["litter kgC/m2"] = _wmean(lt, w)
         vals[name] = v
     for r in rows:
         print(f"{r:<16}" + "".join(
@@ -156,12 +175,12 @@ def main():
           f"{'MODIS':>10}{'ratio':>9}")
     for lo, hi, nm in BANDS:
         s = m & (LA >= lo) & (LA < hi)
-        obs = float(np.average(mod[s], weights=area[s]))
+        obs = _wmean(mod[s], area[s])
         line = f"{nm:<10}"
         for k, (d, _, _) in runs.items():
-            line += f"{float(np.average(d['lai'][s], weights=area[s])):>12.2f}"
+            line += f"{_wmean(d['lai'][s], area[s]):>12.2f}"
         last = list(runs)[-1]
-        r = float(np.average(runs[last][0]["lai"][s], weights=area[s])) / max(obs, 1e-9)
+        r = _wmean(runs[last][0]['lai'][s], area[s]) / max(obs, 1e-9)
         print(line + f"{obs:>10.2f}{r:>9.2f}")
 
     print(f"\nGPP BY BAND vs FLUXCOM (kgC/m2/yr)")
@@ -171,12 +190,12 @@ def main():
         s = m & (LA >= lo) & (LA < hi) & np.isfinite(fc) & (fc > 0)
         if not s.any():
             continue
-        obs = float(np.average(fc[s], weights=area[s]))
+        obs = _wmean(fc[s], area[s])
         line = f"{nm:<10}"
         for k, (d, _, _) in runs.items():
-            line += f"{float(np.average(d['aygpptot'][s], weights=area[s])):>12.3f}"
+            line += f"{_wmean(d['aygpptot'][s], area[s]):>12.3f}"
         last = list(runs)[-1]
-        r = float(np.average(runs[last][0]["aygpptot"][s], weights=area[s])) / obs
+        r = _wmean(runs[last][0]['aygpptot'][s], area[s]) / obs
         print(line + f"{obs:>10.3f}{r:>9.2f}")
 
 
