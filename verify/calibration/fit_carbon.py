@@ -164,15 +164,38 @@ def bounds_penalty(vmax, specla):
 
 
 # ------------------------------------------------------------------------ loss
-def score(gpp, lai, gpp_obs, lai_obs, w_lai):
-    """Symmetric log-ratio error; returns (total, gpp_term, lai_term)."""
+def score(gpp, lai, gpp_obs, lai_obs, w_lai, area=None, w_total=1.0):
+    """Magnitude-honest loss. Returns (total, gpp_term, lai_term).
+
+    The first fit used an unweighted per-cell mean of squared log-ratios and
+    reported GPP 0.83x FLUXCOM at the sample while the full domain came out
+    ~1.35x (docs/CALIBRATION.md 9). A sparse cell at 0.5x counted as much as
+    a rainforest cell at 1.5x, so the optimiser satisfied the many low-flux
+    cells and left the few that carry the global total high.
+
+    Two changes. (1) Each cell's GPP log-ratio is weighted by its share of the
+    observed flux, area x GPP_obs -- i.e. by what it contributes to the total
+    being judged. LAI is weighted by area only, since LAI comparisons are
+    area means. (2) An explicit term on the log-ratio of area-integrated
+    totals, so the sum itself is a target and not just an emergent property.
+    """
     ok = np.isfinite(gpp) & np.isfinite(lai) & (gpp_obs > 0.02) & (lai_obs > 0.05)
     if ok.sum() < 20:
         return 50.0, np.nan, np.nan
-    g = np.log(np.maximum(gpp[ok], 1e-4) / gpp_obs[ok])
-    l = np.log(np.maximum(lai[ok], 1e-3) / lai_obs[ok])
-    return float(np.mean(g ** 2) + w_lai * np.mean(l ** 2)), \
-        float(np.mean(g ** 2)), float(np.mean(l ** 2))
+    a = np.ones(ok.sum()) if area is None else np.asarray(area)[ok]
+    g_m, g_o = np.maximum(gpp[ok], 1e-4), gpp_obs[ok]
+    l_m, l_o = np.maximum(lai[ok], 1e-3), lai_obs[ok]
+
+    wg = a * g_o; wg = wg / wg.sum()
+    wl = a / a.sum()
+    g_cell = float(np.sum(wg * np.log(g_m / g_o) ** 2))
+    l_cell = float(np.sum(wl * np.log(l_m / l_o) ** 2))
+    g_tot = float(np.log(np.sum(a * g_m) / np.sum(a * g_o)) ** 2)
+    l_tot = float(np.log(np.sum(a * l_m) / np.sum(a * l_o)) ** 2)
+
+    g_term = g_cell + w_total * g_tot
+    l_term = l_cell + w_total * l_tot
+    return g_term + w_lai * l_term, g_term, l_term
 
 
 def main():
@@ -213,6 +236,7 @@ def main():
 
     gpp_obs = fluxcom_at(i, j)
     lai_obs = modis_at(i, j)
+    area = np.cos(np.deg2rad(LATV[i]))          # relative cell area
     log.info("obs at sample: FLUXCOM GPP %.3f  MODIS LAI %.2f",
              np.nanmean(gpp_obs), np.nanmean(lai_obs))
 
@@ -295,9 +319,11 @@ def main():
             log.warning("  eval %d failed: %s", ev[0], str(e)[:90])
             return 50.0
         tot, gt, lt = score(gpp[fit_mask], lai[fit_mask],
-                            gpp_obs[fit_mask], lai_obs[fit_mask], a.w_lai)
+                            gpp_obs[fit_mask], lai_obs[fit_mask], a.w_lai,
+                            area[fit_mask])
         ho, _, _ = score(gpp[~fit_mask], lai[~fit_mask],
-                         gpp_obs[~fit_mask], lai_obs[~fit_mask], a.w_lai)
+                         gpp_obs[~fit_mask], lai_obs[~fit_mask], a.w_lai,
+                         area[~fit_mask])
         ev[0] += 1
         hist.append(dict(eval=ev[0], loss=tot, gpp_term=gt, lai_term=lt,
                          holdout=ho, gpp_mean=float(np.nanmean(gpp)),
@@ -340,7 +366,8 @@ def main():
               f"{s0[k]:>9.1f}{specla[k]:>8.1f}")
     gpp, lai = run(vmax, specla)
     for nm, msk in (("fit", fit_mask), ("HELD OUT", ~fit_mask)):
-        t, g, l = score(gpp[msk], lai[msk], gpp_obs[msk], lai_obs[msk], a.w_lai)
+        t, g, l = score(gpp[msk], lai[msk], gpp_obs[msk], lai_obs[msk], a.w_lai,
+                        area[msk])
         print(f"  {nm:>9}: loss {t:.4f}  GPP term {g:.4f}  LAI term {l:.4f}  "
               f"model GPP {np.nanmean(gpp[msk]):.3f} vs {np.nanmean(gpp_obs[msk]):.3f}"
               f"  LAI {np.nanmean(lai[msk]):.2f} vs {np.nanmean(lai_obs[msk]):.2f}")
