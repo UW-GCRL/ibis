@@ -329,3 +329,72 @@ The cleanest path is a cold start followed by a transient to the present with
 rising CO2, not a restart-and-continue. That supersedes `both_fix`, which the
 fire and methane validations rest on, so it is a decision about scope rather
 than a detail.
+
+## 9. The fit at full domain: pattern largely fixed, magnitude not
+
+`fit_carbon_v11c` (152 CMA-ES evaluations, 4,331 cells, 9 free PFTs, 3
+frozen) gave loss 1.7166 -> 1.0200 fitted and 1.9012 -> 1.2206 held out.
+Three PFTs pinned at the lower `vmax` bound: tropical broadleaf evergreen
+40.1 (floor 40), warm-temperate evergreen 26.2 (25), C4 grass 8.2 (8).
+
+Run on all 95,333 cells for 25 years from the v11 2010 state, against a
+default-parameter control on identical forcing (`val_v11c/`):
+
+| quantity | control | **fit** | observed |
+|---|---|---|---|
+| GPP PgC/yr | 234.1 | **169.7** | 120-130 |
+| NPP | 105.4 | 80.2 | 55-60 |
+| Rh | 94.5 | 78.7 | 49-58 |
+| ET mm/yr | 525.0 | 523.3 | 500-550 |
+| veg C PgC | 804.5 | 669.7 | 450-650 |
+| soil C kgC/m2 | 13.74 | 13.01 | 10-15 |
+| litter | 1.13 | 0.93 | 0.4-0.8 |
+
+By band (ratio to observation, control -> fit):
+
+| band | LAI/MODIS | GPP/FLUXCOM |
+|---|---|---|
+| 30S-30N | 2.85 -> **1.53** | 1.53 -> **1.11** |
+| 30-50N | 4.03 -> 1.89 | 2.29 -> **1.60** |
+| 50-60N | 2.32 -> 1.35 | 1.97 -> 1.47 |
+| 60-70N | 1.56 -> **1.07** | 2.15 -> 1.51 |
+| 70-90N | 1.49 -> 0.62 | 2.47 -> **0.94** |
+
+### What it fixed
+
+The spatial pattern. Before the fit GPP ran 1.5-2.5x FLUXCOM in every band;
+after it the tropics are at 1.11x and the far Arctic at 0.94x, and LAI at
+60-70N is 1.07x MODIS. The two ends of the latitude range -- the places where
+`vmax x0.54` had produced errors of opposite sign -- are now close to right
+with a single parameter set and no fudge.
+
+### What it did not fix
+
+**Magnitude.** Global GPP is 170 PgC/yr against 120-130: 1.31-1.41x. The
+excess is now concentrated in **30-70N at ~1.5x**, where the fit moved
+`temp_con_ever` 30 -> 19.3, `temp_bl_dec` 30 -> 22.7 and `c3_grass` 25 -> 16.2
+and still could not close it. `temp_con_ever` was dominant in only 40 sampled
+cells, so it is weakly constrained.
+
+**ET did not move.** 525.0 -> 523.3 mm/yr while GPP fell 27%. So the fit made
+WUE *worse* (GPP/ET fell 27%), and the section-1 finding that model WUE is
+0.75x observed at towers is now sharper: transpiration in this model is not
+governed by the same lever as photosynthesis. Stage 2 cannot be "then fit
+ET" -- the coupling itself is the problem.
+
+### Why the sample and the domain disagree
+
+At the sample the fit reported GPP 0.83x FLUXCOM; at the domain it is ~1.35x.
+The loss is a per-cell mean of squared log-ratios, so a sparse cell at 0.5x
+counts as much as a rainforest cell at 1.5x, and the optimiser satisfied the
+many low-GPP cells at the expense of the few high-GPP ones that carry the
+global total. A magnitude-honest fit needs the loss weighted by observed flux
+(or an explicit total-GPP term). This is a design error in `fit_carbon.py`,
+not a property of the model.
+
+### Not converged
+
+LAI in the fit arm fell to 1.85 at year 1 (the `specla` change is immediate)
+and climbed to 2.32 by year 25, still accelerating, as biomass re-equilibrates.
+The fit judged LAI after only 8 adjustment years. `val_v11c/fit_ext` extends
+the arm 50 years; the LAI and vegetation-carbon rows above will move.
