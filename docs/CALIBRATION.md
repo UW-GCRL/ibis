@@ -398,3 +398,33 @@ LAI in the fit arm fell to 1.85 at year 1 (the `specla` change is immediate)
 and climbed to 2.32 by year 25, still accelerating, as biomass re-equilibrates.
 The fit judged LAI after only 8 adjustment years. `val_v11c/fit_ext` extends
 the arm 50 years; the LAI and vegetation-carbon rows above will move.
+
+### Addendum: the continuation converged, and it changes the fit window
+
+`val_v11c/fit_ext` extended the fit arm 50 years (to 2085):
+
+| quantity | fit_2035 | **fit_2085** | observed |
+|---|---|---|---|
+| GPP PgC/yr | 169.7 | 172.8 | 120-130 |
+| Rh | 78.7 | 74.7 | 49-58 |
+| **veg C PgC** | 669.7 | **602.0** | 450-650 -- **in range** |
+| **soil C kgC/m2** | 13.01 | **12.55** | 10-15 -- in range |
+| litter | 0.93 | 0.87 | 0.4-0.8 |
+| LAI mean | 2.32 | **2.49** | |
+
+LAI plateaued at 2.47-2.51 from ~2046 on (the 0.04 oscillation is the
+ten-year forcing cycle). Vegetation carbon fell into range as the woody pools
+finished re-equilibrating. Every carbon **pool** is now inside its observed
+range; the **fluxes** remain ~1.35x.
+
+**Consequence for the fit.** Equilibrium LAI is 2.49; at 8 adjustment years,
+where `fit_carbon` judged it, LAI was ~1.9 -- 76% of the plateau. The
+optimiser therefore saw a 1.8x LAI excess against MODIS when the true excess
+is 2.4x, and under-corrected `specla`. The corrected-loss re-fit
+(`fit_carbon_v11d`) was launched with the same 8-year window; killed at 6 s
+and relaunched with **25 adjustment years**, where LAI has reached 96% of its
+plateau (2.39). Per-evaluation cost roughly triples; 150 evaluations is
+~8 h rather than ~3.5.
+
+By band at 2085, GPP/FLUXCOM: 1.13 / 1.63 / 1.53 / 1.58 / 0.86. The 30-70N
+excess is unchanged from 2035 -- it is not a transient.
