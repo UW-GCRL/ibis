@@ -59,6 +59,30 @@ from ibis.timestepping.loops_gswp3 import _cast_tree_f32
 
 from site_transient import one_year
 
+
+class CachedForcing:
+    """A GSWP3Reader that serves a fixed set of years from memory.
+
+    The fit re-runs the SAME few forcing years for every parameter
+    evaluation, and reading them back off disk each time dominated the cost:
+    18 minutes per evaluation at 4,331 cells, against 53 s per model-year for
+    all 95,333 cells in the v11 spin-up. The difference is not compute -- it
+    is fancy-indexing a compressed netCDF 12 times a year, 150 times over.
+
+    Exposes only `read_month`, which is all `run_month_gswp3` uses.
+    """
+
+    def __init__(self, reader, years, i, j):
+        self._c = {}
+        for y in years:
+            for m in range(12):
+                self._c[(y, m)] = reader.read_month(y, m, i, j)
+        n = sum(v[next(iter(v))].nbytes for v in self._c.values()) / 1e9
+        log.info("cached %d months of forcing (%.2f GB)", len(self._c), n)
+
+    def read_month(self, year, imonth, latindex=None, lonindex=None):
+        return self._c[(year, imonth)]
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 log = logging.getLogger(__name__)
 
@@ -159,9 +183,13 @@ def main():
     ap.add_argument("--adjust-years", type=int, default=10)
     ap.add_argument("--eval-years", type=int, default=3)
     ap.add_argument("--year0", type=int, default=2001)
+    ap.add_argument("--force-years", type=int, default=3,
+                    help="distinct forcing years cycled within an evaluation")
     ap.add_argument("--exclude-poleward", type=float, default=68.0)
     ap.add_argument("--w-lai", type=float, default=0.5)
     ap.add_argument("--holdout", type=float, default=0.3)
+    ap.add_argument("--min-cells", type=int, default=30,
+                    help="PFTs dominant in fewer cells are frozen at default")
     ap.add_argument("--sigma", type=float, default=0.2)
     ap.add_argument("--seed", type=int, default=20260911)
     ap.add_argument("--out", default=f"{REPO}/verify_out_stage1/fit_carbon")
@@ -188,6 +216,13 @@ def main():
     log.info("obs at sample: FLUXCOM GPP %.3f  MODIS LAI %.2f",
              np.nanmean(gpp_obs), np.nanmean(lai_obs))
 
+    counts = np.bincount(dom[dom >= 0], minlength=12)
+    free = counts >= a.min_cells
+    log.info("PFTs free to move (>= %d dominant cells): %s", a.min_cells,
+             [PFT_NAMES[k] for k in range(12) if free[k]])
+    log.info("PFTs FROZEN at defaults (too few cells to identify): %s",
+             [f"{PFT_NAMES[k]}({counts[k]})" for k in range(12) if not free[k]])
+
     rng = np.random.default_rng(a.seed)
     fit_mask = rng.random(len(sel)) > a.holdout
     log.info("fit on %d cells, hold out %d", fit_mask.sum(), (~fit_mask).sum())
@@ -210,8 +245,10 @@ def main():
     del full
 
     sp0, pft0, _ = build_all_params(len(sel), lat_rad, None)
+    years = list(range(a.year0, a.year0 + a.force_years))
+    cached = CachedForcing(GSWP3Reader(GSWP3), years, i, j)
     ctx0 = dict(i=i, j=j, lat_rad=lat_rad, sp=sp0, pft=pft0,
-                consts=PhysicalConstants(), reader=GSWP3Reader(GSWP3))
+                consts=PhysicalConstants(), reader=cached)
     v0 = np.asarray(sp0.stomata_params.vmax_pft, dtype=np.float64)
     s0 = np.asarray(pft0.specla, dtype=np.float64)
     log.info("start vmax (umol): %s", np.round(v0 * 1e6, 1).tolist())
@@ -227,19 +264,30 @@ def main():
         st = state0
         key = jax.random.PRNGKey(0)
         for n in range(a.adjust_years):
-            st, key, _ = one_year(st, key, a.year0 + (n % 5), ctx, 1)
+            st, key, _ = one_year(st, key, years[n % len(years)], ctx, 1)
         gs, ls = [], []
         for n in range(a.eval_years):
-            st, key, d = one_year(st, key, a.year0 + (n % 5), ctx, 1)
+            st, key, d = one_year(st, key, years[n % len(years)], ctx, 1)
             gs.append(d["aygpptot"]); ls.append(d["lai"])
         return np.mean(gs, axis=0), np.mean(ls, axis=0)
 
     def objective(x):
         t0 = time.time()
         vmax, specla = from_vec(x)
-        if np.any(vmax < VMAX_LO * 0.4) or np.any(vmax > VMAX_HI * 2.5) \
-                or np.any(specla < SPECLA_LO * 0.4) \
-                or np.any(specla > SPECLA_HI * 2.5):
+        # A parameter the sample cannot constrain must not move: with zero
+        # dominant cells the loss is flat in it, so CMA-ES walks it to a
+        # bound on noise. The first run did exactly that -- boreal_con_dec
+        # (0 cells) went to 57 umol against a 45 ceiling.
+        vmax = np.where(free, vmax, v0)
+        specla = np.where(free, specla, s0)
+        # Tolerance matters: `specla` defaults sit EXACTLY on two bounds
+        # (30.0 and 35.0), and the log/exp round-trip in to_vec/from_vec puts
+        # them a float above, which rejected the baseline itself as
+        # out-of-bounds and reported loss 100.
+        tol = 1.0 + 1e-9
+        if np.any(vmax < VMAX_LO / tol) or np.any(vmax > VMAX_HI * tol) \
+                or np.any(specla < SPECLA_LO / tol) \
+                or np.any(specla > SPECLA_HI * tol):
             return 100.0
         try:
             gpp, lai = run(vmax, specla)
@@ -248,7 +296,6 @@ def main():
             return 50.0
         tot, gt, lt = score(gpp[fit_mask], lai[fit_mask],
                             gpp_obs[fit_mask], lai_obs[fit_mask], a.w_lai)
-        tot += 0.05 * bounds_penalty(vmax, specla)
         ho, _, _ = score(gpp[~fit_mask], lai[~fit_mask],
                          gpp_obs[~fit_mask], lai_obs[~fit_mask], a.w_lai)
         ev[0] += 1
@@ -270,10 +317,12 @@ def main():
     b = objective(to_vec(v0, s0))
     log.info("baseline loss %.4f", b)
 
-    es = cma.CMAEvolutionStrategy(to_vec(v0, s0), a.sigma, {
+    x0 = np.clip(to_vec(v0, s0), to_vec(VMAX_LO, SPECLA_LO),
+                 to_vec(VMAX_HI, SPECLA_HI))
+    es = cma.CMAEvolutionStrategy(x0, a.sigma, {
         "maxfevals": a.n_evals, "seed": a.seed, "verb_disp": 0,
-        "bounds": [to_vec(VMAX_LO * 0.4, SPECLA_LO * 0.4),
-                   to_vec(VMAX_HI * 2.5, SPECLA_HI * 2.5)]})
+        "bounds": [to_vec(VMAX_LO, SPECLA_LO),
+                   to_vec(VMAX_HI, SPECLA_HI)]})
     while not es.stop() and ev[0] < a.n_evals:
         xs = es.ask()
         es.tell(xs, [objective(x) for x in xs])
