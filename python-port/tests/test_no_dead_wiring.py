@@ -244,3 +244,11 @@ def test_fit_carbon_has_no_dead_co2_flag():
     assert "--co2-year" not in text, (
         "fit_carbon declares --co2-year, but one_year calls apply_co2(state, "
         "year) and overrides it")
+
+
+def test_run_global_logs_which_parameters_it_uses():
+    """A run must say whether it is on a params_file or on defaults."""
+    from pathlib import Path
+    text = (Path(__file__).resolve().parents[1] / "scripts" / "run_global.py").read_text()
+    assert 'logger.info("Physics parameters: %s", config.params_file)' in text
+    assert "IBIS DEFAULTS (no params_file)" in text

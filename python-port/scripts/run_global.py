@@ -426,6 +426,14 @@ def run_global_simulation(config: IBISConfig) -> None:
     # ------------------------------------------------------------------
     lat_rad = jnp.array(np.deg2rad(lat_land_deg))
     _pdict = load_physics_params(config.params_file) if config.params_file else None
+    # Say which parameters are in play. Every run in this project that turned
+    # out to be on the wrong parameters (both_fix's x0.54 inherited into the
+    # seed test; a fit arm whose params_file had to be inferred from its GPP)
+    # would have been caught at the log line, had there been one.
+    if _pdict is not None:
+        logger.info("Physics parameters: %s", config.params_file)
+    else:
+        logger.info("Physics parameters: IBIS DEFAULTS (no params_file)")
     params, pft_params, bgc_params = build_all_params(npoi, lat_rad, _pdict)
 
     # Seed thermal-only bedrock on a cold start. Downward continuation along a
