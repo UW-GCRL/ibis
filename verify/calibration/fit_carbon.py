@@ -369,8 +369,10 @@ def main():
         t, g, l = score(gpp[msk], lai[msk], gpp_obs[msk], lai_obs[msk], a.w_lai,
                         area[msk])
         print(f"  {nm:>9}: loss {t:.4f}  GPP term {g:.4f}  LAI term {l:.4f}  "
-              f"model GPP {np.nanmean(gpp[msk]):.3f} vs {np.nanmean(gpp_obs[msk]):.3f}"
-              f"  LAI {np.nanmean(lai[msk]):.2f} vs {np.nanmean(lai_obs[msk]):.2f}")
+              f"area-wtd GPP {np.average(gpp[msk], weights=area[msk]):.3f} vs "
+              f"{np.average(gpp_obs[msk], weights=area[msk]):.3f}"
+              f"  LAI {np.average(lai[msk], weights=area[msk]):.2f} vs "
+              f"{np.average(lai_obs[msk], weights=area[msk]):.2f}")
     print(f"\nWrote {a.out}/")
 
 
