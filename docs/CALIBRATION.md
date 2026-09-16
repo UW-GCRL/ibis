@@ -577,3 +577,28 @@ on FLUXCOM, and a ~1.4x residual living in low-productivity cells that these
 parameters do not reach. Where that residual actually lives -- water stress,
 sparse-canopy light use, the stomatal coupling that left ET unmoved -- is the
 next question, and it is a process question, not a parameter one.
+
+## 11. The 1901-2010 GPP trend on the fitted parameters
+
+Section 8 flagged a risk: IBIS has no nitrogen limitation and
+`dlnGPP/dlnCO2 = 0.63`, so parameters fitted to 2010 might be too low for
+1901 and the historical trend too steep. `trend_v11d/`: 30 years re-
+equilibrating to `params_fit_v11d` at 296 ppm, then 1901-2010 with real
+forcing and rising CO2.
+
+| decade | GPP (domain area-wtd, kgC m-2 yr-1) |
+|---|---|
+| 1901-1910 | 0.909 |
+| 1931-1940 | 0.946 |
+| 1961-1970 | 0.977 |
+| 1981-1990 | 1.032 |
+| 2001-2010 | 1.098 |
+
+**+21%** over the century, monotonic. Published: Campbell et al. (2017,
+Nature, from COS) +31 +/- 5%; TRENDY ensemble ~20-30%. IBIS sits at the low
+end of the range. The unconstrained CO2 response is not too strong, and the
+fitted parameters do not produce an implausible 1901 state. The concern in
+section 8 is closed.
+
+(The level is still ~1.4x FLUXCOM throughout -- section 10. Trend and level
+are separate questions and this settles only the trend.)
