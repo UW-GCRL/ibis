@@ -541,13 +541,16 @@ domain run's 2001-forcing year: area-weighted GPP **1.3518 vs 1.3519**, median
 per-cell ratio 1.000, p10-p90 0.979-1.021. No wiring difference. The two
 code paths are the same model.
 
-**The gap is the forcing window.** In the domain run at those cells, the
-2001-2003 triplet the fit cycled gives GPP 1.0438 against 1.0578 for
-2001-2010: **-1.3%**. 2002 (US drought) and 2003 (European heat wave) are
-low-GPP years, and cycling only them made the model look less productive
-than it is under the decade. That, plus ~3% CO2 and ~2% window, accounts
-for the 25%. Nothing was miswired; the fit was shown three dry years.
-`--force-years` now defaults to 10.
+**The forcing window is NOT the gap -- correcting the paragraph this replaced.**
+In the domain run at those cells the 2001-2003 triplet gives GPP 1.0438
+against 1.0578 for 2001-2010: **-1.3%**. 2002 and 2003 are drought years
+but the effect on the cycled mean is small. CO2 (~3%) + window (~2%) +
+forcing (~1.3%) is ~6%; **~19% of the fit-vs-domain gap is unexplained**,
+and the harness test above says it is not the code path. What remains is the
+trajectory itself: 28 years from the 2010 state at ~373 ppm against 50 years
+at 389.8. A replay of the fit's exact protocol on its own cells, extended to
+the domain's protocol, is running to isolate it. `--force-years` defaults to
+10 regardless -- a three-year window is a poor climate sample even at 1.3%.
 
 Whatever the harness answer, the calibration has reached what `vmax` and
 `specla` can do: pools in range, spatial pattern largely fixed, high-flux cells
