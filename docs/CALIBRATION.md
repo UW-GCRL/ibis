@@ -451,6 +451,16 @@ comparable numbers.
 | c3_grass | 25.0 | 18.4 | 15-45 | 18.6 | 15.6 |
 | boreal_con_ever / boreal_con_dec / dec_shrub | frozen | | | frozen | |
 
+Sample-level result (unweighted cell means as printed; the loss itself is
+flux-weighted):
+
+    fit:      loss 0.7039  GPP term 0.3097  LAI term 0.7883  GPP 0.714 vs 0.787  LAI 1.57 vs 1.05
+    held out: loss 0.9289  GPP term 0.4721  LAI term 0.9135  GPP 0.702 vs 0.741  LAI 1.56 vs 1.06
+
+Held-out/fitted ratio 1.32, against 1.20 for v11c -- the weighted loss
+generalises slightly less well, as expected when a few high-flux cells carry
+more of it.
+
 
 
 **What changed against v11c.** With the loss no longer fooled by sparse cells,
