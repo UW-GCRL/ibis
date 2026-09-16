@@ -206,8 +206,10 @@ def main():
     ap.add_argument("--adjust-years", type=int, default=10)
     ap.add_argument("--eval-years", type=int, default=3)
     ap.add_argument("--year0", type=int, default=2001)
-    ap.add_argument("--force-years", type=int, default=3,
-                    help="distinct forcing years cycled within an evaluation")
+    ap.add_argument("--force-years", type=int, default=10,
+                    help="distinct forcing years cycled within an evaluation. "
+                         "3 (2001-03) biased v11d low: that triplet holds the 2002 "
+                         "US drought and 2003 European heat wave -- CALIBRATION.md 10")
     ap.add_argument("--exclude-poleward", type=float, default=68.0)
     ap.add_argument("--w-lai", type=float, default=0.5)
     ap.add_argument("--holdout", type=float, default=0.3)

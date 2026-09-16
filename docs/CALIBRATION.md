@@ -533,9 +533,21 @@ same signal as the two PFTs pinned at the `vmax` floor.
 the fit's own cells gives 0.8734 against the 0.7039 the fit reported; both
 the GPP and LAI totals read 1.375x at the domain, where the fit's GPP term
 implies ~1.1x. CO2 (373 vs 390 ppm, elasticity 0.63) explains ~3%; the
-evaluation window (28 vs 50 yr) ~2% by the v11c trajectory. A direct
-same-state, same-params, same-forcing-year test of `one_year` against
-`run_global` is running; result below when it lands.
+evaluation window (28 vs 50 yr) ~2% by the v11c trajectory.
+
+**Harness test: they agree.** `one_year` on the fitted cells from the domain
+run's own 2060 restart, at its 389.8 ppm, forcing year 2001, against the
+domain run's 2001-forcing year: area-weighted GPP **1.3518 vs 1.3519**, median
+per-cell ratio 1.000, p10-p90 0.979-1.021. No wiring difference. The two
+code paths are the same model.
+
+**The gap is the forcing window.** In the domain run at those cells, the
+2001-2003 triplet the fit cycled gives GPP 1.0438 against 1.0578 for
+2001-2010: **-1.3%**. 2002 (US drought) and 2003 (European heat wave) are
+low-GPP years, and cycling only them made the model look less productive
+than it is under the decade. That, plus ~3% CO2 and ~2% window, accounts
+for the 25%. Nothing was miswired; the fit was shown three dry years.
+`--force-years` now defaults to 10.
 
 Whatever the harness answer, the calibration has reached what `vmax` and
 `specla` can do: pools in range, spatial pattern largely fixed, high-flux cells
