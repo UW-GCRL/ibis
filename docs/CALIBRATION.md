@@ -482,3 +482,64 @@ left the directory. `load_physics_params` raised FileNotFoundError rather than
 falling back to defaults, and the `Physics parameters:` log line added the day
 before confirmed the relaunch. Both guards did their job; the generator now
 rewrites the whole `params_file:` line.
+
+### v11d at full domain: worse on magnitude than v11c
+
+`val_v11d/fit`, 50 years from the v11 2010 state, last 5 years:
+
+| quantity | control | fit_v11c (2085) | **fit_v11d (2060)** | observed |
+|---|---|---|---|---|
+| GPP PgC/yr | 234.1 | 172.8 | **182.1** | 120-130 |
+| NPP | 105.4 | 82.3 | 84.8 | 55-60 |
+| Rh | 94.5 | 74.7 | 78.6 | 49-58 |
+| ET mm/yr | 525.0 | 525.7 | 527.1 | 500-550 |
+| veg C PgC | 804.5 | 602.0 | 633.7 | 450-650 |
+| soil C kgC/m2 | 13.74 | 12.55 | 12.97 | 10-15 |
+| LAI mean | 4.35 | 2.49 | **2.15** | |
+
+| band | LAI/MODIS v11c -> v11d | GPP/FLUXCOM v11c -> v11d |
+|---|---|---|
+| 30S-30N | 1.67 -> **1.30** | 1.13 -> 1.18 |
+| 30-50N | 2.01 -> 1.97 | 1.63 -> 1.77 |
+| 50-60N | 1.44 -> 1.39 | 1.53 -> 1.69 |
+| 60-70N | 1.13 -> 1.08 | 1.58 -> 1.82 |
+| 70-90N | 0.57 -> 0.54 | 0.86 -> 1.07 |
+
+LAI improved everywhere; GPP got **worse in every band**. Global GPP rose
+172.8 -> 182.1. The corrected loss did not deliver the magnitude it was built
+to deliver.
+
+### Why -- established so far
+
+**Not the sample.** Band-area shares of the 4,331 fitted cells match the
+domain to within 1% (0.474 / 0.225 / 0.135 / 0.113 against 0.473 / 0.234 /
+0.130 / 0.121); FLUXCOM and MODIS area means within 4%.
+
+**Not the parameters.** Leaf-by-leaf diff of the fit's parameter tree against
+the domain run's: two leaves differ, `rhosoi_val` 2636.5 vs 2650 and
+`csoi_mineral_val` 880.5 vs 870 -- both ~1%, both carried in from the
+`both_fix` yaml used as the template. Nothing that moves GPP 40%.
+
+**The flux-weighted loss did what it was built for.** At the fitted cells in
+the domain run, cells above the 90th percentile of observed GPP (37% of the
+flux) sit at **0.92x**; cells below the median (11% of the flux) sit at
+**2.59x**; median per-cell ratio 1.60x. High-productivity cells are right;
+the 182 PgC/yr excess is carried by the many moderate-and-low-flux cells --
+and a per-PFT parameter cannot separate a sparse cell from a dense one of the
+same PFT. This is a within-PFT, climate-structured pattern, and it is the
+same signal as the two PFTs pinned at the `vmax` floor.
+
+**The harnesses disagree by ~25%.** `score()` applied to the domain run at
+the fit's own cells gives 0.8734 against the 0.7039 the fit reported; both
+the GPP and LAI totals read 1.375x at the domain, where the fit's GPP term
+implies ~1.1x. CO2 (373 vs 390 ppm, elasticity 0.63) explains ~3%; the
+evaluation window (28 vs 50 yr) ~2% by the v11c trajectory. A direct
+same-state, same-params, same-forcing-year test of `one_year` against
+`run_global` is running; result below when it lands.
+
+Whatever the harness answer, the calibration has reached what `vmax` and
+`specla` can do: pools in range, spatial pattern largely fixed, high-flux cells
+on FLUXCOM, and a ~1.4x residual living in low-productivity cells that these
+parameters do not reach. Where that residual actually lives -- water stress,
+sparse-canopy light use, the stomatal coupling that left ET unmoved -- is the
+next question, and it is a process question, not a parameter one.
