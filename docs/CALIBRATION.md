@@ -428,3 +428,47 @@ plateau (2.39). Per-evaluation cost roughly triples; 150 evaluations is
 
 By band at 2085, GPP/FLUXCOM: 1.13 / 1.63 / 1.53 / 1.58 / 0.86. The 30-70N
 excess is unchanged from 2035 -- it is not a transient.
+
+## 10. Re-fit with the corrected loss and a 25-year window (`fit_carbon_v11d`)
+
+152 evaluations, same 4,331 cells and frozen set as v11c; flux-weighted loss
+with a total term (section 9); 25 adjustment years (section 9 addendum).
+
+Loss **1.8787 -> 0.7039** fitted; held-out reported below. Baseline differs
+from v11c's 1.7166 because the loss definition changed -- the two are not
+comparable numbers.
+
+| PFT | vmax0 | **vmax** | bounds | specla0 | **specla** |
+|---|---|---|---|---|---|
+| trop_bl_ever | 65.0 | **40.1** (floor) | 40-100 | 13.0 | 10.1 |
+| trop_bl_dec | 65.0 | 80.5 | 40-100 | 21.6 | **11.5** |
+| warm_bl_ever | 40.0 | **25.4** (floor) | 25-70 | 30.0 | 19.4 |
+| temp_con_ever | 30.0 | 32.4 | 15-50 | 10.8 | 9.4 |
+| temp_bl_dec | 30.0 | 26.9 | 20-60 | 35.0 | **14.5** |
+| boreal_bl_dec | 30.0 | 46.5 | 20-50 | 30.0 | 34.1 |
+| ever_shrub | 27.5 | 28.0 | 15-45 | 9.7 | 7.5 |
+| c4_grass | 15.0 | 15.4 | 8-30 | 15.7 | 10.2 |
+| c3_grass | 25.0 | 18.4 | 15-45 | 18.6 | 15.6 |
+| boreal_con_ever / boreal_con_dec / dec_shrub | frozen | | | frozen | |
+
+
+
+**What changed against v11c.** With the loss no longer fooled by sparse cells,
+`temp_con_ever` went *up* (19.3 -> 32.4) and C4 grass returned to its default
+(8.2 -> 15.4) -- v11c had pushed both down to satisfy cell counts rather than
+flux. The work of lowering GPP moved onto `specla`: temperate broadleaf
+35.0 -> 14.5, tropical deciduous 21.6 -> 11.5. Two PFTs remain pinned at the
+vmax floor -- tropical and warm-temperate evergreen -- so the section-9
+conclusion stands for those: their excess is not a vmax problem.
+
+**Not yet evidence.** Sample agreement did not survive the full domain last
+time. `val_v11d/fit` (50 yr, all cells) is the test; then the 1901-2010
+trend check (`trend_v11d/`), then fire and methane re-validation, all
+chained.
+
+Operational note: the validation's first launch pointed at
+`fit_carbon_v11c/params_fit_v11d.yaml` -- a sed that swapped the filename and
+left the directory. `load_physics_params` raised FileNotFoundError rather than
+falling back to defaults, and the `Physics parameters:` log line added the day
+before confirmed the relaunch. Both guards did their job; the generator now
+rewrites the whole `params_file:` line.
