@@ -602,3 +602,31 @@ section 8 is closed.
 
 (The level is still ~1.4x FLUXCOM throughout -- section 10. Trend and level
 are separate questions and this settles only the trend.)
+
+## 12. Fire and methane on the calibrated state
+
+Both modules were validated on `both_fix` (FIRE.md 9, METHANE.md 5q). v11d
+has no `vmax x0.54`, no soil-OM `x0.67`, a vegetated Arctic, and 634 rather
+than 481 PgC of vegetation. Re-run with **no fire or methane parameter
+changed** -- the same discipline that made 5q clean.
+
+### Fire (`evaluate_gfed5.py`, 2001-2005, 95,333 cells)
+
+| metric | biased fuel | both_fix | **v11d** | GFED5 |
+|---|---|---|---|---|
+| burned fraction | 4.23% | 3.59% | **3.10%** | 4.60% |
+| rank, all cells | 0.749 | 0.742 | **0.759** | -- |
+| rank, burning cells | 0.410 | 0.376 | 0.365 | -- |
+| NMSE | 0.715 | 0.754 | 0.814 | -- |
+| mean \|lat\|, top 2000 | 11.9 | 10.9 | 10.1 | 10.8 |
+
+Burned area fell with the fuel load and sits **inside the 2.38-4.60%
+product spread** (MCD64A1 2.38, GFED4s 2.86, GFED5 4.60). All-cell rank is
+the best of any state. Top-2000 latitude is now 0.7 deg too tropical where
+both_fix was 0.1 deg off; the Arctic filling in moved fuel poleward less than
+it moved GPP. Fire remains a consequence of the carbon state, not a tuned
+quantity.
+
+`evaluate_gfed5.report()` now drops non-finite cells: the one NaN cell in v11
+states had turned the burned fraction and the all-cell rank into NaN on the
+first pass.

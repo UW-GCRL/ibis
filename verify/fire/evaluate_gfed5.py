@@ -99,6 +99,13 @@ def observed(gfed5_dir, li, lo, mlat, mlon, years, component="Norm"):
 def report(pred, obs, lat, label="model"):
     """The metric set quoted in docs/FIRE.md."""
     aw = np.cos(np.deg2rad(lat))
+    # v11 states carry one fully-NaN cell (68.75N -26.75E, Greenland margin;
+    # docs/CALIBRATION.md 8). Unmasked, it turns the area-weighted burned
+    # fraction and the all-cell rank into NaN. Drop non-finite cells first.
+    ok = np.isfinite(pred) & np.isfinite(obs) & np.isfinite(aw)
+    if not ok.all():
+        print(f"    ({int((~ok).sum())} non-finite cell(s) dropped)")
+        pred, obs, aw, lat = pred[ok], obs[ok], aw[ok], lat[ok]
     aw = aw / aw.sum()
     burning = obs > 0
     nmse = ((pred - obs) ** 2).sum() / ((obs - obs.mean()) ** 2).sum()
