@@ -160,16 +160,24 @@ already holds the trajectory.
 PYTHONPATH=python-port:. /shared/nas2/Hangkai/ibis-env/ibis-python \
   verify/fire/evaluate_gfed5.py              # add --calibrate to fit
 ```
-Reference values: burned area ×0.92, rank +0.749 all / +0.410 burning,
-NMSE 0.723, mean |lat| 11.9 against GFED5's 10.7.
+Reference values on `both_fix` (FIRE.md §9): burned area 3.59% against GFED5
+4.60% -- inside the 2.38-4.60% product spread -- rank +0.742 all / +0.376
+burning, NMSE 0.754, mean |lat| 10.9 against GFED5's 10.8. The earlier ×0.92
+figure rested on a 1.7× fuel-load bias and is retired.
+
+**`both_fix` is itself superseded by v11** (CALIBRATION.md §8-9); fire and
+methane re-validation on the v11 calibrated state is pending and these numbers
+should be re-checked before being quoted.
 
 ### Methane evaluation against the Global Methane Budget
 ```bash
 PYTHONPATH=python-port:. /home/hangkai/.venvs/ibis-gpu/bin/python \
   verify/methane/evaluate_global.py --config all
 ```
-~12 min. Current status is **uncalibrated** — 2.9× high globally and too
-tropical; see METHANE.md §5j–5k before quoting any number from it.
+~12 min. On `both_fix` with `--config biome_tref` (the production config,
+METHANE.md §5q): 182 Tg/yr against GMB 158 [119-203], shape error 11.0,
+latitudinal split 72.7 / 19.8 / 1.0 % against 70 / 21 / 8. The 2.9× figure
+predates the carbon correction and is retired. Same v11 caveat as fire.
 
 ---
 
