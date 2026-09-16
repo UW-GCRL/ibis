@@ -541,16 +541,35 @@ domain run's 2001-forcing year: area-weighted GPP **1.3518 vs 1.3519**, median
 per-cell ratio 1.000, p10-p90 0.979-1.021. No wiring difference. The two
 code paths are the same model.
 
-**The forcing window is NOT the gap -- correcting the paragraph this replaced.**
-In the domain run at those cells the 2001-2003 triplet gives GPP 1.0438
-against 1.0578 for 2001-2010: **-1.3%**. 2002 and 2003 are drought years
-but the effect on the cycled mean is small. CO2 (~3%) + window (~2%) +
-forcing (~1.3%) is ~6%; **~19% of the fit-vs-domain gap is unexplained**,
-and the harness test above says it is not the code path. What remains is the
-trajectory itself: 28 years from the 2010 state at ~373 ppm against 50 years
-at 389.8. A replay of the fit's exact protocol on its own cells, extended to
-the domain's protocol, is running to isolate it. `--force-years` defaults to
-10 regardless -- a three-year window is a poor climate sample even at 1.3%.
+**Resolved by replay: there was no gap, only an inference error.** Replaying
+the fit's exact protocol on its own cells reproduced its logged numbers to the
+digit (yr 26-28: GPP 0.714, LAI 1.57). The flux-weighted ratio the fit
+actually saw was **GPP 1.297x, LAI 1.295x** -- not the ~1.1x inferred above
+by assuming its per-cell term equalled the domain's, and not the 0.91x its
+unweighted printout showed. Continuing the same state under the domain
+protocol (2001-10, 389.8 ppm) to year 50 gave **1.380x / 1.389x** against the
+domain run's 1.375x / 1.377x. The 1.30 -> 1.38 step is CO2 (373 -> 390 ppm,
+~2.7%), forcing years (-1.3% for the 2001-03 triplet), and LAI still rising
+(1.295 -> 1.389). Fully accounted.
+
+The "~19% unexplained" two paragraphs up was a decomposition by assumption
+where a measurement was available. Left in place as a record.
+
+**What the fit actually hit.** It converged with GPP at 1.30x and could not
+go lower. Lowering `vmax` helps both loss terms, so the optimiser should have
+driven every `vmax` to its floor -- and it did for tropical and warm-temperate
+evergreen. It raised the others (`temp_con_ever` 30 -> 32.4, `boreal_bl_dec`
+30 -> 46.5, `trop_bl_dec` 65 -> 80.5) because the productive cells of those
+PFTs sat at 0.92x and the flux weighting told it to lift them -- which lifted
+the sparse cells of the same PFT that were already at 2.6x. **Raising the
+productive cells and lowering the sparse cells of one PFT require opposite
+moves on the same parameter.** The fit is at a genuine optimum of a
+parameterisation that cannot express the answer. That is the finding, and it
+is why the next step is a process question -- what makes a sparse cell of a
+given PFT 2.6x too productive when a dense one is right -- not another fit.
+
+`--force-years` defaults to 10 regardless; a three-year window is a poor
+climate sample even at 1.3%.
 
 Whatever the harness answer, the calibration has reached what `vmax` and
 `specla` can do: pools in range, spatial pattern largely fixed, high-flux cells
