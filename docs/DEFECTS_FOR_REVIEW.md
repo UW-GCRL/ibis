@@ -454,3 +454,34 @@ years, 0 NaN, soil carbon drift +0.017 %/yr). Equilibrium total NPP is
 -106 the broken accumulator reported -- the check that the fix works. The
 carbon state reproduced the archived run almost exactly, as it must, since the
 fixes were to diagnostics and not to physics.
+
+## One NaN cell in every v11 state (open)
+
+**Found 2026-09-11, diagnosed 2026-09-16.** Cell index 8028, **68.75N
+-26.75E** -- the Greenland ice-sheet margin. Present in `v11_spinup` (year
+1900), `v11_transient` (2010) and every state descended from them; **absent
+from `both_fix`** at the same cell.
+
+**What is NaN.** 133 of 258 leaves at that cell and no other. The first
+ones are soil: `tsoi`, `wsoi`, `wisoi`, `tg`, `wpud`, `wipud` -- temperature,
+liquid water, ice, ground temperature and both puddle stores. Soil texture
+is ordinary and identical to the west neighbour (sand 40 / clay 20). So this
+is the freeze-thaw / puddle hydrology path failing at an ice-margin cell
+under default parameters, not a vegetation or texture problem. Same class as
+2.5 above.
+
+**Why both_fix escaped it.** Not established. `both_fix` ran `vmax x0.54`
+and 350 ppm from cold; v11 ran defaults and 296 ppm. Higher productivity at
+the margin plausibly pushes the hydrology into the failing branch, but that
+is a hypothesis.
+
+**Consequence.** It has cost four reruns: `state_report.py`,
+`evaluate_gfed5.py` and `evaluate_global.py` each aggregated without masking
+and returned NaN for a whole domain on the strength of one cell. All three
+now drop non-finite cells and say so. IBIS has no lateral coupling, so it
+cannot spread.
+
+**Not fixed at the source.** A one-cell NaN in 95,333 is tolerable for the
+calibration; it is not tolerable in a released model. Localising the first
+non-finite operation (run the cell alone from the 1900 restart with
+`jax.debug` checks) is the next step when someone picks this up.
