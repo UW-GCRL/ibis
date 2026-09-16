@@ -2179,3 +2179,32 @@ _(empty — first entry goes here)_
 Not publicly available: JULES (MOSRS), ORCHIDEE (forge registration), LPJ-GUESS,
 LPJ-WHyMe, TEM, ecosys. No JAX or Python reference implementation of either
 scheme exists — searched, nothing credible. **We would be first on that.**
+
+## 5r. The high-latitude deficit was `vmax x0.54`, not structure (2026-09-16)
+
+5q diagnosed the 1.0% Arctic share (target 8%) as structural: no
+vertically resolved decomposition, no cryoturbation, no deep carbon, Arctic
+soil carbon 4.33 against NCSCD ~55 kgC m-2. Those gaps are real. They were
+not the cause.
+
+The calibration work (docs/CALIBRATION.md 4, 8) found that `vmax x0.54` --
+the global scalar behind both_fix's GPP agreement -- had put nine of twelve
+PFTs below their physiological minimum and suppressed high-latitude
+productivity below viability: 60-70N LAI 0.48 against MODIS 1.40, NPP at
+70-90N 0.003 kgC m-2 yr-1. With no carbon input there was nothing to
+decompose, and no vertical scheme would have changed that.
+
+On the v11d state (default-physics spin-up, per-PFT calibration, no scalar),
+with **no methane parameter changed**, `biome_tref` gives a 60-90N share of
+**10.3%** and every configuration's Arctic share rose 4-12x. Full table in
+CALIBRATION.md 12. The 5q conclusion is withdrawn; the module was right.
+
+Two consequences. Magnitude is now 251 Tg for `biome_tref` -- x1.38 on
+182 -- and Rh is x1.36: the excess is the carbon cycle's, and 5m's refusal to
+fit `r_CH4` stands. And the ranking inverted a second time: `biome_noq10`
+(Q10 = 1) now has the best latitudinal shape (10.3) while `biome_tref` keeps
+the better seasonal peak. A production choice between them belongs on
+FLUXNET-CH4 sites, not on another global re-rank.
+
+The general caution from 5q applies to 5q itself: a structural diagnosis
+made on a biased carbon state can be wrong for the state's faults.

@@ -169,8 +169,11 @@ def run(state_path, wad2m_path, gswp3_dir, year, nsoilcall, configs):
         w = (np.asarray(sm["rh"]) * np.asarray(anaerobic_substrate_fraction(zwt))
              * (tth >= 273.15) * np.asarray(clim[m]))
         for b, msk in bands.items():
-            tref_band[b] = tref_band.get(b, 0.0) + float((tth[msk] * w[msk]).sum())
-            w_band[b] = w_band.get(b, 0.0) + float(w[msk].sum())
+            # v11 states carry one NaN cell (68.75N -26.75E); unmasked it makes
+            # the 60-90N reference temperature -- and every total -- NaN.
+            fin = msk & np.isfinite(tth) & np.isfinite(w)
+            tref_band[b] = tref_band.get(b, 0.0) + float((tth[fin] * w[fin]).sum())
+            w_band[b] = w_band.get(b, 0.0) + float(w[fin].sum())
     tref_band = {b: tref_band[b] / max(w_band[b], 1e-12) for b in bands}
     print("\n  production-weighted anaerobic T per band (K): "
           + ", ".join(f"{b} {tref_band[b]:.1f}" for b in bands))
@@ -200,11 +203,11 @@ def run(state_path, wad2m_path, gswp3_dir, year, nsoilcall, configs):
                 jnp.asarray(clim[m]), jnp.asarray(s["rh"]),
                 jnp.asarray(s["tsoi"]), jnp.asarray(s["wsoi"]),
                 jnp.asarray(s["wisoi"]), hsoi, p))
-            tg = (f * area).sum() * NDAYPM[m] * KGC_TO_TG_CH4
+            tg = np.nansum(f * area) * NDAYPM[m] * KGC_TO_TG_CH4
             tot += tg
             monthly.append(tg)
             for b, msk in bands.items():
-                per_band[b] += (f[msk] * area[msk]).sum() * NDAYPM[m] * KGC_TO_TG_CH4
+                per_band[b] += np.nansum(f[msk] * area[msk]) * NDAYPM[m] * KGC_TO_TG_CH4
         share = {b: v / max(tot, 1e-9) * 100 for b, v in per_band.items()}
         err = sum(abs(share[b] - GMB_SHARES[b]) for b in bands)
         peak = int(np.argmax(monthly)) + 1

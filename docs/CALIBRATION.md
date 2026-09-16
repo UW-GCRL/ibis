@@ -630,3 +630,37 @@ quantity.
 `evaluate_gfed5.report()` now drops non-finite cells: the one NaN cell in v11
 states had turned the burned fraction and the all-cell rank into NaN on the
 first pass.
+
+### Methane (`evaluate_global.py --config all`, forcing year 2005)
+
+| config | both_fix Tg | **v11d Tg** | both_fix split | **v11d split** (30S-30N / 30-60N / 60-90N) | shape both_fix -> v11d | peak |
+|---|---|---|---|---|---|---|
+| GMB target | 158 | | 70 / 21 / 8 | | | 7-8 |
+| global | 271.1 | 307.0 | 92.5 / 5.4 / 0.4 | 84.6 / 9.2 / 4.6 | 45.7 -> 29.8 | 3 -> 7 |
+| biome | 328.3 | 375.6 | 93.6 / 3.9 / 0.4 | 84.7 / 8.3 / 5.2 | 48.2 -> 30.2 | 3 -> 5 |
+| biome_q10 | 412.8 | 449.0 | 97.0 / 1.6 / 0.1 | 93.9 / 3.2 / 1.7 | 54.3 -> 47.9 | 3 -> 3 |
+| **biome_noq10** | 283.1 | 373.2 | 87.5 / 8.1 / 1.2 | **68.1 / 17.0 / 12.4** | 37.3 -> **10.3** | 3 -> 6 |
+| biome_tref | **182.0** | 250.9 | 72.7 / 19.8 / **1.0** | 53.9 / 30.6 / **10.3** | **11.0** -> 28.0 | 6 -> **7** |
+
+**The high-latitude deficit was never structural.** METHANE.md 5q put the
+1.0% Arctic share (target 8%) down to missing cryoturbation, vertical
+resolution and deep carbon. On v11d, with no methane parameter changed,
+`biome_tref` gives **10.3%** and every configuration's Arctic share rose
+4-12x. The deficit was `vmax x0.54` starving the Arctic of carbon input
+(section 4). The methane module was reporting the carbon state faithfully.
+
+**Magnitude is the Rh ratio.** 182.0 -> 250.9 Tg is x1.38; Rh 57.9 -> 78.6
+PgC/yr is x1.36. Linear, as 5p predicted. The methane excess IS the
+section-10 carbon-flux excess. Fitting `r_CH4` to close it would be the
+double-count 5m refused; nothing to fit here.
+
+**The ranking inverted again.** `biome_tref` won on both_fix; on v11d
+`biome_noq10` -- Q10 = 1, temperature entering only through Rh -- lands on
+the latitudinal target (shape 10.3), while `biome_tref` overshoots the Arctic
+(10.3 vs 8) and undershoots the tropics (53.9 vs 70) but keeps the right
+seasonal peak (7). Second time a configuration has been ranked on a biased
+carbon state and re-ranked on a corrected one (5q was the first). The
+production choice should now be made on FLUXNET-CH4 towers (M3; 108 sites,
+31 north of 60N), not on a third global re-rank.
+
+`evaluate_global.py` now masks the NaN cell in tref weighting and flux sums.

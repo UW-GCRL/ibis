@@ -165,9 +165,9 @@ Reference values on `both_fix` (FIRE.md §9): burned area 3.59% against GFED5
 burning, NMSE 0.754, mean |lat| 10.9 against GFED5's 10.8. The earlier ×0.92
 figure rested on a 1.7× fuel-load bias and is retired.
 
-**`both_fix` is itself superseded by v11** (CALIBRATION.md §8-9); fire and
-methane re-validation on the v11 calibrated state is pending and these numbers
-should be re-checked before being quoted.
+**`both_fix` is superseded by v11d** (CALIBRATION.md §8-12). On v11d, no fire
+parameter changed: burned area **3.10%** (inside the 2.38-4.60% spread),
+rank +0.759 all / +0.365 burning, NMSE 0.814, mean |lat| 10.1 against 10.8.
 
 ### Methane evaluation against the Global Methane Budget
 ```bash
@@ -176,8 +176,11 @@ PYTHONPATH=python-port:. /home/hangkai/.venvs/ibis-gpu/bin/python \
 ```
 ~12 min. On `both_fix` with `--config biome_tref` (the production config,
 METHANE.md §5q): 182 Tg/yr against GMB 158 [119-203], shape error 11.0,
-latitudinal split 72.7 / 19.8 / 1.0 % against 70 / 21 / 8. The 2.9× figure
-predates the carbon correction and is retired. Same v11 caveat as fire.
+latitudinal split 72.7 / 19.8 / 1.0 % against 70 / 21 / 8. On **v11d**
+(CALIBRATION.md §12, METHANE.md §5r): `biome_tref` 251 Tg, split
+53.9 / 30.6 / 10.3, peak 7; `biome_noq10` now has the best shape (10.3).
+The Arctic deficit was `vmax x0.54`, not structure. Magnitude tracks Rh
+(x1.4); do not fit `r_CH4` to it.
 
 ---
 
