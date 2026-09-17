@@ -396,7 +396,7 @@ def main():
     free = counts >= a.min_cells
     log.info("PFTs free to move (>= %d dominant cells): %s", a.min_cells,
              [PFT_NAMES[k] for k in range(12) if free[k]])
-    log.info("PFTs FROZEN at defaults (too few cells to identify): %s",
+    log.info("PFTs FROZEN at their STARTING values (too few cells to identify): %s",
              [f"{PFT_NAMES[k]}({counts[k]})" for k in range(12) if not free[k]])
 
     rng = np.random.default_rng(a.seed)
