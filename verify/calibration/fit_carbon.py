@@ -226,6 +226,8 @@ EXTRAS = {
     "cover_k":          (_set_pft(lambda p: p.cover_k),                 0.2,   2.0, True),
     "fl_min":           (_set_pft(lambda p: p.fl_min),                 0.01,  0.25, True),
     "fu_min":           (_set_pft(lambda p: p.fu_min),                 0.01,  0.25, True),
+    # wood-to-cover scale for fu; 1.0 = F77
+    "fu_k":             (_set_pft(lambda p: p.fu_k),                    0.5,  10.0, True),
 }
 NPFT = 12
 
@@ -244,7 +246,7 @@ def extras_defaults(sp, names, pft=None):
     for n in names:
         if n == "stressfac":
             out[n] = float(sp.stomata_params.stressfac)
-        elif n in ("cover_k", "fl_min", "fu_min"):
+        elif n in ("cover_k", "fl_min", "fu_min", "fu_k"):
             out[n] = float(getattr(pft, n))
         else:
             out[n] = float(getattr(sp.pheno, n))

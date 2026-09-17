@@ -994,3 +994,43 @@ trees carrying 0.9 kgC m-2 of wood over 60% of a sparse cell where real tree
 cover is 5-20%. That canopy carries half the assimilation and none of the
 levers so far reach it. A wood-to-cover scale for `fu` is the next lever, and
 it must be tested on dense cells as well as sparse ones.
+
+### Lever test 5: cover on sparse AND dense cells -- arrangement cancels
+
+`PFTParams.fu_k` (fu = (1 - exp(-wood/k)) / (1 - exp(-woodnorm/k)); 1.0 =
+F77). Inert default, bit-identical, guarded. Tested on the 60 sparse cells
+and on 60 dense well-fitted cells (annual ratio 0.8-1.25, top-quartile
+FLUXCOM GPP; mean lat 12.6 -- tropical forest):
+
+| case | sparse: fl / fu / plai | NH annual | dense: fl / fu / plai | annual |
+|---|---|---|---|---|
+| default (F77) | 0.69 / 0.60 / 2.11 | 2.31 | 0.28 / 0.95 / 3.23 | 0.98 |
+| fu_k 3 | 0.70 / 0.52 / 2.09 | 2.27 | 0.28 / 0.89 / 3.19 | 0.96 |
+| fu_k 6 | 0.70 / 0.49 / 2.08 | 2.25 | 0.28 / 0.84 / 3.15 | 0.93 |
+| cover_k 0.5 + fu_k 3 | 0.31 / 0.52 / 1.77 | 1.94 | 0.26 / 0.89 / 3.16 | 0.95 |
+| + floors 0.05 | 0.24 / 0.43 / 1.74 | 1.92 | 0.06 / 0.89 / 3.14 | 0.94 |
+| + tthresh_u_abs 8 + stress 0.7 | 0.24 / 0.43 / 1.57 | **1.72** | 0.06 / 0.89 / 3.05 | **0.91** |
+
+**Upper-canopy cover is a weak lever (-3%)**, and the reason corrects an
+earlier claim in this section: cover is not linear in GPP. When cover falls
+the same leaves crowd into less ground (`lai = avglai / fu`), and in an
+unsaturated canopy GPP ~ cover x f(LAI/cover) ~ total leaf area -- the
+arrangement cancels. Cover bites only where it crowds leaves into
+saturation, which is what the lower canopy did (-14%, with `plai` falling as
+feedback). Dense cells lose 2-7% under the same levers, so they are not free.
+
+**Every structural lever tested acts on leaf display or arrangement. None
+acts on the amount of leaf area the vegetation model grows**, and in the
+unsaturated regime GPP tracks that amount. The sparse cells carry 2.4x MODIS
+leaf area; the model's GPP follows. The amount is set by the allocation
+attractor (LAI = NPP x aleaf x tauleaf x specla) and is per-PFT -- and the
+stage-(a) fit already shows the within-PFT trade-off with names: it *raised*
+`vmax` for tropical deciduous (65 -> 80.5) and boreal deciduous (30 -> 46.5)
+because their dense cells read 0.92x, worsening the sparse cells of the same
+PFTs.
+
+Before designing around that: 80% of the annual excess is off-season GPP
+judged against FLUXCOM values of ~0.013 kgC m-2 mo-1 -- a machine-learning
+product at its noise floor (the clipped negative winters are that noise),
+known to be weak in dry systems. The semi-arid FLUXNET2015 towers test that
+target directly; result below.

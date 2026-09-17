@@ -54,6 +54,10 @@ class PFTParams(eqx.Module):
     cover_k: float = 0.0
     fl_min: float = 0.25
     fu_min: float = 0.25
+    #: Wood-to-cover scale for the upper canopy: fu = (1 - exp(-wood / fu_k)) /
+    #: (1 - exp(-woodnorm / fu_k)). F77 is fu_k = 1.0, which puts trees with
+    #: 0.9 kgC m-2 of wood over 60% of a cell (docs/CALIBRATION.md 14).
+    fu_k: float = 1.0
 
 
 def default_pft_params() -> PFTParams:

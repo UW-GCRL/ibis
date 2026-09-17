@@ -253,7 +253,7 @@ def biomass_update(
     for j in range(8):  # upper canopy PFTs only
         wood = wood + jnp.maximum(0.0, cbiow[:, j])
 
-    fu = (1.0 - jnp.exp(-wood)) / (1.0 - jnp.exp(-woodnorm))
+    fu = (1.0 - jnp.exp(-wood / pft_params.fu_k)) / (1.0 - jnp.exp(-woodnorm / pft_params.fu_k))
     fu = jnp.maximum(pft_params.fu_min, jnp.minimum(0.975, fu))
 
     totlaiu = jnp.sum(plai[:, :8], axis=1)
@@ -536,7 +536,7 @@ def dynaveg(
         disturb_total = disturbf_val * _mort_mean + disturbo_val
     else:
         disturb_total = disturbf_val + disturbo_val
-    fu = (1.0 - jnp.exp(-wood)) / (1.0 - jnp.exp(-woodnorm))
+    fu = (1.0 - jnp.exp(-wood / pft_params.fu_k)) / (1.0 - jnp.exp(-woodnorm / pft_params.fu_k))
     fu = fu * (1.0 - disturb_total)
     fu = jnp.maximum(pft_params.fu_min, jnp.minimum(0.975, fu))
 

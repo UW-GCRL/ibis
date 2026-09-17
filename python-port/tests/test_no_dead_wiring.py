@@ -314,9 +314,9 @@ def test_cover_params_default_to_f77_and_are_wired():
     from pathlib import Path
     from ibis.io.parameters import default_pft_params
     p = default_pft_params()
-    assert (float(p.cover_k), float(p.fl_min), float(p.fu_min)) == (0.0, 0.25, 0.25)
+    assert (float(p.cover_k), float(p.fl_min), float(p.fu_min), float(p.fu_k)) == (0.0, 0.25, 0.25, 1.0)
     src = (Path(__file__).resolve().parents[1] / "ibis" / "physics" / "vegetation_dynamics.py").read_text()
     a, b = src.split("def dynaveg(")          # biomass_update precedes dynaveg
     for half, nm in ((a, "biomass_update"), (b, "dynaveg")):
-        for f in ("pft_params.cover_k", "pft_params.fl_min", "pft_params.fu_min"):
+        for f in ("pft_params.cover_k", "pft_params.fl_min", "pft_params.fu_min", "pft_params.fu_k"):
             assert f in half, f"{f} not read in {nm}"
