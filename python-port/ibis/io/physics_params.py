@@ -246,6 +246,8 @@ def build_pft_params(d: dict) -> PFTParams:
         fl_min=float(s.get('fl_min', defaults.fl_min)),
         fu_min=float(s.get('fu_min', defaults.fu_min)),
         fu_k=float(s.get('fu_k', defaults.fu_k)),
+        tree_stress_min=float(s.get('tree_stress_min', defaults.tree_stress_min)),
+        tree_stress_ramp=float(s.get('tree_stress_ramp', defaults.tree_stress_ramp)),
     )
 
 

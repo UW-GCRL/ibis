@@ -228,7 +228,12 @@ EXTRAS = {
     "fu_min":           (_set_pft(lambda p: p.fu_min),                 0.01,  0.25, True),
     # wood-to-cover scale for fu; 1.0 = F77
     "fu_k":             (_set_pft(lambda p: p.fu_k),                    0.5,  10.0, True),
+    # water-limited tree establishment: survival = clip((mean stresstu - min)/ramp)
+    "tree_stress_min":  (_set_pft(lambda p: p.tree_stress_min),        0.10,  0.90, False),
+    "tree_stress_ramp": (_set_pft(lambda p: p.tree_stress_ramp),       0.05,  0.50, True),
 }
+#: extras that need the StressAccum attached to the state
+NEEDS_STRESS_ACCUM = ("tree_stress_min", "tree_stress_ramp")
 NPFT = 12
 
 
@@ -246,7 +251,7 @@ def extras_defaults(sp, names, pft=None):
     for n in names:
         if n == "stressfac":
             out[n] = float(sp.stomata_params.stressfac)
-        elif n in ("cover_k", "fl_min", "fu_min", "fu_k"):
+        elif n in ("cover_k", "fl_min", "fu_min", "fu_k", "tree_stress_min", "tree_stress_ramp"):
             out[n] = float(getattr(pft, n))
         else:
             out[n] = float(getattr(sp.pheno, n))
@@ -430,6 +435,11 @@ def main():
     state0 = jax.tree.map(
         lambda x: jnp.nan_to_num(x, nan=0.0) if isinstance(x, jnp.ndarray)
         and jnp.issubdtype(x.dtype, jnp.floating) else x, state0)
+    if any(n in NEEDS_STRESS_ACCUM for n in a.extras.split(",")):
+        from ibis.state.stress_accum import create_stress_accum
+        state0 = eqx.tree_at(lambda s: s.stress, state0, create_stress_accum(len(sel)),
+                             is_leaf=lambda x: x is None)
+        log.info("StressAccum attached: tree-establishment gate is fittable")
     # CO2 is NOT set here: `one_year` calls apply_co2(state, year) itself, so
     # it follows the evaluation year (2001-2005 -> 371-380 ppm). Setting it
     # here as well would have been a flag that parses and does nothing, which

@@ -58,6 +58,11 @@ class PFTParams(eqx.Module):
     #: (1 - exp(-woodnorm / fu_k)). F77 is fu_k = 1.0, which puts trees with
     #: 0.9 kgC m-2 of wood over 60% of a cell (docs/CALIBRATION.md 14).
     fu_k: float = 1.0
+    #: Water-limited tree establishment (docs/CALIBRATION.md 14): upper-canopy
+    #: survival = clip((annual-mean stresstu - tree_stress_min) / tree_stress_ramp,
+    #: 0, 1). -1.0 never binds: F77 has no water limit on where trees grow.
+    tree_stress_min: float = -1.0
+    tree_stress_ramp: float = 0.2
 
 
 def default_pft_params() -> PFTParams:

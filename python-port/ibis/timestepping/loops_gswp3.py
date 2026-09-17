@@ -436,6 +436,15 @@ def _run_month_scan(
             (st.summary.ayco2mic + rh_day, st.summary.ayco2root + rr_day),
         )
         st = new_sm
+        # Annual-mean soil-water stress for the tree-establishment gate
+        # (docs/CALIBRATION.md 14). Structure is static, so this branch is
+        # resolved at trace time and costs nothing when the field is None.
+        if st.stress is not None:
+            st = eqx.tree_at(
+                lambda s: (s.stress.aystressu, s.stress.aystressl, s.stress.nday), st,
+                (st.stress.aystressu + st.soil.stresstu,
+                 st.stress.aystressl + st.soil.stresstl,
+                 st.stress.nday + 1.0))
         # Ensure all floats stay float32 so lax.scan carry types match
         st = _cast_tree_f32(st)
 
@@ -942,6 +951,8 @@ def run_spinup_gswp3(
                    sm.ayco2mic, sm.ayco2root, sm.ayprcp, sm.ayaet,
                    sm.aytrunof, sm.aytdrain)),
         )
+        from ibis.state.stress_accum import reset_stress_accum
+        state = reset_stress_accum(state)
 
         if on_year_end is not None:
             try:

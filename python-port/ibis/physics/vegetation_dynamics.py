@@ -318,6 +318,7 @@ def dynaveg(
     fire_scheme: str = LEGACY,
     fire_params: FireParams | None = None,
     popd: Float[Array, "npoi"] | None = None,
+    tree_surv=None,
 ) -> tuple[VegetationState, CarbonState, SummaryState]:
     """Annual dynamic vegetation update.
 
@@ -406,6 +407,17 @@ def dynaveg(
 
         # Accumulate wood for upper canopy PFTs (1-8)
         wood = jnp.where(j < 8, wood + jnp.maximum(0.0, cbiow_j), wood)
+
+    # Water-limited tree establishment (docs/CALIBRATION.md 14): an annual
+    # survival factor on the upper-canopy PFTs from the year's mean soil-water
+    # stress. None (default) leaves the pools exactly as F77 computes them.
+    if tree_surv is not None:
+        ts = tree_surv[:, None]
+        m8 = (jnp.arange(npft) < 8)[None, :]
+        cbiol = jnp.where(m8, cbiol * ts, cbiol)
+        cbiow = jnp.where(m8, cbiow * ts, cbiow)
+        cbior = jnp.where(m8, cbior * ts, cbior)
+        wood = wood * tree_surv
 
     # --- Apply disturbances ---
     disturbf_val = jnp.full_like(veg.fu, 0.005)
@@ -513,6 +525,8 @@ def dynaveg(
     biomass = veg.biomass
     for j in range(npft):
         cbiol_min = exist[:, j] * xminlai / specla[j]
+        if tree_surv is not None and j < 8:
+            cbiol_min = cbiol_min * (tree_surv > 0.0)
         cbiol = cbiol.at[:, j].set(jnp.maximum(cbiol_min, cbiol[:, j]))
         plai = plai.at[:, j].set(cbiol[:, j] * specla[j])
         biomass = biomass.at[:, j].set(cbiol[:, j] + cbiow[:, j] + cbior[:, j])

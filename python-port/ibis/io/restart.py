@@ -82,16 +82,29 @@ def load_state(path: str, template_state):
     leaves_template, treedef = jax.tree.flatten(template_state)
     num_leaves = int(data["num_leaves"])
 
-    if num_leaves != len(leaves_template):
+    n_fill = len(leaves_template) - num_leaves
+    if n_fill < 0 or n_fill > 3:
         raise ValueError(
             f"Checkpoint has {num_leaves} leaves but template has "
             f"{len(leaves_template)}. State structure mismatch. "
             f"Use scripts/convert_restart.py to migrate old restarts."
         )
+    if n_fill:
+        # Trailing-leaf migration: a template with the optional StressAccum
+        # (3 leaves, declared after every other field) may load a checkpoint
+        # written without it; the accumulator starts from the template's zeros.
+        import logging
+        logging.getLogger(__name__).warning(
+            "Checkpoint has %d leaves, template %d: filling the %d trailing "
+            "leaves (stress accumulator) from the template.",
+            num_leaves, len(leaves_template), n_fill)
 
     # Restore leaves
     new_leaves = []
     for i, tmpl in enumerate(leaves_template):
+        if i >= num_leaves:
+            new_leaves.append(tmpl)
+            continue
         if f"leaf_{i}_is_none" in data:
             new_leaves.append(None)
         else:

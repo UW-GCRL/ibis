@@ -320,3 +320,27 @@ def test_cover_params_default_to_f77_and_are_wired():
     for half, nm in ((a, "biomass_update"), (b, "dynaveg")):
         for f in ("pft_params.cover_k", "pft_params.fl_min", "pft_params.fu_min", "pft_params.fu_k"):
             assert f in half, f"{f} not read in {nm}"
+
+
+
+def test_tree_gate_inert_by_default_and_wired():
+    """tree_stress_min = -1 never binds; the accumulator is off unless asked for;
+    the survival factor is threaded into dynaveg from the callers; old
+    258-leaf checkpoints load into a with_stress template."""
+    import numpy as np, jax
+    from pathlib import Path
+    from ibis.io.parameters import default_pft_params
+    from ibis.state.model_state import create_ibis_state
+    from ibis.dimensions import GridConfig
+    p = default_pft_params()
+    assert (float(p.tree_stress_min), float(p.tree_stress_ramp)) == (-1.0, 0.2)
+    g = GridConfig(npoi=4, nbedrock=3)
+    n0 = len(jax.tree.leaves(create_ibis_state(g)))
+    n1 = len(jax.tree.leaves(create_ibis_state(g, with_stress=True)))
+    assert n1 == n0 + 3, "StressAccum must add exactly three trailing leaves"
+    vd = (Path(__file__).resolve().parents[1] / "ibis" / "physics" / "vegetation_dynamics.py").read_text()
+    assert "tree_surv=None" in vd and "cbiol * ts" in vd and "tree_surv > 0.0" in vd
+    lp = (Path(__file__).resolve().parents[1] / "ibis" / "timestepping" / "loops_gswp3.py").read_text()
+    assert "s.stress.aystressu" in lp and "reset_stress_accum(state)" in lp
+    st_ = (Path(__file__).resolve().parents[2] / "verify" / "calibration" / "site_transient.py").read_text()
+    assert "tree_surv=tree_survival(state, c[\"pft\"])" in st_

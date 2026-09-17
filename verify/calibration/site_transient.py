@@ -65,6 +65,8 @@ AY = ("aygpptot", "ayaet", "ayprcp", "ayco2mic", "ayco2root", "ayanpptot",
 
 
 def reset_annual(state, npoi):
+    from ibis.state.stress_accum import reset_stress_accum
+    state = reset_stress_accum(state)
     z = jnp.zeros((npoi,))
     return eqx.tree_at(
         lambda s: tuple(getattr(s.summary, n) for n in AY) + (s.summary.aynpp,),
@@ -121,9 +123,11 @@ def one_year(state, key, year, ctx, isimveg=1):
     diag["gpp_monthly"] = np.stack(gpp_m, axis=0)          # (12, npoi)
 
     if isimveg > 0:
+        from ibis.state.stress_accum import tree_survival
         nv, nc, ns = dynaveg(state.vegetation, state.carbon, state.summary,
                              c["pft"], 1, c["consts"].epsilon,
-                             fire_scheme="seasonlength")
+                             fire_scheme="seasonlength",
+                             tree_surv=tree_survival(state, c["pft"]))
     else:
         nv, nc, ns = biomass_update(state.vegetation, state.carbon,
                                     state.summary, c["pft"],
