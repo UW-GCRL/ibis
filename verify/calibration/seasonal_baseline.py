@@ -26,6 +26,47 @@ from fit_carbon import LATV, fluxcom_at, fluxcom_monthly_at, seasonal_shape, pea
 BANDS = [(-30, 30, "30S-30N"), (30, 50, "30-50N"), (50, 60, "50-60N"), (60, 70, "60-70N"), (70, 90, "70-90N")]
 
 
+def report(mod_m, i, j, label):
+    """Score a (12, n) model monthly-GPP climatology at cells (i, j) vs FLUXCOM."""
+    area = np.cos(np.deg2rad(LATV[i]))
+    obs_m = fluxcom_monthly_at(i, j)
+    gobs = fluxcom_at(i, j)
+    err, ok = seasonal_shape(mod_m, obs_m)
+    off = peak_offset(mod_m, obs_m)
+    ratio = mod_m.sum(axis=0) / np.maximum(obs_m.sum(axis=0), 1e-9)
+    w = area * gobs                                  # flux weight, as in the fit loss
+    lat = LATV[i]
+
+    def row(nm, s):
+        s = s & ok
+        if s.sum() < 20:
+            return
+        ws = w[s] / w[s].sum()
+        amp_m = (mod_m[:, s].max(axis=0) / np.maximum(mod_m[:, s].mean(axis=0), 1e-9))
+        amp_o = (obs_m[:, s].max(axis=0) / np.maximum(obs_m[:, s].mean(axis=0), 1e-9))
+        print(f"  {nm:<26} n={s.sum():6d}  shape err {np.sum(ws*err[s]):.4f}  "
+              f"peak offset mean {np.sum(ws*off[s]):+.2f} mo  |off|>=2: {100*np.mean(np.abs(off[s])>=2):4.1f}%  "
+              f"amp model/obs {np.sum(ws*amp_m)/np.sum(ws*amp_o):.2f}")
+
+    print(f"\n{label}: seasonal shape vs FLUXCOM (flux-weighted)")
+    row("ALL", np.ones(len(i), bool))
+    for lo, hi, nm in BANDS:
+        row(nm, (lat >= lo) & (lat < hi))
+    print("\nby annual-GPP ratio class (section-10 split):")
+    row("ratio < 0.8", ratio < 0.8)
+    row("0.8 <= ratio < 1.25", (ratio >= 0.8) & (ratio < 1.25))
+    row("1.25 <= ratio < 2", (ratio >= 1.25) & (ratio < 2))
+    row("ratio >= 2  (sparse excess)", ratio >= 2)
+    print("\nwhere in the year does the excess sit?  model/obs monthly, cells with ratio >= 2 vs < 1.25:")
+    for nm, s in (("ratio >= 2", ratio >= 2), ("ratio < 1.25", ratio < 1.25)):
+        s = s & ok
+        r = (mod_m[:, s] * area[s]).sum(axis=1) / np.maximum((obs_m[:, s] * area[s]).sum(axis=1), 1e-9)
+        print(f"  {nm:<12} " + " ".join(f"{v:5.2f}" for v in r))
+    print("               " + " ".join(f"{k:>5}" for k in ("J","F","M","A","M","J","J","A","S","O","N","D")))
+
+
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--monthly-dir", required=True)
@@ -51,40 +92,7 @@ def main():
     mod_m = acc / cnt[:, None]                       # (12, n) kgC m-2 month-1
     print(f"{len(fs)} monthly files, {int(cnt.min())}-{int(cnt.max())} years per month")
 
-    obs_m = fluxcom_monthly_at(i, j)
-    gobs = fluxcom_at(i, j)
-    err, ok = seasonal_shape(mod_m, obs_m)
-    off = peak_offset(mod_m, obs_m)
-    ratio = mod_m.sum(axis=0) / np.maximum(obs_m.sum(axis=0), 1e-9)
-    w = area * gobs                                  # flux weight, as in the fit loss
-    lat = LATV[i]
-
-    def row(nm, s):
-        s = s & ok
-        if s.sum() < 20:
-            return
-        ws = w[s] / w[s].sum()
-        amp_m = (mod_m[:, s].max(axis=0) / np.maximum(mod_m[:, s].mean(axis=0), 1e-9))
-        amp_o = (obs_m[:, s].max(axis=0) / np.maximum(obs_m[:, s].mean(axis=0), 1e-9))
-        print(f"  {nm:<26} n={s.sum():6d}  shape err {np.sum(ws*err[s]):.4f}  "
-              f"peak offset mean {np.sum(ws*off[s]):+.2f} mo  |off|>=2: {100*np.mean(np.abs(off[s])>=2):4.1f}%  "
-              f"amp model/obs {np.sum(ws*amp_m)/np.sum(ws*amp_o):.2f}")
-
-    print(f"\n{a.label}: seasonal shape vs FLUXCOM (flux-weighted)")
-    row("ALL", np.ones(len(fl), bool))
-    for lo, hi, nm in BANDS:
-        row(nm, (lat >= lo) & (lat < hi))
-    print("\nby annual-GPP ratio class (section-10 split):")
-    row("ratio < 0.8", ratio < 0.8)
-    row("0.8 <= ratio < 1.25", (ratio >= 0.8) & (ratio < 1.25))
-    row("1.25 <= ratio < 2", (ratio >= 1.25) & (ratio < 2))
-    row("ratio >= 2  (sparse excess)", ratio >= 2)
-    print("\nwhere in the year does the excess sit?  model/obs monthly, cells with ratio >= 2 vs < 1.25:")
-    for nm, s in (("ratio >= 2", ratio >= 2), ("ratio < 1.25", ratio < 1.25)):
-        s = s & ok
-        r = (mod_m[:, s] * area[s]).sum(axis=1) / np.maximum((obs_m[:, s] * area[s]).sum(axis=1), 1e-9)
-        print(f"  {nm:<12} " + " ".join(f"{v:5.2f}" for v in r))
-    print("               " + " ".join(f"{k:>5}" for k in ("J","F","M","A","M","J","J","A","S","O","N","D")))
+    report(mod_m, i, j, a.label)
 
 
 if __name__ == "__main__":
