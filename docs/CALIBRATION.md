@@ -896,3 +896,33 @@ leaf area is fixed, and leaf area cannot be fixed by phenology while GPP is
 saturated. The lever has to act on the saturation itself -- how much of the
 canopy's light the leaves (and stems) intercept in sparse vegetation -- or
 on the leaf-area attractor below it. Quantified next.
+
+### The regime, quantified
+
+Same 60 cells:
+
+* **Leaf area:** model `plai` 2.85 against MODIS annual-max **1.11** (2.4x,
+  median). MODIS puts 17% of these cells below 0.5, 23% at 0.5-1, 55% at 1-2,
+  5% above 2 -- moderate vegetation, not desert. The model is over by the
+  global LAI factor here, not by an extreme one.
+* **Stems are a minor interceptor:** SAI upper 0.39 (0.25 x LAI), lower 0.06
+  (0.05 x LAI). Optical load upper 2.11, lower 1.35. The stem hypothesis is
+  out.
+* **Canopy structure:** upper canopy LAI 1.72 over 59% of the cell (`fu`),
+  lower 1.28 over 81% (`fl`).
+* **Elasticity dlnGPP/dlnLAI between the default and the stress-trigger
+  run:** 0.35 in Jan-Feb, 0.19-0.24 in Mar-Apr, 0.05-0.14 in May-Oct, 0.28
+  in Nov. Light-limited when the sun is low, saturated when high. Section 5's
+  global 0.09 is the growing-season value.
+
+The trigger cut the **lower** canopy's optical load 1.44 -> ~0.9 and GPP fell
+10% -- partly saturation, but mostly because it never touched the **upper
+broadleaf canopy: half of all assimilation, LAI 1.72, displayed 1.37-1.41 in
+every month.** That canopy is evergreen broadleaf plus cold-deciduous trees
+held at half-leaf by a relative threshold. The lever the process needs is an
+absolute leaf-drop temperature for the upper canopy: real temperate
+deciduous senescence sits near a 10-day mean of 5-10 C wherever the tree
+grows, not at "local coldest month + 5". `PhenoParams.tthresh_u_abs` adds it
+(threshold = max(relative, absolute); default -100 C never binds). Tested
+next on the same cells, alone and with the stress trigger and a GDD reset
+that actually resets in mild winters.
