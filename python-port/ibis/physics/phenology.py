@@ -43,6 +43,14 @@ class PhenoParams(eqx.Module):
     drop_floor: float = 0.1
     #: e-folding days for leaf drop/regrowth
     ddays: float = 15.0
+    #: Soil-water-stress dormancy trigger (docs/CALIBRATION.md 14). Leaves of
+    #: the drought-deciduous PFTs also drop while the canopy's soil-water
+    #: stress factor (drystress, 1 = unstressed) is below this. IBIS 2.6b4
+    #: triggers drought phenology only on NEGATIVE 10-day net assimilation,
+    #: which a leafed canopy in daylight essentially never reaches -- in 60
+    #: semi-arid cells it fired in no month while stresstl sat at 0.3. The
+    #: default -1.0 can never be reached, so default behaviour is unchanged.
+    drop_stress_thresh: float = -1.0
 
 
 def pheno(
@@ -51,6 +59,8 @@ def pheno(
     td: Float[Array, "npoi"],
     epsilon: float,
     params: PhenoParams | None = None,
+    stresstu=None,
+    stresstl=None,
 ) -> VegetationState:
     """Update leaf phenology and derive canopy structure.
 
@@ -83,6 +93,10 @@ def pheno(
     ddfac = 1.0 / pp.ddays
 
     a10td = summary.a10td
+    # Soil-water stress per canopy (1 = unstressed). When not supplied, a
+    # value above any admissible threshold keeps the stress trigger inert.
+    s_u = stresstu if stresstu is not None else jnp.full_like(a10td, 2.0)
+    s_l = stresstl if stresstl is not None else jnp.full_like(a10td, 2.0)
     a10ancub = summary.a10ancub
     a10ancls = summary.a10ancls
     a10ancl4 = summary.a10ancl4
@@ -122,25 +136,25 @@ def pheno(
 
     # --- Drought phenology ---
     dropu = jnp.where(
-        a10ancub < pp.drop_thresh,
+        (a10ancub < pp.drop_thresh) | (s_u < pp.drop_stress_thresh),
         jnp.maximum(pp.drop_floor, veg.dropu - ddfac),
         jnp.minimum(1.0, veg.dropu + ddfac),
     )
 
     dropls = jnp.where(
-        a10ancls < pp.drop_thresh,
+        (a10ancls < pp.drop_thresh) | (s_l < pp.drop_stress_thresh),
         jnp.maximum(pp.drop_floor, veg.dropls - ddfac),
         jnp.minimum(1.0, veg.dropls + ddfac),
     )
 
     dropl4 = jnp.where(
-        a10ancl4 < pp.drop_thresh,
+        (a10ancl4 < pp.drop_thresh) | (s_l < pp.drop_stress_thresh),
         jnp.maximum(pp.drop_floor, veg.dropl4 - ddfac),
         jnp.minimum(1.0, veg.dropl4 + ddfac),
     )
 
     dropl3 = jnp.where(
-        a10ancl3 < pp.drop_thresh,
+        (a10ancl3 < pp.drop_thresh) | (s_l < pp.drop_stress_thresh),
         jnp.maximum(pp.drop_floor, veg.dropl3 - ddfac),
         jnp.minimum(1.0, veg.dropl3 + ddfac),
     )

@@ -264,6 +264,7 @@ def test_pheno_params_defaults_are_the_f77_literals():
     assert (p.tthresh_u_offset, p.gthresh_u_c, p.gdd_thresh_u, p.gdd_ramp_u) == (5.0, 0.0, 100.0, 50.0)
     assert (p.tthresh_l_c, p.gthresh_l_c, p.gdd_thresh_l, p.gdd_ramp_l) == (0.0, -5.0, 150.0, 50.0)
     assert (p.drop_thresh, p.drop_floor, p.ddays) == (0.0, 0.1, 15.0)
+    assert p.drop_stress_thresh == -1.0          # inert by default: F77 has no stress trigger
 
 
 def test_pheno_params_reach_pheno_through_the_gswp3_loop():
@@ -273,12 +274,13 @@ def test_pheno_params_reach_pheno_through_the_gswp3_loop():
     from pathlib import Path
     root = Path(__file__).resolve().parents[1] / "ibis"
     loop = (root / "timestepping" / "loops_gswp3.py").read_text()
-    assert "params.pheno)" in loop, "loops_gswp3 calls pheno() without SimParams.pheno"
+    assert "params.pheno, st.soil.stresstu, st.soil.stresstl)" in loop, (
+        "loops_gswp3 must pass SimParams.pheno AND both soil stress factors into pheno()")
     sim = (root / "timestepping" / "loops.py").read_text()
     assert "pheno: PhenoParams" in sim
     ph = (root / "physics" / "phenology.py").read_text()
     for name in ("pp.gdd_thresh_u", "pp.gdd_thresh_l", "pp.drop_floor", "pp.ddays",
-                 "pp.tthresh_u_offset", "pp.gthresh_l_c"):
+                 "pp.tthresh_u_offset", "pp.gthresh_l_c", "pp.drop_stress_thresh"):
         assert name in ph, f"{name} not used inside pheno()"
 
 

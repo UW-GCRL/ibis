@@ -833,3 +833,28 @@ stress is below the threshold (`soil.stresstu` for the upper canopy,
 existing `ddfac` / `drop_floor` machinery. Default -1.0 is unreachable, so
 default behaviour is bit-identical and F77-faithful; evergreen shrub keeps no
 phenology, as in F77. Its effect on these cells is measured below.
+
+### Lever test 2: the stress trigger fires, and it does not matter either
+
+Same 60 cells, four years, `drop_stress_thresh` at three values (the stress
+table above says 0.7 should trigger in most cell-months October-April):
+
+| case | annual | Oct | Nov | Dec |
+|---|---|---|---|---|
+| default (inert) | 2.37 | 4.22 | 4.42 | 3.26 |
+| threshold 0.3 | 2.36 | 4.19 | 4.39 | 3.24 |
+| threshold 0.5 | 2.34 | 4.16 | 4.38 | 3.21 |
+| threshold 0.7 | 2.29 | 4.06 | 4.24 | 3.09 |
+| 0.7 + drop_floor 0.02, ddays 10 | 2.34 | 4.16 | 4.50 | 3.22 |
+
+Dropping the leaves of **every drought-deciduous PFT in the mix** -- C4 and
+C3 grass, tropical deciduous, deciduous shrub, ~43% of the leaf area -- takes
+3% off the annual GPP of these cells. So those PFTs do not carry the excess.
+It must sit in the PFTs no trigger touches: evergreen shrub (no phenology by
+construction), the evergreens, and boreal broadleaf deciduous -- 22% of LAI,
+the largest share -- whose `tempu` stayed at 0.5-0.66 through winter because
+its cold threshold is `tc + 5`, relative to the local coldest month rather
+than absolute. A canopy-type decomposition of assimilation is running to
+name the carrier. The trigger stays in the code: it is correct, inert by
+default, and will matter wherever the excess is drought-deciduous -- just not
+here.
