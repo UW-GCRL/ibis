@@ -858,3 +858,41 @@ than absolute. A canopy-type decomposition of assimilation is running to
 name the carrier. The trigger stays in the code: it is correct, inert by
 default, and will matter wherever the excess is drought-deciduous -- just not
 here.
+
+### Canopy-type decomposition: it is a regime, not a PFT
+
+Same 60 cells, month by month, share of assimilation by canopy type and the
+displayed leaf area behind it:
+
+| | upper broadleaf | upper conifer | shrub | C3 | C4 |
+|---|---|---|---|---|---|
+| share of assimilation, all months | 46-51% | 0% | 15-24% | 5-6% | 22-32% |
+| displayed LAI, Jan / Jul | 1.37 / 1.41 | 0.14 / 0.14 | 0.55 / 0.55 | 0.72 / 0.74 (grass) | |
+| phenology state, Jan / Jul | tempu 0.56 / 0.63 | | dropls 1.00 / 1.00 | templ 0.64 / 0.73 | dropl4 1.00 / 1.00 |
+
+**Nothing in the canopy has a seasonal cycle.** That is the 0.62x amplitude
+directly. The cold-deciduous trees are perpetually half-on -- `tempu` 0.50-0.66
+in every month, July included -- because their drop threshold is `tc + 5`,
+relative to the local coldest month: in these mild-winter cells it sits
+inside the winter temperature range, and the GDD accumulator never resets
+(0 C is never reached) so budburst is instantaneous whenever the 10-day mean
+ticks back above it. Half-leafed in winter, half-leafed in summer. Grass is
+the same story one layer down (`templ` 0.60-0.82). Evergreen shrub is flat
+by construction.
+
+**With the stress trigger at 0.7 the trigger fires** -- `dropl4` 0.29-0.67,
+grass LAI 0.72 -> 0.17-0.41, tropical-deciduous `dropu` 0.26-0.66, ~0.75 of
+2.85 LAI removed in the dry months -- **and GPP falls 10%** (Jan 0.047 ->
+0.042). The remaining canopy absorbs the light. This is section 5 at the
+process level: at `dlnGPP/dlnLAI ~ 0.09` a canopy of LAI 2-3 is optically
+saturated, and no phenology can make GPP seasonal until leaf area is low
+enough for GPP to feel it.
+
+**So the three criteria are one problem.** These cells carry LAI 2.85 where
+the land is sparse; above roughly LAI 1.5 the model's light interception
+makes GPP indifferent to leaves; the year-round GPP feeds the NPP that
+sustains the LAI. Criterion 3 (seasonal) cannot be met until criterion 2's
+leaf area is fixed, and leaf area cannot be fixed by phenology while GPP is
+saturated. The lever has to act on the saturation itself -- how much of the
+canopy's light the leaves (and stems) intercept in sparse vegetation -- or
+on the leaf-area attractor below it. Quantified next.
