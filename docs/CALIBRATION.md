@@ -1061,3 +1061,45 @@ grass with no trees. If the model carries an upper canopy there (`fu` 0.60,
 half of assimilation in the sparse set), half the excess is a tree layer
 that should not exist -- an establishment error in `dynaveg`, which knows
 no water limit on where trees grow.
+
+### Ground truth at the tower cells: phantom trees and an over-painted understory
+
+Model canopy cover against the MODIS-derived CLM surfdata fractions at the
+same 0.5-degree cells (20 semi-arid towers):
+
+| site | class | MODIS tree / shrub+grass / bare | model fu / fl | upper-canopy PFT holding LAI |
+|---|---|---|---|---|
+| US-SRM/SRC/SRG (AZ) | WSA/OSH/GRA | 0.08 / 0.61 / 0.26 | **0.25** / **0.98** | none (fu at floor) |
+| US-Whs (AZ) | OSH | 0.00 / 0.62 / 0.34 | 0.25 / 0.86 | none |
+| US-Cop (UT) | GRA | 0.00 / 0.51 / 0.41 | **0.62** / 0.98 | warm-temp evergreen 0.52 |
+| ES-LJu (Spain) | OSH | **0.03** / 0.48 / 0.34 | **0.84** / 0.98 | **tropical BL deciduous 0.90** |
+| IT-Noe (Italy) | CSH | 0.14 / 0.52 / 0.03 | **0.97** / 0.98 | **tropical BL deciduous 2.34** |
+| US-Ton, US-Var (CA) | WSA/GRA | 0.15 / 0.59 / 0.05 | **0.92** / 0.98 | **tropical BL deciduous 2.47** |
+| CN-Du2 (Mongolia) | GRA | **0.00** / 0.55 / 0.34 | **0.92** / 0.98 | **temperate conifer 1.10** |
+| CN-Cng, CN-Sw2 | GRA | 0.01 / 0.4 / 0.3-0.6 | 0.62-0.64 / 0.98 | little leaf, 1 kgC wood |
+| US-Me6 (OR) | ENF | 0.90 / 0.04 / 0.06 | 0.98 / 0.25 | evergreen 3.9 (right) |
+| **mean of 20** | | **tree 0.13 / shrub+grass 0.50** | **fu 0.57 / fl 0.89** | |
+
+Two failure modes, both structural, both F77-faithful:
+
+**Phantom trees.** In Mediterranean and steppe cells `dynaveg` establishes a
+dense tree canopy where there is none -- and the PFT is wrong: **tropical
+broadleaf deciduous at 37-41N** (Spain, Italy, California), **temperate
+conifer in Mongolian steppe**. The tropical PFTs' only cold limit is
+`TminL = 0 C`: wherever the coldest month averages above freezing they are
+allowed, and with the highest `vmax` they win the NPP-share competition.
+Neither `existence()` nor `dynaveg` asks whether there is water for a tree.
+(The stage-(a) fit raised trBLd `vmax` 65 -> 80.5 for its real savanna cells
+and thereby fed the phantom Mediterranean trees -- the within-PFT trade-off
+of section 10, now with a map.) The upper canopy carries half of sparse-cell
+assimilation with `tempu` dithering at 0.5-0.66, so this is the largest
+single component of the off-season excess.
+
+**Over-painted understory.** Where the model rightly has no trees (Arizona,
+Australia, Sudan) `fu` sits at its 0.25 floor with ~0.03 leaf area -- harmless
+-- but grass/shrub cover is painted at **0.98** where MODIS says 0.3-0.6 with
+0.2-0.5 bare ground: F77's `fl = totlail`. `cover_k` (above) is the lever for
+this half.
+
+What a tree-establishment fix could deliver is bounded next by removing the
+upper canopy outright in the 60 sparse cells.
