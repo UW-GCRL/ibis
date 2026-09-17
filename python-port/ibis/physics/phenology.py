@@ -17,11 +17,40 @@ from ibis.state.vegetation import VegetationState
 from ibis.state.summary import SummaryState
 
 
+class PhenoParams(eqx.Module):
+    """Leaf-phenology thresholds. Defaults are the IBIS 2.6b4 literals from
+    vegetation.f (pheno), which were hard-coded inside `pheno()` until the
+    carbon recalibration made seasonal pattern a target (docs/CALIBRATION.md).
+    Bit-identical to the previous behaviour at these defaults -- guarded.
+
+    Temperatures in degrees C (added to tmelt inside pheno); GDD in K-days.
+    """
+    #: upper-canopy (trees) cold phenology: leaves drop below tc + offset
+    tthresh_u_offset: float = 5.0
+    #: upper-canopy GDD accumulation starts above this air temperature
+    gthresh_u_c: float = 0.0
+    #: budburst GDD threshold and ramp width, upper canopy
+    gdd_thresh_u: float = 100.0
+    gdd_ramp_u: float = 50.0
+    #: lower-canopy (grasses/shrubs) thresholds
+    tthresh_l_c: float = 0.0
+    gthresh_l_c: float = -5.0
+    gdd_thresh_l: float = 150.0
+    gdd_ramp_l: float = 50.0
+    #: drought phenology: 10-day mean net assimilation below this drops leaves
+    drop_thresh: float = 0.0
+    #: minimum retained leaf fraction under drought
+    drop_floor: float = 0.1
+    #: e-folding days for leaf drop/regrowth
+    ddays: float = 15.0
+
+
 def pheno(
     veg: VegetationState,
     summary: SummaryState,
     td: Float[Array, "npoi"],
     epsilon: float,
+    params: PhenoParams | None = None,
 ) -> VegetationState:
     """Update leaf phenology and derive canopy structure.
 
@@ -49,9 +78,9 @@ def pheno(
     VegetationState
         Updated vegetation state.
     """
+    pp = params if params is not None else PhenoParams()
     tmelt = 273.16
-    ddays = 15.0
-    ddfac = 1.0 / ddays
+    ddfac = 1.0 / pp.ddays
 
     a10td = summary.a10td
     a10ancub = summary.a10ancub
@@ -60,8 +89,8 @@ def pheno(
     a10ancl3 = summary.a10ancl3
 
     # --- Upper canopy winter phenology ---
-    tthreshold_u = jnp.maximum(0.0 + tmelt, veg.tc + 5.0 + tmelt)
-    gthreshold_u = 0.0 + tmelt
+    tthreshold_u = jnp.maximum(0.0 + tmelt, veg.tc + pp.tthresh_u_offset + tmelt)
+    gthreshold_u = pp.gthresh_u_c + tmelt
 
     agddu = jnp.where(
         a10td < gthreshold_u,
@@ -72,12 +101,12 @@ def pheno(
     tempu = jnp.where(
         a10td < tthreshold_u,
         jnp.maximum(0.0, veg.tempu - ddfac),
-        jnp.minimum(1.0, jnp.maximum(0.0, agddu - 100.0) / 50.0),
+        jnp.minimum(1.0, jnp.maximum(0.0, agddu - pp.gdd_thresh_u) / pp.gdd_ramp_u),
     )
 
     # --- Lower canopy winter phenology ---
-    tthreshold_l = 0.0 + tmelt
-    gthreshold_l = -5.0 + tmelt
+    tthreshold_l = pp.tthresh_l_c + tmelt
+    gthreshold_l = pp.gthresh_l_c + tmelt
 
     agddl = jnp.where(
         a10td < gthreshold_l,
@@ -88,31 +117,31 @@ def pheno(
     templ = jnp.where(
         a10td < tthreshold_l,
         jnp.maximum(0.0, veg.templ - ddfac),
-        jnp.minimum(1.0, jnp.maximum(0.0, agddl - 150.0) / 50.0),
+        jnp.minimum(1.0, jnp.maximum(0.0, agddl - pp.gdd_thresh_l) / pp.gdd_ramp_l),
     )
 
     # --- Drought phenology ---
     dropu = jnp.where(
-        a10ancub < 0.0,
-        jnp.maximum(0.1, veg.dropu - ddfac),
+        a10ancub < pp.drop_thresh,
+        jnp.maximum(pp.drop_floor, veg.dropu - ddfac),
         jnp.minimum(1.0, veg.dropu + ddfac),
     )
 
     dropls = jnp.where(
-        a10ancls < 0.0,
-        jnp.maximum(0.1, veg.dropls - ddfac),
+        a10ancls < pp.drop_thresh,
+        jnp.maximum(pp.drop_floor, veg.dropls - ddfac),
         jnp.minimum(1.0, veg.dropls + ddfac),
     )
 
     dropl4 = jnp.where(
-        a10ancl4 < 0.0,
-        jnp.maximum(0.1, veg.dropl4 - ddfac),
+        a10ancl4 < pp.drop_thresh,
+        jnp.maximum(pp.drop_floor, veg.dropl4 - ddfac),
         jnp.minimum(1.0, veg.dropl4 + ddfac),
     )
 
     dropl3 = jnp.where(
-        a10ancl3 < 0.0,
-        jnp.maximum(0.1, veg.dropl3 - ddfac),
+        a10ancl3 < pp.drop_thresh,
+        jnp.maximum(pp.drop_floor, veg.dropl3 - ddfac),
         jnp.minimum(1.0, veg.dropl3 + ddfac),
     )
 

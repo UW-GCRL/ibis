@@ -252,3 +252,31 @@ def test_run_global_logs_which_parameters_it_uses():
     text = (Path(__file__).resolve().parents[1] / "scripts" / "run_global.py").read_text()
     assert 'logger.info("Physics parameters: %s", config.params_file)' in text
     assert "IBIS DEFAULTS (no params_file)" in text
+
+
+def test_pheno_params_defaults_are_the_f77_literals():
+    """PhenoParams was lifted out of literals inside pheno(); its defaults must
+    stay the IBIS 2.6b4 values (vegetation.f) so default behaviour is unchanged.
+    A bit-identity probe on 54 cells proved this at the time of the lift; this
+    pins it against drift."""
+    from ibis.physics.phenology import PhenoParams
+    p = PhenoParams()
+    assert (p.tthresh_u_offset, p.gthresh_u_c, p.gdd_thresh_u, p.gdd_ramp_u) == (5.0, 0.0, 100.0, 50.0)
+    assert (p.tthresh_l_c, p.gthresh_l_c, p.gdd_thresh_l, p.gdd_ramp_l) == (0.0, -5.0, 150.0, 50.0)
+    assert (p.drop_thresh, p.drop_floor, p.ddays) == (0.0, 0.1, 15.0)
+
+
+def test_pheno_params_reach_pheno_through_the_gswp3_loop():
+    """The lifted parameters must actually be passed -- SimParams.pheno into
+    pheno() inside loops_gswp3 -- or they are the fifteenth declared-but-dead
+    knob in this project."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1] / "ibis"
+    loop = (root / "timestepping" / "loops_gswp3.py").read_text()
+    assert "params.pheno)" in loop, "loops_gswp3 calls pheno() without SimParams.pheno"
+    sim = (root / "timestepping" / "loops.py").read_text()
+    assert "pheno: PhenoParams" in sim
+    ph = (root / "physics" / "phenology.py").read_text()
+    for name in ("pp.gdd_thresh_u", "pp.gdd_thresh_l", "pp.drop_floor", "pp.ddays",
+                 "pp.tthresh_u_offset", "pp.gthresh_l_c"):
+        assert name in ph, f"{name} not used inside pheno()"

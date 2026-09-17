@@ -314,7 +314,8 @@ def _run_month_scan(
         )
 
         # Phenology update (once per day, before timestep physics)
-        new_veg = pheno(st.vegetation, pheno_summary, td_d, consts.epsilon)
+        new_veg = pheno(st.vegetation, pheno_summary, td_d, consts.epsilon,
+                        params.pheno)
         st = eqx.tree_at(lambda s: s.vegetation, st, new_veg)
 
         k, k_timing, k_day = jax.random.split(k, 3)

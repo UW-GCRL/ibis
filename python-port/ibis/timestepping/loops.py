@@ -23,6 +23,7 @@ from typing import NamedTuple
 import jax
 import jax.numpy as jnp
 import equinox as eqx
+from ibis.physics.phenology import PhenoParams
 from jaxtyping import Float, Array
 
 from ibis.constants import PhysicalConstants
@@ -80,6 +81,9 @@ class SimParams(eqx.Module):
     # Fire scheme parameters (docs/FIRE.md). Defaults reproduce legacy
     # behaviour; only the "seasonlength" scheme reads k_b and p.
     fire: FireParams = eqx.field(default_factory=default_fire_params)
+
+    # Leaf phenology thresholds (docs/CALIBRATION.md; IBIS literals by default)
+    pheno: PhenoParams = eqx.field(default_factory=PhenoParams)
 
     # Soil constants
     wpudmax: float = 10.0             # Maximum puddle water (kg/m2)
