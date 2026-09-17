@@ -1132,3 +1132,37 @@ This also explains why every parameter fit converged where it did: `vmax`
 and `specla` are per PFT, and the same PFT is right in its forest and wrong
 in the open cells it should not occupy. No parameter can express "no tree
 here"; the structure has to.
+
+### The ceiling: sparse cells with no upper canopy
+
+Same 60 cells, trees removed and prevented from re-establishing, years 3-5:
+
+| | fu | fl | upper LAI | lower LAI | NH annual | NH Jul | NH Dec | SH annual |
+|---|---|---|---|---|---|---|---|---|
+| default (v11d) | 0.60 | 0.67 | 1.14 | 0.90 | 2.30 | 1.30 | 7.19 | 2.58 |
+| **no upper canopy** | 0.25 | 0.91 | 0.00 | **1.78** | **1.47** | **0.89** | **3.98** | **1.92** |
+
+Removing the trees takes NH annual **-36%** and puts the NH growing season at
+0.89-0.95 -- even though the understory compensates (grass LAI doubles with
+the light freed, `fl` 0.67 -> 0.91). The winter that remains (3.6-4.0x) is the
+over-painted, non-dormant understory: `cover_k` (-14%) and the stress
+trigger act on that half. Together the two structural fixes plausibly bring
+open-canopy cells near 1.2x while forests (1.11x) are left alone.
+
+### Stage (b), redesigned
+
+Not another parameter fit on the same structure. Two structural changes,
+each inert by default and each already measured on the 60 cells:
+
+1. **Water-limited tree establishment.** A survival factor on upper-canopy
+   PFTs from annual-mean soil-water stress (`aystressu`, new accumulator),
+   with no seeding where trees cannot survive. Calibrated directly against
+   the MODIS/CLM tree fraction at the tower cells (fu 0.57 -> ~0.13) and
+   validated globally on the same field -- a fourth criterion the carbon
+   data alone could not give.
+2. **Understory cover and dormancy.** `cover_k`, `fl_min`,
+   `drop_stress_thresh`, `tthresh_u_abs` -- already built.
+
+Then a joint fit of the structural scalars with `vmax`/`specla` on the
+three-criterion loss. The stage-(a) result (running) is the parameter-only
+baseline that fit is judged against.
