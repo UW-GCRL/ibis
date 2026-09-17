@@ -52,7 +52,7 @@ import jax.numpy as jnp
 from ibis.constants import PhysicalConstants
 from ibis.dimensions import GridConfig
 from ibis.io.gswp3_reader import GSWP3Reader
-from ibis.io.physics_params import build_all_params
+from ibis.io.physics_params import build_all_params, load_physics_params
 from ibis.io.restart import load_state
 from ibis.state.model_state import create_ibis_state
 from ibis.timestepping.loops_gswp3 import _cast_tree_f32
