@@ -180,6 +180,21 @@ def modis_at(i, j):
     return np.nan_to_num(g[i, j])
 
 
+def tree_at(i, j):
+    """CLM tree fraction of the natural-vegetation part of each cell (PFTs 1-8
+    of PCT_NAT_PFT), NaN where natural vegetation is under 70 % of the cell
+    (ice, lakes). The surfdata is the no-crop `all_forests` variant, so this
+    is a potential-vegetation field like IBIS's own -- the fourth criterion,
+    the tree-establishment gate's direct target (CALIBRATION.md 14)."""
+    sd = xr.open_dataset(f"{MODIS_BASE}/surfdata_0.5x0.5_CH_v1_all_forests.nc")
+    pp = np.asarray(sd["PCT_NAT_PFT"].values) / 100.0
+    pv = np.asarray(sd["PCT_NATVEG"].values) / 100.0
+    t = np.where(pv >= 0.7, pp[1:9].sum(axis=0), np.nan)
+    if float(sd["LATIXY"].values[0, 0]) < float(sd["LATIXY"].values[-1, 0]):
+        t = t[::-1, :]
+    return t[i, j]
+
+
 # ------------------------------------------------------------------ parameters
 #: Scalar parameters that may join the vector after the 12+12 PFT blocks.
 #: name -> (setter(sp, value) -> sp, lo, hi, log-encoded?). Bounds are
@@ -305,7 +320,8 @@ def bounds_penalty(vmax, specla):
 
 # ------------------------------------------------------------------------ loss
 def score(gpp, lai, gpp_obs, lai_obs, w_lai, area=None, w_total=1.0,
-          gpp_m=None, obs_m=None, w_season=0.0):
+          gpp_m=None, obs_m=None, w_season=0.0,
+          fu=None, tree_obs=None, w_tree=0.0):
     """Magnitude-honest loss. Returns (total, gpp_term, lai_term).
 
     The first fit used an unweighted per-cell mean of squared log-ratios and
@@ -325,11 +341,19 @@ def score(gpp, lai, gpp_obs, lai_obs, w_lai, area=None, w_total=1.0,
     optional SEASONAL term is `seasonal_shape` -- each cell's 12-month GPP as
     fractions of its annual total against FLUXCOM's -- flux-weighted like
     the spatial term. It is scale-free, so it adds no second vote on
-    magnitude. Returns (total, gpp_term, lai_term, season_term).
+    magnitude.
+
+    Optional FOURTH criterion (`w_tree`): upper-canopy cover `fu` against the
+    CLM tree fraction, area-weighted mean |fu - tree| over cells with natural
+    vegetation (`tree_obs` NaN elsewhere). Absolute, not log: the observation
+    is zero on a third of the land. Without it a joint fit can satisfy GPP
+    through vmax instead of through the trees -- the degeneracy behind the
+    phantom trees (CALIBRATION.md 14).
+    Returns (total, gpp_term, lai_term, season_term, tree_term).
     """
     ok = np.isfinite(gpp) & np.isfinite(lai) & (gpp_obs > 0.02) & (lai_obs > 0.05)
     if ok.sum() < 20:
-        return 50.0, np.nan, np.nan, np.nan
+        return 50.0, np.nan, np.nan, np.nan, np.nan
     a = np.ones(ok.sum()) if area is None else np.asarray(area)[ok]
     g_m, g_o = np.maximum(gpp[ok], 1e-4), gpp_obs[ok]
     l_m, l_o = np.maximum(lai[ok], 1e-3), lai_obs[ok]
@@ -350,7 +374,15 @@ def score(gpp, lai, gpp_obs, lai_obs, w_lai, area=None, w_total=1.0,
         if sok.sum() >= 20:
             ws = (a * g_o) * sok; ws = ws / ws.sum()
             s_term = float(np.sum(ws * np.nan_to_num(err)))
-    return g_term + w_lai * l_term + w_season * s_term, g_term, l_term, s_term
+    t_term = 0.0
+    if fu is not None and tree_obs is not None and w_tree > 0:
+        tk = np.isfinite(tree_obs[ok]) & np.isfinite(fu[ok])
+        if tk.sum() >= 20:
+            wt = a * tk; wt = wt / wt.sum()
+            t_term = float(np.sum(wt * np.abs(np.nan_to_num(fu[ok])
+                                              - np.nan_to_num(tree_obs[ok]))))
+    return (g_term + w_lai * l_term + w_season * s_term + w_tree * t_term,
+            g_term, l_term, s_term, t_term)
 
 
 def main():
@@ -367,6 +399,10 @@ def main():
                          "US drought and 2003 European heat wave -- CALIBRATION.md 10")
     ap.add_argument("--exclude-poleward", type=float, default=68.0)
     ap.add_argument("--w-lai", type=float, default=0.5)
+    ap.add_argument("--w-tree", type=float, default=0.0,
+                    help="weight on the fourth criterion: area-weighted mean |fu - CLM "
+                         "tree fraction| over natural-vegetation cells (CALIBRATION.md 14); "
+                         "0 = off (stage a)")
     ap.add_argument("--init-params", default="",
                     help="params yaml to start from (e.g. the v11d fit); "
                          "default IBIS defaults")
@@ -408,10 +444,12 @@ def main():
 
     gpp_obs = fluxcom_at(i, j)
     lai_obs = modis_at(i, j)
+    tree_obs = tree_at(i, j)                    # CLM tree fraction, NaN off natural veg
     obs_m = fluxcom_monthly_at(i, j)            # (12, n) monthly totals
     area = np.cos(np.deg2rad(LATV[i]))          # relative cell area
-    log.info("obs at sample: FLUXCOM GPP %.3f  MODIS LAI %.2f",
-             np.nanmean(gpp_obs), np.nanmean(lai_obs))
+    log.info("obs at sample: FLUXCOM GPP %.3f  MODIS LAI %.2f  CLM tree %.2f (%d cells)",
+             np.nanmean(gpp_obs), np.nanmean(lai_obs), np.nanmean(tree_obs),
+             np.isfinite(tree_obs).sum())
 
     counts = np.bincount(dom[dom >= 0], minlength=12)
     free = counts >= a.min_cells
@@ -469,11 +507,13 @@ def main():
         key = jax.random.PRNGKey(0)
         for n in range(a.adjust_years):
             st, key, _ = one_year(st, key, years[n % len(years)], ctx, 1)
-        gs, ls, ms = [], [], []
+        gs, ls, ms, fs = [], [], [], []
         for n in range(a.eval_years):
             st, key, d = one_year(st, key, years[n % len(years)], ctx, 1)
             gs.append(d["aygpptot"]); ls.append(d["lai"]); ms.append(d["gpp_monthly"])
-        return np.mean(gs, axis=0), np.mean(ls, axis=0), np.mean(ms, axis=0)
+            fs.append(np.asarray(st.vegetation.fu))
+        return (np.mean(gs, axis=0), np.mean(ls, axis=0), np.mean(ms, axis=0),
+                np.mean(fs, axis=0))
 
     def objective(x):
         t0 = time.time()
@@ -499,27 +539,32 @@ def main():
                 or np.any(specla > SPECLA_HI * tol):
             return 100.0
         try:
-            gpp, lai, gpp_m = run(vmax, specla, extras)
+            gpp, lai, gpp_m, fu_m = run(vmax, specla, extras)
         except Exception as e:                       # noqa: BLE001
             log.warning("  eval %d failed: %s", ev[0], str(e)[:90])
             return 50.0
-        tot, gt, lt, st_ = score(gpp[fit_mask], lai[fit_mask],
-                                 gpp_obs[fit_mask], lai_obs[fit_mask], a.w_lai,
-                                 area[fit_mask], gpp_m=gpp_m[:, fit_mask],
-                                 obs_m=obs_m[:, fit_mask], w_season=a.w_season)
-        ho, _, _, _ = score(gpp[~fit_mask], lai[~fit_mask],
-                            gpp_obs[~fit_mask], lai_obs[~fit_mask], a.w_lai,
-                            area[~fit_mask], gpp_m=gpp_m[:, ~fit_mask],
-                            obs_m=obs_m[:, ~fit_mask], w_season=a.w_season)
+        tot, gt, lt, st_, tt = score(gpp[fit_mask], lai[fit_mask],
+                                     gpp_obs[fit_mask], lai_obs[fit_mask], a.w_lai,
+                                     area[fit_mask], gpp_m=gpp_m[:, fit_mask],
+                                     obs_m=obs_m[:, fit_mask], w_season=a.w_season,
+                                     fu=fu_m[fit_mask], tree_obs=tree_obs[fit_mask],
+                                     w_tree=a.w_tree)
+        ho, _, _, _, _ = score(gpp[~fit_mask], lai[~fit_mask],
+                               gpp_obs[~fit_mask], lai_obs[~fit_mask], a.w_lai,
+                               area[~fit_mask], gpp_m=gpp_m[:, ~fit_mask],
+                               obs_m=obs_m[:, ~fit_mask], w_season=a.w_season,
+                               fu=fu_m[~fit_mask], tree_obs=tree_obs[~fit_mask],
+                               w_tree=a.w_tree)
         ev[0] += 1
         hist.append(dict(eval=ev[0], loss=tot, gpp_term=gt, lai_term=lt,
-                         season_term=st_, holdout=ho, gpp_mean=float(np.nanmean(gpp)),
+                         season_term=st_, tree_term=tt, holdout=ho,
+                         gpp_mean=float(np.nanmean(gpp)),
                          lai_mean=float(np.nanmean(lai))))
         if tot < best[0]:
             best[0], best[1] = tot, (vmax.copy(), specla.copy(), dict(extras))
             log.info("  eval %3d  loss=%.4f (BEST)  gpp=%.4f lai=%.4f season=%.4f "
-                     "holdout=%.4f  GPP=%.3f LAI=%.2f  [%.0fs]",
-                     ev[0], tot, gt, lt, st_, ho, hist[-1]["gpp_mean"],
+                     "tree=%.3f holdout=%.4f  GPP=%.3f LAI=%.2f  [%.0fs]",
+                     ev[0], tot, gt, lt, st_, tt, ho, hist[-1]["gpp_mean"],
                      hist[-1]["lai_mean"], time.time() - t0)
         elif ev[0] % 10 == 0:
             log.info("  eval %3d  loss=%.4f  holdout=%.4f  [%.0fs]",
@@ -577,18 +622,21 @@ def main():
         print(f"{n:<18}{v0[k]*1e6:>8.1f}{vmax[k]*1e6:>8.1f}"
               f"{VMAX_LO[k]*1e6:>6.0f}{VMAX_HI[k]*1e6:>6.0f}"
               f"{s0[k]:>9.1f}{specla[k]:>8.1f}")
-    gpp, lai, gpp_m = run(vmax, specla, extras)
+    gpp, lai, gpp_m, fu_m = run(vmax, specla, extras)
     for nm, msk in (("fit", fit_mask), ("HELD OUT", ~fit_mask)):
-        t, g, l, s_ = score(gpp[msk], lai[msk], gpp_obs[msk], lai_obs[msk], a.w_lai,
-                            area[msk], gpp_m=gpp_m[:, msk], obs_m=obs_m[:, msk],
-                            w_season=a.w_season)
+        t, g, l, s_, tt_ = score(gpp[msk], lai[msk], gpp_obs[msk], lai_obs[msk], a.w_lai,
+                                 area[msk], gpp_m=gpp_m[:, msk], obs_m=obs_m[:, msk],
+                                 w_season=a.w_season, fu=fu_m[msk],
+                                 tree_obs=tree_obs[msk], w_tree=a.w_tree)
         off = peak_offset(gpp_m[:, msk], obs_m[:, msk])
         print(f"  {nm:>9}: loss {t:.4f}  GPP term {g:.4f}  LAI term {l:.4f}  "
-              f"season term {s_:.4f}  peak offset mean {np.mean(off):+.2f} mo  "
+              f"season term {s_:.4f}  tree term {tt_:.3f}  "
+              f"peak offset mean {np.mean(off):+.2f} mo  "
               f"area-wtd GPP {np.average(gpp[msk], weights=area[msk]):.3f} vs "
               f"{np.average(gpp_obs[msk], weights=area[msk]):.3f}"
               f"  LAI {np.average(lai[msk], weights=area[msk]):.2f} vs "
-              f"{np.average(lai_obs[msk], weights=area[msk]):.2f}")
+              f"{np.average(lai_obs[msk], weights=area[msk]):.2f}"
+              f"  fu {np.nanmean(fu_m[msk]):.2f} vs tree {np.nanmean(tree_obs[msk]):.2f}")
     print(f"\nWrote {a.out}/")
 
 

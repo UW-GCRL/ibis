@@ -1190,6 +1190,42 @@ multi-line non-greedy regex for the `dynaveg` signature, which ends
 broken semantics, caught only by the behavioural probe. Exact-string
 anchors from here.
 
+### The tree fraction, globally: the excess sits where the phantom trees are
+
+`fu` from the v11d validation (years 2056-60) against the CLM surfdata tree
+fraction (PFTs 1-8 of `PCT_NAT_PFT`; the no-crop `all_forests` variant, so a
+potential-vegetation field like IBIS's own), on the 65,698 cells with >= 70 %
+natural vegetation -- 89 % of land area, the rest ice and lakes.
+Area-weighted (`verify/calibration/fu_vs_tree.py`):
+
+| CLM tree fraction | share of natural land | fu (model) | tree (CLM) | GPP mod/obs | share of global excess |
+|---|---|---|---|---|---|
+| < 0.05 | 37 % | 0.40 | 0.01 | **2.01** | 28 % |
+| 0.05-0.15 | 11 % | 0.62 | 0.09 | 1.77 | 16 % |
+| 0.15-0.30 | 11 % | 0.75 | 0.22 | 1.54 | 18 % |
+| 0.30-0.50 | 10 % | 0.81 | 0.39 | 1.44 | 14 % |
+| 0.50-0.70 | 9 % | 0.83 | 0.59 | 1.33 | 11 % |
+| > 0.70 | 23 % | 0.92 | 0.91 | **1.02** | 12 % |
+
+Overall `fu` 0.66 against 0.34 (RMSE 0.46, r 0.58). The GPP ratio falls
+monotonically with the observed tree fraction, from 2.0x on treeless land to
+1.02x in forests, and the cover error falls with it. The phantom cells
+(tree < 0.15, `fu` > 0.40) are 16 % of natural land at `fu` 0.84 against
+0.04, run 1.94x and hold **31 % of the global excess**; the converse
+(tree > 0.5, `fu` < 0.30) is 2 % of land and 2 % of the excess. By latitude
+the worst bands are 30-45N (`fu` 0.65 vs 0.18, 1.83x, 23 % of the excess),
+45-60N (0.76 vs 0.45, 1.64x, 18 %) and 15-30S (0.60 vs 0.25, 1.69x, 17 %);
+the tropics agree on both fields (1.01-1.08x). The 0.25 floor on `fu` is
+visible in the first row: treeless land cannot read below it unless
+`fu_min` moves.
+
+So the tree fraction enters the stage-(b) loss as a fourth term
+(`--w-tree`, `tree_at`): the area-weighted mean |fu - tree| over cells with
+natural vegetation, **0.365 at v11d** against a GPP term of 0.3-0.4, so
+`--w-tree 1` gives the fourth criterion the weight of the first two. Without it a joint fit could satisfy GPP through `vmax`
+instead of through the trees -- the degeneracy that produced phantom trees
+with low `vmax` in the first place.
+
 Lever test 6 runs the gate at thresholds 0.45 / 0.55 / 0.65, alone and with
 `cover_k` and the stress trigger, on the sparse, dense and tower sets -- the
 tower set reporting `fu` against the MODIS/CLM tree fraction cell by cell,

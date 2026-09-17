@@ -246,6 +246,25 @@ def test_fit_carbon_has_no_dead_co2_flag():
         "year) and overrides it")
 
 
+def test_fit_carbon_threads_fu_into_the_loss():
+    """The fourth criterion must reach the loss: `fu` collected per evaluation,
+    the CLM tree fraction read at the sample, both handed to score() at the
+    fit, hold-out and final-report sites, and weighted by --w-tree
+    (CALIBRATION.md 14). Declared-but-unwired is the defect-0 class."""
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[2] / "verify" / "calibration"
+           / "fit_carbon.py")
+    if not src.exists():
+        return
+    text = src.read_text()
+    assert 'ap.add_argument("--w-tree"' in text
+    assert "tree_obs = tree_at(i, j)" in text
+    assert "fs.append(np.asarray(st.vegetation.fu))" in text
+    assert text.count("tree_obs=tree_obs[") == 3, \
+        "score() must receive tree_obs at the fit, hold-out and final-report sites"
+    assert "w_tree * t_term" in text
+
+
 def test_run_global_logs_which_parameters_it_uses():
     """A run must say whether it is on a params_file or on defaults."""
     from pathlib import Path
