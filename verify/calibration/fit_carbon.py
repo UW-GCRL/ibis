@@ -181,18 +181,32 @@ def modis_at(i, j):
 
 
 # ------------------------------------------------------------------ parameters
-def to_vec(vmax, specla):
-    return np.concatenate([np.log(vmax), np.log(specla)])
+#: Water-stress curvature in drystress. F77 default -5.0; MORE NEGATIVE =
+#: LESS stress (tests/test_stomata.py pins the sign). It was a dead parameter
+#: until docs/GPP.md restored it, and it is the natural lever for the
+#: sparse-cell excess of CALIBRATION.md 10, so it joins the vector.
+STRESSFAC_LO, STRESSFAC_HI, STRESSFAC_DEFAULT = -10.0, -2.5, -5.0
+NPFT = 12
+
+
+def to_vec(vmax, specla, stressfac=None):
+    parts = [np.log(vmax), np.log(specla)]
+    if stressfac is not None:
+        parts.append(np.array([stressfac], dtype=float))   # raw, not log: negative
+    return np.concatenate(parts)
 
 
 def from_vec(x):
-    n = len(x) // 2
-    return np.exp(x[:n]), np.exp(x[n:])
+    vmax, specla = np.exp(x[:NPFT]), np.exp(x[NPFT:2 * NPFT])
+    stressfac = float(x[2 * NPFT]) if len(x) > 2 * NPFT else None
+    return vmax, specla, stressfac
 
 
-def apply_params(sp, pft, vmax, specla):
+def apply_params(sp, pft, vmax, specla, stressfac=None):
     sp = eqx.tree_at(lambda p: p.stomata_params.vmax_pft, sp,
                      jnp.array(vmax, dtype=jnp.float32))
+    if stressfac is not None:
+        sp = eqx.tree_at(lambda p: p.stomata_params.stressfac, sp, float(stressfac))
     pft = eqx.tree_at(lambda p: p.specla, pft,
                       jnp.array(specla, dtype=jnp.float32))
     return sp, pft
@@ -270,6 +284,8 @@ def main():
                          "US drought and 2003 European heat wave -- CALIBRATION.md 10")
     ap.add_argument("--exclude-poleward", type=float, default=68.0)
     ap.add_argument("--w-lai", type=float, default=0.5)
+    ap.add_argument("--fit-stressfac", type=int, default=1,
+                    help="1: include drystress stressfac in the vector")
     ap.add_argument("--w-season", type=float, default=2.0,
                     help="weight on the seasonal-shape term. Shape errors are "
                          "O(0.02-0.1) per cell against O(0.1-0.5) for the log-"
@@ -347,8 +363,8 @@ def main():
     best = [np.inf, None]
     ev = [0]
 
-    def run(vmax, specla):
-        sp, pft = apply_params(sp0, pft0, vmax, specla)
+    def run(vmax, specla, stressfac=None):
+        sp, pft = apply_params(sp0, pft0, vmax, specla, stressfac)
         ctx = dict(ctx0, sp=sp, pft=pft)
         st = state0
         key = jax.random.PRNGKey(0)
@@ -362,24 +378,26 @@ def main():
 
     def objective(x):
         t0 = time.time()
-        vmax, specla = from_vec(x)
+        vmax, specla, stressfac = from_vec(x)
         # A parameter the sample cannot constrain must not move: with zero
         # dominant cells the loss is flat in it, so CMA-ES walks it to a
         # bound on noise. The first run did exactly that -- boreal_con_dec
         # (0 cells) went to 57 umol against a 45 ceiling.
         vmax = np.where(free, vmax, v0)
         specla = np.where(free, specla, s0)
+        if stressfac is not None and not (STRESSFAC_LO / tol_s <= stressfac <= STRESSFAC_HI * tol_s):
+            return 100.0
         # Tolerance matters: `specla` defaults sit EXACTLY on two bounds
         # (30.0 and 35.0), and the log/exp round-trip in to_vec/from_vec puts
         # them a float above, which rejected the baseline itself as
         # out-of-bounds and reported loss 100.
-        tol = 1.0 + 1e-9
+        tol = 1.0 + 1e-9; tol_s = 1.0 + 1e-9
         if np.any(vmax < VMAX_LO / tol) or np.any(vmax > VMAX_HI * tol) \
                 or np.any(specla < SPECLA_LO / tol) \
                 or np.any(specla > SPECLA_HI * tol):
             return 100.0
         try:
-            gpp, lai, gpp_m = run(vmax, specla)
+            gpp, lai, gpp_m = run(vmax, specla, stressfac)
         except Exception as e:                       # noqa: BLE001
             log.warning("  eval %d failed: %s", ev[0], str(e)[:90])
             return 50.0
@@ -396,7 +414,7 @@ def main():
                          season_term=st_, holdout=ho, gpp_mean=float(np.nanmean(gpp)),
                          lai_mean=float(np.nanmean(lai))))
         if tot < best[0]:
-            best[0], best[1] = tot, (vmax.copy(), specla.copy())
+            best[0], best[1] = tot, (vmax.copy(), specla.copy(), stressfac)
             log.info("  eval %3d  loss=%.4f (BEST)  gpp=%.4f lai=%.4f season=%.4f "
                      "holdout=%.4f  GPP=%.3f LAI=%.2f  [%.0fs]",
                      ev[0], tot, gt, lt, st_, ho, hist[-1]["gpp_mean"],
@@ -406,24 +424,35 @@ def main():
                      ev[0], tot, ho, time.time() - t0)
         return tot
 
+    sf0 = float(sp0.stomata_params.stressfac) if a.fit_stressfac else None
+    log.info("stressfac: %s", f"fitted from {sf0} in [{STRESSFAC_LO}, {STRESSFAC_HI}]"
+             if sf0 is not None else "held at default")
     log.info("=== baseline (starting parameters) ===")
-    b = objective(to_vec(v0, s0))
+    b = objective(to_vec(v0, s0, sf0))
     log.info("baseline loss %.4f", b)
 
-    x0 = np.clip(to_vec(v0, s0), to_vec(VMAX_LO, SPECLA_LO),
-                 to_vec(VMAX_HI, SPECLA_HI))
+    lo_v = to_vec(VMAX_LO, SPECLA_LO, STRESSFAC_LO if sf0 is not None else None)
+    hi_v = to_vec(VMAX_HI, SPECLA_HI, STRESSFAC_HI if sf0 is not None else None)
+    x0 = np.clip(to_vec(v0, s0, sf0), lo_v, hi_v)
+    # CMA-ES works in one sigma for all coordinates; log-vmax/log-specla span
+    # ~1 and stressfac spans 7.5, so scale that coordinate to a comparable width.
+    scales = np.ones(len(x0)); 
+    if sf0 is not None: scales[-1] = (STRESSFAC_HI - STRESSFAC_LO) / 1.5
     es = cma.CMAEvolutionStrategy(x0, a.sigma, {
         "maxfevals": a.n_evals, "seed": a.seed, "verb_disp": 0,
-        "bounds": [to_vec(VMAX_LO, SPECLA_LO),
-                   to_vec(VMAX_HI, SPECLA_HI)]})
+        "CMA_stds": scales,
+        "bounds": [lo_v, hi_v]})
     while not es.stop() and ev[0] < a.n_evals:
         xs = es.ask()
         es.tell(xs, [objective(x) for x in xs])
 
-    vmax, specla = best[1]
+    vmax, specla, stressfac = best[1]
     import pandas as pd
     pd.DataFrame(hist).to_csv(f"{a.out}/history.csv", index=False)
-    np.savez(f"{a.out}/best.npz", vmax=vmax, specla=specla, sel=sel)
+    np.savez(f"{a.out}/best.npz", vmax=vmax, specla=specla, sel=sel,
+             stressfac=np.nan if stressfac is None else stressfac)
+    if stressfac is not None:
+        print(f"\nstressfac: {sf0} -> {stressfac:.3f}   (bounds {STRESSFAC_LO}..{STRESSFAC_HI}; more negative = less stress)")
     print(f"\n{'='*76}\nBEST PARAMETERS (loss {best[0]:.4f}, baseline {b:.4f})")
     print(f"{'PFT':<18}{'vmax0':>8}{'vmax':>8}{'lo':>6}{'hi':>6}"
           f"{'specla0':>9}{'specla':>8}")
@@ -431,7 +460,7 @@ def main():
         print(f"{n:<18}{v0[k]*1e6:>8.1f}{vmax[k]*1e6:>8.1f}"
               f"{VMAX_LO[k]*1e6:>6.0f}{VMAX_HI[k]*1e6:>6.0f}"
               f"{s0[k]:>9.1f}{specla[k]:>8.1f}")
-    gpp, lai, gpp_m = run(vmax, specla)
+    gpp, lai, gpp_m = run(vmax, specla, stressfac)
     for nm, msk in (("fit", fit_mask), ("HELD OUT", ~fit_mask)):
         t, g, l, s_ = score(gpp[msk], lai[msk], gpp_obs[msk], lai_obs[msk], a.w_lai,
                             area[msk], gpp_m=gpp_m[:, msk], obs_m=obs_m[:, msk],
