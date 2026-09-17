@@ -242,6 +242,9 @@ def build_pft_params(d: dict) -> PFTParams:
         vmax_pft=_arr('vmax_pft'),
         xminlai=s.get('xminlai', defaults.xminlai),
         woodnorm=s.get('woodnorm', defaults.woodnorm),
+        cover_k=float(s.get('cover_k', defaults.cover_k)),
+        fl_min=float(s.get('fl_min', defaults.fl_min)),
+        fu_min=float(s.get('fu_min', defaults.fu_min)),
     )
 
 

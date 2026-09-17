@@ -957,3 +957,40 @@ parameter could give. Tested next.
 `tthresh_u_abs` stays (correct, inert by default, and it is the right fix for
 spring leaf-out where it matters); the pooled monthly tables above mix 47 NH
 with 13 SH cells and are split by hemisphere from here.
+
+### Lever test 4: cover is a real lever; the hemisphere split; the upper canopy remains
+
+Split 47 NH / 13 SH (the pooled tables above mixed SH winter into NH autumn):
+
+| default (F77 cover) | J | F | M | A | M | J | J | A | S | O | N | D | annual |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| NH | 6.5 | 5.2 | 3.9 | 3.0 | 2.1 | **1.44** | **1.31** | 1.7 | 2.8 | 4.6 | 6.4 | 7.2 | 2.31 |
+| SH | 1.4 | 1.5 | 1.9 | 2.9 | 5.0 | **10.6** | **10.9** | 6.3 | 3.8 | 3.2 | 2.6 | 1.8 | 2.56 |
+
+Both hemispheres: growing season 1.3-1.8x, dormant season 5-11x. **The
+model has almost no dormant season in these cells.** (Dormant-season ratios
+sit on FLUXCOM denominators of ~0.01 kgC m-2 mo-1; the robust targets are the
+annual excess and the flat amplitude, not the 7x itself.)
+
+`PFTParams.cover_k` (fl = 1 - exp(-k x totlail); 0 keeps F77's fl = totlail),
+`fl_min`, `fu_min` (F77 floors 0.25). Inert defaults, bit-identical, guarded,
+both update paths.
+
+| case | fl | fu | plai | NH annual | NH Jul | NH Dec |
+|---|---|---|---|---|---|---|
+| default | 0.69 | 0.60 | 2.11 | 2.31 | 1.31 | 7.15 |
+| cover_k 0.5 | 0.31 | 0.60 | 1.80 | 1.99 | 1.07 | 6.62 |
+| cover_k 0.7 | 0.40 | 0.60 | 1.90 | 2.10 | 1.15 | 6.84 |
+| cover_k 0.5 + floors 0.05 | 0.23 | 0.55 | 1.78 | 1.98 | 1.06 | 6.60 |
+| + tthresh_u_abs 8 + stress 0.7 | 0.23 | 0.55 | 1.59 | **1.76** | **0.96** | 6.23 |
+
+Cover acts as predicted: lower-canopy cover 0.69 -> 0.31, `plai` follows
+(2.11 -> 1.80, the feedback runs the right way), NH annual -14%. With every
+phenology lever added the NH growing season lands at **0.96-0.98** -- right --
+and the annual excess is 1.76x. What remains is the dormant season, and its
+carrier is unchanged: **`fu` did not move** (0.60 -> 0.55). Upper-canopy cover
+comes from wood, `fu = (1 - exp(-wood)) / (1 - exp(-woodnorm))`, which puts
+trees carrying 0.9 kgC m-2 of wood over 60% of a sparse cell where real tree
+cover is 5-20%. That canopy carries half the assimilation and none of the
+levers so far reach it. A wood-to-cover scale for `fu` is the next lever, and
+it must be tested on dense cells as well as sparse ones.

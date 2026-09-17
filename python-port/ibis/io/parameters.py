@@ -46,6 +46,14 @@ class PFTParams(eqx.Module):
 
     # Canopy closure normalization
     woodnorm: float = 7.5
+    #: Canopy fractional cover (docs/CALIBRATION.md 14). IBIS 2.6b4 sets
+    #: lower-canopy cover fl = totlail (one unit of grass LAI = 100% cover) and
+    #: clips both fu and fl to [0.25, 0.975], so a sparse cell carries >= 25%
+    #: cover in each canopy with no leaves at all. cover_k > 0 replaces the
+    #: linear rule by fl = 1 - exp(-cover_k * totlail); 0.0 keeps F77.
+    cover_k: float = 0.0
+    fl_min: float = 0.25
+    fu_min: float = 0.25
 
 
 def default_pft_params() -> PFTParams:

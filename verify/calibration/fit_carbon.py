@@ -199,7 +199,11 @@ def _set(path):
     # eqx.filter_jit, where Python scalars are static: a Python-float extra
     # would recompile the whole model on every evaluation (measured: 1695 s
     # per evaluation instead of ~240). An array leaf is traced once.
-    return lambda sp, v: eqx.tree_at(path, sp, jnp.asarray(v, dtype=jnp.float32))
+    return lambda sp, pft, v: (eqx.tree_at(path, sp, jnp.asarray(v, dtype=jnp.float32)), pft)
+
+
+def _set_pft(path):
+    return lambda sp, pft, v: (sp, eqx.tree_at(path, pft, jnp.asarray(v, dtype=jnp.float32)))
 
 
 EXTRAS = {
@@ -218,6 +222,10 @@ EXTRAS = {
     "drop_stress_thresh": (_set(lambda p: p.pheno.drop_stress_thresh),  0.05, 0.85, False),
     # absolute upper-canopy leaf-drop temperature (C); -100 (default) never binds
     "tthresh_u_abs":    (_set(lambda p: p.pheno.tthresh_u_abs),        -5.0,  15.0, False),
+    # canopy fractional cover (PFTParams): cover_k 0 = F77 linear; floors 0.25 in F77
+    "cover_k":          (_set_pft(lambda p: p.cover_k),                 0.2,   2.0, True),
+    "fl_min":           (_set_pft(lambda p: p.fl_min),                 0.01,  0.25, True),
+    "fu_min":           (_set_pft(lambda p: p.fu_min),                 0.01,  0.25, True),
 }
 NPFT = 12
 
@@ -230,12 +238,14 @@ def _dec(name, x):
     return float(np.exp(x)) if EXTRAS[name][3] else float(x)
 
 
-def extras_defaults(sp, names):
+def extras_defaults(sp, names, pft=None):
     """Current values of the chosen extras, read back off the SimParams tree."""
     out = {}
     for n in names:
         if n == "stressfac":
             out[n] = float(sp.stomata_params.stressfac)
+        elif n in ("cover_k", "fl_min", "fu_min"):
+            out[n] = float(getattr(pft, n))
         else:
             out[n] = float(getattr(sp.pheno, n))
     return out
@@ -272,7 +282,7 @@ def apply_params(sp, pft, vmax, specla, extras=None):
     sp = eqx.tree_at(lambda p: p.stomata_params.vmax_pft, sp,
                      jnp.array(vmax, dtype=jnp.float32))
     for n, v in (extras or {}).items():
-        sp = EXTRAS[n][0](sp, v)
+        sp, pft = EXTRAS[n][0](sp, pft, v)
     pft = eqx.tree_at(lambda p: p.specla, pft,
                       jnp.array(specla, dtype=jnp.float32))
     return sp, pft
@@ -507,7 +517,7 @@ def main():
     names = tuple(n for n in a.extras.split(",") if n)
     for n in names:
         assert n in EXTRAS, f"unknown extra {n}; choose from {list(EXTRAS)}"
-    ex0 = extras_defaults(sp0, names)
+    ex0 = extras_defaults(sp0, names, pft0)
     log.info("extras fitted: %s", {n: (ex0[n], EXTRAS[n][1], EXTRAS[n][2]) for n in names} or "none")
     elo, ehi = extras_bounds(names)
     ex_x0 = np.array([_enc(n, ex0[n]) for n in names], dtype=float)

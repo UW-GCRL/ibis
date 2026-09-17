@@ -254,12 +254,15 @@ def biomass_update(
         wood = wood + jnp.maximum(0.0, cbiow[:, j])
 
     fu = (1.0 - jnp.exp(-wood)) / (1.0 - jnp.exp(-woodnorm))
-    fu = jnp.maximum(0.25, jnp.minimum(0.975, fu))
+    fu = jnp.maximum(pft_params.fu_min, jnp.minimum(0.975, fu))
 
     totlaiu = jnp.sum(plai[:, :8], axis=1)
     totlail = jnp.sum(plai[:, 8:], axis=1)
 
-    fl = jnp.maximum(0.25, jnp.minimum(0.975, totlail))
+    # cover_k = 0 keeps F77's linear rule (cover = LAI); > 0 saturates.
+    fl_raw = jnp.where(pft_params.cover_k > 0.0,
+                       1.0 - jnp.exp(-pft_params.cover_k * totlail), totlail)
+    fl = jnp.maximum(pft_params.fl_min, jnp.minimum(0.975, fl_raw))
 
     # Canopy-level LAI (per unit canopy area)
     lai = veg.lai
@@ -535,11 +538,12 @@ def dynaveg(
         disturb_total = disturbf_val + disturbo_val
     fu = (1.0 - jnp.exp(-wood)) / (1.0 - jnp.exp(-woodnorm))
     fu = fu * (1.0 - disturb_total)
-    fu = jnp.maximum(0.25, jnp.minimum(0.975, fu))
+    fu = jnp.maximum(pft_params.fu_min, jnp.minimum(0.975, fu))
 
-    fl = totlail / 1.0
+    fl = jnp.where(pft_params.cover_k > 0.0,
+                   1.0 - jnp.exp(-pft_params.cover_k * totlail), totlail / 1.0)
     fl = fl * (1.0 - disturb_total)
-    fl = jnp.maximum(0.25, jnp.minimum(0.975, fl))
+    fl = jnp.maximum(pft_params.fl_min, jnp.minimum(0.975, fl))
 
     # --- Update upper canopy height ---
     zbot = veg.zbot.at[:, 1].set(3.0)
