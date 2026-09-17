@@ -745,3 +745,41 @@ Also noted: even well-fitted cells run 0.85-0.88x in June-August -- the peak
 is slightly low everywhere. That is a capacity-at-peak question (temperature
 response of Vmax, or light), separate from the shoulder-season excess, and is
 left for the joint stage.
+
+## 14. Stage (a) cannot reach the autumn excess: the levers have no effect
+
+Stage (a) ran 40 evaluations with the season term flat at 0.0172-0.0178 in
+every new best while LAI fell 0.794 -> 0.658 and GPP 0.300 -> 0.283. Rather
+than wait for 120, the levers were pushed to their bound extremes directly on
+60 sparse-excess cells (annual ratio >= 2, |lat| < 66, mean 41N, mean ratio
+3.6x), four years each, monthly model/FLUXCOM ratio:
+
+| lever at extreme | annual | Oct | Nov |
+|---|---|---|---|
+| default (v11d) | 2.37 | 4.22 | 4.42 |
+| `tthresh_l_c` +8, `gthresh_l_c` +2 | 2.36 | 4.22 | 4.42 |
+| `gdd_thresh_l` 300 | 2.37 | 4.22 | 4.42 |
+| `drop_floor` 0.02, `ddays` 5 | 2.37 | 4.22 | 4.42 |
+| `tthresh_u_offset` 12, `gdd_thresh_u` 250 | 2.25 | 4.09 | 4.27 |
+| `stressfac` -2.5 (max stress) | 2.26 | 4.01 | 4.17 |
+| `stressfac` -10 (min stress) | 2.44 | 4.36 | 4.60 |
+| all phenology at extremes | 2.22 | 4.08 | 4.25 |
+
+**The lower-canopy phenology thresholds have zero effect** -- identical to
+two decimals -- and the drought floor and e-folding have zero effect, which
+means the drought trigger (`a10ancls < 0`) never fires in these cells. Tree
+cold and `stressfac` each move ~5%. Everything together takes the autumn
+excess from 4.4x to 4.25x.
+
+So the season term was flat because nothing in the vector controls the
+process. Section 13 read the autumn signature as "phenology" and implicated
+the grass thresholds; that inference was wrong about *which* mechanism. The
+excess sits in something these cells' GPP does not pass through -- the next
+diagnostic asks which PFT carries their GPP and why it has no autumn
+cut-off. The leading suspect is evergreen shrub (PFT 8): the sample's
+second-largest dominant class (735 cells), no cold phenology by definition,
+and a drought trigger that evidently never fires.
+
+The fit runs to completion regardless: its LAI reduction is real progress on
+criteria 1-2 and its parameters are written only at the end. Its result is
+not evidence about criterion 3.
