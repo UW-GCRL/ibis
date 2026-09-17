@@ -1343,6 +1343,21 @@ Three readings.
    on a small observed ET. Neither extreme is a calibration target on one
    product -- the ensemble spread decides.
 
+**The ensemble** (`verify/calibration/et_obs.py` ->
+`inputs/eval/et/et_ensemble_0.5deg.npz`: 2001-09 annual means and monthly
+climatologies of MODIS, MOD16A2, GLEAM v3.3a, DOLCE and FLUXCOM LE on the
+IBIS grid, mm/day, with the ensemble mean / min / max and product count).
+On the 47,008 cells all five cover, the products agree on pattern (each
+r = 0.97 against the ensemble mean) and disagree on level -- DOLCE 0.91x,
+MODIS and MOD16A2 0.97x (near-duplicates), GLEAM 1.05x, FLUXCOM 1.11x of
+the mean -- with a per-cell max-min spread of 220 mm/yr, **38 % of the
+mean**. The model's 1.08x global ET sits inside that band: ET's total is
+already within observational uncertainty, the pattern is not. Rules for the
+ET stage that follow: score on the all-five cells (coverage differs, so the
+mean elsewhere depends on which products cover a cell), take the ensemble
+mean as the target and the spread as its uncertainty, and put the weight on
+the spatial and seasonal terms rather than the total.
+
 Model ET is `ayaet` (mm/yr) yearly and `amaet` monthly; the fit harness's
 `one_year` already returns `ayaet` and the daily AET series, so the ET fit
 is the carbon harness with `fluxcom_at` -> an ET loader and the seasonal
