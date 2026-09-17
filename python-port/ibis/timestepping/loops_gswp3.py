@@ -910,10 +910,12 @@ def run_spinup_gswp3(
                 lambda s: s.summary.ayneetot, state,
                 state.summary.aynpptot - state.summary.ayco2mic,
             )
+            from ibis.state.stress_accum import tree_survival
             new_veg, new_carbon, new_summary = dynaveg(
                 state.vegetation, state.carbon, state.summary,
                 pft_params, isimfire, consts.epsilon,
                 fire_scheme=fire_scheme, fire_params=fire_params, popd=popd,
+                tree_surv=tree_survival(state, pft_params),
             )
         else:
             new_veg, new_carbon, new_summary = biomass_update(

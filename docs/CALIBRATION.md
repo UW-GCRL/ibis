@@ -1230,3 +1230,74 @@ Lever test 6 runs the gate at thresholds 0.45 / 0.55 / 0.65, alone and with
 `cover_k` and the stress trigger, on the sparse, dense and tower sets -- the
 tower set reporting `fu` against the MODIS/CLM tree fraction cell by cell,
 which is the gate's direct calibration target.
+
+Result (years 4-6 of a 6-year cycle; sparse = 60 cells with ratio >= 2,
+dense = 60 well-fitted high-flux cells, towers = 20 FLUXNET cells, 16
+open/dry and 4 forest):
+
+| `tree_stress_min` | sparse fu | sparse NH annual | NH Jul | NH Dec | dense fu | dense NH / SH | tower fu | phantom tower sites (obs <= 0.15, model > 0.4) | forest sites lost |
+|---|---|---|---|---|---|---|---|---|---|
+| inert (v11d) | 0.60 | 2.30 | 1.30 | 7.18 | 0.95 | 0.99 / 0.97 | 0.70 | 9 of 16 | 0 |
+| 0.45 | 0.42 | 2.13 | 1.21 | 6.50 | 0.86 | 0.99 / 0.95 | 0.43 | 1 (US-Ton 0.94) | 0 |
+| 0.55 | 0.39 | 2.06 | 1.18 | 6.30 | 0.76 | 1.00 / 0.94 | 0.40 | 1 (US-Ton 0.44) | 0 (BR-Sa1 0.86) |
+| 0.65 | 0.36 | 2.00 | 1.14 | 6.09 | 0.65 | 0.98 / 0.92 | 0.36 | 0 | **1: BR-Sa1 0.25 (obs 0.90)** |
+| 0.55 + `cover_k` 0.5 + stress trigger 0.7 | 0.40 | **1.60** | **0.85** | 5.34 | 0.84 | 0.95 / 0.91 | 0.43 | 1 (US-Ton 0.89) | 0 |
+
+Four readings.
+
+1. **The gate separates the towers.** At 0.45 every one of the 15 dry and
+   open sites falls to the 0.25 floor -- CN-Cng 0.96 -> 0.25, CN-Du2 0.98,
+   ES-LJu 0.97, IT-Noe 0.98, ZA-Kru 0.98, US-Cop 0.79, AU-DaS 0.88 -- while
+   US-Me6, US-Ha1, BR-Sa1 and FI-Hyy keep 0.93-0.98. At 0.65 the gate kills
+   Santarem (BR-Sa1, a dry-season Amazon forest): the threshold's ceiling.
+   The dense tropical cells lose cover from 0.55 up (fu 0.95 -> 0.76) with
+   no GPP change, grass filling the light. The safe starting value is
+   **0.45**; `tree_stress_ramp` then sets how sharp the edge is.
+2. **The sparse-cell excess is only partly trees.** Alone the gate takes NH
+   annual 2.30 -> 2.00-2.13 (-7 to -13 %); the understory compensates
+   (lower LAI 0.89 -> 1.28, `fl` 0.67 -> 0.79), as in the no-tree
+   experiment. With `cover_k` and the stress trigger it reaches **1.60**
+   and a growing season of 0.85-1.12. Winter stays 5-6x: the non-dormant
+   understory, criterion 3's remaining problem.
+3. **The levers interact.** The stress trigger *raises* tree survival at
+   US-Ton (0.44 -> 0.89): leaf drop cuts transpiration, soil water
+   recovers, the annual-mean stress climbs back over the threshold. The
+   structural scalars must be fitted together, not one after another.
+4. **The floor.** All 15 open sites sit at exactly 0.25 -- the tower mean
+   cannot fall below 0.43 against an observed 0.25 unless `fu_min` is free.
+
+### Found before it could bite: the production path was gateless
+
+The gate was threaded into `site_transient.one_year` (the fit harness) and
+guarded there -- and only there. `run_global.py` and `loops_gswp3.py`, which
+run every validation, never created the accumulator and called `dynaveg`
+without `tree_surv`; `run_global.py` did not reset the accumulator either.
+A stage-(b) validation would have silently scored a gateless model against
+a gated fit -- defect 0 once more, this time in the instrumentation around
+the model. Fixed: the state carries `StressAccum` when the yaml's
+`tree_stress_min >= 0` (the run log says "Tree-establishment gate ACTIVE"
+or "inactive", so a log states which model ran), both production `dynaveg`
+calls receive `tree_surv`, the reset follows the consumption, and
+`load_state` drops the three trailing leaves when a gated restart meets an
+ungated template, so the fire, methane and report tools keep working on
+gated states. Guards: the wiring and the reset order in both files, and a
+261 -> 258 -> 261 checkpoint round-trip. The end-to-end check is
+`gate_probe`: two gated years (`tree_stress_min` 0.45, `fu_min` 0.10) from
+the v11 2010 state through `run_global.py`, scored with `fu_vs_tree.py`,
+run as soon as the GPU frees.
+
+### Stage (b1): structural scalars, PFT blocks frozen
+
+PFT blocks frozen at the stage-(a) result; seven structural scalars fitted
+on the four-criterion loss (`--w-tree 1`, `--w-season 10`, `--w-lai 0.5`):
+`tree_stress_min` (start 0.45), `tree_stress_ramp` (0.20), `cover_k`
+(0.5), `fl_min` (0.25), `fu_min` (0.10), `drop_stress_thresh` (0.5),
+`tthresh_u_abs` (0 C). Starting values enter through the init yaml (`pft`
+and `pheno` sections), because `extras_defaults` reads the current
+parameter and the inert defaults sit outside the bounds. 4000 cells, 25
+adjust + 3 eval years, ~150 evaluations overnight. Judged against stage (a)
+on the same loss, then validated over the domain: `fu_vs_tree.py` on the
+50-year run (the v11d table above is the baseline), `state_report.py`,
+`seasonal_baseline.py`. Stage (b2) is the joint refinement with
+`vmax`/`specla`, on which the tree term keeps the phantom trees from
+returning.

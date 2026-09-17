@@ -342,15 +342,29 @@ def run_global_simulation(config: IBISConfig) -> None:
     grid = GridConfig(nlon=nlon, nlat=nlat, npoi=npoi, xres=g.xres, yres=g.yres,
                       nbedrock=getattr(g, 'nbedrock', 0))
 
+    # Tree-establishment gate (CALIBRATION.md 14). The StressAccum leaves are
+    # attached only when the params activate the gate, so ungated runs keep the
+    # 258-leaf restart layout. Decided from the yaml here because the state is
+    # built before build_all_params runs below.
+    _pd_gate = load_physics_params(config.params_file) if config.params_file else None
+    _tsm = float(((_pd_gate or {}).get('pft') or {}).get('tree_stress_min', -1.0))
+    gate_on = _tsm >= 0.0
+    if gate_on:
+        logger.info("Tree-establishment gate ACTIVE (tree_stress_min=%.2f, ramp=%.2f): "
+                    "state carries StressAccum; dynaveg gets tree_surv", _tsm,
+                    float(_pd_gate['pft'].get('tree_stress_ramp', 0.2)))
+    else:
+        logger.info("Tree-establishment gate inactive (tree_stress_min < 0)")
+
     if t.irestart > 0:
         rpath = restart_path(out.restart_dir, t.irestart)
         logger.info("Loading restart from %s", rpath)
-        template = create_ibis_state(grid, p.co2init, p.o2init)
+        template = create_ibis_state(grid, p.co2init, p.o2init, with_stress=gate_on)
         state, meta = load_state(rpath, template)
         logger.info("Restart metadata: %s", meta)
     else:
         logger.info("Cold start ...")
-        state = create_ibis_state(grid, p.co2init, p.o2init)
+        state = create_ibis_state(grid, p.co2init, p.o2init, with_stress=gate_on)
 
     # Inject soil (always, since soil is static)
     state = _apply_soil(state, soil_props)
@@ -694,11 +708,13 @@ def run_global_simulation(config: IBISConfig) -> None:
         )
 
         from ibis.physics.vegetation_dynamics import biomass_update, dynaveg
+        from ibis.state.stress_accum import tree_survival, reset_stress_accum
         if p.isimveg > 0:
             new_veg, new_carbon, new_summary = dynaveg(
                 state.vegetation, state.carbon, state.summary,
                 pft_params, p.isimfire, consts.epsilon,
                 fire_scheme=p.fire_scheme,
+                tree_surv=tree_survival(state, pft_params),
             )
         else:
             new_veg, new_carbon, new_summary = biomass_update(
@@ -795,6 +811,7 @@ def run_global_simulation(config: IBISConfig) -> None:
              jnp.zeros_like(state.summary.aytrunof),
              jnp.zeros_like(state.summary.aytdrain)),
         )
+        state = reset_stress_accum(state)   # after dynaveg consumed this year's mean stress
 
         # Save restart
         rpath = restart_path(out.restart_dir, year)

@@ -83,6 +83,16 @@ def load_state(path: str, template_state):
     num_leaves = int(data["num_leaves"])
 
     n_fill = len(leaves_template) - num_leaves
+    if -3 <= n_fill < 0:
+        # The converse migration: a checkpoint written WITH the StressAccum
+        # (a gated run) loading into a template without it. The trailing
+        # leaves are the accumulator; an ungated run has no use for them.
+        import logging
+        logging.getLogger(__name__).warning(
+            "Checkpoint has %d leaves, template %d: dropping the %d trailing "
+            "leaves (stress accumulator not in this template).",
+            num_leaves, len(leaves_template), -n_fill)
+        n_fill = 0
     if n_fill < 0 or n_fill > 3:
         raise ValueError(
             f"Checkpoint has {num_leaves} leaves but template has "

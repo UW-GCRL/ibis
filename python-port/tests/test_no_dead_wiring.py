@@ -363,3 +363,48 @@ def test_tree_gate_inert_by_default_and_wired():
     assert "s.stress.aystressu" in lp and "reset_stress_accum(state)" in lp
     st_ = (Path(__file__).resolve().parents[2] / "verify" / "calibration" / "site_transient.py").read_text()
     assert "tree_surv=tree_survival(state, c[\"pft\"])" in st_
+
+
+def test_tree_gate_reaches_the_production_run_path():
+    """The gate must act in run_global.py and loops_gswp3.py, not only in the
+    calibration harness: the state carries StressAccum when the params activate
+    the gate, both production dynaveg calls receive tree_surv, the accumulator
+    is reset AFTER dynaveg consumed it, and the run log says the gate is on.
+    Found gateless on 2026-09-17 while the harness was gated (CALIBRATION.md 14)."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    rg = (root / "scripts" / "run_global.py").read_text()
+    lp = (root / "ibis" / "timestepping" / "loops_gswp3.py").read_text()
+    assert rg.count("with_stress=gate_on") == 2, "restart template AND cold start"
+    assert "tree_surv=tree_survival(state, pft_params)," in rg
+    assert "tree_surv=tree_survival(state, pft_params)," in lp
+    assert rg.index("tree_surv=tree_survival") < rg.index("state = reset_stress_accum(state)"), \
+        "run_global must reset the accumulator after dynaveg, not before"
+    assert lp.index("tree_surv=tree_survival") < lp.index("state = reset_stress_accum(state)")
+    assert "Tree-establishment gate ACTIVE" in rg, "the run log must say the gate is on"
+
+
+def test_gated_checkpoint_loads_into_an_ungated_template(tmp_path):
+    """A restart written by a gated run (StressAccum attached, +3 leaves) must
+    load into a template without it: the trailing accumulator leaves are
+    dropped and every other leaf restored exactly, so the fire, methane and
+    report tools keep working on gated states. The converse (258 -> 261) is
+    covered above."""
+    import numpy as np, jax, jax.numpy as jnp, equinox as eqx
+    from ibis.state.model_state import create_ibis_state
+    from ibis.io.restart import save_state, load_state
+    from ibis.dimensions import GridConfig
+    g = GridConfig(npoi=4, nbedrock=3)
+    gated = create_ibis_state(g, with_stress=True)
+    fu = jnp.array([0.1, 0.2, 0.3, 0.4], dtype=gated.vegetation.fu.dtype)
+    gated = eqx.tree_at(lambda s: s.vegetation.fu, gated, fu)
+    gated = eqx.tree_at(lambda s: s.stress.nday, gated, jnp.full_like(gated.stress.nday, 365.0))
+    path = str(tmp_path / "gated.npz")
+    save_state(gated, path)
+    loaded, _ = load_state(path, create_ibis_state(g))                   # ungated template
+    assert loaded.stress is None
+    assert len(jax.tree.leaves(loaded)) == len(jax.tree.leaves(create_ibis_state(g)))
+    np.testing.assert_array_equal(np.asarray(loaded.vegetation.fu), np.asarray(fu))
+    back, _ = load_state(path, create_ibis_state(g, with_stress=True))   # same layout
+    np.testing.assert_array_equal(np.asarray(back.stress.nday), 365.0)
+    np.testing.assert_array_equal(np.asarray(back.vegetation.fu), np.asarray(fu))
