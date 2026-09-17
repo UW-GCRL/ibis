@@ -207,7 +207,8 @@ def bounds_penalty(vmax, specla):
 
 
 # ------------------------------------------------------------------------ loss
-def score(gpp, lai, gpp_obs, lai_obs, w_lai, area=None, w_total=1.0):
+def score(gpp, lai, gpp_obs, lai_obs, w_lai, area=None, w_total=1.0,
+          gpp_m=None, obs_m=None, w_season=0.0):
     """Magnitude-honest loss. Returns (total, gpp_term, lai_term).
 
     The first fit used an unweighted per-cell mean of squared log-ratios and
@@ -221,10 +222,17 @@ def score(gpp, lai, gpp_obs, lai_obs, w_lai, area=None, w_total=1.0):
     being judged. LAI is weighted by area only, since LAI comparisons are
     area means. (2) An explicit term on the log-ratio of area-integrated
     totals, so the sum itself is a target and not just an emergent property.
+
+    Three criteria, one loss. The GPP term carries the GLOBAL TOTAL (its
+    total sub-term) and the SPATIAL PATTERN (its per-cell sub-term). The
+    optional SEASONAL term is `seasonal_shape` -- each cell's 12-month GPP as
+    fractions of its annual total against FLUXCOM's -- flux-weighted like
+    the spatial term. It is scale-free, so it adds no second vote on
+    magnitude. Returns (total, gpp_term, lai_term, season_term).
     """
     ok = np.isfinite(gpp) & np.isfinite(lai) & (gpp_obs > 0.02) & (lai_obs > 0.05)
     if ok.sum() < 20:
-        return 50.0, np.nan, np.nan
+        return 50.0, np.nan, np.nan, np.nan
     a = np.ones(ok.sum()) if area is None else np.asarray(area)[ok]
     g_m, g_o = np.maximum(gpp[ok], 1e-4), gpp_obs[ok]
     l_m, l_o = np.maximum(lai[ok], 1e-3), lai_obs[ok]
@@ -238,7 +246,14 @@ def score(gpp, lai, gpp_obs, lai_obs, w_lai, area=None, w_total=1.0):
 
     g_term = g_cell + w_total * g_tot
     l_term = l_cell + w_total * l_tot
-    return g_term + w_lai * l_term, g_term, l_term
+
+    s_term = 0.0
+    if gpp_m is not None and obs_m is not None and w_season > 0:
+        err, sok = seasonal_shape(gpp_m[:, ok], obs_m[:, ok])
+        if sok.sum() >= 20:
+            ws = (a * g_o) * sok; ws = ws / ws.sum()
+            s_term = float(np.sum(ws * np.nan_to_num(err)))
+    return g_term + w_lai * l_term + w_season * s_term, g_term, l_term, s_term
 
 
 def main():
@@ -255,6 +270,10 @@ def main():
                          "US drought and 2003 European heat wave -- CALIBRATION.md 10")
     ap.add_argument("--exclude-poleward", type=float, default=68.0)
     ap.add_argument("--w-lai", type=float, default=0.5)
+    ap.add_argument("--w-season", type=float, default=2.0,
+                    help="weight on the seasonal-shape term. Shape errors are "
+                         "O(0.02-0.1) per cell against O(0.1-0.5) for the log-"
+                         "ratio terms, so ~2 puts them on a comparable footing")
     ap.add_argument("--holdout", type=float, default=0.3)
     ap.add_argument("--min-cells", type=int, default=30,
                     help="PFTs dominant in fewer cells are frozen at default")
@@ -281,6 +300,7 @@ def main():
 
     gpp_obs = fluxcom_at(i, j)
     lai_obs = modis_at(i, j)
+    obs_m = fluxcom_monthly_at(i, j)            # (12, n) monthly totals
     area = np.cos(np.deg2rad(LATV[i]))          # relative cell area
     log.info("obs at sample: FLUXCOM GPP %.3f  MODIS LAI %.2f",
              np.nanmean(gpp_obs), np.nanmean(lai_obs))
@@ -334,11 +354,11 @@ def main():
         key = jax.random.PRNGKey(0)
         for n in range(a.adjust_years):
             st, key, _ = one_year(st, key, years[n % len(years)], ctx, 1)
-        gs, ls = [], []
+        gs, ls, ms = [], [], []
         for n in range(a.eval_years):
             st, key, d = one_year(st, key, years[n % len(years)], ctx, 1)
-            gs.append(d["aygpptot"]); ls.append(d["lai"])
-        return np.mean(gs, axis=0), np.mean(ls, axis=0)
+            gs.append(d["aygpptot"]); ls.append(d["lai"]); ms.append(d["gpp_monthly"])
+        return np.mean(gs, axis=0), np.mean(ls, axis=0), np.mean(ms, axis=0)
 
     def objective(x):
         t0 = time.time()
@@ -359,25 +379,27 @@ def main():
                 or np.any(specla > SPECLA_HI * tol):
             return 100.0
         try:
-            gpp, lai = run(vmax, specla)
+            gpp, lai, gpp_m = run(vmax, specla)
         except Exception as e:                       # noqa: BLE001
             log.warning("  eval %d failed: %s", ev[0], str(e)[:90])
             return 50.0
-        tot, gt, lt = score(gpp[fit_mask], lai[fit_mask],
-                            gpp_obs[fit_mask], lai_obs[fit_mask], a.w_lai,
-                            area[fit_mask])
-        ho, _, _ = score(gpp[~fit_mask], lai[~fit_mask],
-                         gpp_obs[~fit_mask], lai_obs[~fit_mask], a.w_lai,
-                         area[~fit_mask])
+        tot, gt, lt, st_ = score(gpp[fit_mask], lai[fit_mask],
+                                 gpp_obs[fit_mask], lai_obs[fit_mask], a.w_lai,
+                                 area[fit_mask], gpp_m=gpp_m[:, fit_mask],
+                                 obs_m=obs_m[:, fit_mask], w_season=a.w_season)
+        ho, _, _, _ = score(gpp[~fit_mask], lai[~fit_mask],
+                            gpp_obs[~fit_mask], lai_obs[~fit_mask], a.w_lai,
+                            area[~fit_mask], gpp_m=gpp_m[:, ~fit_mask],
+                            obs_m=obs_m[:, ~fit_mask], w_season=a.w_season)
         ev[0] += 1
         hist.append(dict(eval=ev[0], loss=tot, gpp_term=gt, lai_term=lt,
-                         holdout=ho, gpp_mean=float(np.nanmean(gpp)),
+                         season_term=st_, holdout=ho, gpp_mean=float(np.nanmean(gpp)),
                          lai_mean=float(np.nanmean(lai))))
         if tot < best[0]:
             best[0], best[1] = tot, (vmax.copy(), specla.copy())
-            log.info("  eval %3d  loss=%.4f (BEST)  gpp=%.4f lai=%.4f "
+            log.info("  eval %3d  loss=%.4f (BEST)  gpp=%.4f lai=%.4f season=%.4f "
                      "holdout=%.4f  GPP=%.3f LAI=%.2f  [%.0fs]",
-                     ev[0], tot, gt, lt, ho, hist[-1]["gpp_mean"],
+                     ev[0], tot, gt, lt, st_, ho, hist[-1]["gpp_mean"],
                      hist[-1]["lai_mean"], time.time() - t0)
         elif ev[0] % 10 == 0:
             log.info("  eval %3d  loss=%.4f  holdout=%.4f  [%.0fs]",
@@ -409,11 +431,14 @@ def main():
         print(f"{n:<18}{v0[k]*1e6:>8.1f}{vmax[k]*1e6:>8.1f}"
               f"{VMAX_LO[k]*1e6:>6.0f}{VMAX_HI[k]*1e6:>6.0f}"
               f"{s0[k]:>9.1f}{specla[k]:>8.1f}")
-    gpp, lai = run(vmax, specla)
+    gpp, lai, gpp_m = run(vmax, specla)
     for nm, msk in (("fit", fit_mask), ("HELD OUT", ~fit_mask)):
-        t, g, l = score(gpp[msk], lai[msk], gpp_obs[msk], lai_obs[msk], a.w_lai,
-                        area[msk])
+        t, g, l, s_ = score(gpp[msk], lai[msk], gpp_obs[msk], lai_obs[msk], a.w_lai,
+                            area[msk], gpp_m=gpp_m[:, msk], obs_m=obs_m[:, msk],
+                            w_season=a.w_season)
+        off = peak_offset(gpp_m[:, msk], obs_m[:, msk])
         print(f"  {nm:>9}: loss {t:.4f}  GPP term {g:.4f}  LAI term {l:.4f}  "
+              f"season term {s_:.4f}  peak offset mean {np.mean(off):+.2f} mo  "
               f"area-wtd GPP {np.average(gpp[msk], weights=area[msk]):.3f} vs "
               f"{np.average(gpp_obs[msk], weights=area[msk]):.3f}"
               f"  LAI {np.average(lai[msk], weights=area[msk]):.2f} vs "
