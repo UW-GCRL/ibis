@@ -204,14 +204,14 @@ per-PFT mortality **on**, human ignition off, fine fuel off.
 
 ## 5. Gotchas that have cost real time
 
-* **`imonthout: 1` is ~15x slower than yearly output.** The monthly netCDF
-  writer, not the physics, is the cost: a 95,333-cell run went from ~50 s per
-  model-year to ~16 min per model-year (9 monthly files in the first 12
-  minutes after JIT). Ten years of monthly output is ~2.7 h, not 9 min. For
-  a seasonal diagnostic use `verify/calibration/seasonal_baseline_sample.py`,
-  which gets monthly GPP from `one_year` on the stratified sample with no
-  writer, in ~5 min. Reserve global monthly output for when the full field
-  is actually needed (e.g. `amaet` for the ET stage).
+* **`imonthout: 1` costs ~4x yearly output -- and the first year misleads.**
+  Measured on a 95,333-cell run: steady state ~16 s per monthly file, ~3 min
+  per model-year, against ~50 s without monthly output; ten years ~35 min.
+  The first 12 months took ~12 min and, read alone, suggested 15x -- that was
+  JIT, and an earlier version of this note said 2.7 h for ten years on the
+  strength of it. For a seasonal diagnostic that does not need the full
+  field, `verify/calibration/seasonal_baseline_sample.py` gets monthly GPP
+  from `one_year` on the stratified sample with no writer.
 
 **Checkpoints predating F1b** lack `nfirestep_vpd`/`sdry_vpd`. `dynaveg` raises
 a message naming the migration rather than a bare `AttributeError`.
