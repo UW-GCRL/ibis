@@ -83,6 +83,12 @@ protocol and is not needed here.
 | dataset | path | size | constrains |
 |---|---|---|---|
 | **FLUXCOM GPP** | `/shared/nas2/Chuanfeng/ilambdata/gppfluxcom_ilamb.nc` | 80 MB | gridded GPP. **Units are g m-2 day-1** -- multiply by 365.25/1000 |
+| **MODIS ET (MOD16-derived)** | `/shared/nas2/Hangkai/ibis/inputs/eval/et/MODIS_et_0.5x0.5.nc` | 29 MB | ET target used first (`et_vs_modis.py`); known high bias in arid land (ET > P there). `et` in `kg/m2/s`, 2000-01..2013-12 monthly, 0.5° grid, **S->N, must be flipped** |
+| MOD16A2 ET | `/shared/nas2/Hangkai/ibis/inputs/eval/et/MOD16A2_et.nc` | 373 MB | the newer MOD16 collection, cross-check. `et` in `kg/m2/s`, 2000-01..2014-12 monthly, 0.5° grid, **S->N, must be flipped** |
+| GLEAM v3.3a ET | `/shared/nas2/Hangkai/ibis/inputs/eval/et/GLEAMv3.3a_et.nc` | 970 MB | satellite-forced Priestley-Taylor, independent of MOD16. `et` in `kg/m2/s`, 1980-01..2018-12 monthly, 0.5° grid, **S->N, must be flipped** |
+| DOLCE ET | `/shared/nas2/Hangkai/ibis/inputs/eval/et/DOLCE_et.nc` | 91 MB | tower-weighted ensemble of gridded ET products. `hfls` in `W m-2`, 2000-01..2009-12 monthly, 0.5° grid, **S->N, must be flipped** |
+| FLUXCOM LE | `/shared/nas2/Hangkai/ibis/inputs/eval/et/FLUXCOM_le.nc` | 871 MB | latent heat from the same machine-learning family as the GPP target; LE / 2.45e6 J/kg -> mm. `le` in `watt/m2`, 1980-01..2014-12 monthly, 0.5° grid, **S->N, must be flipped** |
+| WECANN LE | `/shared/nas2/Hangkai/ibis/inputs/eval/et/WECANN_hfls.nc` | 13 MB | solar-induced-fluorescence-constrained latent heat, cross-check. `hfls` in `W/m^2`, 2007-01..2015-12 monthly, 1.0° grid |
 | **MODIS PFT LAI** | `/shared/nas2/Hangkai/ELM Edge Effects/inputdata/MODISPFTLAI_0.5x0.5_v1_all_forests.nc` | 2.5 GB | leaf area; needs the surfdata file below for PFT weights |
 | **CLM surfdata (tree fraction)** | `.../surfdata_0.5x0.5_CH_v1_all_forests.nc` | 2.4 GB | `PCT_NAT_PFT`, `PCT_NATVEG`. **S->N, must be flipped.** Also the fourth calibration observation: PFTs 1-8 of `PCT_NAT_PFT` = tree fraction of the natural-vegetation part; this is the no-crop `all_forests` variant (`PCT_CROP` = 0), i.e. potential vegetation like IBIS's own -- `fit_carbon.tree_at`, `fu_vs_tree.py`, CALIBRATION.md 14 |
 | ILAMB fields | `python-port/data/ilamb_obs/` | small | pre-processed `gpp/lai/cveg/csoil` means |

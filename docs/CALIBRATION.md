@@ -1301,3 +1301,50 @@ on the same loss, then validated over the domain: `fu_vs_tree.py` on the
 `seasonal_baseline.py`. Stage (b2) is the joint refinement with
 `vmax`/`specla`, on which the tree term keeps the phantom trees from
 returning.
+
+## 15. Stage 2 groundwork: the ET error is the same phantom-tree pattern
+
+Before ET is calibrated it needs a target and a baseline. Six gridded
+products from the public ILAMB collection are now on disk
+(`DATA_INVENTORY.md` 4: MODIS/MOD16, MOD16A2, GLEAM v3.3a, DOLCE, FLUXCOM
+LE, WECANN LE), so the ET stage can use their spread as its uncertainty
+rather than one product's bias. The baseline below is v11d (years 2056-60)
+against MODIS ET (2000-13) on natural-vegetation cells with FLUXCOM GPP,
+area-weighted (`verify/calibration/et_vs_modis.py`, reusable on any
+validation run):
+
+| | ET mod / obs (mm/yr) | ET ratio | ET/P mod vs obs | GPP ratio | WUE mod vs obs (gC/kg) | WUE ratio |
+|---|---|---|---|---|---|---|
+| all natural land | 629 / 583 | **1.08** | 0.62 vs 0.58 | 1.34 | 2.20 vs 1.77 | **1.24** |
+| tree < 0.05 | 401 / 294 | **1.36** | 0.80 vs 0.58 | 2.06 | 2.05 vs 1.36 | 1.51 |
+| tree 0.05-0.15 | 548 / 441 | 1.24 | 0.72 vs 0.58 | 1.77 | 2.09 vs 1.47 | 1.42 |
+| tree 0.15-0.30 | 657 / 569 | 1.15 | 0.70 vs 0.61 | 1.54 | 2.19 vs 1.64 | 1.33 |
+| tree 0.30-0.50 | 698 / 641 | 1.09 | 0.66 vs 0.60 | 1.44 | 2.28 vs 1.73 | 1.32 |
+| tree 0.50-0.70 | 708 / 709 | 1.00 | 0.59 vs 0.59 | 1.33 | 2.36 vs 1.77 | 1.33 |
+| tree > 0.70 | 830 / 890 | **0.93** | 0.52 vs 0.55 | 1.01 | 2.23 vs 2.05 | 1.09 |
+
+Three readings.
+
+1. **The global ET total is nearly right (1.08x) while GPP is 1.34x**, so
+   WUE runs 1.24x high. The excess ET is where the excess GPP is: treeless
+   land evaporates 80 % of its precipitation against 58 % observed and runs
+   1.36x; forests run 0.93x. By latitude the leaking bands are the
+   phantom-tree bands -- 30-45N 1.18x, 15-30S 1.38x, 30-60S 1.36x -- while
+   the tropics (0.97-1.10x) and the boreal zone (0.99-1.05x) are close.
+2. **So the tree gate is the first ET lever too.** Stage (b1) removes the
+   trees whose transpiration makes steppes evaporate like forests; ET must
+   be re-baselined after it, and ET-specific parameters fitted only to what
+   remains. What will remain by the look of it: the boreal WUE (60-90N GPP
+   1.79x on ET 0.99x -- a GPP problem, not ET) and the forest WUE 1.09x.
+3. **The aridity extremes are data-limited.** In the most water-limited
+   class MODIS ET exceeds precipitation (ET/P 1.06 against a physical
+   ceiling near 1 without irrigation), the known MOD16 arid-land bias, and
+   there the model reads 0.77x; in the wettest class the model reads 1.51x
+   on a small observed ET. Neither extreme is a calibration target on one
+   product -- the ensemble spread decides.
+
+Model ET is `ayaet` (mm/yr) yearly and `amaet` monthly; the fit harness's
+`one_year` already returns `ayaet` and the daily AET series, so the ET fit
+is the carbon harness with `fluxcom_at` -> an ET loader and the seasonal
+term on monthly ET.
+
