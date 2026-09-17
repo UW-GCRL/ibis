@@ -1166,3 +1166,31 @@ each inert by default and each already measured on the 60 cells:
 Then a joint fit of the structural scalars with `vmax`/`specla` on the
 three-criterion loss. The stage-(a) result (running) is the parameter-only
 baseline that fit is judged against.
+
+### Built: the water-limited tree establishment gate (commit f98e9c5)
+
+`StressAccum` (annual sums of `soil.stresstu` / `stresstl` and a day count)
+hung off `IBISState` as an Optional declared after every other field, so a
+state without it keeps its 258 leaves and every restart on disk still
+loads; with it, `load_state` fills the three trailing leaves from the
+template and says so. Accumulated daily inside the scan body, reset with
+the annual accumulators. `dynaveg(tree_surv=...)`: survival =
+clip((annual-mean upper-canopy stress - `tree_stress_min`) /
+`tree_stress_ramp`, 0, 1) multiplies the upper-canopy pools and blocks
+seeding where survival is 0. `tree_stress_min = -1` (default) never binds.
+
+Proofs: bit-identical without the accumulator; the v11 2010 checkpoint loads
+into a with-accumulator template; 14 guards pass (exact +3 leaves, threading
+of `tree_surv` from the callers into `dynaveg`).
+
+Build note, because it is a hygiene finding: the first patch used a
+multi-line non-greedy regex for the `dynaveg` signature, which ends
+`) -> tuple[...]:`; the match ran into the body and rewrote
+`for j in range(npft):` as `range(npft, tree_surv=None)` -- valid Python,
+broken semantics, caught only by the behavioural probe. Exact-string
+anchors from here.
+
+Lever test 6 runs the gate at thresholds 0.45 / 0.55 / 0.65, alone and with
+`cover_k` and the stress trigger, on the sparse, dense and tower sets -- the
+tower set reporting `fu` against the MODIS/CLM tree fraction cell by cell,
+which is the gate's direct calibration target.
