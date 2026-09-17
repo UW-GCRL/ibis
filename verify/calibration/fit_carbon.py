@@ -181,32 +181,90 @@ def modis_at(i, j):
 
 
 # ------------------------------------------------------------------ parameters
-#: Water-stress curvature in drystress. F77 default -5.0; MORE NEGATIVE =
-#: LESS stress (tests/test_stomata.py pins the sign). It was a dead parameter
-#: until docs/GPP.md restored it, and it is the natural lever for the
-#: sparse-cell excess of CALIBRATION.md 10, so it joins the vector.
-STRESSFAC_LO, STRESSFAC_HI, STRESSFAC_DEFAULT = -10.0, -2.5, -5.0
+#: Scalar parameters that may join the vector after the 12+12 PFT blocks.
+#: name -> (setter(sp, value) -> sp, lo, hi, log-encoded?). Bounds are
+#: physically reasoned, not fitted.
+#:
+#: stressfac: drystress curvature. F77 -5.0; MORE NEGATIVE = LESS stress
+#: (tests/test_stomata.py pins the sign). Dead until docs/GPP.md restored it;
+#: the natural lever for the within-PFT sparse-cell excess (CALIBRATION.md 10).
+#:
+#: Phenology (PhenoParams, lifted from literals in pheno() -- CALIBRATION.md):
+#: GDD thresholds and ramps log-encoded, temperature offsets raw. `drop_thresh`
+#: is deliberately NOT here: it is a threshold on 10-day net assimilation in
+#: mol m-2 s-1, O(1e-6) around zero, and fitting a near-zero threshold is
+#: ill-conditioned; `drop_floor` and `ddays` carry the drought response.
+def _set(path):
+    return lambda sp, v: eqx.tree_at(path, sp, float(v))
+
+
+EXTRAS = {
+    "stressfac":        (_set(lambda p: p.stomata_params.stressfac), -10.0, -2.5, False),
+    "gdd_thresh_u":     (_set(lambda p: p.pheno.gdd_thresh_u),        50.0, 250.0, True),
+    "gdd_ramp_u":       (_set(lambda p: p.pheno.gdd_ramp_u),          20.0, 150.0, True),
+    "gdd_thresh_l":     (_set(lambda p: p.pheno.gdd_thresh_l),        50.0, 300.0, True),
+    "gdd_ramp_l":       (_set(lambda p: p.pheno.gdd_ramp_l),          20.0, 150.0, True),
+    "tthresh_u_offset": (_set(lambda p: p.pheno.tthresh_u_offset),     0.0,  12.0, False),
+    "gthresh_u_c":      (_set(lambda p: p.pheno.gthresh_u_c),         -5.0,   5.0, False),
+    "tthresh_l_c":      (_set(lambda p: p.pheno.tthresh_l_c),         -5.0,   8.0, False),
+    "gthresh_l_c":      (_set(lambda p: p.pheno.gthresh_l_c),        -12.0,   2.0, False),
+    "drop_floor":       (_set(lambda p: p.pheno.drop_floor),          0.02,   0.5, True),
+    "ddays":            (_set(lambda p: p.pheno.ddays),                5.0,  60.0, True),
+}
 NPFT = 12
 
 
-def to_vec(vmax, specla, stressfac=None):
+def _enc(name, v):
+    return np.log(v) if EXTRAS[name][3] else float(v)
+
+
+def _dec(name, x):
+    return float(np.exp(x)) if EXTRAS[name][3] else float(x)
+
+
+def extras_defaults(sp, names):
+    """Current values of the chosen extras, read back off the SimParams tree."""
+    out = {}
+    for n in names:
+        if n == "stressfac":
+            out[n] = float(sp.stomata_params.stressfac)
+        else:
+            out[n] = float(getattr(sp.pheno, n))
+    return out
+
+
+def to_vec(vmax, specla, extras=None, names=()):
     parts = [np.log(vmax), np.log(specla)]
-    if stressfac is not None:
-        parts.append(np.array([stressfac], dtype=float))   # raw, not log: negative
+    if names:
+        parts.append(np.array([_enc(n, extras[n]) for n in names], dtype=float))
     return np.concatenate(parts)
 
 
-def from_vec(x):
+def from_vec(x, names=()):
     vmax, specla = np.exp(x[:NPFT]), np.exp(x[NPFT:2 * NPFT])
-    stressfac = float(x[2 * NPFT]) if len(x) > 2 * NPFT else None
-    return vmax, specla, stressfac
+    extras = {n: _dec(n, x[2 * NPFT + k]) for k, n in enumerate(names)}
+    return vmax, specla, extras
 
 
-def apply_params(sp, pft, vmax, specla, stressfac=None):
+def extras_bounds(names):
+    lo = np.array([_enc(n, EXTRAS[n][1]) for n in names], dtype=float)
+    hi = np.array([_enc(n, EXTRAS[n][2]) for n in names], dtype=float)
+    return lo, hi
+
+
+def extras_in_bounds(extras, tol=1e-9):
+    for n, v in extras.items():
+        lo, hi = EXTRAS[n][1], EXTRAS[n][2]
+        if not (lo - tol * abs(lo) - 1e-12 <= v <= hi + tol * abs(hi) + 1e-12):
+            return False
+    return True
+
+
+def apply_params(sp, pft, vmax, specla, extras=None):
     sp = eqx.tree_at(lambda p: p.stomata_params.vmax_pft, sp,
                      jnp.array(vmax, dtype=jnp.float32))
-    if stressfac is not None:
-        sp = eqx.tree_at(lambda p: p.stomata_params.stressfac, sp, float(stressfac))
+    for n, v in (extras or {}).items():
+        sp = EXTRAS[n][0](sp, v)
     pft = eqx.tree_at(lambda p: p.specla, pft,
                       jnp.array(specla, dtype=jnp.float32))
     return sp, pft
@@ -284,8 +342,10 @@ def main():
                          "US drought and 2003 European heat wave -- CALIBRATION.md 10")
     ap.add_argument("--exclude-poleward", type=float, default=68.0)
     ap.add_argument("--w-lai", type=float, default=0.5)
-    ap.add_argument("--fit-stressfac", type=int, default=1,
-                    help="1: include drystress stressfac in the vector")
+    ap.add_argument("--extras", default="stressfac",
+                    help="comma list of scalar extras to fit (see EXTRAS); '' for none. "
+                         "Default fits stressfac only; add phenology fields once the "
+                         "seasonal baseline says which matter")
     ap.add_argument("--w-season", type=float, default=2.0,
                     help="weight on the seasonal-shape term. Shape errors are "
                          "O(0.02-0.1) per cell against O(0.1-0.5) for the log-"
@@ -363,8 +423,8 @@ def main():
     best = [np.inf, None]
     ev = [0]
 
-    def run(vmax, specla, stressfac=None):
-        sp, pft = apply_params(sp0, pft0, vmax, specla, stressfac)
+    def run(vmax, specla, extras=None):
+        sp, pft = apply_params(sp0, pft0, vmax, specla, extras)
         ctx = dict(ctx0, sp=sp, pft=pft)
         st = state0
         key = jax.random.PRNGKey(0)
@@ -378,26 +438,26 @@ def main():
 
     def objective(x):
         t0 = time.time()
-        vmax, specla, stressfac = from_vec(x)
+        vmax, specla, extras = from_vec(x, names)
         # A parameter the sample cannot constrain must not move: with zero
         # dominant cells the loss is flat in it, so CMA-ES walks it to a
         # bound on noise. The first run did exactly that -- boreal_con_dec
         # (0 cells) went to 57 umol against a 45 ceiling.
         vmax = np.where(free, vmax, v0)
         specla = np.where(free, specla, s0)
-        if stressfac is not None and not (STRESSFAC_LO / tol_s <= stressfac <= STRESSFAC_HI * tol_s):
+        if not extras_in_bounds(extras):
             return 100.0
         # Tolerance matters: `specla` defaults sit EXACTLY on two bounds
         # (30.0 and 35.0), and the log/exp round-trip in to_vec/from_vec puts
         # them a float above, which rejected the baseline itself as
         # out-of-bounds and reported loss 100.
-        tol = 1.0 + 1e-9; tol_s = 1.0 + 1e-9
+        tol = 1.0 + 1e-9
         if np.any(vmax < VMAX_LO / tol) or np.any(vmax > VMAX_HI * tol) \
                 or np.any(specla < SPECLA_LO / tol) \
                 or np.any(specla > SPECLA_HI * tol):
             return 100.0
         try:
-            gpp, lai, gpp_m = run(vmax, specla, stressfac)
+            gpp, lai, gpp_m = run(vmax, specla, extras)
         except Exception as e:                       # noqa: BLE001
             log.warning("  eval %d failed: %s", ev[0], str(e)[:90])
             return 50.0
@@ -414,7 +474,7 @@ def main():
                          season_term=st_, holdout=ho, gpp_mean=float(np.nanmean(gpp)),
                          lai_mean=float(np.nanmean(lai))))
         if tot < best[0]:
-            best[0], best[1] = tot, (vmax.copy(), specla.copy(), stressfac)
+            best[0], best[1] = tot, (vmax.copy(), specla.copy(), dict(extras))
             log.info("  eval %3d  loss=%.4f (BEST)  gpp=%.4f lai=%.4f season=%.4f "
                      "holdout=%.4f  GPP=%.3f LAI=%.2f  [%.0fs]",
                      ev[0], tot, gt, lt, st_, ho, hist[-1]["gpp_mean"],
@@ -424,20 +484,25 @@ def main():
                      ev[0], tot, ho, time.time() - t0)
         return tot
 
-    sf0 = float(sp0.stomata_params.stressfac) if a.fit_stressfac else None
-    log.info("stressfac: %s", f"fitted from {sf0} in [{STRESSFAC_LO}, {STRESSFAC_HI}]"
-             if sf0 is not None else "held at default")
+    names = tuple(n for n in a.extras.split(",") if n)
+    for n in names:
+        assert n in EXTRAS, f"unknown extra {n}; choose from {list(EXTRAS)}"
+    ex0 = extras_defaults(sp0, names)
+    log.info("extras fitted: %s", {n: (ex0[n], EXTRAS[n][1], EXTRAS[n][2]) for n in names} or "none")
     log.info("=== baseline (starting parameters) ===")
-    b = objective(to_vec(v0, s0, sf0))
+    b = objective(to_vec(v0, s0, ex0, names))
     log.info("baseline loss %.4f", b)
 
-    lo_v = to_vec(VMAX_LO, SPECLA_LO, STRESSFAC_LO if sf0 is not None else None)
-    hi_v = to_vec(VMAX_HI, SPECLA_HI, STRESSFAC_HI if sf0 is not None else None)
-    x0 = np.clip(to_vec(v0, s0, sf0), lo_v, hi_v)
-    # CMA-ES works in one sigma for all coordinates; log-vmax/log-specla span
-    # ~1 and stressfac spans 7.5, so scale that coordinate to a comparable width.
-    scales = np.ones(len(x0)); 
-    if sf0 is not None: scales[-1] = (STRESSFAC_HI - STRESSFAC_LO) / 1.5
+    elo, ehi = extras_bounds(names)
+    lo_v = np.concatenate([to_vec(VMAX_LO, SPECLA_LO), elo])
+    hi_v = np.concatenate([to_vec(VMAX_HI, SPECLA_HI), ehi])
+    x0 = np.clip(to_vec(v0, s0, ex0, names), lo_v, hi_v)
+    # CMA-ES uses one sigma across coordinates. log-vmax/log-specla span ~1;
+    # raw-encoded extras span (hi-lo), so scale those to a comparable width.
+    scales = np.ones(len(x0))
+    for k, n in enumerate(names):
+        if not EXTRAS[n][3]:
+            scales[2 * NPFT + k] = (EXTRAS[n][2] - EXTRAS[n][1]) / 1.5
     es = cma.CMAEvolutionStrategy(x0, a.sigma, {
         "maxfevals": a.n_evals, "seed": a.seed, "verb_disp": 0,
         "CMA_stds": scales,
@@ -446,13 +511,15 @@ def main():
         xs = es.ask()
         es.tell(xs, [objective(x) for x in xs])
 
-    vmax, specla, stressfac = best[1]
-    import pandas as pd
+    vmax, specla, extras = best[1]
+    import pandas as pd, json
     pd.DataFrame(hist).to_csv(f"{a.out}/history.csv", index=False)
     np.savez(f"{a.out}/best.npz", vmax=vmax, specla=specla, sel=sel,
-             stressfac=np.nan if stressfac is None else stressfac)
-    if stressfac is not None:
-        print(f"\nstressfac: {sf0} -> {stressfac:.3f}   (bounds {STRESSFAC_LO}..{STRESSFAC_HI}; more negative = less stress)")
+             extras_json=json.dumps(extras))
+    if extras:
+        print("\nEXTRAS (default -> fitted  [lo, hi]):")
+        for n in names:
+            print(f"  {n:<18} {ex0[n]:9.3f} -> {extras[n]:9.3f}   [{EXTRAS[n][1]}, {EXTRAS[n][2]}]")
     print(f"\n{'='*76}\nBEST PARAMETERS (loss {best[0]:.4f}, baseline {b:.4f})")
     print(f"{'PFT':<18}{'vmax0':>8}{'vmax':>8}{'lo':>6}{'hi':>6}"
           f"{'specla0':>9}{'specla':>8}")
@@ -460,7 +527,7 @@ def main():
         print(f"{n:<18}{v0[k]*1e6:>8.1f}{vmax[k]*1e6:>8.1f}"
               f"{VMAX_LO[k]*1e6:>6.0f}{VMAX_HI[k]*1e6:>6.0f}"
               f"{s0[k]:>9.1f}{specla[k]:>8.1f}")
-    gpp, lai, gpp_m = run(vmax, specla, stressfac)
+    gpp, lai, gpp_m = run(vmax, specla, extras)
     for nm, msk in (("fit", fit_mask), ("HELD OUT", ~fit_mask)):
         t, g, l, s_ = score(gpp[msk], lai[msk], gpp_obs[msk], lai_obs[msk], a.w_lai,
                             area[msk], gpp_m=gpp_m[:, msk], obs_m=obs_m[:, msk],
