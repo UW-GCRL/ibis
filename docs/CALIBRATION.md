@@ -1103,3 +1103,32 @@ this half.
 
 What a tree-establishment fix could deliver is bounded next by removing the
 upper canopy outright in the 60 sparse cells.
+
+### The global extent: 80% of the excess is in open-canopy land; forests are right
+
+v11d state, all cells with FLUXCOM, stratified by MODIS/CLM tree cover:
+
+| MODIS/CLM tree cover | cells | area Mkm2 | model/FLUXCOM | excess PgC | share of global excess | model fu |
+|---|---|---|---|---|---|---|
+| < 0.10 **and model fu >= 0.5, upper LAI >= 0.5 (phantom trees)** | 6,001 | 14.7 | **2.02x** | 10.7 | **27%** | 0.90 |
+| < 0.10 (all treeless) | 19,138 | 40.7 | 1.95x | 16.6 | 42% | 0.48 |
+| 0.10-0.40 (savanna, woodland) | 12,859 | 29.4 | 1.54x | 14.9 | 38% | 0.71 |
+| >= 0.40 (forest) | 18,807 | 43.7 | **1.11x** | 7.9 | 20% | 0.85 |
+| **all** | 50,804 | 128.5 | **1.34x** | **39.4** | | |
+
+Phantom-tree cells by band: 30-50N **3,177**, 0-30N 732, 0-30S 967, 50-70N
+640, 30-60S 469. Held by tropical broadleaf deciduous (2,756), warm-temperate
+broadleaf evergreen (1,778), temperate conifer (652), boreal deciduous (414).
+
+**Forests are nearly right (1.11x). Eighty percent of the global excess is
+in cells with under 40% tree cover, and phantom trees alone are 27%.** The
+1.34x is not a photosynthesis-parameter problem: where the vegetation
+structure is right, the canopy physiology is close. It is a **vegetation-
+structure problem in open systems** -- trees established with no water
+limit, understory painted at 98% cover, no dormancy -- and each of those is
+a few lines in `dynaveg` / `existence` / `pheno`, not a module.
+
+This also explains why every parameter fit converged where it did: `vmax`
+and `specla` are per PFT, and the same PFT is right in its forest and wrong
+in the open cells it should not occupy. No parameter can express "no tree
+here"; the structure has to.
