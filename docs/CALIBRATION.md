@@ -1034,3 +1034,30 @@ judged against FLUXCOM values of ~0.013 kgC m-2 mo-1 -- a machine-learning
 product at its noise floor (the clipped negative winters are that noise),
 known to be weak in dry systems. The semi-arid FLUXNET2015 towers test that
 target directly; result below.
+
+### The off-season target is real: 19 semi-arid towers
+
+FLUXNET2015 monthly `GPP_NT_VUT_REF` climatologies at 19 semi-arid sites,
+against FLUXCOM and the v11d model at the same 0.5-degree cells (off-season
+= the 8 lowest tower months):
+
+| | annual kgC m-2 | off-season kgC m-2 mo-1 |
+|---|---|---|
+| tower (point, productive patch) | 0.52 | 0.025 |
+| FLUXCOM (cell) | 0.46  (0.87x tower) | 0.022  (**0.88x tower**) |
+| model (cell) | 0.94  (**1.81x tower**) | 0.055  (**2.19x tower**) |
+
+FLUXCOM's near-zero dormant season is what the towers measure; the 0.87-0.88
+is the usual point-vs-cell representativeness, not a data floor. The model
+exceeds the *towers* -- which normally read above the cell mean -- by 1.8x
+annually and 2.2x in the dormant season. Worst where the land is sparsest:
+ES-LJu shrubland 9.2x (23.9x off-season), US-Cop grassland 7.2x, US-SRC
+shrubland 4.2x, US-Whs 3.4x, CN-Du2 steppe 3.2x. A few are right or low
+(AU-DaS 1.02, AU-Cpr 0.73, SD-Dem 0.50). **The sparse-cell excess is
+confirmed on independent site data; FLUXCOM is not the problem.**
+
+The next check has ground truth: US-Whs, ES-LJu, US-Cop are open shrub and
+grass with no trees. If the model carries an upper canopy there (`fu` 0.60,
+half of assimilation in the sparse set), half the excess is a tree layer
+that should not exist -- an establishment error in `dynaveg`, which knows
+no water limit on where trees grow.
