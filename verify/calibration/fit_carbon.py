@@ -216,6 +216,8 @@ EXTRAS = {
     "ddays":            (_set(lambda p: p.pheno.ddays),                5.0,  60.0, True),
     # soil-water-stress dormancy trigger; -1 (default) is inert. Raw-encoded.
     "drop_stress_thresh": (_set(lambda p: p.pheno.drop_stress_thresh),  0.05, 0.85, False),
+    # absolute upper-canopy leaf-drop temperature (C); -100 (default) never binds
+    "tthresh_u_abs":    (_set(lambda p: p.pheno.tthresh_u_abs),        -5.0,  15.0, False),
 }
 NPFT = 12
 

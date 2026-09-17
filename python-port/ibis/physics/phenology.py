@@ -51,6 +51,15 @@ class PhenoParams(eqx.Module):
     #: semi-arid cells it fired in no month while stresstl sat at 0.3. The
     #: default -1.0 can never be reached, so default behaviour is unchanged.
     drop_stress_thresh: float = -1.0
+    #: Absolute upper-canopy leaf-drop temperature (C). IBIS drops
+    #: cold-deciduous tree leaves when the 10-day mean falls below
+    #: `tc + tthresh_u_offset`, RELATIVE to the local coldest month: a
+    #: continental aspen keeps leaves to -15 C, and in mild-winter cells the
+    #: threshold sits inside the winter range so `tempu` dithers at ~0.5 all
+    #: year (docs/CALIBRATION.md 14). Real temperate deciduous senescence is
+    #: near an absolute 5-10 C. The threshold becomes max(relative, absolute);
+    #: default -100 C never binds, so default behaviour is unchanged.
+    tthresh_u_abs: float = -100.0
 
 
 def pheno(
@@ -103,7 +112,8 @@ def pheno(
     a10ancl3 = summary.a10ancl3
 
     # --- Upper canopy winter phenology ---
-    tthreshold_u = jnp.maximum(0.0 + tmelt, veg.tc + pp.tthresh_u_offset + tmelt)
+    tthreshold_u = jnp.maximum(jnp.maximum(0.0 + tmelt, veg.tc + pp.tthresh_u_offset + tmelt),
+                               pp.tthresh_u_abs + tmelt)
     gthreshold_u = pp.gthresh_u_c + tmelt
 
     agddu = jnp.where(

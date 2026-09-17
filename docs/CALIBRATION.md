@@ -926,3 +926,34 @@ grows, not at "local coldest month + 5". `PhenoParams.tthresh_u_abs` adds it
 (threshold = max(relative, absolute); default -100 C never binds). Tested
 next on the same cells, alone and with the stress trigger and a GDD reset
 that actually resets in mild winters.
+
+### Lever test 3: an absolute leaf-drop temperature fixes spring, not autumn
+
+| case | annual | Apr | Oct | Nov |
+|---|---|---|---|---|
+| default | 2.37 | 2.96 | 4.22 | 4.42 |
+| `tthresh_u_abs` 5 C | 2.31 | 2.71 | 4.19 | 4.40 |
+| `tthresh_u_abs` 8 C | 2.23 | 2.57 | 4.18 | 4.37 |
+| + `gthresh_u_c` 5 (GDD resets) | 2.23 | 2.57 | 4.18 | 4.37 |
+| + stress trigger 0.7 | 2.14 | 2.51 | 4.02 | 4.18 |
+| + grass threshold 8 C | 2.12 | 2.44 | 4.02 | 4.18 |
+
+Trees leaf out later, so spring falls (April 2.96 -> 2.44); autumn does not
+move (October-November 4.0-4.4x under every combination). The 10-day mean
+in these cells is 8-9 C in October, so an 8 C threshold barely binds until
+late November, and what remains is evergreen -- shrub, broadleaf evergreen,
+conifer -- plus a canopy amount that is 2.4x reality.
+
+**Six lever tests agree: phenology, however parameterised, moves these cells
+<= 10% annually and <= 5% in autumn.** The excess is not seasonality of the
+leaves; it is how much canopy the model paints on a sparse cell. IBIS sets
+lower-canopy cover `fl = clip(totlail, 0.25, 0.975)` -- 1.28 of grass LAI
+becomes 81-97% cover -- and `fu` from wood biomass reads 0.59 here. GPP
+scales linearly with cover, which light saturation cannot defeat, and a
+cover that saturates with LAI would leave dense cells untouched while
+halving sparse ones: the within-PFT separation section 10 said no per-PFT
+parameter could give. Tested next.
+
+`tthresh_u_abs` stays (correct, inert by default, and it is the right fix for
+spring leaf-out where it matters); the pooled monthly tables above mix 47 NH
+with 13 SH cells and are split by hemisphere from here.

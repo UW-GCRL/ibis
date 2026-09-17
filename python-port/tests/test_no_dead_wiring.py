@@ -265,6 +265,7 @@ def test_pheno_params_defaults_are_the_f77_literals():
     assert (p.tthresh_l_c, p.gthresh_l_c, p.gdd_thresh_l, p.gdd_ramp_l) == (0.0, -5.0, 150.0, 50.0)
     assert (p.drop_thresh, p.drop_floor, p.ddays) == (0.0, 0.1, 15.0)
     assert p.drop_stress_thresh == -1.0          # inert by default: F77 has no stress trigger
+    assert p.tthresh_u_abs == -100.0             # inert by default: F77 threshold is relative (tc + 5)
 
 
 def test_pheno_params_reach_pheno_through_the_gswp3_loop():
@@ -280,7 +281,7 @@ def test_pheno_params_reach_pheno_through_the_gswp3_loop():
     assert "pheno: PhenoParams" in sim
     ph = (root / "physics" / "phenology.py").read_text()
     for name in ("pp.gdd_thresh_u", "pp.gdd_thresh_l", "pp.drop_floor", "pp.ddays",
-                 "pp.tthresh_u_offset", "pp.gthresh_l_c", "pp.drop_stress_thresh"):
+                 "pp.tthresh_u_offset", "pp.gthresh_l_c", "pp.drop_stress_thresh", "pp.tthresh_u_abs"):
         assert name in ph, f"{name} not used inside pheno()"
 
 
