@@ -84,7 +84,7 @@ protocol and is not needed here.
 |---|---|---|---|
 | **FLUXCOM GPP** | `/shared/nas2/Chuanfeng/ilambdata/gppfluxcom_ilamb.nc` | 80 MB | gridded GPP. **Units are g m-2 day-1** -- multiply by 365.25/1000 |
 | **MODIS PFT LAI** | `/shared/nas2/Hangkai/ELM Edge Effects/inputdata/MODISPFTLAI_0.5x0.5_v1_all_forests.nc` | 2.5 GB | leaf area; needs the surfdata file below for PFT weights |
-| CLM surfdata | `.../surfdata_0.5x0.5_CH_v1_all_forests.nc` | 2.4 GB | `PCT_NAT_PFT`, `PCT_NATVEG`. **S->N, must be flipped** |
+| **CLM surfdata (tree fraction)** | `.../surfdata_0.5x0.5_CH_v1_all_forests.nc` | 2.4 GB | `PCT_NAT_PFT`, `PCT_NATVEG`. **S->N, must be flipped.** Also the fourth calibration observation: PFTs 1-8 of `PCT_NAT_PFT` = tree fraction of the natural-vegetation part; this is the no-crop `all_forests` variant (`PCT_CROP` = 0), i.e. potential vegetation like IBIS's own -- `fit_carbon.tree_at`, `fu_vs_tree.py`, CALIBRATION.md 14 |
 | ILAMB fields | `python-port/data/ilamb_obs/` | small | pre-processed `gpp/lai/cveg/csoil` means |
 | **FLUXNET2015** | `/shared/nas2/Min/FLUXNET2015/fluxnet_compact` | 810 files | ~200 sites, GPP/RECO/LE/NEE at HH/DD/MM/YY |
 | **FLUXNET-CH4** | `/shared/nas/Chenchen/AmeriFLuxet/combined` | 65 sites | Chenchen's processing: RF-gapfilled FCH4 + uncertainty |

@@ -196,6 +196,7 @@ The Arctic deficit was `vmax x0.54`, not structure. Magnitude tracks Rh
 | `enable_fire_emissions` | False | trace gases; needs `isimfire=1` |
 | `isimco2` | 0 | fixed vs varying CO₂ |
 | `enable_permafrost` | False | **unwired** — the module exists but nothing reads the flag |
+| `pft.tree_stress_min` (params yaml, not RunConfig) | -1 (off) | >= 0 activates the water-limited tree-establishment gate (CALIBRATION.md 14): the state gains the 3-leaf `StressAccum`, `dynaveg` gets a survival factor, and the run log says `Tree-establishment gate ACTIVE` or `inactive` -- read that line to know which model produced a state |
 
 `FireParams` defaults: VPD danger **on**, combustion completeness **on**,
 per-PFT mortality **on**, human ignition off, fine fuel off.
@@ -212,6 +213,12 @@ per-PFT mortality **on**, human ignition off, fine fuel off.
   strength of it. For a seasonal diagnostic that does not need the full
   field, `verify/calibration/seasonal_baseline_sample.py` gets monthly GPP
   from `one_year` on the stratified sample with no writer.
+
+**Restart leaf counts: 258 without the tree gate, 261 with it.** `load_state`
+migrates both ways with a warning -- it fills the three trailing accumulator
+leaves from the template, or drops them when a gated restart meets an
+ungated template (the fire, methane and report tools). A gated run restarted
+without the gate simply loses its accumulator.
 
 **Checkpoints predating F1b** lack `nfirestep_vpd`/`sdry_vpd`. `dynaveg` raises
 a message naming the migration rather than a bare `AttributeError`.
