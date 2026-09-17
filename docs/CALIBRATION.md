@@ -664,3 +664,77 @@ production choice should now be made on FLUXNET-CH4 towers (M3; 108 sites,
 31 north of 60N), not on a third global re-rank.
 
 `evaluate_global.py` now masks the NaN cell in tref weighting and flux sums.
+
+## 13. Criterion 3: the seasonal cycle, scored for the first time
+
+The carbon recalibration now targets global total, spatial pattern and
+seasonal pattern. Every FLUXCOM comparison before this used the annual mean.
+`seasonal_baseline.py` on a 10-year monthly-output run of the v11d state
+(`val_v11d/monthly`), against FLUXCOM's 1980-2013 monthly climatology,
+flux-weighted, 51,353 cells:
+
+| | shape err | peak offset | \|off\| >= 2 mo | amplitude model/obs |
+|---|---|---|---|---|
+| ALL | 0.0165 | +0.59 mo | 34% | **0.80** |
+| 30S-30N | 0.0071 | +0.75 | 65% (flat cycles; peak ill-defined) | 0.92 |
+| 30-50N | 0.0405 | -0.14 | 28% | **0.62** |
+| 50-60N | 0.0434 | +0.58 | 10% | **0.62** |
+| 60-70N | 0.0524 | +0.57 | 2% | 0.66 |
+| 70-90N | 0.0835 | +0.15 | 0% | 0.68 |
+
+Amplitude is max/mean of the 12-month cycle. **North of 30N the model's
+cycle is too flat by a third and mildly late.**
+
+By the section-10 annual-ratio class:
+
+| class | n | shape err | amplitude |
+|---|---|---|---|
+| ratio < 0.8 | 5,340 | 0.0091 | 1.03 |
+| 0.8-1.25 (well fitted) | 13,861 | 0.0091 | 0.88 |
+| 1.25-2 | 16,570 | 0.0253 | 0.70 |
+| **>= 2 (sparse excess)** | 15,582 | **0.0364** | **0.66** |
+
+### Where in the year the sparse excess sits
+
+Model/obs by month, cells with annual ratio >= 2 against well-fitted cells:
+
+| | J | F | M | A | M | J | J | A | S | O | N | D |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| ratio >= 2 | 2.93 | 2.92 | 3.32 | 3.41 | 2.77 | **2.08** | **1.95** | 2.37 | 3.65 | **4.79** | **4.46** | 3.35 |
+| < 1.25 | 0.96 | 0.92 | 0.93 | 0.97 | 0.95 | 0.88 | 0.85 | 0.88 | 0.97 | 1.01 | 1.03 | 1.01 |
+
+**The excess is smallest at the growing-season peak (~2x) and largest in
+autumn (4.5-4.8x) and spring (3.3-3.4x).** Sparse cells keep photosynthesising
+after FLUXCOM says the season is over. That is a phenology signature, not a
+capacity one -- capacity would inflate every month alike -- and it is the
+first thing in this calibration that distinguishes a sparse cell from a dense
+one of the same PFT (section 10's unreachable residual).
+
+### What it implicates, and what will be freed
+
+Sparse cells are grass- and shrub-dominated, so the lower-canopy phenology
+governs them. In `pheno()` (now `PhenoParams`, section 12 of this doc /
+commit 7fd608b): grasses drop leaves only when the 10-day mean temperature
+falls below **0 C** (`tthresh_l_c`); their GDD accumulator resets only below
+**-5 C** (`gthresh_l_c`), so in mild climates it never resets and `templ`
+sits at 1 all year (F77-faithful, vegetation.f:100-105); the drought trigger
+fires only when 10-day net assimilation goes **negative**, and even then
+retains **10%** leaf area (`drop_floor`) with a 15-day e-folding (`ddays`).
+Each of those keeps sparse canopies active into autumn. For the flattened
+forest bands: the tree cold offset (`tthresh_u_offset`, leaves drop below
+tc + 5) and budburst GDD (`gdd_thresh_u`).
+
+Stage (a) of the re-fit frees exactly these -- `stressfac`, `tthresh_l_c`,
+`gthresh_l_c`, `gdd_thresh_l`, `drop_floor`, `ddays`, `tthresh_u_offset`,
+`gdd_thresh_u` -- with `vmax`/`specla` **held at v11d**, so the question
+"how much of the spatial and seasonal error is phenology and stress, given
+the v11d capacity" gets a clean answer before a joint refinement.
+
+`--w-season` is raised to 10: shape errors are O(0.02-0.04) against a GPP
+term of O(0.3-0.4), and at the earlier 2.0 the third criterion would have
+contributed ~5% of the loss.
+
+Also noted: even well-fitted cells run 0.85-0.88x in June-August -- the peak
+is slightly low everywhere. That is a capacity-at-peak question (temperature
+response of Vmax, or light), separate from the shoulder-season excess, and is
+left for the joint stage.
