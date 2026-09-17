@@ -306,6 +306,24 @@ def build_bgc_params(d: dict) -> BGCParams:
     )
 
 
+def build_pheno_params(d: dict):
+    """PhenoParams from the optional 'pheno' section.
+
+    Unknown keys raise. A misspelt threshold that quietly fell back to its
+    default would be the declared-but-dead pattern this project has met
+    fifteen times (docs/DEFECTS_FOR_REVIEW.md), here on a parameter the
+    seasonal-pattern criterion is fitting.
+    """
+    from ibis.physics.phenology import PhenoParams
+    sec = dict(d.get('pheno', {}) or {})
+    allowed = set(PhenoParams.__dataclass_fields__)
+    bad = set(sec) - allowed
+    if bad:
+        raise KeyError(f"unknown pheno parameter(s) {sorted(bad)}; "
+                       f"allowed: {sorted(allowed)}")
+    return PhenoParams(**{k: float(v) for k, v in sec.items()})
+
+
 def build_sim_params(
     npoi: int,
     lat_rad,
@@ -338,6 +356,7 @@ def build_sim_params(
         canopy=build_canopy_params(d),
         interception=build_interception_params(d),
         stomata_params=build_stomata_params(d),
+        pheno=build_pheno_params(d),
         latitude=jnp.asarray(lat_rad),
         wpudmax=ss.get('wpudmax', 10.0),
         zwpmax=ss.get('zwpmax', 0.5),

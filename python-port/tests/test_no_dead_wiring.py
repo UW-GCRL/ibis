@@ -280,3 +280,24 @@ def test_pheno_params_reach_pheno_through_the_gswp3_loop():
     for name in ("pp.gdd_thresh_u", "pp.gdd_thresh_l", "pp.drop_floor", "pp.ddays",
                  "pp.tthresh_u_offset", "pp.gthresh_l_c"):
         assert name in ph, f"{name} not used inside pheno()"
+
+
+
+def test_pheno_yaml_section_round_trips_and_rejects_typos(tmp_path):
+    """A fitted phenology must travel through the params yaml into SimParams,
+    and a misspelt key must fail rather than silently default."""
+    import numpy as np, yaml
+    from ibis.io.physics_params import build_all_params, load_physics_params
+    good = {"stomata": {"stressfac": -7.5},
+            "pheno": {"tthresh_l_c": 3.5, "gthresh_l_c": -1.0, "drop_floor": 0.2, "ddays": 30.0}}
+    p = tmp_path / "p.yaml"; p.write_text(yaml.safe_dump(good))
+    sp, _, _ = build_all_params(4, np.zeros(4, np.float32), load_physics_params(str(p)))
+    assert float(sp.stomata_params.stressfac) == -7.5
+    assert (float(sp.pheno.tthresh_l_c), float(sp.pheno.gthresh_l_c),
+            float(sp.pheno.drop_floor), float(sp.pheno.ddays)) == (3.5, -1.0, 0.2, 30.0)
+    assert float(sp.pheno.gdd_thresh_l) == 150.0          # untouched field keeps its default
+    bad = {"pheno": {"ttresh_l_c": 3.5}}                   # typo
+    q = tmp_path / "q.yaml"; q.write_text(yaml.safe_dump(bad))
+    import pytest
+    with pytest.raises(KeyError):
+        build_all_params(4, np.zeros(4, np.float32), load_physics_params(str(q)))

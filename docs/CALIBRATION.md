@@ -734,6 +734,13 @@ the v11d capacity" gets a clean answer before a joint refinement.
 term of O(0.3-0.4), and at the earlier 2.0 the third criterion would have
 contributed ~5% of the loss.
 
+Sample check: `seasonal_baseline_sample.py` on the fit's 4,331 cells via
+`one_year` reproduces the full-domain table almost to the digit (ALL shape
+0.0170 vs 0.0165, 30-50N amplitude 0.62 vs 0.62, sparse-cell October ratio
+4.9 vs 4.8). That validates the harness's monthly path -- which stage (a)'s
+seasonal term scores -- and shows the sample is representative for
+seasonality as well as for annual pattern.
+
 Also noted: even well-fitted cells run 0.85-0.88x in June-August -- the peak
 is slightly low everywhere. That is a capacity-at-peak question (temperature
 response of Vmax, or light), separate from the shoulder-season excess, and is
