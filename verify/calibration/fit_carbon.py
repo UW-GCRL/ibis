@@ -342,14 +342,21 @@ def main():
                          "US drought and 2003 European heat wave -- CALIBRATION.md 10")
     ap.add_argument("--exclude-poleward", type=float, default=68.0)
     ap.add_argument("--w-lai", type=float, default=0.5)
+    ap.add_argument("--init-params", default="",
+                    help="params yaml to start from (e.g. the v11d fit); "
+                         "default IBIS defaults")
+    ap.add_argument("--freeze-pft", type=int, default=0,
+                    help="1: hold vmax/specla at their starting values and fit "
+                         "ONLY the extras -- the PFT blocks leave the CMA vector")
     ap.add_argument("--extras", default="stressfac",
                     help="comma list of scalar extras to fit (see EXTRAS); '' for none. "
                          "Default fits stressfac only; add phenology fields once the "
                          "seasonal baseline says which matter")
-    ap.add_argument("--w-season", type=float, default=2.0,
-                    help="weight on the seasonal-shape term. Shape errors are "
-                         "O(0.02-0.1) per cell against O(0.1-0.5) for the log-"
-                         "ratio terms, so ~2 puts them on a comparable footing")
+    ap.add_argument("--w-season", type=float, default=10.0,
+                    help="weight on the seasonal-shape term. Flux-weighted shape "
+                         "errors are O(0.02-0.04) against a GPP term of O(0.3-0.4) "
+                         "(CALIBRATION.md 13); 10 makes the third criterion carry "
+                         "comparable weight rather than ~5% of the loss")
     ap.add_argument("--holdout", type=float, default=0.3)
     ap.add_argument("--min-cells", type=int, default=30,
                     help="PFTs dominant in fewer cells are frozen at default")
@@ -409,7 +416,9 @@ def main():
     # is the defect this project has now found fourteen times.
     del full
 
-    sp0, pft0, _ = build_all_params(len(sel), lat_rad, None)
+    pdict0 = load_physics_params(a.init_params) if a.init_params else None
+    log.info("starting parameters: %s", a.init_params or "IBIS defaults")
+    sp0, pft0, _ = build_all_params(len(sel), lat_rad, pdict0)
     years = list(range(a.year0, a.year0 + a.force_years))
     cached = CachedForcing(GSWP3Reader(GSWP3), years, i, j)
     ctx0 = dict(i=i, j=j, lat_rad=lat_rad, sp=sp0, pft=pft0,
@@ -438,6 +447,9 @@ def main():
 
     def objective(x):
         t0 = time.time()
+        if a.freeze_pft:
+            # x carries ONLY the extras; the PFT blocks are fixed at the start.
+            x = np.concatenate([to_vec(v0, s0), np.asarray(x, dtype=float)])
         vmax, specla, extras = from_vec(x, names)
         # A parameter the sample cannot constrain must not move: with zero
         # dominant cells the loss is flat in it, so CMA-ES walks it to a
@@ -489,20 +501,28 @@ def main():
         assert n in EXTRAS, f"unknown extra {n}; choose from {list(EXTRAS)}"
     ex0 = extras_defaults(sp0, names)
     log.info("extras fitted: %s", {n: (ex0[n], EXTRAS[n][1], EXTRAS[n][2]) for n in names} or "none")
-    log.info("=== baseline (starting parameters) ===")
-    b = objective(to_vec(v0, s0, ex0, names))
-    log.info("baseline loss %.4f", b)
-
     elo, ehi = extras_bounds(names)
-    lo_v = np.concatenate([to_vec(VMAX_LO, SPECLA_LO), elo])
-    hi_v = np.concatenate([to_vec(VMAX_HI, SPECLA_HI), ehi])
-    x0 = np.clip(to_vec(v0, s0, ex0, names), lo_v, hi_v)
-    # CMA-ES uses one sigma across coordinates. log-vmax/log-specla span ~1;
-    # raw-encoded extras span (hi-lo), so scale those to a comparable width.
+    ex_x0 = np.array([_enc(n, ex0[n]) for n in names], dtype=float)
+    if a.freeze_pft:
+        assert names, "--freeze-pft with no --extras leaves nothing to fit"
+        log.info("PFT blocks FROZEN at start values; CMA vector = %d extras", len(names))
+        lo_v, hi_v = elo, ehi
+        x0 = np.clip(ex_x0, lo_v, hi_v)
+        off = 0
+    else:
+        lo_v = np.concatenate([to_vec(VMAX_LO, SPECLA_LO), elo])
+        hi_v = np.concatenate([to_vec(VMAX_HI, SPECLA_HI), ehi])
+        x0 = np.clip(to_vec(v0, s0, ex0, names), lo_v, hi_v)
+        off = 2 * NPFT
+    log.info("=== baseline (starting parameters) ===")
+    b = objective(x0)
+    log.info("baseline loss %.4f", b)
+    # CMA-ES uses one sigma across coordinates. log-encoded coordinates span
+    # ~1; raw-encoded extras span (hi-lo), so scale those to a comparable width.
     scales = np.ones(len(x0))
     for k, n in enumerate(names):
         if not EXTRAS[n][3]:
-            scales[2 * NPFT + k] = (EXTRAS[n][2] - EXTRAS[n][1]) / 1.5
+            scales[off + k] = (EXTRAS[n][2] - EXTRAS[n][1]) / 1.5
     es = cma.CMAEvolutionStrategy(x0, a.sigma, {
         "maxfevals": a.n_evals, "seed": a.seed, "verb_disp": 0,
         "CMA_stds": scales,
