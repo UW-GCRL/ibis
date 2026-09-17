@@ -116,6 +116,49 @@ def fluxcom_at(i, j):
     return g[ii, jj]
 
 
+NDAYS = np.array([31, 28.25, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
+
+
+def fluxcom_monthly_at(i, j):
+    """FLUXCOM 1980-2013 monthly climatology as MONTHLY TOTALS, (12, n) kgC m-2.
+
+    FLUXCOM is a daily mean rate per month (g m-2 day-1); multiplied by days
+    in month so it is a total, like the model's summed daily GPP. Small
+    negative winter values are an ML-product artefact and are clipped at 0.
+    """
+    o = xr.open_dataset(FLUXCOM)
+    clim = np.asarray(o["gpp"].groupby("time.month").mean("time"))     # (12, lat, lon)
+    la, lo = np.asarray(o["lat"]), np.asarray(o["lon"])
+    ii = np.array([np.argmin(np.abs(la - LATV[a])) for a in i])
+    jj = np.array([np.argmin(np.abs(lo - LONV[b])) for b in j])
+    c = np.clip(np.nan_to_num(clim[:, ii, jj]), 0.0, None)              # g/m2/day
+    return c * NDAYS[:, None] / 1000.0                                   # kgC/m2/month
+
+
+def seasonal_shape(gpp_m, obs_m):
+    """Per-cell seasonal-shape error, scale-free.
+
+    Each cell's 12 monthly totals are divided by its annual total so the
+    vector is a fraction-of-year distribution; the error is the summed
+    squared difference of those fractions. A perfect cycle scores 0; a
+    one-month phase shift of a temperate cycle ~0.05-0.1; a flat model
+    against a peaked observation ~0.1-0.2. Independent of magnitude, so it
+    does not double-count the total term. Cells with negligible annual GPP
+    (either side) return NaN and are excluded by the caller.
+    """
+    am, ao = gpp_m.sum(axis=0), obs_m.sum(axis=0)
+    ok = (am > 0.02) & (ao > 0.02)
+    fm = np.where(ok, gpp_m / np.maximum(am, 1e-9), np.nan)
+    fo = np.where(ok, obs_m / np.maximum(ao, 1e-9), np.nan)
+    return np.nansum((fm - fo) ** 2, axis=0), ok
+
+
+def peak_offset(gpp_m, obs_m):
+    """Circular peak-month offset in months, model minus obs, per cell."""
+    d = np.argmax(gpp_m, axis=0) - np.argmax(obs_m, axis=0)
+    return ((d + 6) % 12) - 6
+
+
 def modis_at(i, j):
     ds = xr.open_dataset(f"{MODIS_BASE}/MODISPFTLAI_0.5x0.5_v1_all_forests.nc")
     sd = xr.open_dataset(f"{MODIS_BASE}/surfdata_0.5x0.5_CH_v1_all_forests.nc")

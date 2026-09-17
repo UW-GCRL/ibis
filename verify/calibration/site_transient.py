@@ -79,13 +79,17 @@ def one_year(state, key, year, ctx, isimveg=1):
     state = apply_co2(state, year)
     leap = is_leap_year(year)
     tmean = []
+    gpp_m = []          # (12, npoi) monthly GPP, kgC m-2 month-1, from the daily diag
     for im in range(12):
         raw = c["reader"].read_month(year, im, c["i"], c["j"])
         tmean.append(np.nanmean(raw["tas"], axis=0) - 273.16)
-        state, key, _ = run_month_gswp3(
+        state, key, dd = run_month_gswp3(
             state, c["consts"], c["sp"], c["reader"], c["i"], c["j"],
             c["lat_rad"], year, im, key, 3600.0, leap=leap, nband=2,
             nsoilcall=1)
+        # dd = (daily_gpp, daily_aet, daily_rh), each (ndays, npoi); it was
+        # being discarded, which is why nothing seasonal was ever scored.
+        gpp_m.append(np.asarray(dd[0]).sum(axis=0))
 
     tct, twt, g0t, g5t = climate_stats_from_monthly(np.stack(tmean, axis=1), leap)
     state = eqx.tree_at(
@@ -114,6 +118,7 @@ def one_year(state, key, year, ctx, isimveg=1):
 
     diag = {n: np.asarray(getattr(state.summary, n)).copy() for n in AY}
     diag["lai"] = np.asarray(state.vegetation.plai).sum(axis=1)
+    diag["gpp_monthly"] = np.stack(gpp_m, axis=0)          # (12, npoi)
 
     if isimveg > 0:
         nv, nc, ns = dynaveg(state.vegetation, state.carbon, state.summary,
