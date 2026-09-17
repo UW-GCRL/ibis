@@ -195,7 +195,11 @@ def modis_at(i, j):
 #: mol m-2 s-1, O(1e-6) around zero, and fitting a near-zero threshold is
 #: ill-conditioned; `drop_floor` and `ddays` carry the drought response.
 def _set(path):
-    return lambda sp, v: eqx.tree_at(path, sp, float(v))
+    # 0-d float32 ARRAY, not a Python float. loops_gswp3 compiles under
+    # eqx.filter_jit, where Python scalars are static: a Python-float extra
+    # would recompile the whole model on every evaluation (measured: 1695 s
+    # per evaluation instead of ~240). An array leaf is traced once.
+    return lambda sp, v: eqx.tree_at(path, sp, jnp.asarray(v, dtype=jnp.float32))
 
 
 EXTRAS = {
