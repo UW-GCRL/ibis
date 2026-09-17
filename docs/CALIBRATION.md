@@ -783,3 +783,53 @@ and a drought trigger that evidently never fires.
 The fit runs to completion regardless: its LAI reduction is real progress on
 criteria 1-2 and its parameters are written only at the end. Its result is
 not evidence about criterion 3.
+
+### Which mechanism -- the composition and trigger diagnostic
+
+Same 60 cells, v11d 2060 state, one year of 2001 forcing, read month by
+month.
+
+**Who holds the leaf area.** A mix, not one PFT: boreal broadleaf deciduous
+22% of LAI, C4 grass 17% (dominant in 16 cells), tropical deciduous 16.5%,
+evergreen shrub 15.5% (dominant in 17), C3 grass 9%, warm-temperate
+evergreen 8%. Total LAI **2.85** in cells FLUXCOM puts at ~0.4 kgC m-2 yr-1.
+The set spans 46S-66N, 47 NH / 13 SH: hot cells carry the C4 grass and
+tropical deciduous, cold cells the boreal deciduous and shrub -- which is
+why the *grass cold* thresholds could not act (they bite only where it is
+cold, and there the grass is minor).
+
+**The drought trigger never fires.** `a10ancls` and `a10ancl3` (10-day mean
+net assimilation, shrubs and C3 grass) are positive in every cell in every
+month; `dropls` and `dropl3` sit at 1.000 all year. A leafed canopy in
+daylight essentially never has ten days of negative net assimilation, so
+IBIS 2.6b4's drought phenology -- the only phenology that applies to C4
+grass, tropical deciduous, deciduous shrub -- is unreachable in practice.
+That is why `drop_floor` and `ddays` had zero effect.
+
+**The model sees the dry season; the canopy ignores it.**
+
+| mon | stresstl | frac tl<0.5 | wsoi L1 | prcp mm | GPP model | GPP obs | ratio |
+|---|---|---|---|---|---|---|---|
+| Jan | 0.315 | 0.72 | 0.266 | 32 | 0.047 | 0.016 | 2.98 |
+| Apr | 0.546 | 0.43 | 0.393 | 48 | 0.089 | 0.023 | 3.84 |
+| Jul | **0.702** | 0.28 | 0.461 | 77 | 0.116 | 0.073 | **1.59** |
+| Oct | 0.437 | 0.60 | 0.297 | 38 | 0.082 | 0.017 | 4.81 |
+| Nov | 0.405 | 0.60 | 0.240 | 36 | 0.065 | 0.012 | **5.34** |
+| Dec | **0.285** | 0.75 | 0.193 | 24 | 0.056 | 0.014 | 4.16 |
+
+Soil-water stress (drystress factor, 1 = unstressed) falls to **0.29-0.34**
+in Nov-Feb with 60-75% of cells below 0.5, and top-layer soil water halves --
+exactly the months of the largest GPP excess. Yet GPP in those months runs at
+half its summer value. Stress reaches stomata (and `stressfac` at its
+extreme throttled 5%), but nothing turns it into leaf loss: **IBIS has no
+functioning dry-season dormancy.** That one gap accounts for the sparse-cell
+annual excess (section 10), the 3-4x winter GPP, and the 0.62x seasonal
+amplitude at mid-latitudes, together.
+
+**The fix is a trigger, not a parameter.** `PhenoParams.drop_stress_thresh`:
+the drought-deciduous PFTs also drop leaves while their canopy's soil-water
+stress is below the threshold (`soil.stresstu` for the upper canopy,
+`soil.stresstl` for the lower), regrowing when it recovers, through the
+existing `ddfac` / `drop_floor` machinery. Default -1.0 is unreachable, so
+default behaviour is bit-identical and F77-faithful; evergreen shrub keeps no
+phenology, as in F77. Its effect on these cells is measured below.
