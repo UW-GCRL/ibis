@@ -197,6 +197,8 @@ The Arctic deficit was `vmax x0.54`, not structure. Magnitude tracks Rh
 | `isimco2` | 0 | fixed vs varying CO₂ |
 | `enable_permafrost` | False | **unwired** — the module exists but nothing reads the flag |
 | `pft.tree_stress_min` (params yaml, not RunConfig) | -1 (off) | >= 0 activates the water-limited tree-establishment gate (CALIBRATION.md 14): the state gains the 3-leaf `StressAccum`, `dynaveg` gets a survival factor, and the run log says `Tree-establishment gate ACTIVE` or `inactive` -- read that line to know which model produced a state |
+| `stomata.vmax_mix` (params yaml) | false (F77) | true: each canopy big leaf takes the displayed-LAI-weighted mean vmax of its PFTs instead of ONE PFT's by existence priority; F77 leaves four `vmax_pft` entries dead (CALIBRATION.md 17). On in every fitted configuration from stage (b2) |
+| `stomata.scale_leaf_only` (params yaml) | false (F77) | true: canopy scaling divides by k(LAI+SAI) instead of kLAI, so stems attenuate light but do not assimilate (old scale x LAI/(LAI+SAI)); F77 credits stem-absorbed PAR to the leaves, +25 % upper-canopy GPP and no response to leaf drop (CALIBRATION.md 16). Takes global GPP 168 -> 131 PgC on the (b1) parameters |
 
 `FireParams` defaults: VPD danger **on**, combustion completeness **on**,
 per-PFT mortality **on**, human ignition off, fine fuel off.
