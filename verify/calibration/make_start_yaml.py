@@ -1,6 +1,6 @@
 """Start yaml for a staged fit: a fitted yaml plus the starting values a stage needs.
 
-    ibis-python verify/calibration/make_start_yaml.py <base.yaml> <out.yaml> [--structural-starts] [--vmax-mix]
+    ibis-python verify/calibration/make_start_yaml.py <base.yaml> <out.yaml> [--structural-starts] [--vmax-mix] [--leaf-only]
 
 --structural-starts  stage (b1): tree gate, cover and dormancy scalars at the
                      lever-test-6 starts (tree_stress_min 0.45, ramp 0.20,
@@ -14,6 +14,8 @@
                      trop_bl_ever, boreal_bl_dec <- temp_bl_dec, boreal_con_dec
                      <- boreal_con_ever, dec_shrub <- ever_shrub -- the value
                      each big leaf has in fact been running at.
+--leaf-only          `stomata.scale_leaf_only: true`: stems attenuate light but do
+                     not assimilate (CALIBRATION.md 16, lever test 11).
 Everything not named is carried from the base unchanged; the result is read
 back through the loader and every injected value verified.
 """
@@ -31,6 +33,8 @@ if '--structural-starts' in flags:
     t.setdefault('pft', {}).update(STRUCT_PFT); t.setdefault('pheno', {}).update(STRUCT_PHENO)
 if '--vmax-mix' in flags:
     t.setdefault('stomata', {})['vmax_mix'] = True
+if '--leaf-only' in flags:
+    t.setdefault('stomata', {})['scale_leaf_only'] = True
     for dead, live in MIX_STARTS.items():
         t['stomata']['vmax'][dead] = float(t['stomata']['vmax'][live])
 yaml.safe_dump(t, open(out, 'w'), sort_keys=False)
@@ -51,4 +55,6 @@ if '--vmax-mix' in flags:
     for dead, live in MIX_STARTS.items():
         assert abs(vp[NAMES.index(dead)] - vp[NAMES.index(live)]) < 1e-12, (dead, vp[NAMES.index(dead)], vp[NAMES.index(live)])
     msg.append("vmax_mix on; " + ", ".join(f"{d.split('_')[0]}_{d.split('_')[-1]}={vp[NAMES.index(d)]*1e6:.1f}" for d in MIX_STARTS))
+if '--leaf-only' in flags:
+    assert sp.stomata_params.scale_leaf_only is True; msg.append("scale_leaf_only on")
 print(f"{out}: {'; '.join(msg) or 'base carried unchanged'}; base {base}")
