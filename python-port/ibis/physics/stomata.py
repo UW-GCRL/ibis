@@ -90,6 +90,13 @@ class StomataParams(eqx.Module):
     # Soil moisture stress factor
     stressfac: float = -5.0
 
+    # Canopy vmax by composition. F77 (False): each big leaf takes ONE PFT's
+    # vmax by existence priority, so the deciduous-tree and deciduous-shrub
+    # entries of vmax_pft are never read (CALIBRATION.md 17). True: the
+    # displayed-LAI-weighted mean over the PFTs in that big leaf, priority
+    # pick where no leaves exist. Static switch; set `stomata: vmax_mix: true`.
+    vmax_mix: bool = False
+
 
 # ---------------------------------------------------------------------------
 # StomataResult: all outputs from the stomata calculation
@@ -415,27 +422,62 @@ def drystress(wsoi, wisoi, swilt, sfield, froot, stressfac=-5.0):
 # Vmax selection based on PFT existence
 # ---------------------------------------------------------------------------
 
-def _select_vmax_upper(exist, params):
-    """Select broadleaf and conifer Vmax based on PFT existence.
+BROADLEAF_PFTS = (0, 1, 2, 4, 6)     # upper-canopy broadleaf big leaf
+CONIFER_PFTS = (3, 5, 7)             # upper-canopy conifer big leaf
+SHRUB_PFTS = (8, 9)                  # lower-canopy shrub big leaf
+
+
+def _mix_vmax(frac, vp, idx, fallback, eps=1e-6):
+    """Displayed-LAI-weighted mean of vp over the PFTs in `idx`; `fallback`
+    where those PFTs have no leaves (frac sums to ~0)."""
+    ix = jnp.array(idx)
+    w = frac[:, ix]                                   # [npoi, len(idx)]
+    tot = jnp.sum(w, axis=1)
+    mixed = jnp.sum(w * vp[ix][jnp.newaxis, :], axis=1) / jnp.maximum(tot, eps)
+    return jnp.where(tot > eps, mixed, fallback)
+
+
+def _select_vmax_upper(exist, params, frac=None):
+    """Nominal Vmax of the two upper-canopy big leaves.
+
+    F77 (params.vmax_mix False, or no `frac`): ONE PFT's vmax each, by
+    existence priority -- broadleaf: tropical (PFT 0) > warm-temperate (2)
+    > temperate deciduous (4); conifer: temperate (3) > boreal (5). The
+    deciduous entries 1, 6, 7 are then never read (CALIBRATION.md 17).
+    Composition (vmax_mix True): the displayed-LAI-weighted mean over the
+    PFTs in each big leaf, with the priority pick where no leaves exist.
 
     Parameters
     ----------
     exist : array [npoi, npft]
         PFT existence (>0.5 = present).
     params : StomataParams
+    frac : array [npoi, npft] or None
+        Displayed-LAI share of each PFT within its canopy (pheno).
 
     Returns
     -------
     vmaxub, vmaxuc : arrays [npoi]
-        Nominal Vmax for broadleaf and conifer PFTs.
+        Nominal Vmax for the broadleaf and conifer big leaves.
     """
     vp = params.vmax_pft
-    # Broadleaf: tropical (PFT 0) > warm-temperate (PFT 2) > temperate (PFT 4)
     vmaxub = jnp.where(exist[:, 0] > 0.5, vp[0],
              jnp.where(exist[:, 2] > 0.5, vp[2], vp[4]))
-    # Conifer: temperate (PFT 3) > boreal (PFT 5)
     vmaxuc = jnp.where(exist[:, 3] > 0.5, vp[3], vp[5])
+    if params.vmax_mix and frac is not None:
+        vmaxub = _mix_vmax(frac, vp, BROADLEAF_PFTS, vmaxub)
+        vmaxuc = _mix_vmax(frac, vp, CONIFER_PFTS, vmaxuc)
     return vmaxub, vmaxuc
+
+
+def _select_vmax_shrub(params, frac=None):
+    """Nominal Vmax of the lower-canopy shrub big leaf: F77 reads the
+    evergreen shrub's (PFT 8) for both shrub PFTs; composition mixes 8 and 9."""
+    vp = params.vmax_pft
+    base = jnp.broadcast_to(vp[8], frac.shape[:1]) if frac is not None else vp[8]
+    if params.vmax_mix and frac is not None:
+        return _mix_vmax(frac, vp, SHRUB_PFTS, base)
+    return vp[8]
 
 
 # ---------------------------------------------------------------------------
@@ -524,7 +566,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
             stresstu, stresstl,
             a10scalparamu, a10daylightu,
             a10scalparaml, a10daylightl,
-            co2conc, dtime, params, epsilon=1.0e-7):
+            co2conc, dtime, params, epsilon=1.0e-7, frac=None):
     """Full stomata calculation for all 5 PFT groups.
 
     Computes Farquhar photosynthesis + Ball-Berry stomatal conductance
@@ -606,7 +648,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     rh12 = jnp.maximum(0.30, q12 / jnp.maximum(qsat12, epsilon))
 
     # Select Vmax per PFT
-    vmaxub_nom, vmaxuc_nom = _select_vmax_upper(exist, params)
+    vmaxub_nom, vmaxuc_nom = _select_vmax_upper(exist, params, frac)
 
     # --- Broadleaf (ub) ---
     vmax_ub = vmaxub_nom * tempvm_c3_u * stresstu
@@ -688,7 +730,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     rh34 = jnp.maximum(0.30, q34 / jnp.maximum(qsat34, epsilon))
 
     # --- Shrub (ls) - C3 ---
-    vmaxls_nom = params.vmax_pft[8]
+    vmaxls_nom = _select_vmax_shrub(params, frac)
     vmax_ls = vmaxls_nom * tempvm_c3_l * stresstl
     rdark_ls = params.gamma[2] * vmaxls_nom * tempvm_c3_l
     ag_ls, an_ls = farquhar_c3(

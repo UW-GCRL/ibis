@@ -446,6 +446,7 @@ def timestep_body(
             a10sp_u, a10dl_u,
             a10sp_l, a10dl_l,
             atm.co2conc, dtime, sp, c.epsilon,
+            frac=veg.frac,
         )
         ci_upper = stom.ci_upper
         gs_upper = stom.gs_upper

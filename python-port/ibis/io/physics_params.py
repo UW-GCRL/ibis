@@ -144,6 +144,7 @@ def build_stomata_params(d: dict) -> StomataParams:
         theta4=s.get('theta4', 0.970),
         beta4=s.get('beta4', 0.800),
         stressfac=s.get('stressfac', -5.0),
+        vmax_mix=bool(s.get('vmax_mix', False)),      # F77: priority pick
         gamma=gamma,
         coefm=coefm,
         coefb=coefb,
