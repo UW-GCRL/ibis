@@ -1743,3 +1743,22 @@ behaviour is kept, on in every fitted configuration; plus a guard that
 every entry of `vmax_pft` reaches GPP. Until it is in, the vmax vector has
 eight live entries, not twelve, and trop_bl_dec's 80.5 means nothing.
 
+**Implemented (commit 68cff90).** `StomataParams.vmax_mix` (static, default
+False = F77, bit-for-bit -- `test_vmax_mix.py` pins the priority pick and
+the unchanged `test_stomata.py` suite passes): when on, each big leaf takes
+the displayed-LAI-weighted mean of vmax over its PFTs (broadleaf {1,2,3,5,7},
+conifer {4,6,8}, shrub {9,10}, 1-based), with the priority pick where no
+leaves exist; `stomata()` takes `frac`, the single call site passes
+`veg.frac`, the yaml key is `stomata: vmax_mix: true`. Guards: one-hot
+canopies return each PFT's own vmax, so all twelve entries reach GPP.
+
+Two rules for every fit from here. (1) `vmax_mix: true` in the start yaml.
+(2) The four newly-live entries start at the value their big leaf has in
+fact been running at, so switching the scheme on changes nothing until the
+optimiser moves them: trop_bl_dec <- trop_bl_ever's fitted 40.1 (savannas
+have been running at it), boreal_bl_dec <- temp_bl_dec's 26.9 (the
+priority fallback where tropical and warm-temperate cannot exist),
+boreal_con_dec <- boreal_con_ever's 25.0, dec_shrub <- ever_shrub's 28.0.
+Their fitted v11d values (80.5, 46.5, 30.0, 27.5) are discarded as the
+noise they were.
+
