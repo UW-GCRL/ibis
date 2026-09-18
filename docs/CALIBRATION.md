@@ -4,6 +4,45 @@ Started 2026-09-09, after the fire and methane modules were re-validated on the
 corrected carbon cycle. Order set by Hangkai: carbon, then ET, then the smaller
 parts. Methane is evaluated against FLUXNET-CH4 (Chenchen's processing).
 
+
+## State of the calibration (updated 2026-09-18 09:40; stage (b2) running)
+
+Three criteria for carbon (the user's): global total, spatial pattern,
+seasonal pattern. A fourth was added as the means to the second: tree
+cover against the CLM tree fraction. ET follows.
+
+| version | what changed | GPP PgC/yr (obs 120-130) | GPP by band 30-50N / 60-70N / tropics | tree cover, natural land (obs 0.34) | seasonal amplitude (obs 1) | section |
+|---|---|---|---|---|---|---|
+| ctl (defaults) | -- | 234 | | | | 9 |
+| v11d | per-PFT vmax/specla fit | 182 | 1.77 / 1.82 / 1.18 | 0.66 | | 10-12 |
+| v12a, stage (a) | + stressfac, phenology scalars | 176 | 1.64 / 1.70 / 1.16 | 0.67 | 0.80 | 13-14 |
+| v12c, stage (b1) | + tree-establishment gate, cover, dormancy trigger | 164 | 1.54 / **1.02** / 1.10 | **0.53** | 0.78 | 14 |
+| corrected canopy, 2-yr probe | + `vmax_mix`, `scale_leaf_only`, no refit | **131** | 0.87 / 1.24 / 0.92 | 0.55 | | 16-18 |
+| v12d, stage (b2) | joint refit on the corrected canopy, tree weight 3 | *running* | | | | 18 |
+
+Structural findings, in the order they were forced by the data:
+
+1. **Phantom trees** (14): the model grows forest where the observation has
+   steppe -- nothing limited tree establishment by water. Fixed by a
+   survival gate on annual-mean soil-water stress, calibrated against the
+   CLM tree fraction. The boreal band went from 1.8x to 1.02x GPP.
+2. **The seasonal term never moved** (13-16) because the canopy's GPP was
+   nearly independent of its leaf area (dlnGPP/dlnLAI = 0.08): F77's canopy
+   scaling credits stem-absorbed PAR to leaf photosynthesis, a flat +25 %
+   for the upper canopy and the reason leaf drop, phenology and LAI could
+   not act. `scale_leaf_only` (16). Alone it takes 168 -> 131 PgC.
+3. **Four of twelve vmax entries were dead** (17): each canopy big leaf took
+   ONE PFT's vmax by existence priority. `vmax_mix` weights by leaf area.
+4. **Observation caveats** (15-16): the ET products spread 38 % per cell
+   (score pattern and season, not the total); FLUXCOM's savanna phase is
+   confirmed by towers but its dry-season depth is 0.6x theirs (hold the
+   model to the phase).
+
+Every switch is off by default and bit-for-bit F77; every fitted
+configuration from (b2) on has both canopy switches on. ET (Stage 2) is
+prepared: six products, a five-product ensemble, a baseline (15), and the
+ET terms in the fit harness; it is re-baselined once (b2) lands.
+
 ## 0. What already existed, and what had to be fixed before fitting
 
 `scripts/calibrate_fluxnet.py` (Min) already had the right architecture: all
