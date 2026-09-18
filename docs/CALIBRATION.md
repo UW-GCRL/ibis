@@ -1711,6 +1711,33 @@ fired for all of them. Whether the displayed LAI actually fell, and what
 GPP did month by month, is measured next (lever test 9) rather than read
 off a year-end `dropu`.
 
+### Lever test 9: the leaves go, the GPP stays -- dlnGPP/dlnLAI = 0.08
+
+Same cells, monthly state recorded inside `one_year` (`lever_test9.py`):
+
+| trigger 0.7, months from wettest | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| displayed LAI, upper (off: 2.08 all year) | 2.08 | 2.09 | 2.00 | 1.78 | 1.47 | 1.04 | 0.76 | **0.61** | 0.78 | 1.07 | 1.56 | 1.92 |
+| displayed LAI, lower (off: 1.13-1.26) | 0.96 | 0.92 | 0.69 | 0.37 | 0.27 | **0.21** | 0.23 | 0.30 | 0.29 | 0.43 | 0.65 | 0.82 |
+| dropu / dropl4 | .96/.97 | .96/.96 | .87/.84 | .70/.66 | .53/.49 | .34/.33 | .26/.25 | **.22/.22** | .28/.28 | .40/.41 | .66/.67 | .86/.89 |
+| stress upper (off: 0.36 at month 7) | .94 | .95 | .88 | .79 | .70 | .59 | .51 | .49 | .56 | .65 | .78 | .90 |
+| GPP model/obs, trigger off | 0.78 | 0.80 | 0.96 | 1.19 | 1.53 | 1.82 | 1.77 | 1.39 | 1.02 | 0.87 | 0.89 | 0.83 |
+| GPP model/obs, trigger 0.7 | 0.83 | 0.85 | 1.00 | 1.17 | 1.48 | **1.68** | **1.59** | 1.25 | 0.93 | 0.82 | 0.90 | 0.85 |
+
+The phenology lever works as a lever on leaf area: the trigger fires when
+the stress says so, the deciduous trees lose 71 % of their displayed LAI
+and the grass 83 %, with the observed timing. And the canopy loses 10 % of
+its GPP. dlnGPP/dlnLAI = 0.08 -- the number section 14 measured on
+temperate cells, now on tropical ones with the leaf area varied by the
+model's own phenology. Per-leaf assimilation must have tripled to hold GPP
+up; the light per leaf can rise 37 % at most and the stress relief is 36 %,
+so neither explains it. The observed savanna amplitude (5.5) is
+unreachable by any phenology while the canopy is this indifferent to its
+leaf area; the same indifference is why every fit has reached for vmax
+instead of LAI. Whether it is IBIS's own canopy formulation or a port
+defect in the canopy scaling is measured next at the timestep level (lever
+test 11: one month from one state with only the displayed LAI scaled).
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
