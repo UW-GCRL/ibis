@@ -1802,6 +1802,31 @@ the stem credit is read on a two-year run. Every fit from here runs with
 both `vmax_mix` and `scale_leaf_only` on, and the calibration is redone on
 the corrected canopy: the fitted vmax carried a 25 % stem credit.
 
+### Lever test 12: with the stems out of the photosynthesis, the trigger reaches the flux
+
+Same 60 savanna cells, (b1) structure, `vmax_mix` on with behaviour-
+preserving starts (`lever_test12.py`):
+
+| case | annual model/obs | amplitude (obs 5.5) | model/obs shape, months 0-1 / 4-7 from wettest | dry-season GPP vs as-fitted (month 7) |
+|---|---|---|---|---|
+| as fitted (F77 canopy) | 1.06 | 2.9 | 0.78 0.80 / 1.53 1.82 1.77 1.39 | 1.00 |
+| `scale_leaf_only` | 0.89 | 2.7 | 0.76 0.78 / 1.53 1.88 1.86 1.46 | 0.89 |
+| leaf-only + trigger 0.7 | 0.84 | **3.8** | 0.84 0.86 / 1.49 **1.67 1.48 1.12** | **0.67** |
+| leaf-only + trigger 0.9 | 0.77 | 4.1 | 0.87 0.89 / 1.45 1.54 1.39 1.08 | 0.57 |
+| leaf-only + trigger 0.7 + `stressfac` -5 | 0.81 | 4.0 | 0.86 0.88 / 1.46 1.60 1.40 1.08 | 0.62 |
+
+The same trigger that bought a tenth of the dry-season excess on the F77
+canopy (lever test 7) now takes a third of it: the chain trigger -> leaf
+area -> GPP is live. The correction alone costs the savanna 17 % of its
+annual GPP (the stem credit), and the trigger at 0.9 already over-fires
+into the wet season (annual 0.77), so the remaining shape error -- wet
+peak at 0.85, months 4-5 still 1.5-1.7x, the peak two months after the
+rain -- is now a matter of magnitude (the (b2) refit of tropical vmax) and
+of the k = 1 extinction, not of a lever that cannot act. Whether the
+two-month phase lag is all the model's is also an observation-side
+question: FLUXCOM's savanna phase rests on its remote-sensing drivers, and
+that is checked against tower data before the phase is fitted.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
