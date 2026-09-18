@@ -1,25 +1,54 @@
-"""Stage (b1) start yaml: a fitted yaml plus starting values for the structural scalars.
+"""Start yaml for a staged fit: a fitted yaml plus the starting values a stage needs.
 
-    ibis-python verify/calibration/make_start_yaml.py <base.yaml> <out.yaml>
+    ibis-python verify/calibration/make_start_yaml.py <base.yaml> <out.yaml> [--structural-starts] [--vmax-mix]
 
-Starting values must come through the yaml: fit_carbon's extras_defaults reads
-the current parameter, and the inert defaults (tree_stress_min -1, cover_k 0,
-drop_stress_thresh -1, tthresh_u_abs -100) sit outside the fit bounds, so they
-would be clipped to a bound as x0. Values from lever test 6 (CALIBRATION.md 14).
+--structural-starts  stage (b1): tree gate, cover and dormancy scalars at the
+                     lever-test-6 starts (tree_stress_min 0.45, ramp 0.20,
+                     cover_k 0.5, fl_min 0.25, fu_min 0.10, drop_stress_thresh
+                     0.5, tthresh_u_abs 0). Starts must come through the yaml:
+                     fit_carbon's extras_defaults reads the current parameter
+                     and the inert defaults sit outside the fit bounds.
+--vmax-mix           stage (b2) on: `stomata.vmax_mix: true` and behaviour-
+                     preserving starts for the four entries F77's priority
+                     pick never read (CALIBRATION.md 17): trop_bl_dec <-
+                     trop_bl_ever, boreal_bl_dec <- temp_bl_dec, boreal_con_dec
+                     <- boreal_con_ever, dec_shrub <- ever_shrub -- the value
+                     each big leaf has in fact been running at.
+Everything not named is carried from the base unchanged; the result is read
+back through the loader and every injected value verified.
 """
-import sys, yaml
-base, out = sys.argv[1], sys.argv[2]
+import sys, yaml, numpy as np
+args = [a for a in sys.argv[1:] if not a.startswith('--')]; flags = {a for a in sys.argv[1:] if a.startswith('--')}
+base, out = args[0], args[1]
 t = yaml.safe_load(open(base))
-t.setdefault('pft', {}).update(dict(tree_stress_min=0.45, tree_stress_ramp=0.20,
-                                    cover_k=0.5, fl_min=0.25, fu_min=0.10))
-t.setdefault('pheno', {}).update(dict(drop_stress_thresh=0.5, tthresh_u_abs=0.0))
+STRUCT_PFT = dict(tree_stress_min=0.45, tree_stress_ramp=0.20, cover_k=0.5, fl_min=0.25, fu_min=0.10)
+STRUCT_PHENO = dict(drop_stress_thresh=0.5, tthresh_u_abs=0.0)
+MIX_STARTS = {"tropical_broadleaf_deciduous": "tropical_broadleaf_evergreen",
+              "boreal_broadleaf_deciduous": "temperate_broadleaf_deciduous",
+              "boreal_conifer_deciduous": "boreal_conifer_evergreen",
+              "deciduous_shrub": "evergreen_shrub"}
+if '--structural-starts' in flags:
+    t.setdefault('pft', {}).update(STRUCT_PFT); t.setdefault('pheno', {}).update(STRUCT_PHENO)
+if '--vmax-mix' in flags:
+    t.setdefault('stomata', {})['vmax_mix'] = True
+    for dead, live in MIX_STARTS.items():
+        t['stomata']['vmax'][dead] = float(t['stomata']['vmax'][live])
 yaml.safe_dump(t, open(out, 'w'), sort_keys=False)
 sys.path.insert(0, 'python-port')
-import numpy as np
 from ibis.io.physics_params import build_all_params, load_physics_params
 sp, pft, _ = build_all_params(4, np.zeros(4, np.float32), load_physics_params(out))
-for k, v in dict(tree_stress_min=0.45, tree_stress_ramp=0.20, cover_k=0.5, fl_min=0.25, fu_min=0.10).items():
-    assert abs(float(getattr(pft, k)) - v) < 1e-9, (k, float(getattr(pft, k)))
-for k, v in dict(drop_stress_thresh=0.5, tthresh_u_abs=0.0).items():
-    assert abs(float(getattr(sp.pheno, k)) - v) < 1e-9, (k, float(getattr(sp.pheno, k)))
-print(f"{out}: structural starts verified through the loader; vmax/specla/stressfac/pheno from {base}")
+NAMES = ["tropical_broadleaf_evergreen", "tropical_broadleaf_deciduous", "warm_temperate_broadleaf_evergreen",
+         "temperate_conifer_evergreen", "temperate_broadleaf_deciduous", "boreal_conifer_evergreen",
+         "boreal_broadleaf_deciduous", "boreal_conifer_deciduous", "evergreen_shrub", "deciduous_shrub", "c4_grass", "c3_grass"]
+msg = []
+if '--structural-starts' in flags:
+    for k, v in STRUCT_PFT.items(): assert abs(float(getattr(pft, k)) - v) < 1e-9, (k, float(getattr(pft, k)))
+    for k, v in STRUCT_PHENO.items(): assert abs(float(getattr(sp.pheno, k)) - v) < 1e-9, (k, float(getattr(sp.pheno, k)))
+    msg.append("structural starts verified")
+if '--vmax-mix' in flags:
+    assert sp.stomata_params.vmax_mix is True
+    vp = np.asarray(sp.stomata_params.vmax_pft)
+    for dead, live in MIX_STARTS.items():
+        assert abs(vp[NAMES.index(dead)] - vp[NAMES.index(live)]) < 1e-12, (dead, vp[NAMES.index(dead)], vp[NAMES.index(live)])
+    msg.append("vmax_mix on; " + ", ".join(f"{d.split('_')[0]}_{d.split('_')[-1]}={vp[NAMES.index(d)]*1e6:.1f}" for d in MIX_STARTS))
+print(f"{out}: {'; '.join(msg) or 'base carried unchanged'}; base {base}")
