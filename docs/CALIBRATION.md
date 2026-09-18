@@ -1827,6 +1827,35 @@ two-month phase lag is all the model's is also an observation-side
 question: FLUXCOM's savanna phase rests on its remote-sensing drivers, and
 that is checked against tower data before the phase is fitted.
 
+### The observation side: towers confirm FLUXCOM's phase and dispute its dry-season depth
+
+Fourteen FLUXNET2015 savanna / woody-savanna / grassland / shrub towers
+with |lat| < 30 and monthly `GPP_NT_VUT_REF` and `P_F` (ten Australian:
+AU-ASM, Ade, DaP, DaS, Dry, Emr, How, RDF, Stp, TTE; plus CG-Tch, PA-SPs,
+SD-Dem, US-KS2), each aligned to its own wettest month; FLUXCOM and the
+model (v12a) read at the tower's cell (`tower_phase.py`):
+
+| | GPP peak minus rain peak (months, mean of sites) | composite amplitude (peak / dry-season month) | dry-season months 5-7, fraction of annual |
+|---|---|---|---|
+| towers | **+0.21** | 2.9 | 0.048-0.051 |
+| FLUXCOM at the cells | +0.21 | 5.8 | 0.029-0.031 |
+| model at the cells | **+1.14** | 3.6 | 0.042-0.053 |
+
+Two readings. The **phase** is FLUXCOM's: tower GPP peaks with the rain,
+and the model's lag is the model's own. The **depth** is not: at these
+towers FLUXCOM's dry-season GPP is 60-64 % of the towers' (FLUXCOM's
+remote-sensing drivers see the leafless canopy; the towers see the
+understory and the soil still assimilating), so the composite amplitude
+is 2.9 at the towers against 5.8 in FLUXCOM, with the model's 3.6 between
+them. Against the towers the model's dry season is about right and its
+error is timing -- too low in months 2-3, too high in 4-6; against FLUXCOM
+it is a factor two too flat. With ten of fourteen sites Australian this is
+not the last word, but it is enough to say the tropical seasonal
+amplitude in FLUXCOM carries real uncertainty and should not be fitted to
+the last digit: the seasonal term's weight stays where it is, and the
+savanna phase (a month of lag), not the depth, is the part of criterion 3
+to hold the model to.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
