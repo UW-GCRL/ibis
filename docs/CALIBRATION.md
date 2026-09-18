@@ -1756,6 +1756,52 @@ instead of LAI. Whether it is IBIS's own canopy formulation or a port
 defect in the canopy scaling is measured next at the timestep level (lever
 test 11: one month from one state with only the displayed LAI scaled).
 
+### Lever test 11: the canopy is optically black -- and the stems photosynthesise
+
+One dry-season month from one saved state, 15 savanna cells in that month,
+only `plai` scaled (`pheno` rebuilds the displayed `lai` from it daily;
+`sai` is set annually and so stays at 0.56) -- `lever_test11b.py`:
+
+| plai x | 0.1 | 0.25 | 0.5 | 1 | 2 |
+|---|---|---|---|---|---|
+| month GPP, ratio to x1 | **0.579** | 0.777 | 0.907 | 1 | 1.014 |
+| dlnGPP/dlnLAI | 0.24 | 0.18 | 0.14 | | 0.02 |
+| ET, ratio | 0.62 | 0.76 | 0.88 | 1 | 1.12 |
+
+(The first version scaled `veg.lai` and got 1.000 everywhere: the state's
+`lai` is not a control, `pheno` overwrites it each morning.)
+
+Doubling the leaf area adds 1.4 %; removing 90 % of it leaves 58 % of the
+GPP. F77's canopy scaling (`physiology.f` 436-492, ported line for line)
+scales the top-leaf rate by (1 - exp(-k(L+S))) / kL and the accounting
+multiplies back by L, so canopy GPP is proportional to 1 - exp(-k(L+S)):
+the PAR absorbed by **leaves and stems** divided by the **leaf** area --
+every photon the stems absorb is credited to leaf photosynthesis. With S
+held at 0.56, 1 - exp(-k(fL+S)) reproduces the whole curve at k = 1.0
+(f = 0.1: 0.578 predicted, 0.579 measured). Two consequences. With leaves
+on, a flat over-credit of S/L -- 25 % for the upper canopy, whose SAI is
+0.25 LAI -- everywhere, all the time. With leaves dropping, the stems keep
+assimilating: at L = 0.22 they carry most of the canopy. That is why lever
+test 9's 71 % leaf drop cost 10 % of GPP, why no phenology lever has ever
+moved the seasonal term, why the fits reach for vmax and not LAI, and why
+the boreal band now has the right GPP from half the leaves.
+
+The reference treatment is CLM's: stems attenuate light, only leaf area
+assimilates. Here that is one denominator -- k(L+S) instead of kL, i.e.
+the old scale x L/(L+S), an exact identity -- implemented as
+`StomataParams.scale_leaf_only` (static, default False = F77 bit-for-bit;
+`stomata: scale_leaf_only: true`; `test_vmax_mix.py` pins both). The
+separate fact that k is about 1.0 -- the canopy 94 % absorbing at LAI 2.2
+where a clumped savanna canopy absorbs perhaps 60 % -- is IBIS's
+unclumped two-stream and is left alone for now; the stem credit is a
+defect, the extinction a modelling choice.
+
+What follows: the causal chain trigger -> leaf area -> GPP is tested with
+the correction on (lever test 12), and the domain-wide size of removing
+the stem credit is read on a two-year run. Every fit from here runs with
+both `vmax_mix` and `scale_leaf_only` on, and the calibration is redone on
+the corrected canopy: the fitted vmax carried a 25 % stem credit.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
