@@ -1497,3 +1497,45 @@ Model ET is `ayaet` (mm/yr) yearly and `amaet` monthly; the fit harness's
 is the carbon harness with `fluxcom_at` -> an ET loader and the seasonal
 term on monthly ET.
 
+## 16. Criterion 3 diagnosed: the tropical dry season does not end
+
+The seasonal term is flux-weighted, so the tropics carry it, and two fits
+have not moved it. Composite monthly cycles of the v12a 10-year monthly
+output against FLUXCOM on the 12,476 tropical land cells (|lat| < 23.5,
+FLUXCOM > 0.5 kgC m-2 yr-1), each cell aligned to its own wettest month
+and classed by the observed seasonal amplitude (`tropical_phase.py`):
+
+| class | cells | model/obs annual | GPP peak after rain peak: obs / model | model/obs by month from wettest (0 ... 11) |
+|---|---|---|---|---|
+| rainforest (amp < 1.5) | 3369 | **0.87** | -0.6 / +1.0 mo | 1.00 1.04 1.09 1.10 1.07 0.99 0.94 0.94 0.95 0.94 0.96 0.99 |
+| seasonal (1.5-3) | 2370 | 1.02 | -0.5 / +1.6 mo | 0.96 1.02 1.10 1.17 **1.20** 1.16 1.04 0.92 0.84 0.85 0.88 0.92 |
+| savanna / dry (>= 3) | 6737 | 1.28 | +0.1 / **+1.9 mo** | 0.83 0.88 1.00 1.17 1.42 **1.61** 1.48 1.21 0.98 0.89 0.86 0.85 |
+
+Observed savanna GPP follows the rain almost instantly (best lag +0.4
+month, r = 0.93) and collapses in the dry season (amplitude 8.4x); the
+model follows *soil moisture* -- peak 1.9 months after the rain, best lag
++1.3, amplitude 5.9x -- so it is low at the wet peak (0.83x) and **1.4-1.6x
+observed for the four months after the rains stop**. The seasonal class
+shows the same shape one notch weaker. Rainforest phase is right; its
+annual GPP is the one tropical number that is *low* (0.87x), which the
+sample's flux weighting hides behind the savanna excess. By continent the
+lag is everywhere: S America +0.9 month (84 % of cells off by >= 2), Africa
++1.1, Asia/Australia +1.4.
+
+This is the drought deciduousness that section 14 found inert: the F77
+trigger on 10-day net assimilation never fires, so tropical deciduous
+trees and savanna grasses keep their leaves and transpire deep soil water
+through the dry season. It also says why the (b1) optimiser put
+`drop_stress_thresh` on its floor: a global CMA-ES on a flux-weighted loss
+cannot see a lever whose payoff is confined to the tropical dry season
+when the same lever costs GPP wherever temperate soils dry in summer. The
+lever has to be designed and tested against this composite directly --
+lever test 7 -- and if it works, given a form that acts on the tropical
+PFTs' dry season without firing on temperate summers (e.g. a duration
+condition, or the trigger restricted to the drought-deciduous PFTs).
+
+Consequences for the criteria: the tropical dry season is where criterion
+3 lives; fixing it also removes part of the savanna annual excess
+(criterion 1) and, if the rainforest deficit (0.87x) is then visible, the
+tropical `vmax` in stage (b2) has a clean target.
+
