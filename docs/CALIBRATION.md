@@ -1282,9 +1282,19 @@ calls receive `tree_surv`, the reset follows the consumption, and
 ungated template, so the fire, methane and report tools keep working on
 gated states. Guards: the wiring and the reset order in both files, and a
 261 -> 258 -> 261 checkpoint round-trip. The end-to-end check is
-`gate_probe`: two gated years (`tree_stress_min` 0.45, `fu_min` 0.10) from
-the v11 2010 state through `run_global.py`, scored with `fu_vs_tree.py`,
-run as soon as the GPU frees.
+`gate_probe`: two gated years (`tree_stress_min` 0.45, `fu_min` 0.10,
+`cover_k` 0.5) from the v11 2010 state through `run_global.py`, scored with
+`fu_vs_tree.py`. **Passed** (21:21): the log states the gate is active and
+the 258-leaf restart migrated into the 261-leaf template; after two years
+natural-land `fu` is 0.66 -> 0.52 (obs 0.34; MAD 0.365 -> 0.288), treeless
+land 0.40 -> 0.21 with its GPP 2.01x -> 1.62x, and the global positive GPP
+excess is down 21 %. Two trade-offs the fit has to settle are already
+visible -- forests 0.92 -> 0.85 against 0.91, and "missing trees" (tree >
+0.5, fu < 0.3) up from 2 % to 5 % of natural land -- which is what the tree
+term is for. The phantom cells that remain (10 % of land, fu 0.88 where the
+observation is 0.05) have wet soils: their treelessness is cold- not
+water-limited, which is `existence`'s job rather than the gate's; to be
+read on the 50-year validation.
 
 ### Stage (a) result: -11 %, and three levers on their bounds
 
