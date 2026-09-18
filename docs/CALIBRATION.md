@@ -1807,3 +1807,15 @@ boreal_con_dec <- boreal_con_ever's 25.0, dec_shrub <- ever_shrub's 28.0.
 Their fitted v11d values (80.5, 46.5, 30.0, 27.5) are discarded as the
 noise they were.
 
+**Proved end to end (lever test 10, 60 savanna cells, (b1) structure, 6
+years):** with the switch off, `trop_bl_dec` vmax x1.5 changes GPP by
+0.0000 in every month -- the entry is behaviourally dead; with the switch
+on and the behaviour-preserving starts, GPP is again identical to four
+digits -- the start rule is exact where the priority pick coincides with
+the dominant PFT; with the switch on and x1.5, GPP rises 25-30 % (annual
+1.06 -> 1.33 of observed, LAI 1.76 -> 2.14). Where the priority pick and
+the dominant PFT differ (temperate deciduous forest with a rare
+warm-temperate evergreen present: 25.4 picked, 26.9 dominant) switching on
+changes GPP by the vmax ratio, ~6 %; the domain-wide size of that jump is
+read on the first `vmax_mix` validation.
+
