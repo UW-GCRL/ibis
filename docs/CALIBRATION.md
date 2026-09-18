@@ -1320,6 +1320,40 @@ allowed and the earliest dormancy it was allowed, and bought 11 % with them
 (phantom trees, over-painted understory), not physiology; the fitted
 values are not carried into stage (b1) as fixed truths.
 
+### Stage (a) over the domain: -3.6 % GPP, the season untouched, the Arctic thinner
+
+50-year validation from the v11 2010 state on `params_fit_v12a.yaml`
+(`val_v12a`, years 2056-60), then 10 monthly years:
+
+| | v11d | **v12a** | observed |
+|---|---|---|---|
+| GPP PgC/yr | 182.1 | **175.6** | 120-130 |
+| NPP PgC/yr | 84.8 | 81.6 | 55-60 |
+| Rh PgC/yr | 78.6 | 76.6 | 49-58 |
+| ET mm/yr | 527 | 524 | 500-550 |
+| veg C PgC | 634 | 618 | 450-650 |
+| soil C kgC/m2 | 13.0 | 12.6 | 10-15 |
+| LAI mean | 2.15 | 1.99 | |
+| GPP 30-50N / 50-60N / 60-70N vs FLUXCOM | 1.77 / 1.69 / 1.82 | **1.64 / 1.60 / 1.70** | |
+| GPP 30S-30N | 1.18 | 1.16 | |
+| LAI 30-50N vs MODIS | 1.97 | 1.73 | |
+| LAI 70-90N vs MODIS | 0.56 | **0.46** | |
+| seasonal amplitude model/obs, all / 30-50N | | **0.80 / 0.61** | 1 |
+| shape error, flux-weighted | | 0.0164 | |
+| fu vs CLM tree (natural land), MAD | 0.661 / 0.365 | 0.665 / 0.370 | 0.335 |
+| ET vs MODIS ET, WUE ratio | 1.08 / 1.24 | 1.07 / 1.21 | 1 / 1 |
+
+The 11 % on the sample is 3.6 % of global GPP (1.46x -> 1.40x), bought
+with the levers on their bounds. The seasonal cycle is unchanged: amplitude
+0.80 of observed, 0.61 at 30-50N; the sparse-excess class still runs
+2.8-3.3x through winter and 4.6x in October. Tree cover did not move --
+stage (a) had no cover lever -- and neither did ET or WUE. One regression:
+Arctic LAI (70-90N) fell from 0.56x to 0.46x MODIS, the price of the cold
+thresholds pushed toward their bounds. Criteria: total 1.40x, spatial
+1.6-1.7x mid/high latitudes against 1.16x tropics, seasonal amplitude 0.80
+-- none met; the parameter-only route is exhausted, which is what stage (b)
+is for.
+
 ### Stage (b1): structural scalars on neutral physiology, PFT blocks frozen at v11d
 
 Start from **v11d** (F77 phenology, `stressfac` -5), not from the stage-(a)
