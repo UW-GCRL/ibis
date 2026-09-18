@@ -1594,10 +1594,27 @@ mean elsewhere depends on which products cover a cell), take the ensemble
 mean as the target and the spread as its uncertainty, and put the weight on
 the spatial and seasonal terms rather than the total.
 
+**Tower scale** (`verify/calibration/tower_et.py`; 194 FLUXNET2015 towers
+with >= 24 valid months of `LE_F_MDS`, model = the (b1) monthly output at
+the tower's cell, ensemble at the same cell where all five products cover
+it): model / tower **1.13**, ensemble / tower **0.99** -- the gridded
+ensemble agrees with the towers on average, which makes it a sound target
+and puts the model's 1.07x-1.13x on the model. By class the model runs
+DBF 1.26, EBF 1.22, open shrub 1.34, woody savanna 1.20, ENF 1.12, grass
+1.15, crops 1.01 and wetlands **0.83** (the one class it under-evaporates);
+by latitude 1.17 (0-25), 1.07 (25-45), 1.17 (45-60), 1.37 (60-90) against
+an ensemble that also exceeds the high-latitude towers (1.12, 1.17), so
+part of the poleward excess is the towers' energy-balance closure. The
+model's seasonal ET amplitude is 9 against the towers' 15: too flat, like
+GPP. Baseline on the F77 canopy; the corrected canopy moved domain ET by
+only 2 % (section 18), so this is close to the Stage-2 starting point.
+
 Model ET is `ayaet` (mm/yr) yearly and `amaet` monthly; the fit harness's
 `one_year` already returns `ayaet` and the daily AET series, so the ET fit
 is the carbon harness with `fluxcom_at` -> an ET loader and the seasonal
-term on monthly ET.
+term on monthly ET -- built: `et_at`, `et_monthly_at`, `--w-et`,
+`--w-et-season`, and the Ball-Berry slope per canopy group as extras
+(`coefm_bl/con/shrub/c4/c3`), the lever that moves ET at fixed GPP.
 
 ## 16. Criterion 3 diagnosed: the tropical dry season does not end
 
