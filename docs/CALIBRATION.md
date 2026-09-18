@@ -1539,3 +1539,34 @@ Consequences for the criteria: the tropical dry season is where criterion
 (criterion 1) and, if the rainforest deficit (0.87x) is then visible, the
 tropical `vmax` in stage (b2) has a clean target.
 
+### Lever test 7: the drought trigger fires and the dry season stays
+
+60 savanna, 40 seasonal and 30 rainforest cells from the fit sample, the
+(b1) structure (`params_fit_v12c.yaml`), 6 years cycled, the soil-water
+trigger `drop_stress_thresh` at 0.05 (off, as fitted) / 0.3 / 0.5 / 0.7,
+composites aligned to each cell's wettest month:
+
+| savanna, months from wettest | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | amp | dropu / dropl4 | fu |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| observed shape | .156 | .155 | .130 | .090 | .056 | .036 | .028 | .031 | .042 | .063 | .089 | .124 | 5.5 | | |
+| trigger off, model/obs | 0.78 | 0.80 | 0.96 | 1.19 | 1.53 | **1.82** | 1.77 | 1.39 | 1.02 | 0.87 | 0.89 | 0.83 | 2.9 | 1.00 / 0.99 | 0.68 |
+| trigger 0.5 | 0.82 | 0.84 | 0.99 | 1.18 | 1.50 | 1.70 | 1.58 | 1.22 | 0.92 | 0.84 | 0.91 | 0.86 | 3.4 | 0.77 / 0.65 | 0.74 |
+| trigger 0.7 | 0.83 | 0.85 | 1.00 | 1.17 | 1.48 | 1.68 | 1.59 | 1.25 | 0.93 | 0.82 | 0.90 | 0.85 | 3.4 | 0.58 / 0.59 | 0.77 |
+| 0.5 + `drop_floor` 0.02 | 0.83 | 0.85 | 1.00 | 1.18 | 1.48 | 1.68 | 1.52 | 1.17 | 0.89 | 0.83 | 0.91 | 0.87 | 3.6 | 0.76 / 0.62 | 0.77 |
+
+The trigger fires -- the drought-deciduous trees and C4 grasses lose 40 %
+of their leaf display -- and the dry-season excess falls by a tenth. The
+seasonal class does not move (1.24 -> 1.25 at month 4); the rainforest
+class does not move (0.89x annual). So the leaves that drop are not the
+leaves carrying the dry-season GPP. What does not drop is the *evergreen*
+upper canopy, and `fu` in these savanna cells is 0.68 -- rising to 0.77
+under the trigger, through the same feedback as US-Ton (less leaf, less
+transpiration, less stress, more tree survival). **Hypothesis, to be
+tested by decomposition:** the savanna dry season is tropical evergreen
+trees (PFT 1) standing where savannas have grass and deciduous trees,
+drawing deep soil water through the dry season; the annual-mean gate cannot
+reach them because the wet season lifts their mean stress above the
+threshold. If so the lever is the gate's stress *measure* (the dry-season
+minimum rather than the annual mean, or the evergreen-vs-deciduous
+competition), not the phenology trigger.
+
