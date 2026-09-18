@@ -1570,3 +1570,34 @@ threshold. If so the lever is the gate's stress *measure* (the dry-season
 minimum rather than the annual mean, or the evergreen-vs-deciduous
 competition), not the phenology trigger.
 
+### Decomposition: the persistence is in every plant, so it is in the soil
+
+Same 60 savanna cells, (b1) structure, counterfactual removals (PFT pools
+zeroed and `existence` blocked), years 4-6 (`savanna_decomp.py`):
+
+| case | LAI by PFT | annual model/obs | model/obs shape, months 0-1 / 4-7 from wettest | fu |
+|---|---|---|---|---|
+| as fitted | trop. deciduous 1.75, C4 grass 0.33, evergreen 0.01 | 1.06 | 0.78 0.80 / 1.53 1.82 1.77 1.39 | 0.68 |
+| no evergreen trees (PFT 1) | deciduous 1.27, C4 0.37 | 0.80 | 0.76 0.77 / 1.52 1.89 1.90 1.49 | 0.71 |
+| no tropical deciduous trees (PFT 2) | C4 grass 1.51, shrubs 0.15 | 0.61 | 0.73 0.75 / 1.51 1.84 1.84 1.45 | 0.06 |
+| no upper canopy | C4 grass 1.58 | 0.58 | 0.73 0.75 / 1.51 1.84 1.84 1.45 | 0.04 |
+| no lower canopy | deciduous 1.92 | 1.01 | 0.74 0.76 / 1.63 2.01 1.94 1.49 | 0.79 |
+
+The evergreen hypothesis is wrong: these cells are tropical *deciduous*
+trees over sparse C4 grass. And the finding is stronger than any
+composition story: **every counterfactual has the same wrong seasonality**
+-- trees alone, grass alone, both -- late peak at 0.73-0.78x, 1.5-2.0x
+through the four months after the rains. Whatever holds GPP up in the dry
+season holds it up for every plant in the cell, which puts it below the
+vegetation: the soil water the plants draw on. That also says why leaf
+drop in lever test 7 barely mattered -- the plants that kept leaves had
+water to use them -- and it makes the next test an independent one: model
+ET against the ET ensemble through the same composite year. If model ET
+persists where the products fall, the memory is in the soil column (depth,
+drainage, root profile, or the stress function), not in phenology.
+
+Two side notes. Grass alone reaches only 0.58x the observed GPP (C4 `vmax`
+15.4 umol, the low end of its bounds): a stage-(b2) target once the
+seasonality is right. Removing the 0.01-LAI evergreen PFT cost 25 % of
+GPP in every month (deciduous LAI 1.75 -> 1.27) -- not understood, noted.
+
