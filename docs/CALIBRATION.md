@@ -1601,3 +1601,36 @@ Two side notes. Grass alone reaches only 0.58x the observed GPP (C4 `vmax`
 seasonality is right. Removing the 0.01-LAI evergreen PFT cost 25 % of
 GPP in every month (deciduous LAI 1.75 -> 1.27) -- not understood, noted.
 
+### The independent check: ET says the soil is fine and the leaves are not
+
+Same 60 cells, v12a 10-year monthly output, model ET against the
+five-product ET ensemble, soil water by layer (`savanna_water.py`):
+
+| months from wettest | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| precipitation mm/mo | 266 | 197 | 130 | 73 | 31 | 14 | 15 | 23 | 41 | 68 | 120 | 195 |
+| ET model mm/mo | 103 | 103 | 100 | 82 | 60 | 44 | 36 | 38 | 44 | 60 | 82 | 97 |
+| ET ensemble mean | 96 | 99 | 92 | 74 | 53 | 38 | 32 | 31 | 37 | 49 | 65 | 83 |
+| ET model / ensemble | 1.08 | 1.04 | 1.08 | 1.11 | 1.14 | 1.16 | 1.14 | 1.22 | 1.22 | 1.23 | 1.26 | 1.17 |
+| GPP model / FLUXCOM (shape) | 0.84 | 0.89 | 1.00 | 1.15 | 1.37 | 1.61 | 1.59 | 1.35 | 1.02 | 0.82 | 0.82 | 0.83 |
+| soil water, layers 1-3 (frac. sat.) | .78 | .76 | .67 | .57 | .50 | .44 | .42 | .42 | .44 | .49 | .58 | .70 |
+| layers 5-6 | .82 | .84 | .84 | .82 | .80 | .78 | .76 | .76 | .75 | .75 | .75 | .77 |
+
+The soil-water hypothesis fails the independent test. Model ET has the
+*same* seasonal shape as the observed ET (trough at months 6-7 in both;
+amplitude 2.9 against 3.2), running 8-26 % high throughout; the top three
+layers dry from 0.78 to 0.42 of saturation and only the deep layers stay
+wet, as deep soils do. What differs is the *observations' own* ratio:
+observed GPP collapses far more than observed ET (amplitude 5.5 against
+3.2) -- the plants stop assimilating while the surface keeps evaporating --
+whereas model GPP tracks model ET (2.9 against 2.9; WUE flat through the
+year). That is leaf-area control of GPP in reality and its absence in the
+model, and it explains lever test 7: dropping 40 % of the leaves cost 10 %
+of GPP because the fitted canopy is light-saturated -- `trop_bl_dec` at
+vmax 80.5 umol over LAI 1.75, the dlnGPP/dlnLAI of 0.09 measured in section
+14. A canopy that gets its GPP from leaf capacity rather than leaf area
+cannot have its seasons driven by leaf phenology, however well the
+phenology fires. Lever test 8 measures the LAI-sensitivity directly (LAI
+x0.5, x2) and whether trading capacity for area (tropical vmax x0.5 with
+LAI x2) restores the amplitude.
+
