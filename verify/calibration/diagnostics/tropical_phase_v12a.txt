@@ -1,0 +1,36 @@
+/shared/nas2/Hangkai/ibis/verify_outputs/val_v12a/monthly/out
+tropical land cells (|lat|<23.5, FLUXCOM>0.5): 12476; 120 monthly files
+
+== rainforest (obs amp<1.5): n=3369  obs GPP 2.90  model/obs annual 0.87
+   peak offset model-obs: mean -0.28 mo, |off|>=2: 85%   amplitude obs 1.2 model 1.6 precip 6.5
+   GPP peak relative to PRECIP peak: obs -0.63 mo, model +0.99 mo;  best lag behind rain: obs +0.27 (r 0.69), model +1.97 (r 0.66)
+   months from wettest:      0     1     2     3     4     5     6     7     8     9    10    11
+   precip frac         : 0.143 0.113 0.088 0.067 0.058 0.057 0.059 0.063 0.066 0.077 0.094 0.114
+   obs GPP frac        : 0.086 0.083 0.083 0.081 0.081 0.082 0.082 0.084 0.083 0.084 0.086 0.085
+   model GPP frac      : 0.086 0.087 0.090 0.090 0.086 0.081 0.077 0.079 0.079 0.079 0.083 0.083
+   model/obs           :  1.00  1.04  1.09  1.10  1.07  0.99  0.94  0.94  0.95  0.94  0.96  0.99
+
+== seasonal (1.5-3): n=2370  obs GPP 2.13  model/obs annual 1.02
+   peak offset model-obs: mean +1.11 mo, |off|>=2: 87%   amplitude obs 2.1 model 2.9 precip 15.3
+   GPP peak relative to PRECIP peak: obs -0.52 mo, model +1.59 mo;  best lag behind rain: obs +0.09 (r 0.87), model +1.71 (r 0.81)
+   months from wettest:      0     1     2     3     4     5     6     7     8     9    10    11
+   precip frac         : 0.182 0.135 0.093 0.061 0.045 0.037 0.036 0.039 0.050 0.077 0.104 0.139
+   obs GPP frac        : 0.103 0.099 0.092 0.081 0.073 0.067 0.066 0.068 0.074 0.085 0.093 0.100
+   model GPP frac      : 0.098 0.101 0.101 0.095 0.088 0.077 0.068 0.063 0.062 0.072 0.082 0.092
+   model/obs           :  0.96  1.02  1.10  1.17  1.20  1.16  1.04  0.92  0.84  0.85  0.88  0.92
+
+== savanna/dry (>=3): n=6737  obs GPP 1.32  model/obs annual 1.28
+   peak offset model-obs: mean +1.77 mo, |off|>=2: 66%   amplitude obs 8.4 model 5.9 precip 18.9
+   GPP peak relative to PRECIP peak: obs +0.09 mo, model +1.92 mo;  best lag behind rain: obs +0.38 (r 0.93), model +1.30 (r 0.89)
+   months from wettest:      0     1     2     3     4     5     6     7     8     9    10    11
+   precip frac         : 0.231 0.165 0.103 0.053 0.027 0.015 0.016 0.022 0.036 0.061 0.104 0.167
+   obs GPP frac        : 0.156 0.153 0.124 0.084 0.054 0.037 0.032 0.036 0.045 0.063 0.089 0.126
+   model GPP frac      : 0.129 0.135 0.124 0.099 0.076 0.060 0.048 0.044 0.045 0.056 0.077 0.107
+   model/obs           :  0.83  0.88  1.00  1.17  1.42  1.61  1.48  1.21  0.98  0.89  0.86  0.85
+
+== by hemisphere/continent (all tropical cells) ==
+  S America      n= 4759 offset +0.93 mo  |off|>=2 84%  model-vs-rain lag +1.95 obs-vs-rain +0.30
+  Africa         n= 4870 offset +1.05 mo  |off|>=2 68%  model-vs-rain lag +1.20 obs-vs-rain +0.38
+  Asia/Aus       n= 2847 offset +1.41 mo  |off|>=2 72%  model-vs-rain lag +1.51 obs-vs-rain +0.14
+  N hemisphere   n= 5760 offset +1.10 mo  |off|>=2 67%  model-vs-rain lag +1.47 obs-vs-rain +0.62
+  S hemisphere   n= 6716 offset +1.07 mo  |off|>=2 82%  model-vs-rain lag +1.63 obs-vs-rain +0.03

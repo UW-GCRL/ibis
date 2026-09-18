@@ -1,0 +1,24 @@
+/shared/nas2/Hangkai/ibis/verify_outputs/val_v11d/fit/out
+years 2056-2060 vs MODIS ET 2000-2013; scored cells (natural veg >= 70 %, ET obs > 10 mm/yr, FLUXCOM > 0.02): 48442
+ALL                  n=48442  ET mod   629 obs   583 mm/yr  ratio 1.08 | ET/P mod 0.62 obs 0.58 | GPP ratio 1.34 | WUE mod 2.20 obs 1.77 gC/kg  ratio 1.24
+-- by latitude --
+lat +60..+90         n=10061  ET mod   310 obs   314 mm/yr  ratio 0.99 | ET/P mod 0.64 obs 0.65 | GPP ratio 1.79 | WUE mod 1.55 obs 0.85 gC/kg  ratio 1.81
+lat +45..+60         n=11853  ET mod   417 obs   397 mm/yr  ratio 1.05 | ET/P mod 0.65 obs 0.62 | GPP ratio 1.64 | WUE mod 2.22 obs 1.42 gC/kg  ratio 1.56
+lat +30..+45         n= 7059  ET mod   496 obs   420 mm/yr  ratio 1.18 | ET/P mod 0.71 obs 0.60 | GPP ratio 1.85 | WUE mod 2.58 obs 1.65 gC/kg  ratio 1.57
+lat +15..+30         n= 3566  ET mod   651 obs   689 mm/yr  ratio 0.95 | ET/P mod 0.53 obs 0.56 | GPP ratio 1.30 | WUE mod 2.55 obs 1.85 gC/kg  ratio 1.38
+lat +0..+15          n= 4839  ET mod   942 obs   853 mm/yr  ratio 1.10 | ET/P mod 0.60 obs 0.55 | GPP ratio 1.08 | WUE mod 2.00 obs 2.04 gC/kg  ratio 0.98
+lat -15..+0          n= 4812  ET mod  1058 obs  1094 mm/yr  ratio 0.97 | ET/P mod 0.57 obs 0.59 | GPP ratio 1.01 | WUE mod 2.04 obs 1.95 gC/kg  ratio 1.04
+lat -30..-15         n= 4407  ET mod   647 obs   470 mm/yr  ratio 1.38 | ET/P mod 0.74 obs 0.54 | GPP ratio 1.69 | WUE mod 2.36 obs 1.93 gC/kg  ratio 1.23
+lat -60..-30         n= 1845  ET mod   563 obs   415 mm/yr  ratio 1.36 | ET/P mod 0.70 obs 0.51 | GPP ratio 2.04 | WUE mod 2.54 obs 1.69 gC/kg  ratio 1.50
+-- by CLM tree fraction --
+tree 0.00-0.05       n=13031  ET mod   401 obs   294 mm/yr  ratio 1.36 | ET/P mod 0.80 obs 0.58 | GPP ratio 2.06 | WUE mod 2.05 obs 1.36 gC/kg  ratio 1.51
+tree 0.05-0.15       n= 6790  ET mod   548 obs   441 mm/yr  ratio 1.24 | ET/P mod 0.72 obs 0.58 | GPP ratio 1.77 | WUE mod 2.09 obs 1.47 gC/kg  ratio 1.42
+tree 0.15-0.30       n= 6783  ET mod   657 obs   569 mm/yr  ratio 1.15 | ET/P mod 0.70 obs 0.61 | GPP ratio 1.54 | WUE mod 2.19 obs 1.64 gC/kg  ratio 1.33
+tree 0.30-0.50       n= 5388  ET mod   698 obs   641 mm/yr  ratio 1.09 | ET/P mod 0.66 obs 0.60 | GPP ratio 1.44 | WUE mod 2.28 obs 1.73 gC/kg  ratio 1.32
+tree 0.50-0.70       n= 4505  ET mod   708 obs   709 mm/yr  ratio 1.00 | ET/P mod 0.59 obs 0.59 | GPP ratio 1.33 | WUE mod 2.36 obs 1.77 gC/kg  ratio 1.33
+tree 0.70-1.01       n=11945  ET mod   830 obs   890 mm/yr  ratio 0.93 | ET/P mod 0.52 obs 0.55 | GPP ratio 1.01 | WUE mod 2.23 obs 2.05 gC/kg  ratio 1.09
+-- by observed aridity ET/P (P = GSWP3 forcing) --
+ET/P 0.0-0.4         n= 6047  ET mod   619 obs   410 mm/yr  ratio 1.51 | ET/P mod 0.47 obs 0.31 | GPP ratio 1.43 | WUE mod 2.09 obs 2.20 gC/kg  ratio 0.95
+ET/P 0.4-0.7         n=23681  ET mod   716 obs   637 mm/yr  ratio 1.12 | ET/P mod 0.61 obs 0.55 | GPP ratio 1.32 | WUE mod 2.21 obs 1.89 gC/kg  ratio 1.17
+ET/P 0.7-0.9         n=11304  ET mod   559 obs   588 mm/yr  ratio 0.95 | ET/P mod 0.74 obs 0.78 | GPP ratio 1.35 | WUE mod 2.22 obs 1.56 gC/kg  ratio 1.42
+ET/P 0.9-9.0         n= 7404  ET mod   436 obs   563 mm/yr  ratio 0.77 | ET/P mod 0.82 obs 1.06 | GPP ratio 1.34 | WUE mod 2.27 obs 1.31 gC/kg  ratio 1.73

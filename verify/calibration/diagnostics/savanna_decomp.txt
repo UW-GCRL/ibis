@@ -1,0 +1,29 @@
+2026-09-18 07:26:42,757 cached 36 months of forcing (0.00 GB)
+SAVANNA n=60  obs GPP 1.36  mean |lat| 15
+months from wettest   :     0     1     2     3     4     5     6     7     8     9    10    11
+obs GPP frac          : 0.156 0.155 0.130 0.090 0.056 0.036 0.028 0.031 0.042 0.063 0.089 0.124
+
+as fitted (b1)   [annual model/obs 1.06  amp model  2.9 (obs  5.5)  fu 0.68 fl 0.25]
+  LAI by PFT (mean)   : trop_bl_eve=0.01  trop_bl_dec=1.75  ever_shrub=0.01  dec_shrub=0.01  c4_grass=0.33  c3_grass=0.01
+  model/obs (shape)   :  0.78  0.80  0.96  1.19  1.53  1.82  1.77  1.39  1.02  0.87  0.89  0.83
+  GPP vs as-fitted    :  1.00  1.00  1.00  1.00  1.00  1.00  1.00  1.00  1.00  1.00  1.00  1.00   <- share of as-fitted GPP remaining, by month
+
+no evergreen trees (PFT 1)   [annual model/obs 0.80  amp model  2.6 (obs  5.5)  fu 0.71 fl 0.25]
+  LAI by PFT (mean)   : trop_bl_dec=1.27  ever_shrub=0.01  dec_shrub=0.02  c4_grass=0.37  c3_grass=0.03
+  model/obs (shape)   :  0.76  0.77  0.93  1.15  1.52  1.89  1.90  1.49  1.10  0.91  0.91  0.82
+  GPP vs as-fitted    :  0.75  0.74  0.73  0.72  0.73  0.76  0.80  0.82  0.83  0.79  0.78  0.76   <- share of as-fitted GPP remaining, by month
+
+no tropical deciduous trees (PFT 2)   [annual model/obs 0.61  amp model  2.7 (obs  5.5)  fu 0.06 fl 0.36]
+  LAI by PFT (mean)   : trop_bl_eve=0.10  ever_shrub=0.02  dec_shrub=0.13  c4_grass=1.51  c3_grass=0.06
+  model/obs (shape)   :  0.73  0.75  0.93  1.17  1.51  1.84  1.84  1.45  1.13  0.96  0.94  0.83
+  GPP vs as-fitted    :  0.56  0.56  0.57  0.56  0.54  0.54  0.57  0.60  0.65  0.64  0.62  0.59   <- share of as-fitted GPP remaining, by month
+
+no upper canopy (PFTs 1-8)   [annual model/obs 0.58  amp model  2.7 (obs  5.5)  fu 0.04 fl 0.37]
+  LAI by PFT (mean)   : ever_shrub=0.02  dec_shrub=0.13  c4_grass=1.58  c3_grass=0.06
+  model/obs (shape)   :  0.73  0.75  0.93  1.18  1.51  1.84  1.84  1.45  1.13  0.96  0.95  0.83
+  GPP vs as-fitted    :  0.54  0.53  0.55  0.53  0.52  0.52  0.54  0.57  0.62  0.62  0.60  0.57   <- share of as-fitted GPP remaining, by month
+
+no lower canopy (PFTs 9-12)   [annual model/obs 1.01  amp model  2.6 (obs  5.5)  fu 0.79 fl 0.25]
+  LAI by PFT (mean)   : trop_bl_eve=0.01  trop_bl_dec=1.92
+  model/obs (shape)   :  0.74  0.76  0.91  1.20  1.63  2.01  1.94  1.49  1.09  0.89  0.86  0.80
+  GPP vs as-fitted    :  0.93  0.93  0.93  0.96  0.98  0.99  0.98  0.96  0.96  0.95  0.94  0.94   <- share of as-fitted GPP remaining, by month

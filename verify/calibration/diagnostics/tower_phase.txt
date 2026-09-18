@@ -1,0 +1,36 @@
+
+14 tropical/subtropical savanna-grassland-shrub tower sites (|lat|<30, monthly GPP_NT_VUT_REF & P_F)
+site   veg     lat yrs | amplitude tower/FLUXCOM/model | GPP peak minus rain peak (months): tower / FLUXCOM / model
+AU-ASM SAV   -22.3   5 |   6.2  30.0   3.3           |  +1 /  +0 /  -1
+AU-Ade WSA   -13.1   3 |   4.1  10.5   4.0           |  +0 /  +0 /  +2
+AU-DaP GRA   -14.1   7 |  30.0   8.2  12.1           |  +0 /  -1 /  +1
+AU-DaS SAV   -14.2   7 |   2.8   8.2  12.1           |  +0 /  -1 /  +1
+AU-Dry SAV   -15.3   7 |   2.7   8.2   8.8           |  +1 /  -1 /  -1
+AU-Emr GRA   -23.9   3 |   4.7   5.9   4.3           |  -5 /  +1 /  +0
+AU-How WSA   -12.5  14 |   2.9   4.5   3.9           |  +0 /  +0 /  +2
+AU-RDF WSA   -14.6   3 |   7.2   8.9  12.8           |  -1 /  -1 /  -1
+AU-Stp GRA   -17.2   7 |  30.0  19.6   6.5           |  +1 /  +1 /  +0
+AU-TTE GRA   -22.3   3 |  30.0  30.0   2.9           |  +2 /  +2 /  +2
+CG-Tch SAV    -4.3   4 |   9.4   1.9   3.0           |  +1 /  +4 /  +4
+PA-SPs GRA     9.3   3 |   8.9   1.5   1.3           |  +1 /  -3 /  +2
+SD-Dem SAV    13.3   4 |   4.5  30.0  13.2           |  +1 /  +1 /  +1
+US-KS2 CSH    28.6   4 |   2.0   2.8   1.4           |  +1 /  +1 /  +4
+
+composite, months from the tower's wettest:      0     1     2     3     4     5     6     7     8     9    10    11
+  precip frac     0.256 0.171 0.104 0.038 0.020 0.025 0.029 0.017 0.024 0.061 0.099 0.156
+  TOWER GPP frac  0.256 0.218 0.408 0.173 0.002 0.030 0.022 -0.010 -0.058 -0.061 -0.034 0.055
+  FLUXCOM frac    0.155 0.175 0.134 0.083 0.047 0.031 0.029 0.030 0.036 0.056 0.093 0.132
+  MODEL frac      0.143 0.151 0.112 0.077 0.061 0.053 0.048 0.042 0.041 0.058 0.093 0.121
+  model/tower      0.56  0.69  0.27  0.44 25.75  1.76  2.19 42283140.39 41376491.54 57914587.83 92591903.81  2.21
+  FLUXCOM/tower    0.61  0.80  0.33  0.48 19.79  1.02  1.32 30226404.24 36310722.03 55859123.84 93477081.27  2.39
+
+mean GPP-peak offset from rain: tower +0.21, FLUXCOM +0.21, model +1.14 months; mean amplitude tower 10.4 FLUXCOM 12.2 model 6.4
+composite, months from the tower's wettest:      0     1     2     3     4     5     6     7     8     9    10    11
+  precip frac     0.256 0.171 0.104 0.038 0.020 0.025 0.029 0.017 0.024 0.061 0.099 0.156
+  TOWER GPP frac  0.136 0.141 0.139 0.084 0.052 0.048 0.048 0.051 0.049 0.052 0.086 0.115
+  FLUXCOM frac    0.155 0.175 0.134 0.083 0.047 0.031 0.029 0.030 0.036 0.056 0.093 0.132
+  MODEL frac      0.143 0.151 0.112 0.077 0.061 0.053 0.048 0.042 0.041 0.058 0.093 0.121
+  model/tower      1.05  1.07  0.80  0.91  1.16  1.12  1.01  0.83  0.85  1.12  1.07  1.06
+  FLUXCOM/tower    1.14  1.24  0.96  0.98  0.89  0.64  0.61  0.60  0.75  1.08  1.08  1.15
+
+mean GPP-peak offset from rain: tower +0.21, FLUXCOM +0.21, model +1.14 months; mean amplitude tower 10.4 FLUXCOM 12.2 model 6.4

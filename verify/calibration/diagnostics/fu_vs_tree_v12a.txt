@@ -1,0 +1,11 @@
+years 2056-2060; land cells 95333, natural-veg>=70%: 65698 (89% of land area); positive GPP excess EX=13383.7 (area-wtd, all land)
+ALL natural cells: area-wtd fu=0.665 vs tree=0.335; MAD(tree term)=0.370; RMSE=0.466; r=0.56; fu floor 0.25 -> min fu=0.25
+tree 0.00-0.05                     n=25113 area%= 36.6  fu=0.42 tree=0.01  fl=0.42  GPP mod/obs=1.85  excess%=27
+tree 0.05-0.15                     n= 7575 area%= 10.6  fu=0.63 tree=0.09  fl=0.60  GPP mod/obs=1.70  excess%=16
+tree 0.15-0.30                     n= 7278 area%= 11.3  fu=0.75 tree=0.22  fl=0.53  GPP mod/obs=1.50  excess%=18
+tree 0.30-0.50                     n= 6018 area%=  9.8  fu=0.81 tree=0.39  fl=0.46  GPP mod/obs=1.40  excess%=15
+tree 0.50-0.70                     n= 5208 area%=  8.5  fu=0.82 tree=0.59  fl=0.44  GPP mod/obs=1.30  excess%=11
+tree 0.70-1.01                     n=14506 area%= 23.2  fu=0.91 tree=0.91  fl=0.36  GPP mod/obs=0.99  excess%=12
+PHANTOM: tree<0.15 & fu>0.40       n=10221 area%= 16.5  fu=0.85 tree=0.04  fl=0.47  GPP mod/obs=1.84  excess%=31
+PHANTOM: tree<0.15 & fu>0.60       n= 8996 area%= 14.6  fu=0.90 tree=0.04  fl=0.45  GPP mod/obs=1.85  excess%=29
+MISSING: tree>0.50 & fu<0.30       n= 1688 area%=  2.3  fu=0.25 tree=0.70  fl=0.87  GPP mod/obs=1.50  excess%=2

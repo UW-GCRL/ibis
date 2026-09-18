@@ -1,0 +1,24 @@
+2026-09-18 08:18:05,123 cached 36 months of forcing (0.00 GB)
+SAVANNA n=60  obs GPP 1.36  mean |lat| 15
+months from wettest   :     0     1     2     3     4     5     6     7     8     9    10    11
+obs GPP frac          : 0.156 0.155 0.130 0.090 0.056 0.036 0.028 0.031 0.042 0.063 0.089 0.124
+
+as fitted (b1)   [annual model/obs 1.06  amplitude  2.9 (obs  5.5)  LAI 2.10  fu 0.68  upper 1.76 lower 0.37]
+  model/obs (shape)   :  0.78  0.80  0.96  1.19  1.53  1.82  1.77  1.39  1.02  0.87  0.89  0.83
+  GPP vs as-fitted    :  1.00  1.00  1.00  1.00  1.00  1.00  1.00  1.00  1.00  1.00  1.00  1.00
+
+scale_leaf_only   [annual model/obs 0.89  amplitude  2.7 (obs  5.5)  LAI 1.80  fu 0.70  upper 1.45 lower 0.38]
+  model/obs (shape)   :  0.76  0.78  0.94  1.17  1.53  1.88  1.86  1.46  1.08  0.89  0.89  0.82
+  GPP vs as-fitted    :  0.83  0.83  0.82  0.82  0.83  0.85  0.88  0.89  0.90  0.86  0.85  0.84
+
+leaf_only + trigger 0.7   [annual model/obs 0.84  amplitude  3.8 (obs  5.5)  LAI 1.77  fu 0.80  upper 1.47 lower 0.31]
+  model/obs (shape)   :  0.84  0.86  1.02  1.20  1.49  1.67  1.48  1.12  0.84  0.81  0.91  0.87
+  GPP vs as-fitted    :  0.85  0.84  0.83  0.80  0.77  0.74  0.69  0.67  0.68  0.76  0.82  0.84
+
+leaf_only + trigger 0.9   [annual model/obs 0.77  amplitude  4.1 (obs  5.5)  LAI 1.62  fu 0.83  upper 1.33 lower 0.33]
+  model/obs (shape)   :  0.87  0.89  1.04  1.19  1.45  1.54  1.39  1.08  0.82  0.80  0.89  0.88
+  GPP vs as-fitted    :  0.81  0.80  0.78  0.73  0.70  0.63  0.57  0.57  0.59  0.70  0.76  0.79
+
+leaf_only + trigger 0.7 + stressfac -5   [annual model/obs 0.81  amplitude  4.0 (obs  5.5)  LAI 1.71  fu 0.79  upper 1.42 lower 0.29]
+  model/obs (shape)   :  0.86  0.88  1.03  1.20  1.46  1.60  1.40  1.08  0.81  0.80  0.91  0.89
+  GPP vs as-fitted    :  0.83  0.83  0.81  0.77  0.74  0.70  0.63  0.62  0.63  0.73  0.80  0.82

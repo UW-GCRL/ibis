@@ -1,0 +1,11 @@
+2026-09-18 08:10:41,546 cached 36 months of forcing (0.00 GB)
+SAVANNA n=60  obs GPP 1.36  mean |lat| 15
+months from wettest   :     0     1     2     3     4     5     6     7     8     9    10    11
+obs GPP frac          : 0.156 0.155 0.130 0.090 0.056 0.036 0.028 0.031 0.042 0.063 0.089 0.124
+dry-season test month (0-based, modal (wettest+6)): 6; cells with that dry month: 15 of 60
+scaling plai (lai is rebuilt daily from plai); saved state: displayed LAI upper 2.23 lower 0.93 (cells in their dry season), fu 0.73
+  LAI x1.0 : month GPP  0.0913 kgC/m2 (ratio to x1 1.000; dlnGPP/dlnLAI   nan)   ET  33.5 mm   per-leaf GPP relative  1.00
+  LAI x0.5 : month GPP  0.0829 kgC/m2 (ratio to x1 0.907; dlnGPP/dlnLAI  0.14)   ET  29.6 mm   per-leaf GPP relative  1.81
+  LAI x0.25: month GPP  0.0710 kgC/m2 (ratio to x1 0.777; dlnGPP/dlnLAI  0.18)   ET  25.6 mm   per-leaf GPP relative  3.11
+  LAI x0.1 : month GPP  0.0529 kgC/m2 (ratio to x1 0.579; dlnGPP/dlnLAI  0.24)   ET  20.7 mm   per-leaf GPP relative  5.79
+  LAI x2.0 : month GPP  0.0926 kgC/m2 (ratio to x1 1.014; dlnGPP/dlnLAI  0.02)   ET  37.5 mm   per-leaf GPP relative  0.51
