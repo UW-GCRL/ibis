@@ -1436,6 +1436,51 @@ Four readings.
 Decision waits on the domain validation (`chain_v12c`): the three criteria
 are judged there, not on the sample.
 
+### Stage (b1) over the domain: the boreal band is exact, the steppes are half-fixed, the understory is pinned
+
+50-year validation from the v11 2010 state on `params_fit_v12c.yaml`
+(`val_v12c`, years 2056-60; gate active, logged), scored with
+`fu_vs_tree.py` and `et_vs_modis.py` (pools and the seasonal score follow
+from the chain):
+
+| | v11d | v12a (stage a) | **v12c (stage b1)** | observed |
+|---|---|---|---|---|
+| fu, natural land / MAD tree term | 0.661 / 0.365 | 0.665 / 0.370 | **0.530 / 0.280** | 0.335 / 0 |
+| fu where tree < 0.05 (37 % of natural land) | 0.40 | 0.42 | **0.18** | 0.01 |
+| GPP there | 2.01 | 1.85 | **1.53** | 1 |
+| GPP 60-90N / ET / WUE | 1.79 / 0.99 / 1.81 | 1.67 / 0.99 / 1.69 | **0.99 / 0.96 / 1.04** | 1 |
+| GPP 45-60N | 1.64 | 1.52 | 1.36 | |
+| GPP 30-45N (fu 0.47 vs 0.18) | 1.85 | 1.73 | 1.58 | |
+| GPP 15-30S / 30-60S | 1.69 / 2.04 | 1.63 / 1.94 | 1.47 / 1.77 | |
+| GPP tropics (0-15N, 15S-0) | 1.08 / 1.01 | 1.06 / 1.00 | 1.00 / 0.99 | |
+| forests (tree > 0.7): fu / GPP | 0.92 / 1.02 | 0.91 / 0.99 | 0.88 / 0.98 | 0.91 / 1 |
+| GPP, natural land (ET-scored cells) / WUE | 1.34 / 1.24 | 1.29 / 1.21 | **1.19 / 1.12** | 1 / 1 |
+| ET, natural land | 1.08 | 1.07 | 1.07 | 1 (spread 0.91-1.11) |
+| phantom cells (tree < 0.15, fu > 0.4), share of natural land | 15.9 % | 16.5 % | 10.9 % | |
+| missing-tree cells (tree > 0.5, fu < 0.3) | 2.2 % | 2.3 % | 3.4 % (GPP 0.69) | |
+| global positive GPP excess (area-weighted, rel. v11d) | 1.00 | 0.90 | **0.70** | |
+
+Three readings.
+
+1. **The boreal and Arctic band is now right on all three fields** -- GPP
+   0.99, ET 0.96, WUE 1.04, fu 0.24 against 0.25 -- where stage (a) had
+   1.67x GPP and 1.69x WUE. Removing the trees that could not survive there
+   did what no parameter could.
+2. **The steppes are half-fixed.** 30-45N still carries fu 0.47 against
+   0.18 and GPP 1.58x; 15-60S 1.5-1.8x. The remaining phantom cells (11 %
+   of natural land, fu 0.86 where the observation is 0.05) hold 29 % of
+   the remaining excess. The gate weakened to 0.365 under a tree weight
+   that did not bind (section 14); a heavier weight is the obvious next
+   move, with a watch on the missing-tree side (3.4 % of land now at GPP
+   0.69).
+3. **The understory cover is pinned.** `fl` reads 0.25 -- its floor -- in
+   every band and every tree class: with `cover_k` 0.27, `1 - exp(-0.27
+   LAI)` is below 0.25 for any LAI under 1.06, so the fitted understory has
+   no cover variation at all. That is how the optimiser met "understory
+   over-painted" with two scalars; it is not how grass cover works.
+   Stage (b2) needs `cover_k` and `fl_min` re-bounded so cover can vary
+   (or the cover-from-LAI form replaced by something with a slope).
+
 ## 15. Stage 2 groundwork: the ET error is the same phantom-tree pattern
 
 Before ET is calibrated it needs a target and a baseline. Six gridded
