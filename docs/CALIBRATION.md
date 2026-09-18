@@ -1389,6 +1389,53 @@ showed), which `tree_stress_min`/`ramp` and the tree term settle between
 them. ~150 evaluations at ~205 s; `chain_v12c.sh` validates and scores at
 the end (`fu_vs_tree`, `state_report`, `seasonal_baseline`).
 
+### Stage (b1) result: 1.1968 -> 1.0855; the gate survives weakened, the season ignores everything
+
+150 evaluations (22:00 -> 06:40, 197-210 s each). Terms, start -> fitted:
+GPP 0.2767 -> **0.2452**, LAI 0.8755 -> **0.6773**, season 0.0175 -> 0.0174,
+tree 0.307 -> **0.327**; hold-out 1.464 -> 1.317. Carbon terms 0.758
+against stage (a)'s 0.776 -- better, on a structurally saner model.
+
+| scalar | start | fitted | bounds | |
+|---|---|---|---|---|
+| `stressfac` | -5.0 | **-8.27** | [-10, -2.5] | LESS stress -- the opposite of stage (a)'s -2.5 |
+| `tree_stress_min` | 0.45 | 0.365 | [0.1, 0.9] | gate kept, weakened |
+| `tree_stress_ramp` | 0.20 | 0.136 | [0.05, 0.5] | sharper edge |
+| `cover_k` | 0.5 | 0.27 | [0.2, 2.0] | understory cover thinned hard (fl = 1 - exp(-0.27 LAI)) |
+| `fl_min` | 0.25 | 0.249 | [0.01, 0.25] | at the ceiling = default |
+| `fu_min` | 0.10 | **0.042** | [0.01, 0.25] | treeless land can read treeless |
+| `drop_stress_thresh` | 0.5 | **0.051** | [0.05, 0.85] | **on the floor: drought dormancy switched off** |
+| `tthresh_u_abs` | 0 C | **14.9 C** | [-5, 15] | **on the ceiling: deciduous trees dormant below 15 C** |
+
+Four readings.
+
+1. **The tree weight did not bind.** The tree term ended above its start:
+   the LAI term (0.5 x 0.68 = 0.34) is the same size as the tree term
+   (0.33), and where MODIS wants LAI ~1.1 on semi-arid land the cheapest
+   way to get it is trees. The optimiser bought LAI with cover the tree
+   fraction says is not there. `--w-tree 1` was a guess; the data say 3.
+2. **`stressfac` and the gate are one lever.** Stage (a) drove `stressfac`
+   to maximum stress to kill dry-cell GPP; with the gate available the
+   optimiser reversed it to -8.3 (less stress) and let the gate do the
+   killing. Since `stresstu` is what the gate accumulates, the pair
+   (`stressfac`, `tree_stress_min`) is a single coordinate: 0.365 at -8.3 is
+   not comparable to 0.45 at -5.
+3. **Two more scalars on bounds, both compensations.** Drought dormancy
+   was rejected outright (trigger at its floor never fires); the absolute
+   upper-canopy threshold went to its 15 C ceiling, shortening deciduous
+   trees' season -- the same move stage (a) made with `tthresh_u_offset`.
+   Whatever the mid-latitude excess is, the optimiser keeps reaching for
+   "fewer leaf-days on trees" and is stopped only by the bounds I set.
+4. **The seasonal term has now ignored every lever on two fits** (0.0175 ->
+   0.0173 -> 0.0174). It is flux-weighted, so it is carried by the tropics
+   -- section 13's +0.78-month phase lag on 63 % of tropical cells -- and
+   nothing in stages (a) or (b1) touches tropical phenology. Criterion 3
+   needs its own diagnosis (tropical dry-season response) rather than more
+   weight on a term these levers cannot move.
+
+Decision waits on the domain validation (`chain_v12c`): the three criteria
+are judged there, not on the sample.
+
 ## 15. Stage 2 groundwork: the ET error is the same phantom-tree pattern
 
 Before ET is calibrated it needs a target and a baseline. Six gridded
