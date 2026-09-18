@@ -629,13 +629,17 @@ def main():
                                  w_season=a.w_season, fu=fu_m[msk],
                                  tree_obs=tree_obs[msk], w_tree=a.w_tree)
         off = peak_offset(gpp_m[:, msk], obs_m[:, msk])
+        # NaN-aware area weighting for the report only (one NaN cell poisons
+        # np.average; score() masks it): weights are zeroed where x is NaN.
+        def wavg(x, w):
+            f = np.isfinite(x); return float(np.sum(np.where(f, x, 0.0) * w * f) / np.sum(w * f))
         print(f"  {nm:>9}: loss {t:.4f}  GPP term {g:.4f}  LAI term {l:.4f}  "
               f"season term {s_:.4f}  tree term {tt_:.3f}  "
               f"peak offset mean {np.mean(off):+.2f} mo  "
-              f"area-wtd GPP {np.average(gpp[msk], weights=area[msk]):.3f} vs "
-              f"{np.average(gpp_obs[msk], weights=area[msk]):.3f}"
-              f"  LAI {np.average(lai[msk], weights=area[msk]):.2f} vs "
-              f"{np.average(lai_obs[msk], weights=area[msk]):.2f}"
+              f"area-wtd GPP {wavg(gpp[msk], area[msk]):.3f} vs "
+              f"{wavg(gpp_obs[msk], area[msk]):.3f}"
+              f"  LAI {wavg(lai[msk], area[msk]):.2f} vs "
+              f"{wavg(lai_obs[msk], area[msk]):.2f}"
               f"  fu {np.nanmean(fu_m[msk]):.2f} vs tree {np.nanmean(tree_obs[msk]):.2f}")
     print(f"\nWrote {a.out}/")
 
