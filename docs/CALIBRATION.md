@@ -1681,8 +1681,10 @@ consequences the calibration has been living with:
    evergreen has LAI 0.01, and the canopy runs at PFT 1's 40 umol. Remove
    PFT 1 and the canopy falls to warm-temperate's 25: the unexplained 25 %
    GPP loss in the decomposition above.
-2. **The fitted vmax of trop_bl_dec (80.5), boreal_bl_dec (46.5) and
-   boreal_con_dec (30.0) are never used.** Three of the twelve "per-PFT"
+2. **The fitted vmax of trop_bl_dec (80.5), boreal_bl_dec (46.5),
+   boreal_con_dec (30.0) and dec_shrub (27.5) are never used** -- the lower
+   canopy's shrub big leaf reads `vmax_pft[8]` (evergreen shrub) for both
+   shrub PFTs, the grasses their own. Four of the twelve "per-PFT"
    parameters the v11c/v11d/(b) fits carried were dead; CMA-ES walked them
    on noise (trop_bl_dec to 80.5 against a 100 ceiling, for nothing). The
    same class as the fifteen defect-0 findings, inside the parameter table
@@ -1690,9 +1692,9 @@ consequences the calibration has been living with:
 
 The remedy is a composition-weighted canopy vmax -- broadleaf
 vmax = sum(frac_j vmax_j) over the broadleaf PFTs present, conifer
-likewise, with `frac` the LAI share pheno already computes -- behind an
-explicit switch (`vmax_mix`), off by default so F77 behaviour is kept, on
-in every fitted configuration; plus a guard that every entry of `vmax_pft`
-reaches GPP. Until it is in, the vmax vector has nine live entries, not
-twelve, and trop_bl_dec's 80.5 means nothing.
+likewise, shrubs likewise, with `frac` the LAI share pheno already
+computes -- behind an explicit switch (`vmax_mix`), off by default so F77
+behaviour is kept, on in every fitted configuration; plus a guard that
+every entry of `vmax_pft` reaches GPP. Until it is in, the vmax vector has
+eight live entries, not twelve, and trop_bl_dec's 80.5 means nothing.
 
