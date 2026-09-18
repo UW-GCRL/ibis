@@ -58,3 +58,31 @@ def test_call_site_threads_frac_and_yaml_reads_the_switch():
     root = Path(__file__).resolve().parents[1]
     assert "frac=veg.frac" in (root / "ibis" / "timestepping" / "loops.py").read_text()
     assert "vmax_mix=bool(s.get('vmax_mix'" in (root / "ibis" / "io" / "physics_params.py").read_text()
+
+
+# ---------------------------------------------------------------------------
+# Canopy scaling denominator (CALIBRATION.md 16, lever test 11)
+# ---------------------------------------------------------------------------
+
+def test_scale_leaf_only_is_old_scale_times_lai_over_lai_plus_sai():
+    """Default reproduces F77's (1-exp(-k(L+S)))/kL bit for bit; the switch
+    gives exactly old x L/(L+S) in daytime, so stems stop assimilating."""
+    from ibis.physics.stomata import canopy_scaling
+    rng = np.random.default_rng(1); n = 40
+    toppar = jnp.full(n, 400.0); term6 = jnp.asarray(rng.uniform(0.4, 1.5, n)); term7 = jnp.asarray(rng.uniform(0.3, 1.0, n))
+    scalcoef = jnp.asarray(rng.uniform(0.1, 1.0, (n, 4))); lai = jnp.asarray(rng.uniform(0.2, 4.0, n)); sai = 0.25 * lai
+    a10s = jnp.ones(n); a10d = jnp.ones(n)
+    s_old, _, _ = canopy_scaling(toppar, term6, term7, scalcoef, lai, sai, a10s, a10d, 3600.0, 1e-7)
+    s_def, _, _ = canopy_scaling(toppar, term6, term7, scalcoef, lai, sai, a10s, a10d, 3600.0, 1e-7, leaf_only=False)
+    s_new, _, _ = canopy_scaling(toppar, term6, term7, scalcoef, lai, sai, a10s, a10d, 3600.0, 1e-7, leaf_only=True)
+    assert np.array_equal(np.asarray(s_old), np.asarray(s_def))
+    np.testing.assert_allclose(np.asarray(s_new), np.asarray(s_old) * np.asarray(lai / (lai + sai)), rtol=1e-6)
+
+
+def test_scale_leaf_only_switch_reaches_both_canopies_and_the_yaml():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    st = (root / "ibis" / "physics" / "stomata.py").read_text()
+    assert st.count("leaf_only=params.scale_leaf_only") == 2, "upper and lower canopy_scaling calls"
+    assert "scale_leaf_only=bool(s.get('scale_leaf_only'" in (root / "ibis" / "io" / "physics_params.py").read_text()
+    assert StomataParams().scale_leaf_only is False

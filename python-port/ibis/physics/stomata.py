@@ -97,6 +97,15 @@ class StomataParams(eqx.Module):
     # pick where no leaves exist. Static switch; set `stomata: vmax_mix: true`.
     vmax_mix: bool = False
 
+    # Canopy scaling denominator. F77 (False): scale = (1 - exp(-k(L+S))) / kL --
+    # the PAR absorbed by leaves AND stems is credited to leaf photosynthesis,
+    # a flat over-credit of S/L (25 % for the upper canopy) and the reason GPP
+    # survives leaf drop: with L -> 0 the stems keep "photosynthesising"
+    # (CALIBRATION.md 16, lever test 11). True: divide by k(L+S) instead --
+    # identically old x L/(L+S) -- so stems attenuate light and only leaf
+    # area assimilates, as in CLM. Static switch; `stomata: scale_leaf_only: true`.
+    scale_leaf_only: bool = False
+
 
 # ---------------------------------------------------------------------------
 # StomataResult: all outputs from the stomata calculation
@@ -303,7 +312,7 @@ def ball_berry_step(an, cs_old, gs_old, ci_old, co2conc, gbco2, rh,
 # ---------------------------------------------------------------------------
 
 def canopy_scaling(toppar, term6, term7, scalcoef, lai_canopy, sai_canopy,
-                   a10scalp, a10daylight, dtime, epsilon):
+                   a10scalp, a10daylight, dtime, epsilon, leaf_only=False):
     """Compute canopy-average scaling factor from PAR extinction.
 
     Parameters
@@ -322,6 +331,10 @@ def canopy_scaling(toppar, term6, term7, scalcoef, lai_canopy, sai_canopy,
         Timestep length (s).
     epsilon : float
         Small number to avoid division by zero.
+    leaf_only : bool
+        False (F77): divide the absorbed fraction by k*LAI, crediting the
+        stems' absorption to the leaves. True: divide by k*(LAI+SAI), so
+        only leaf area assimilates (old scale x LAI/(LAI+SAI), exactly).
 
     Returns
     -------
@@ -344,7 +357,8 @@ def canopy_scaling(toppar, term6, term7, scalcoef, lai_canopy, sai_canopy,
     # Daytime: update running means; nighttime: use stored mean
     has_lai = plai > 0.0
     is_daytime = toppar > 10.0
-    scale_day = (1.0 - jnp.exp(-pxai)) / jnp.maximum(plai, epsilon)
+    denom = pxai if leaf_only else plai
+    scale_day = (1.0 - jnp.exp(-pxai)) / jnp.maximum(denom, epsilon)
 
     # Update running means (only during daytime with LAI)
     update = has_lai & is_daytime
@@ -678,7 +692,8 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     scale_u, a10sp_u, a10dl_u = canopy_scaling(
         topparu, termu6, termu7, scalcoefu,
         lai[:, 1], sai[:, 1],
-        a10scalparamu, a10daylightu, dtime, epsilon)
+        a10scalparamu, a10daylightu, dtime, epsilon,
+        leaf_only=params.scale_leaf_only)
 
     # Scale to canopy level
     agc_ub = ag_ub * scale_u
@@ -772,7 +787,8 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     scale_l, a10sp_l, a10dl_l = canopy_scaling(
         topparl, terml6, terml7, scalcoefl,
         lai[:, 0], sai[:, 0],
-        a10scalparaml, a10daylightl, dtime, epsilon)
+        a10scalparaml, a10daylightl, dtime, epsilon,
+        leaf_only=params.scale_leaf_only)
 
     # Scale to canopy level
     agc_ls = ag_ls * scale_l

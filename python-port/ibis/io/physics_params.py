@@ -145,6 +145,7 @@ def build_stomata_params(d: dict) -> StomataParams:
         beta4=s.get('beta4', 0.800),
         stressfac=s.get('stressfac', -5.0),
         vmax_mix=bool(s.get('vmax_mix', False)),      # F77: priority pick
+        scale_leaf_only=bool(s.get('scale_leaf_only', False)),   # F77: stems credited to leaves
         gamma=gamma,
         coefm=coefm,
         coefb=coefb,
