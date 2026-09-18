@@ -1634,3 +1634,65 @@ phenology fires. Lever test 8 measures the LAI-sensitivity directly (LAI
 x0.5, x2) and whether trading capacity for area (tropical vmax x0.5 with
 LAI x2) restores the amplitude.
 
+### Lever test 8 and the stress the plants feel
+
+Same cells, (b1) structure (`lever_test8.py`, `savanna_stress.py`):
+
+| case | annual model/obs | amplitude | GPP vs as-fitted, wet peak / dry trough |
+|---|---|---|---|
+| as fitted | 1.06 | 2.9 | 1.00 / 1.00 |
+| LAI x0.5 or x2 at start | 1.06 | 2.9 | 1.00 / 1.00 -- LAI re-equilibrates to 2.1 within the adjust years; the test measured nothing |
+| tropical vmax x0.5 | **0.59** | 2.3 | 0.52 / 0.66 -- GPP is proportional to vmax: capacity-limited, and the shape gets worse |
+| `stressfac` -2.5 | 1.00 | 3.0 | 0.95 / 0.93 -- no change of shape |
+
+The plants are stressed after all -- section 16's earlier reading of the
+soil column used the wrong wilting point. `swilt` here is 0.37-0.45 of
+saturation, so the dry-season topsoil at 0.42 is plant-available water
+0.10-0.18, and the root-weighted stress factor (roots: lower canopy 92 %
+in the top three layers, upper canopy 72 %) runs, by month from the
+wettest:
+
+| | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| awc, layers 1-3 | .94 | .89 | .72 | .52 | .35 | .20 | .15 | .13 | .21 | .35 | .61 | .85 |
+| stress, lower canopy, `stressfac` -8.27 | .99 | .99 | .91 | .74 | .61 | .46 | .42 | .41 | .52 | .66 | .87 | .97 |
+| upper canopy, -8.27 | .98 | .98 | .92 | .80 | .69 | .57 | .52 | .51 | .58 | .68 | .85 | .96 |
+| lower canopy, -2.5 | .97 | .95 | .82 | .63 | .47 | .31 | .27 | .25 | .36 | .50 | .74 | .92 |
+
+A stress cycle of 0.99 -> 0.41 is what gives the model its amplitude of
+2.9; the observed 5.5 needs the leaves to go as well, and with stress at
+0.4-0.5 for four months the trigger at 0.7 in lever test 7 should have
+fired for all of them. Whether the displayed LAI actually fell, and what
+GPP did month by month, is measured next (lever test 9) rather than read
+off a year-end `dropu`.
+
+## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
+
+`stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
+two big leaves, broadleaf and conifer, each with ONE vmax picked by
+existence priority -- broadleaf: tropical evergreen (PFT 1) if it can
+exist, else warm-temperate evergreen (3), else temperate deciduous (5);
+conifer: temperate evergreen (4) else boreal evergreen (6). Two
+consequences the calibration has been living with:
+
+1. **Wherever tropical evergreen can exist the whole broadleaf canopy
+   photosynthesises at its vmax**, whatever actually grows there. In the
+   savanna cells the canopy is tropical *deciduous* at LAI 1.75, the
+   evergreen has LAI 0.01, and the canopy runs at PFT 1's 40 umol. Remove
+   PFT 1 and the canopy falls to warm-temperate's 25: the unexplained 25 %
+   GPP loss in the decomposition above.
+2. **The fitted vmax of trop_bl_dec (80.5), boreal_bl_dec (46.5) and
+   boreal_con_dec (30.0) are never used.** Three of the twelve "per-PFT"
+   parameters the v11c/v11d/(b) fits carried were dead; CMA-ES walked them
+   on noise (trop_bl_dec to 80.5 against a 100 ceiling, for nothing). The
+   same class as the fifteen defect-0 findings, inside the parameter table
+   this time.
+
+The remedy is a composition-weighted canopy vmax -- broadleaf
+vmax = sum(frac_j vmax_j) over the broadleaf PFTs present, conifer
+likewise, with `frac` the LAI share pheno already computes -- behind an
+explicit switch (`vmax_mix`), off by default so F77 behaviour is kept, on
+in every fitted configuration; plus a guard that every entry of `vmax_pft`
+reaches GPP. Until it is in, the vmax vector has nine live entries, not
+twelve, and trop_bl_dec's 80.5 means nothing.
+
