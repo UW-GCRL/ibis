@@ -1286,21 +1286,50 @@ gated states. Guards: the wiring and the reset order in both files, and a
 the v11 2010 state through `run_global.py`, scored with `fu_vs_tree.py`,
 run as soon as the GPU frees.
 
-### Stage (b1): structural scalars, PFT blocks frozen
+### Stage (a) result: -11 %, and three levers on their bounds
 
-PFT blocks frozen at the stage-(a) result; seven structural scalars fitted
-on the four-criterion loss (`--w-tree 1`, `--w-season 10`, `--w-lai 0.5`):
-`tree_stress_min` (start 0.45), `tree_stress_ramp` (0.20), `cover_k`
-(0.5), `fl_min` (0.25), `fu_min` (0.10), `drop_stress_thresh` (0.5),
-`tthresh_u_abs` (0 C). Starting values enter through the init yaml (`pft`
+120 evaluations, loss **0.8717 -> 0.7761** (hold-out 1.10 -> 1.03); GPP
+term 0.300 -> 0.276, LAI term 0.794 -> 0.654, seasonal term 0.0175 ->
+0.0173 (flat, as section 13 predicted). The eight scalars, default ->
+fitted [bounds]:
+
+| scalar | default | fitted | bounds | |
+|---|---|---|---|---|
+| `stressfac` | -5.0 | **-2.50** | [-10, -2.5] | **on the bound: maximum water-stress response** |
+| `tthresh_l_c` | 0 | **+7.99** | [-5, 8] | **on the bound: grasses dormant 8 C warmer** |
+| `tthresh_u_offset` | 5 | 11.7 | [0, 12] | near the bound: trees drop leaves at tc + 11.7 |
+| `gthresh_l_c` | -5 | -1.13 | [-12, 2] | |
+| `gdd_thresh_l` | 150 | 99.6 | [50, 300] | |
+| `gdd_thresh_u` | 100 | 68.9 | [50, 250] | |
+| `drop_floor` | 0.10 | 0.27 | [0.02, 0.5] | |
+| `ddays` | 15 | 11.1 | [5, 60] | |
+
+Read together: the optimiser asked for the strongest water stress it was
+allowed and the earliest dormancy it was allowed, and bought 11 % with them
+-- almost all of it LAI. These are compensations for the structural excess
+(phantom trees, over-painted understory), not physiology; the fitted
+values are not carried into stage (b1) as fixed truths.
+
+### Stage (b1): structural scalars on neutral physiology, PFT blocks frozen at v11d
+
+Start from **v11d** (F77 phenology, `stressfac` -5), not from the stage-(a)
+values: a maximal `stressfac` already suppresses dry-cell GPP, so on top of
+it the gate would be found weaker than the tree fraction wants. Eight
+scalars on the four-criterion loss (`--w-tree 1`, `--w-season 10`,
+`--w-lai 0.5`): `tree_stress_min` (start 0.45), `tree_stress_ramp` (0.20),
+`cover_k` (0.5), `fl_min` (0.25), `fu_min` (0.10), `drop_stress_thresh`
+(0.5), `tthresh_u_abs` (0 C) -- and `stressfac`, because `drystress`
+shapes the very `stresstu` the gate accumulates, so the two are coupled.
+Starting values enter through the init yaml (`make_start_yaml.py`; `pft`
 and `pheno` sections), because `extras_defaults` reads the current
 parameter and the inert defaults sit outside the bounds. 4000 cells, 25
-adjust + 3 eval years, ~150 evaluations overnight. Judged against stage (a)
-on the same loss, then validated over the domain: `fu_vs_tree.py` on the
+adjust + 3 eval years, 150 evaluations overnight. Judged on the same sample
+against both 0.8717 (v11d) and 0.7761 (stage a): structure against
+compensation. Then validated over the domain -- `fu_vs_tree.py` on the
 50-year run (the v11d table above is the baseline), `state_report.py`,
-`seasonal_baseline.py`. Stage (b2) is the joint refinement with
-`vmax`/`specla`, on which the tree term keeps the phantom trees from
-returning.
+`seasonal_baseline.py`, `et_vs_modis.py`. Stage (b2) is the joint
+refinement of phenology, `stressfac`, `vmax`/`specla` on the fixed
+structure, on which the tree term keeps the phantom trees from returning.
 
 ## 15. Stage 2 groundwork: the ET error is the same phantom-tree pattern
 
