@@ -2012,3 +2012,37 @@ trigger reset to neutral (0 C, 0.5); `--w-tree 3` so the tree term binds;
 4000 cells, 25 + 3 years, 180 evaluations (~10 h). `chain_v12d.sh`
 validates and scores at the end -- pools, bands, tree cover, ET, season.
 
+## 19. What is scored, and the closing protocol
+
+Asked on 2026-09-18: are the numbers spin-up results, or after spin-up?
+Neither, exactly -- the configurations, verified:
+
+| step | run | forcing | CO2 | what it produces |
+|---|---|---|---|---|
+| spin-up (`v11_spinup`) | cold start, 1601-1900 (300 yr), IBIS default parameters | 1901-1930 GSWP3 cycled | 296 ppm fixed | a pre-industrial equilibrium, labelled 1900 |
+| historical transient (`v11_transient`) | 1901-2010 from the 1900 state | real GSWP3, year by year | rising, 1901-2010 | `ibis_restart_2010.npz` -- the start of every fit and validation |
+| a fit evaluation (`fit_carbon`) | from the 2010 state, 25 adjust + 3 scored years, 4000 cells | 2001-2010 cycled | the cycled year's | the candidate parameters at a modern-climate quasi-equilibrium |
+| a validation (`val_v12x/fit`) | from the 2010 state, 50 yr (last 5 scored) + 10 monthly | 2001-2010 cycled | 389.9 ppm fixed | the fitted parameters at a modern-climate quasi-equilibrium |
+
+So every number in sections 8-18 is "after spin-up and after the
+historical transient", re-equilibrated 25-50 years to modern weather under
+the parameters being judged, and compared with 2001-2013 observational
+climatologies -- the right comparison for the three criteria, which are all
+climatological. Two caveats follow. The 2010 start state was made under the
+v11 default parameters, so the slow soil pool in every table is inherited
+(50 years re-equilibrate vegetation, litter and fast soil carbon, not that).
+And nothing is a year-by-year hindcast; the one transient test was the
+1901-2010 trend on v11d (section 11).
+
+**Closing protocol** (`verify/calibration/final_validation.sh <TAG>
+<params.yaml>`, ~6 h GPU, once per final parameter set): the v11 protocol
+under the final parameters -- cold spin-up 1601-1900, transient 1901-2000,
+monthly hindcast 2001-2010 -- scored on the actual 2001-2010 years: pools,
+fluxes and bands (`state_report`), tree cover (`fu_vs_tree`), ET
+(`et_vs_modis`), season (`seasonal_baseline`), the savanna and ET tower
+checks, fire (GFED5, 2001-05 from the 2010 state), methane (GMB), and the
+1901-2010 GPP trend by decade. Its 2010 state is self-consistent and is the
+one Stage 2 (ET) and the module re-validations should start from. To be
+run when the carbon structure is final -- after (b2), or after a (b3) if
+the validation tonight says one more structural pass is needed.
+
