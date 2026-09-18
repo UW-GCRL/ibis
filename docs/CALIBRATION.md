@@ -1375,6 +1375,20 @@ compensation. Then validated over the domain -- `fu_vs_tree.py` on the
 refinement of phenology, `stressfac`, `vmax`/`specla` on the fixed
 structure, on which the tree term keeps the phantom trees from returning.
 
+Launched 22:00 on 2026-09-17 (`fit_carbon_v12c`; log confirms `CLM tree
+0.30 (3058 cells)` at the sample, `StressAccum attached`, 8 extras, PFT
+blocks frozen). Baseline at the starting values: **1.1968** = GPP 0.2767 +
+0.5 x LAI 0.8755 + 10 x season 0.0175 + 1 x tree 0.307. Two readings before
+a single optimiser step: the GPP term at the starting structure on v11d
+physiology already equals stage (a)'s best after 120 evaluations (0.2762) --
+the structure gives at once what the levers gave at their bounds -- and the
+three carbon terms sum to 0.8895, so the fit must come in under 0.7761 to
+beat compensation. The LAI term is worse than v11d's 0.794: cells whose
+trees the 0.45 gate removed are now too thin (the "missing trees" the probe
+showed), which `tree_stress_min`/`ramp` and the tree term settle between
+them. ~150 evaluations at ~205 s; `chain_v12c.sh` validates and scores at
+the end (`fu_vs_tree`, `state_report`, `seasonal_baseline`).
+
 ## 15. Stage 2 groundwork: the ET error is the same phantom-tree pattern
 
 Before ET is calibrated it needs a target and a baseline. Six gridded
