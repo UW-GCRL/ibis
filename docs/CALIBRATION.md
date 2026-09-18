@@ -1459,8 +1459,15 @@ from the chain):
 | phantom cells (tree < 0.15, fu > 0.4), share of natural land | 15.9 % | 16.5 % | 10.9 % | |
 | missing-tree cells (tree > 0.5, fu < 0.3) | 2.2 % | 2.3 % | 3.4 % (GPP 0.69) | |
 | global positive GPP excess (area-weighted, rel. v11d) | 1.00 | 0.90 | **0.70** | |
+| **GPP PgC/yr** (state_report, last 5 yr) | 182.1 | 175.6 | **163.6** | 120-130 |
+| NPP / Rh PgC/yr | 84.8 / 78.6 | 81.6 / 76.6 | 77.4 / 73.1 | 55-60 / 49-58 |
+| ET mm/yr | 527 | 524 | 523 | 500-550 |
+| veg C PgC / soil C kgC m-2 / litter kgC m-2 | 634 / 13.0 / 0.92 | 618 / 12.6 / 0.88 | 570 / 12.0 / **0.72** | 450-650 / 10-15 / 0.4-0.8 |
+| GPP by band 30S-30N / 30-50N / 50-60N / 60-70N / 70-90N | 1.18 / 1.77 / 1.69 / 1.82 / 1.07 | 1.16 / 1.64 / 1.60 / 1.70 / 0.95 | 1.10 / 1.54 / 1.34 / **1.02** / **0.69** | 1 |
+| LAI by band vs MODIS, same bands | 1.30 / 1.97 / 1.39 / 1.08 / 0.56 | 1.27 / 1.73 / 1.21 / 0.96 / 0.46 | 1.23 / 1.61 / **1.01** / **0.55** / 0.38 | 1 |
+| seasonal amplitude model/obs, all / 30-50N; shape error | | 0.80 / 0.61; 0.0164 | 0.78 / 0.60; 0.0167 | 1 |
 
-Three readings.
+Four readings (the fourth added with the pools and the season).
 
 1. **The boreal and Arctic band is now right on all three fields** -- GPP
    0.99, ET 0.96, WUE 1.04, fu 0.24 against 0.25 -- where stage (a) had
@@ -1480,6 +1487,17 @@ Three readings.
    over-painted" with two scalars; it is not how grass cover works.
    Stage (b2) needs `cover_k` and `fl_min` re-bounded so cover can vary
    (or the cover-from-LAI form replaced by something with a slope).
+4. **Criterion 1 moved from 1.40x to 1.31x; criterion 3 did not move; and
+   the boreal band shows the model's indifference to leaf area from the
+   other side.** 60-70N now has the right GPP (1.02x) with half the leaves
+   (LAI 0.55x MODIS) and 70-90N has fallen to 0.69x: the gate thinned the
+   boreal forest and the flux hardly noticed, which is the dlnGPP/dlnLAI of
+   0.08 measured in sections 14 and 16 read the other way round. Litter is
+   in its observed range for the first time; the pools stay in theirs. The
+   seasonal amplitude is 0.78 as before. The next stage cannot be another
+   fit on this canopy: section 16 finds the canopy optically black, and
+   section 17 the vmax table half dead; both are structural and both come
+   before (b2).
 
 ## 15. Stage 2 groundwork: the ET error is the same phantom-tree pattern
 
