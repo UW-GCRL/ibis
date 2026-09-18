@@ -1865,3 +1865,40 @@ warm-temperate evergreen present: 25.4 picked, 26.9 dominant) switching on
 changes GPP by the vmax ratio, ~6 %; the domain-wide size of that jump is
 read on the first `vmax_mix` validation.
 
+## 18. The corrected canopy over the domain: the total lands in range before any refit
+
+Two-year runs from the v11 2010 state with the (b1) structure -- identical
+except for the canopy switches -- against the 50-year (b1) validation
+(`leafonly_probe`, `state_report`, `fu_vs_tree`):
+
+| | (b1) structure, F77 canopy (2 yr) | **(b1) structure, `vmax_mix` + `scale_leaf_only` (2 yr)** | (b1) 50-yr validation | observed |
+|---|---|---|---|---|
+| GPP PgC/yr | 167.7 | **130.6** | 163.7 | 120-130 |
+| NPP PgC/yr | 76.2 | 53.4 | 77.3 | 55-60 |
+| ET mm/yr | 504 | 494 | 526 | 500-550 |
+| LAI mean | 2.63 | 2.31 | 1.84 | |
+| GPP by band 30S-30N / 30-50N / 50-60N / 60-70N | 1.10 / 1.52 / 1.52 / 1.64 | **0.92 / 0.87 / 0.92 / 1.24** | 1.10 / 1.55 / 1.30 / 1.01 | 1 |
+| GPP by tree class: < 0.05 / 0.15-0.30 / 0.5-0.7 / > 0.7 | 1.62 / 1.40 / 1.27 / 0.98 (gate probe) | **1.30 / 1.12 / 0.96 / 0.73** | 1.53 / 1.35 / 1.24 / 0.98 | 1 |
+| fu natural land / MAD | 0.52 / 0.288 | 0.55 / 0.302 | 0.53 / 0.280 | 0.335 |
+
+Removing the stem credit takes 22 % off global GPP with nothing else
+changed, and the total lands inside the observed range with the vmax
+values the fits had tuned *with* the credit. The pattern turns over: the
+upper-canopy-dominated forests, which carried the 25 % credit, fall to
+0.73x, while treeless land, which carried 5 %, stays at 1.30x -- so the
+first thing a refit will do is raise the tree vmax and lower the grass
+vmax, which is what a per-PFT vmax should have been doing all along and
+could not while four entries were dead and the canopy indifferent to
+leaf area. Two-year numbers are transients (LAI is still falling toward
+the corrected canopy's lower NPP; pools are the v11 pools), which is why
+the fit and not the probe sets the values.
+
+Stage (b2), launched 08:30 on 2026-09-18 (`fit_carbon_v12d`): both
+switches on; joint `vmax`/`specla` (24, all live) plus the eight
+structural scalars, PFT blocks free; start from the (b1) yaml with the
+newly-live vmax at their behaviour-preserving values, `cover_k` back at
+0.5 so understory cover can vary, `tthresh_u_abs` and the dormancy
+trigger reset to neutral (0 C, 0.5); `--w-tree 3` so the tree term binds;
+4000 cells, 25 + 3 years, 180 evaluations (~10 h). `chain_v12d.sh`
+validates and scores at the end -- pools, bands, tree cover, ET, season.
+
