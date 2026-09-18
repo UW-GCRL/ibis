@@ -195,6 +195,28 @@ def tree_at(i, j):
     return t[i, j]
 
 
+ET_ENS = "/shared/nas2/Hangkai/ibis/inputs/eval/et/et_ensemble_0.5deg.npz"
+
+
+def et_at(i, j):
+    """ET observation: five-product ensemble mean (MODIS, MOD16A2, GLEAM v3.3a,
+    DOLCE, FLUXCOM LE; 2001-09), mm/yr, NaN unless all five cover the cell --
+    coverage differs and the mean elsewhere depends on who covers it
+    (CALIBRATION.md 15). Built by verify/calibration/et_obs.py."""
+    e = np.load(ET_ENS)
+    ann = np.where(e["ens_n"] == 5, e["ens_ann_mean"], np.nan)
+    return ann[i, j]
+
+
+def et_monthly_at(i, j):
+    """(12, n) monthly ET climatology of the ensemble mean, mm/month, NaN off
+    the all-five cells."""
+    e = np.load(ET_ENS)
+    clim = e["ens_clim_mean"] * NDAYS[:, None, None]            # mm/day -> mm/month
+    clim = np.where((e["ens_n"] == 5)[None], clim, np.nan)
+    return clim[:, i, j]
+
+
 # ------------------------------------------------------------------ parameters
 #: Scalar parameters that may join the vector after the 12+12 PFT blocks.
 #: name -> (setter(sp, value) -> sp, lo, hi, log-encoded?). Bounds are
@@ -248,6 +270,21 @@ EXTRAS = {
     "tree_stress_ramp": (_set_pft(lambda p: p.tree_stress_ramp),       0.05,  0.50, True),
 }
 #: extras that need the StressAccum attached to the state
+def _set_idx(path, k):
+    """Setter for one element of a vector parameter (traced, dtype-preserving)."""
+    def f(sp, pft, v):
+        arr = path(sp)
+        return eqx.tree_at(path, sp, arr.at[k].set(jnp.asarray(v, dtype=arr.dtype))), pft
+    return f
+
+
+#: Ball-Berry stomatal slope per canopy group (StomataParams.coefm; F77 10, 6,
+#: 9, 4, 9 for broadleaf, conifer, shrub, C4 grass, C3 grass). The ET lever:
+#: gs = coefm * An * hs / cs + coefb couples transpiration to assimilation, so
+#: coefm moves ET (and WUE) at fixed GPP. Log-encoded, literature range.
+for _k, _nm in enumerate(("coefm_bl", "coefm_con", "coefm_shrub", "coefm_c4", "coefm_c3")):
+    EXTRAS[_nm] = (_set_idx(lambda p: p.stomata_params.coefm, _k), 3.0, 16.0, True)
+
 NEEDS_STRESS_ACCUM = ("tree_stress_min", "tree_stress_ramp")
 NPFT = 12
 
@@ -321,7 +358,8 @@ def bounds_penalty(vmax, specla):
 # ------------------------------------------------------------------------ loss
 def score(gpp, lai, gpp_obs, lai_obs, w_lai, area=None, w_total=1.0,
           gpp_m=None, obs_m=None, w_season=0.0,
-          fu=None, tree_obs=None, w_tree=0.0):
+          fu=None, tree_obs=None, w_tree=0.0,
+          et=None, et_obs=None, w_et=0.0, et_m=None, et_obs_m=None, w_et_season=0.0):
     """Magnitude-honest loss. Returns (total, gpp_term, lai_term).
 
     The first fit used an unweighted per-cell mean of squared log-ratios and
@@ -349,11 +387,16 @@ def score(gpp, lai, gpp_obs, lai_obs, w_lai, area=None, w_total=1.0,
     is zero on a third of the land. Without it a joint fit can satisfy GPP
     through vmax instead of through the trees -- the degeneracy behind the
     phantom trees (CALIBRATION.md 14).
-    Returns (total, gpp_term, lai_term, season_term, tree_term).
+    Optional ET terms (Stage 2, CALIBRATION.md 15): `w_et` weights the ET
+    analogue of the GPP term -- ET-weighted per-cell log-ratio plus the
+    log-ratio of area totals -- against the five-product ensemble mean on
+    all-five cells (`et_obs` NaN elsewhere); `w_et_season` weights the ET
+    seasonal shape. Returns (total, gpp_term, lai_term, season_term,
+    tree_term, et_term, et_season_term).
     """
     ok = np.isfinite(gpp) & np.isfinite(lai) & (gpp_obs > 0.02) & (lai_obs > 0.05)
     if ok.sum() < 20:
-        return 50.0, np.nan, np.nan, np.nan, np.nan
+        return 50.0, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
     a = np.ones(ok.sum()) if area is None else np.asarray(area)[ok]
     g_m, g_o = np.maximum(gpp[ok], 1e-4), gpp_obs[ok]
     l_m, l_o = np.maximum(lai[ok], 1e-3), lai_obs[ok]
@@ -381,8 +424,26 @@ def score(gpp, lai, gpp_obs, lai_obs, w_lai, area=None, w_total=1.0,
             wt = a * tk; wt = wt / wt.sum()
             t_term = float(np.sum(wt * np.abs(np.nan_to_num(fu[ok])
                                               - np.nan_to_num(tree_obs[ok]))))
-    return (g_term + w_lai * l_term + w_season * s_term + w_tree * t_term,
-            g_term, l_term, s_term, t_term)
+    e_term = 0.0
+    if et is not None and et_obs is not None and w_et > 0:
+        ek = np.isfinite(et_obs[ok]) & np.isfinite(et[ok]) & (et_obs[ok] > 10.0)
+        if ek.sum() >= 20:
+            e_m, e_o, ae = np.maximum(et[ok][ek], 1.0), et_obs[ok][ek], a[ek]
+            we = ae * e_o; we = we / we.sum()
+            e_cell = float(np.sum(we * np.log(e_m / e_o) ** 2))
+            e_tot = float(np.log(np.sum(ae * e_m) / np.sum(ae * e_o)) ** 2)
+            e_term = e_cell + w_total * e_tot
+    es_term = 0.0
+    if et_m is not None and et_obs_m is not None and w_et_season > 0:
+        ek = np.isfinite(et_obs_m[:, ok]).all(axis=0) & np.isfinite(et_m[:, ok]).all(axis=0)
+        if ek.sum() >= 20:
+            err, sok = seasonal_shape(et_m[:, ok][:, ek], et_obs_m[:, ok][:, ek])
+            if sok.sum() >= 20:
+                we = (a[ek] * np.nansum(et_obs_m[:, ok][:, ek], axis=0)) * sok; we = we / we.sum()
+                es_term = float(np.sum(we * np.nan_to_num(err)))
+    return (g_term + w_lai * l_term + w_season * s_term + w_tree * t_term
+            + w_et * e_term + w_et_season * es_term,
+            g_term, l_term, s_term, t_term, e_term, es_term)
 
 
 def main():
@@ -399,6 +460,11 @@ def main():
                          "US drought and 2003 European heat wave -- CALIBRATION.md 10")
     ap.add_argument("--exclude-poleward", type=float, default=68.0)
     ap.add_argument("--w-lai", type=float, default=0.5)
+    ap.add_argument("--w-et", type=float, default=0.0,
+                    help="Stage 2: weight on the ET term (five-product ensemble mean, "
+                         "all-five cells; CALIBRATION.md 15); 0 = off")
+    ap.add_argument("--w-et-season", type=float, default=0.0,
+                    help="Stage 2: weight on the ET seasonal-shape term; 0 = off")
     ap.add_argument("--w-tree", type=float, default=0.0,
                     help="weight on the fourth criterion: area-weighted mean |fu - CLM "
                          "tree fraction| over natural-vegetation cells (CALIBRATION.md 14); "
@@ -445,6 +511,10 @@ def main():
     gpp_obs = fluxcom_at(i, j)
     lai_obs = modis_at(i, j)
     tree_obs = tree_at(i, j)                    # CLM tree fraction, NaN off natural veg
+    et_obs = et_at(i, j)                        # ET ensemble mean, NaN off all-five cells
+    et_obs_m = et_monthly_at(i, j)              # (12, n) mm/month
+    log.info("ET ensemble at sample: %.0f mm/yr on %d all-five cells",
+             np.nanmean(et_obs), np.isfinite(et_obs).sum())
     obs_m = fluxcom_monthly_at(i, j)            # (12, n) monthly totals
     area = np.cos(np.deg2rad(LATV[i]))          # relative cell area
     log.info("obs at sample: FLUXCOM GPP %.3f  MODIS LAI %.2f  CLM tree %.2f (%d cells)",
@@ -507,13 +577,14 @@ def main():
         key = jax.random.PRNGKey(0)
         for n in range(a.adjust_years):
             st, key, _ = one_year(st, key, years[n % len(years)], ctx, 1)
-        gs, ls, ms, fs = [], [], [], []
+        gs, ls, ms, fs, es, ems = [], [], [], [], [], []
         for n in range(a.eval_years):
             st, key, d = one_year(st, key, years[n % len(years)], ctx, 1)
             gs.append(d["aygpptot"]); ls.append(d["lai"]); ms.append(d["gpp_monthly"])
             fs.append(np.asarray(st.vegetation.fu))
+            es.append(d["ayaet"]); ems.append(d["aet_monthly"])
         return (np.mean(gs, axis=0), np.mean(ls, axis=0), np.mean(ms, axis=0),
-                np.mean(fs, axis=0))
+                np.mean(fs, axis=0), np.mean(es, axis=0), np.mean(ems, axis=0))
 
     def objective(x):
         t0 = time.time()
@@ -539,32 +610,30 @@ def main():
                 or np.any(specla > SPECLA_HI * tol):
             return 100.0
         try:
-            gpp, lai, gpp_m, fu_m = run(vmax, specla, extras)
+            gpp, lai, gpp_m, fu_m, et_a, et_mm = run(vmax, specla, extras)
         except Exception as e:                       # noqa: BLE001
             log.warning("  eval %d failed: %s", ev[0], str(e)[:90])
             return 50.0
-        tot, gt, lt, st_, tt = score(gpp[fit_mask], lai[fit_mask],
-                                     gpp_obs[fit_mask], lai_obs[fit_mask], a.w_lai,
-                                     area[fit_mask], gpp_m=gpp_m[:, fit_mask],
-                                     obs_m=obs_m[:, fit_mask], w_season=a.w_season,
-                                     fu=fu_m[fit_mask], tree_obs=tree_obs[fit_mask],
-                                     w_tree=a.w_tree)
-        ho, _, _, _, _ = score(gpp[~fit_mask], lai[~fit_mask],
-                               gpp_obs[~fit_mask], lai_obs[~fit_mask], a.w_lai,
-                               area[~fit_mask], gpp_m=gpp_m[:, ~fit_mask],
-                               obs_m=obs_m[:, ~fit_mask], w_season=a.w_season,
-                               fu=fu_m[~fit_mask], tree_obs=tree_obs[~fit_mask],
-                               w_tree=a.w_tree)
+        def _score(msk):
+            return score(gpp[msk], lai[msk], gpp_obs[msk], lai_obs[msk], a.w_lai,
+                         area[msk], gpp_m=gpp_m[:, msk], obs_m=obs_m[:, msk],
+                         w_season=a.w_season, fu=fu_m[msk], tree_obs=tree_obs[msk],
+                         w_tree=a.w_tree, et=et_a[msk], et_obs=et_obs[msk], w_et=a.w_et,
+                         et_m=et_mm[:, msk], et_obs_m=et_obs_m[:, msk],
+                         w_et_season=a.w_et_season)
+        tot, gt, lt, st_, tt, et_, ets_ = _score(fit_mask)
+        ho = _score(~fit_mask)[0]
         ev[0] += 1
         hist.append(dict(eval=ev[0], loss=tot, gpp_term=gt, lai_term=lt,
-                         season_term=st_, tree_term=tt, holdout=ho,
+                         season_term=st_, tree_term=tt, et_term=et_, et_season_term=ets_,
+                         holdout=ho,
                          gpp_mean=float(np.nanmean(gpp)),
                          lai_mean=float(np.nanmean(lai))))
         if tot < best[0]:
             best[0], best[1] = tot, (vmax.copy(), specla.copy(), dict(extras))
             log.info("  eval %3d  loss=%.4f (BEST)  gpp=%.4f lai=%.4f season=%.4f "
-                     "tree=%.3f holdout=%.4f  GPP=%.3f LAI=%.2f  [%.0fs]",
-                     ev[0], tot, gt, lt, st_, tt, ho, hist[-1]["gpp_mean"],
+                     "tree=%.3f et=%.4f etseas=%.4f holdout=%.4f  GPP=%.3f LAI=%.2f  [%.0fs]",
+                     ev[0], tot, gt, lt, st_, tt, et_, ets_, ho, hist[-1]["gpp_mean"],
                      hist[-1]["lai_mean"], time.time() - t0)
         elif ev[0] % 10 == 0:
             log.info("  eval %3d  loss=%.4f  holdout=%.4f  [%.0fs]",
@@ -622,25 +691,28 @@ def main():
         print(f"{n:<18}{v0[k]*1e6:>8.1f}{vmax[k]*1e6:>8.1f}"
               f"{VMAX_LO[k]*1e6:>6.0f}{VMAX_HI[k]*1e6:>6.0f}"
               f"{s0[k]:>9.1f}{specla[k]:>8.1f}")
-    gpp, lai, gpp_m, fu_m = run(vmax, specla, extras)
+    gpp, lai, gpp_m, fu_m, et_a, et_mm = run(vmax, specla, extras)
     for nm, msk in (("fit", fit_mask), ("HELD OUT", ~fit_mask)):
-        t, g, l, s_, tt_ = score(gpp[msk], lai[msk], gpp_obs[msk], lai_obs[msk], a.w_lai,
-                                 area[msk], gpp_m=gpp_m[:, msk], obs_m=obs_m[:, msk],
-                                 w_season=a.w_season, fu=fu_m[msk],
-                                 tree_obs=tree_obs[msk], w_tree=a.w_tree)
+        t, g, l, s_, tt_, et_, ets_ = score(
+            gpp[msk], lai[msk], gpp_obs[msk], lai_obs[msk], a.w_lai,
+            area[msk], gpp_m=gpp_m[:, msk], obs_m=obs_m[:, msk],
+            w_season=a.w_season, fu=fu_m[msk], tree_obs=tree_obs[msk], w_tree=a.w_tree,
+            et=et_a[msk], et_obs=et_obs[msk], w_et=a.w_et,
+            et_m=et_mm[:, msk], et_obs_m=et_obs_m[:, msk], w_et_season=a.w_et_season)
         off = peak_offset(gpp_m[:, msk], obs_m[:, msk])
         # NaN-aware area weighting for the report only (one NaN cell poisons
         # np.average; score() masks it): weights are zeroed where x is NaN.
         def wavg(x, w):
             f = np.isfinite(x); return float(np.sum(np.where(f, x, 0.0) * w * f) / np.sum(w * f))
         print(f"  {nm:>9}: loss {t:.4f}  GPP term {g:.4f}  LAI term {l:.4f}  "
-              f"season term {s_:.4f}  tree term {tt_:.3f}  "
+              f"season term {s_:.4f}  tree term {tt_:.3f}  ET term {et_:.4f} ETseas {ets_:.4f}  "
               f"peak offset mean {np.mean(off):+.2f} mo  "
               f"area-wtd GPP {wavg(gpp[msk], area[msk]):.3f} vs "
               f"{wavg(gpp_obs[msk], area[msk]):.3f}"
               f"  LAI {wavg(lai[msk], area[msk]):.2f} vs "
               f"{wavg(lai_obs[msk], area[msk]):.2f}"
-              f"  fu {np.nanmean(fu_m[msk]):.2f} vs tree {np.nanmean(tree_obs[msk]):.2f}")
+              f"  fu {np.nanmean(fu_m[msk]):.2f} vs tree {np.nanmean(tree_obs[msk]):.2f}"
+              f"  ET {wavg(et_a[msk], area[msk]):.0f} vs {wavg(et_obs[msk], area[msk]):.0f} mm/yr")
     print(f"\nWrote {a.out}/")
 
 

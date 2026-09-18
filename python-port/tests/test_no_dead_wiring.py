@@ -260,8 +260,9 @@ def test_fit_carbon_threads_fu_into_the_loss():
     assert 'ap.add_argument("--w-tree"' in text
     assert "tree_obs = tree_at(i, j)" in text
     assert "fs.append(np.asarray(st.vegetation.fu))" in text
-    assert text.count("tree_obs=tree_obs[") == 3, \
-        "score() must receive tree_obs at the fit, hold-out and final-report sites"
+    # the objective scores fit and hold-out through one helper; the final report is the other site
+    assert text.count("tree_obs=tree_obs[") == 2 and "ho = _score(~fit_mask)[0]" in text, \
+        "score() must receive tree_obs at the fit/hold-out helper and the final-report site"
     assert "w_tree * t_term" in text
 
 
@@ -408,3 +409,21 @@ def test_gated_checkpoint_loads_into_an_ungated_template(tmp_path):
     back, _ = load_state(path, create_ibis_state(g, with_stress=True))   # same layout
     np.testing.assert_array_equal(np.asarray(back.stress.nday), 365.0)
     np.testing.assert_array_equal(np.asarray(back.vegetation.fu), np.asarray(fu))
+
+
+def test_fit_carbon_threads_et_into_the_loss():
+    """Stage 2 wiring: model ET (annual and monthly) collected per evaluation,
+    the ensemble read at the sample, both handed to score() under --w-et /
+    --w-et-season at every call site (CALIBRATION.md 15)."""
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[2] / "verify" / "calibration" / "fit_carbon.py")
+    st_ = (Path(__file__).resolve().parents[2] / "verify" / "calibration" / "site_transient.py")
+    if not src.exists():
+        return
+    text = src.read_text()
+    assert 'ap.add_argument("--w-et"' in text and 'ap.add_argument("--w-et-season"' in text
+    assert "et_obs = et_at(i, j)" in text and "et_obs_m = et_monthly_at(i, j)" in text
+    assert 'es.append(d["ayaet"]); ems.append(d["aet_monthly"])' in text
+    assert text.count("et_obs=et_obs[") == 2, "score() must get et_obs in the objective (_score) and the final report"
+    assert "w_et * e_term + w_et_season * es_term" in text
+    assert 'diag["aet_monthly"]' in st_.read_text()
