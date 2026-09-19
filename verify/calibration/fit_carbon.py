@@ -543,11 +543,23 @@ def main():
     state0 = jax.tree.map(
         lambda x: jnp.nan_to_num(x, nan=0.0) if isinstance(x, jnp.ndarray)
         and jnp.issubdtype(x.dtype, jnp.floating) else x, state0)
-    if any(n in NEEDS_STRESS_ACCUM for n in a.extras.split(",")):
+    # The accumulator must exist whenever the gate can act: when its scalars
+    # are in the vector, OR when the start yaml already activates it
+    # (pft.tree_stress_min >= 0) with the gate held fixed. Attaching only on
+    # the former would run a fixed gate gateless -- the production-path hole
+    # of CALIBRATION.md 14 inside the harness.
+    gate_fitted = any(n in NEEDS_STRESS_ACCUM for n in a.extras.split(","))
+    _pd_gate = (load_physics_params(a.init_params) if a.init_params else None) or {}
+    _tsm0 = float((_pd_gate.get("pft") or {}).get("tree_stress_min", -1.0))
+    gate_fixed = _tsm0 >= 0.0
+    if gate_fitted or gate_fixed:
         from ibis.state.stress_accum import create_stress_accum
         state0 = eqx.tree_at(lambda s: s.stress, state0, create_stress_accum(len(sel)),
                              is_leaf=lambda x: x is None)
-        log.info("StressAccum attached: tree-establishment gate is fittable")
+        log.info("StressAccum attached: tree-establishment gate %s (start tree_stress_min=%.3f)",
+                 "fitted" if gate_fitted else "FIXED from the start yaml", _tsm0)
+    else:
+        log.info("no StressAccum: tree-establishment gate inactive")
     # CO2 is NOT set here: `one_year` calls apply_co2(state, year) itself, so
     # it follows the evaluation year (2001-2005 -> 371-380 ppm). Setting it
     # here as well would have been a flag that parses and does nothing, which

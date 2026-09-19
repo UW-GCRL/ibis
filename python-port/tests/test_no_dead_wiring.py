@@ -443,3 +443,16 @@ def test_tree_survival_stress_accumulates_on_growing_season_days_only():
     td = jnp.array([260.0, 275.0, 290.0]); tmelt = 273.16
     assert (td > tmelt + PhenoParams().stress_accum_tmin).all()                     # default: every day
     assert list((td > tmelt + 5.0).astype(jnp.float32)) == [0.0, 0.0, 1.0]          # 5 C: summer days only
+
+
+def test_fit_carbon_attaches_the_accumulator_for_a_fixed_gate_too():
+    """A gate held fixed in the start yaml (pft.tree_stress_min >= 0, scalars
+    not in the fitted vector) must still get its StressAccum in the harness;
+    otherwise the fit runs gateless while the yaml says otherwise."""
+    from pathlib import Path
+    src = Path(__file__).resolve().parents[2] / "verify" / "calibration" / "fit_carbon.py"
+    if not src.exists():
+        return
+    text = src.read_text()
+    assert 'get("tree_stress_min", -1.0)' in text and "gate_fixed = _tsm0 >= 0.0" in text
+    assert "if gate_fitted or gate_fixed:" in text
