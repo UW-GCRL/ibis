@@ -460,6 +460,11 @@ def main():
                          "US drought and 2003 European heat wave -- CALIBRATION.md 10")
     ap.add_argument("--exclude-poleward", type=float, default=68.0)
     ap.add_argument("--w-lai", type=float, default=0.5)
+    ap.add_argument("--w-total", type=float, default=1.0,
+                    help="weight on the log-ratio of area-integrated totals inside the GPP and LAI "
+                         "terms. At 1 a 15 %% global bias costs ln(1.15)^2 = 0.02 against a per-cell "
+                         "term of ~0.2, so criterion 1 was never pulled on (CALIBRATION.md 18); 25 "
+                         "makes a 10 %% bias cost as much as the pattern")
     ap.add_argument("--representative", type=int, default=0,
                     help="1: weight each sampled cell by domain/sample stratum counts so the "
                          "loss terms estimate the DOMAIN totals and patterns (CALIBRATION.md 18); "
@@ -651,6 +656,7 @@ def main():
                          area[msk], gpp_m=gpp_m[:, msk], obs_m=obs_m[:, msk],
                          w_season=a.w_season, fu=fu_m[msk], tree_obs=tree_obs[msk],
                          w_tree=a.w_tree, et=et_a[msk], et_obs=et_obs[msk], w_et=a.w_et,
+                         w_total=a.w_total,
                          et_m=et_mm[:, msk], et_obs_m=et_obs_m[:, msk],
                          w_et_season=a.w_et_season)
         tot, gt, lt, st_, tt, et_, ets_ = _score(fit_mask)
@@ -729,7 +735,7 @@ def main():
             gpp[msk], lai[msk], gpp_obs[msk], lai_obs[msk], a.w_lai,
             area[msk], gpp_m=gpp_m[:, msk], obs_m=obs_m[:, msk],
             w_season=a.w_season, fu=fu_m[msk], tree_obs=tree_obs[msk], w_tree=a.w_tree,
-            et=et_a[msk], et_obs=et_obs[msk], w_et=a.w_et,
+            et=et_a[msk], et_obs=et_obs[msk], w_et=a.w_et, w_total=a.w_total,
             et_m=et_mm[:, msk], et_obs_m=et_obs_m[:, msk], w_et_season=a.w_et_season)
         off = peak_offset(gpp_m[:, msk], obs_m[:, msk])
         # NaN-aware area weighting for the report only (one NaN cell poisons
