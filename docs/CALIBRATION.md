@@ -2128,6 +2128,23 @@ temperature exceeds `stress_accum_tmin` (5 C; the default -100 counts
 every day and is bit-identical), the gate and the PFT blocks are refit
 from the (b2) values with the gate restarted at 0.80 / 0.10.
 
+### Stage (b3): the same fit on the growing-season criterion
+
+Launched 20:54 on 2026-09-18 (`fit_carbon_v12e`; the first attempt failed
+on a missing exec bit and launched nothing -- caught within a minute, kit
+relaunched through `bash`). Everything as (b2) -- corrected canopy, joint
+`vmax`/`specla` plus the eight structural scalars, `--w-tree 3`, 180
+evaluations -- with one change of physics and two of starting point: the
+survival stress accumulates on days above 5 C (`stress_accum_tmin`), the
+gate restarts at 0.80 / 0.10 (between the steppes' 0.69-0.74 and the
+forests' 0.94-0.96 on that criterion), and the PFT blocks start from the
+(b2) values, which the fit is expected to walk back where they compensated
+for missing forests (`temp_bl_dec` 57.6). Judged on the sample against
+(b2)'s 1.5620 and, on the domain, on whether the forests return (fu > 0.7
+class, boreal band, vegetation carbon) while the phantoms stay gone. Then
+the closing protocol (section 19) on whichever of (b2)/(b3) the validation
+prefers.
+
 ## 19. What is scored, and the closing protocol
 
 Asked on 2026-09-18: are the numbers spin-up results, or after spin-up?
