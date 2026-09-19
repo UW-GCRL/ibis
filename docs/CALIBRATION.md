@@ -2145,6 +2145,12 @@ class, boreal band, vegetation carbon) while the phantoms stay gone. Then
 the closing protocol (section 19) on whichever of (b2)/(b3) the validation
 prefers.
 
+Baseline at the (b3) starting point, 21:28: **1.4527** -- below (b2)'s
+fitted best of 1.5620 before a single optimiser step. GPP 0.2425 and LAI
+0.616 are (b2)'s numbers to the third digit; the seasonal term 0.0180; the
+tree term **0.278 -> 0.241** from the change of criterion and the 0.80
+restart alone. The criterion was the fault, as the measurement said.
+
 ## 19. What is scored, and the closing protocol
 
 Asked on 2026-09-18: are the numbers spin-up results, or after spin-up?
