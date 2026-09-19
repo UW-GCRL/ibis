@@ -2012,6 +2012,44 @@ trigger reset to neutral (0 C, 0.5); `--w-tree 3` so the tree term binds;
 4000 cells, 25 + 3 years, 180 evaluations (~10 h). `chain_v12d.sh`
 validates and scores at the end -- pools, bands, tree cover, ET, season.
 
+### Stage (b2) result: 1.8464 -> 1.5620; the best carbon terms yet, at the lowest tree term yet
+
+180 evaluations (08:26 -> 19:27; 187-212 s each, one slow stretch around
+eval 155). Best at eval 117: GPP 0.2427, LAI 0.6148, season 0.0177, tree
+0.278, hold-out 1.738. On the three carbon terms that every stage shares
+(GPP + 0.5 LAI + 10 season, same sample): v11d 0.872, stage (a) 0.776,
+stage (b1) 0.758, **stage (b2) 0.727** -- and the tree term, which (b1)
+could not hold (0.327), is 0.278 under the weight of 3.
+
+| scalar | start | fitted | bounds | |
+|---|---|---|---|---|
+| `tree_stress_min` / `ramp` | 0.365 / 0.136 | **0.713 / 0.100** | [0.1, 0.9] / [0.05, 0.5] | a much stronger, sharper gate: trees survive only on soils wet 71 % of the year |
+| `fu_min` | 0.042 | 0.065 | [0.01, 0.25] | |
+| `cover_k` / `fl_min` | 0.5 / 0.249 | 0.546 / 0.250 | | understory cover as before; `fl_min` still at its ceiling |
+| `drop_stress_thresh` | 0.5 | **0.748** | [0.05, 0.85] | the dormancy trigger is live and used, now that leaf drop reaches the flux |
+| `tthresh_u_abs` | 0 C | 5.2 C | [-5, 15] | a moderate value, not the ceiling stage (b1) took |
+| `stressfac` | -8.27 | -8.11 | [-10, -2.5] | unchanged |
+
+| PFT | vmax start -> fitted (umol) | specla start -> fitted | |
+|---|---|---|---|
+| trop_bl_ever | 40.1 -> 41.1 | 10.1 -> 13.7 | |
+| trop_bl_dec | 40.1 -> 40.5 | 11.5 -> 12.1 | live for the first time; stays at the evergreen's value |
+| warm_bl_ever | 25.4 -> 30.1 | 19.4 -> 19.9 | |
+| temp_con_ever | 32.4 -> 29.2 | 9.4 -> 12.0 | |
+| temp_bl_dec | 26.9 -> **57.6** | 14.5 -> 12.0 | the forests that lost the 25 % stem credit; near its 60 ceiling |
+| boreal_con_ever, boreal_con_dec, dec_shrub | 25.0, 25.0, 28.0 (frozen: too few dominant cells) | | |
+| boreal_bl_dec | 26.9 -> 20.7 | 34.1 -> 31.3 | live for the first time |
+| ever_shrub | 28.0 -> 33.4 | 7.5 -> 8.4 | |
+| c4_grass / c3_grass | 15.4 -> 14.5 / 18.4 -> 21.1 | 10.2 -> 10.5 / 15.6 -> 13.6 | |
+
+Read together: with the stem credit gone the optimiser did what a
+per-PFT vmax was supposed to do -- raised the temperate deciduous forest,
+left the tropical broadleaf canopy where the priority pick had in fact been
+running it, trimmed the grasses -- and, with a tree weight that binds,
+pushed the gate hard enough to matter and used the dormancy trigger it
+had switched off on the old canopy. The domain validation (`chain_v12d`)
+says whether this is the state to close the carbon stage on.
+
 ## 19. What is scored, and the closing protocol
 
 Asked on 2026-09-18: are the numbers spin-up results, or after spin-up?
