@@ -2151,6 +2151,41 @@ fitted best of 1.5620 before a single optimiser step. GPP 0.2425 and LAI
 tree term **0.278 -> 0.241** from the change of criterion and the 0.80
 restart alone. The criterion was the fault, as the measurement said.
 
+### Stage (b3) result: 1.4527 -> 1.4155; the gate settles where the optimiser wants it, not where the steppes are
+
+180 evaluations (20:54 -> 08:00). Best at eval 175: GPP **0.2223** (the
+lowest of any fit), LAI 0.606, season 0.0173, tree 0.239 (= the start),
+hold-out 1.634. Carbon terms 0.698 (b2: 0.727, b1: 0.758, a: 0.776, v11d:
+0.872).
+
+| scalar | start | fitted | |
+|---|---|---|---|
+| `tree_stress_min` / `ramp` | 0.80 / 0.10 | **0.630 / 0.159** | forests (growing-season stress 0.94-0.96) fully survive; 30-50N steppes (0.69) survive at ~0.4, S-hemisphere steppes (0.74) at ~0.7 |
+| `drop_stress_thresh` | 0.748 | **0.134** | the dormancy trigger switched off again |
+| `tthresh_u_abs` | 5.2 C | **12.5 C** | the temperature leaf-drop preferred instead, as in (a) and (b1) |
+| `stressfac` | -8.11 | -6.53 | |
+| `cover_k` / `fl_min` / `fu_min` | 0.546 / 0.250 / 0.065 | 0.428 / 0.229 / 0.033 | `fl_min` off its ceiling for the first time |
+
+| PFT | vmax (b2) -> (b3) | specla | |
+|---|---|---|---|
+| trop_bl_ever | 41.1 -> **52.1** | 13.7 -> 14.9 | |
+| trop_bl_dec | 40.5 -> 40.3 | 12.1 -> 11.2 | |
+| warm_bl_ever | 30.1 -> 28.0 | 19.9 -> 18.2 | |
+| temp_con_ever | 29.2 -> **17.6** | 12.0 -> 14.9 | near its 15 floor |
+| temp_bl_dec | 57.6 -> 58.3 | 12.0 -> 14.1 | at its 60 ceiling |
+| boreal_bl_dec | 20.7 -> 20.3 | 31.3 -> 30.1 | |
+| ever_shrub | 33.4 -> 35.7 | 8.4 -> 8.0 | |
+| c4_grass / c3_grass | 14.5 -> 18.2 / 21.1 -> 17.0 | 10.5 -> 10.2 / 13.6 -> 11.3 | |
+| boreal_con_ever, boreal_con_dec, dec_shrub | frozen (too few dominant cells) | | |
+
+With the criterion able to tell forest from steppe, the optimiser chose
+not to remove the steppe trees fully: the tree term did not move from its
+start while GPP and season improved, so at a tree weight of 3 the phantom
+trees are still worth more to the loss as GPP and LAI than they cost as
+cover. The domain validation says how much of the forest is back and how
+much of the steppe forest returned with it; the closing decision follows
+it.
+
 ## 19. What is scored, and the closing protocol
 
 Asked on 2026-09-18: are the numbers spin-up results, or after spin-up?
