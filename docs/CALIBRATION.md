@@ -2090,6 +2090,18 @@ growing-season mean, not the calendar mean -- the (b3) fix, measured
 first (below) and then refit. v12d is not a state to close the carbon
 stage on; its structural scalars and vmax carry the missing forests.
 
+### Fire and methane on the (b2) state (informative, not decisive: the forests are missing)
+
+`post_v12d`: fire (GFED5, 2001-05 from the 2060 state) burned area
+**2.45 %** against GFED5 4.60 % (product spread 2.38-4.60; v11d 3.10 %),
+rank correlation +0.750 all / +0.324 burning, NMSE 0.860, mean |lat| of
+the top-2000 cells 8.9 against 10.8 -- less fuel with a third of the forest
+and its litter gone. Methane (GMB): `biome_tref` **189.7 Tg/yr** (v11d 251;
+GMB 158 [119-203]), split 60 / 29 / 6 % against 70 / 21 / 8, shape error
+19.6; `biome_noq10` 284 Tg with the best shape (12.4). Magnitude tracks Rh
+(63.6 PgC on v12d against 73.1 on v12c), as section 12 said it would. Both
+move again with (b3), which is where they are weighed.
+
 ### Measured: the annual mean cannot tell a boreal forest from a steppe; the growing-season mean can
 
 From the v12d monthly climatology (`wsoi`, `tsoi`, `tg`), the root-weighted
