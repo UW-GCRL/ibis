@@ -2050,6 +2050,46 @@ pushed the gate hard enough to matter and used the dormancy trigger it
 had switched off on the old canopy. The domain validation (`chain_v12d`)
 says whether this is the state to close the carbon stage on.
 
+### Stage (b2) over the domain: the total comes down, the forests come down with it
+
+50-year validation (`val_v12d`, years 2056-60), against the (b1) validation:
+
+| | v12c (b1) | **v12d (b2)** | observed |
+|---|---|---|---|
+| GPP PgC/yr | 163.6 | **147.7** | 120-130 |
+| NPP / Rh PgC/yr | 77.4 / 73.1 | 67.5 / 63.6 | 55-60 / 49-58 |
+| ET mm/yr | 523 | 504 | 500-550 |
+| **veg C PgC** | 570 | **304** | **450-650** |
+| soil C / litter | 12.0 / 0.72 | 11.6 / 0.59 | 10-15 / 0.4-0.8 |
+| GPP by band 30S-30N / 30-50N / 50-60N / 60-70N / 70-90N | 1.10 / 1.54 / 1.30 / 1.01 / 0.69 | **0.98** / 1.39 / 1.21 / 1.12 / 1.08 | 1 |
+| LAI by band, same | 1.23 / 1.61 / 1.01 / 0.55 / 0.38 | 1.08 / 1.45 / 0.91 / 0.62 / 0.61 | 1 |
+| fu natural land / MAD / r | 0.530 / 0.280 / 0.61 | **0.289 / 0.241 / 0.47** | 0.335 / 0 / 1 |
+| fu where tree < 0.05 / 0.15-0.30 / > 0.70 | 0.18 / 0.63 / 0.88 | **0.10 / 0.25 / 0.58** | 0.01 / 0.22 / 0.91 |
+| fu 60-90N / 45-60N / 30-45N | 0.24 / 0.67 / 0.47 | **0.09 / 0.24** / 0.27 | 0.25 / 0.45 / 0.18 |
+| phantom cells / missing-tree cells, share of natural land | 10.9 % / 3.4 % | 2.4 % / **14.1 %** | |
+| seasonal amplitude all / tropics / 30-50N | 0.78 / 0.90 / 0.60 | 0.81 / 0.96 / 0.60 | 1 |
+| ET natural land / WUE | 1.07 / 1.12 | 1.03 / 1.04 | 1 / 1 |
+
+The tropics are right on every field (GPP 0.98, LAI 1.08, phase improved
+to 0.96 amplitude), the phantom steppe trees are mostly gone (2.4 % of land
+from 11 %), ET and WUE are within a few percent -- and **the gate at 0.71 has
+removed a third of the world's forest**: forest cover 0.58 against 0.91,
+the boreal forest reduced to fu 0.09 against 0.25, "missing trees" on 14 %
+of natural land, vegetation carbon at 304 PgC against 450-650. The
+optimiser was paid for it: on the sample the mid-latitude phantoms it
+killed outweighed the boreal forests it killed in the MAD, and the missing
+forests' GPP is replaced by grass at 0.95x -- the canopy's indifference to
+what grows the leaves, one more time.
+
+The criterion, not the weight, is at fault. `drystress` counts only liquid
+water (`wsoi (1 - wisoi)`), so frozen boreal soils read as fully stressed
+for half the year and the annual-mean stress of a healthy boreal forest
+sits below any threshold that removes steppe trees. At 0.365 (b1) this was
+masked; at 0.713 it is the whole story. The survival stress has to be the
+growing-season mean, not the calendar mean -- the (b3) fix, measured
+first (below) and then refit. v12d is not a state to close the carbon
+stage on; its structural scalars and vmax carry the missing forests.
+
 ## 19. What is scored, and the closing protocol
 
 Asked on 2026-09-18: are the numbers spin-up results, or after spin-up?
