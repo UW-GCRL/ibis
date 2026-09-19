@@ -60,6 +60,14 @@ class PhenoParams(eqx.Module):
     #: near an absolute 5-10 C. The threshold becomes max(relative, absolute);
     #: default -100 C never binds, so default behaviour is unchanged.
     tthresh_u_abs: float = -100.0
+    #: Growing-season mask for the tree-survival stress (CALIBRATION.md 18): a
+    #: day counts toward aystressu / aystressl / nday only if its mean air
+    #: temperature exceeds this (C). drystress reads liquid water, so frozen
+    #: soil is "fully stressed" and the calendar-year mean of a healthy boreal
+    #: forest (0.63) equals a steppe's (0.62); the growing-season means are
+    #: 0.96 and 0.69. Default -100 C counts every day: the annual mean,
+    #: bit-identical.
+    stress_accum_tmin: float = -100.0
 
 
 def pheno(

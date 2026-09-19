@@ -427,3 +427,19 @@ def test_fit_carbon_threads_et_into_the_loss():
     assert text.count("et_obs=et_obs[") == 2, "score() must get et_obs in the objective (_score) and the final report"
     assert "w_et * e_term + w_et_season * es_term" in text
     assert 'diag["aet_monthly"]' in st_.read_text()
+
+
+def test_tree_survival_stress_accumulates_on_growing_season_days_only():
+    """The survival stress must be masked by stress_accum_tmin in the daily
+    body (default -100 C = every day, bit-identical); frozen soil otherwise
+    makes boreal forest read like steppe (CALIBRATION.md 18)."""
+    from pathlib import Path
+    import jax.numpy as jnp
+    from ibis.physics.phenology import PhenoParams
+    lp = (Path(__file__).resolve().parents[1] / "ibis" / "timestepping" / "loops_gswp3.py").read_text()
+    assert "grow = (td_d > consts.tmelt + params.pheno.stress_accum_tmin)" in lp
+    assert "st.soil.stresstu * grow" in lp and "st.stress.nday + grow" in lp
+    assert PhenoParams().stress_accum_tmin == -100.0
+    td = jnp.array([260.0, 275.0, 290.0]); tmelt = 273.16
+    assert (td > tmelt + PhenoParams().stress_accum_tmin).all()                     # default: every day
+    assert list((td > tmelt + 5.0).astype(jnp.float32)) == [0.0, 0.0, 1.0]          # 5 C: summer days only

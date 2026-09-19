@@ -440,11 +440,15 @@ def _run_month_scan(
         # (docs/CALIBRATION.md 14). Structure is static, so this branch is
         # resolved at trace time and costs nothing when the field is None.
         if st.stress is not None:
+            # Growing-season days only (params.pheno.stress_accum_tmin, C;
+            # -100 = every day). Frozen soil reads as fully stressed, so a
+            # calendar mean cannot tell boreal forest from steppe (CALIBRATION.md 18).
+            grow = (td_d > consts.tmelt + params.pheno.stress_accum_tmin).astype(st.stress.nday.dtype)
             st = eqx.tree_at(
                 lambda s: (s.stress.aystressu, s.stress.aystressl, s.stress.nday), st,
-                (st.stress.aystressu + st.soil.stresstu,
-                 st.stress.aystressl + st.soil.stresstl,
-                 st.stress.nday + 1.0))
+                (st.stress.aystressu + st.soil.stresstu * grow,
+                 st.stress.aystressl + st.soil.stresstl * grow,
+                 st.stress.nday + grow))
         # Ensure all floats stay float32 so lax.scan carry types match
         st = _cast_tree_f32(st)
 
