@@ -456,3 +456,16 @@ def test_fit_carbon_attaches_the_accumulator_for_a_fixed_gate_too():
     text = src.read_text()
     assert 'get("tree_stress_min", -1.0)' in text and "gate_fixed = _tsm0 >= 0.0" in text
     assert "if gate_fitted or gate_fixed:" in text
+
+
+def test_fit_carbon_can_weight_the_sample_to_the_domain():
+    """--representative must reach every loss term through `area`, and
+    build_sample must hand out inverse-probability weights that sum to the
+    domain (CALIBRATION.md 18: the plain sample read 0.95x where the domain
+    read 1.31x)."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2] / "verify" / "calibration"
+    fc = (root / "fit_carbon.py").read_text(); sc = (root / "sample_cells.py").read_text()
+    assert "return_weights=True" in fc and "area = area * w_rep" in fc
+    assert 'ap.add_argument("--representative"' in fc
+    assert "w[in_k] = len(idx) / max(int(in_k.sum()), 1)" in sc

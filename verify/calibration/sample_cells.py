@@ -30,8 +30,18 @@ BANDS = [(-90, -30), (-30, 0), (0, 30), (30, 50), (50, 60), (60, 70), (70, 90)]
 
 
 def build_sample(n_target, restart, npoi_full=95333, nbedrock=3, seed=20260911,
-                 floor=20):
-    """Return indices into the land-point vector, stratified by band x PFT."""
+                 floor=20, return_weights=False):
+    """Return indices into the land-point vector, stratified by band x PFT.
+
+    With `return_weights`, also the inverse-probability weight of each
+    selected cell -- domain count / sample count of its stratum -- so that a
+    weighted sum over the sample estimates the sum over the domain. The
+    `floor` samples small strata far above their area share (a 50-cell
+    stratum at 40 %, common strata at ~4.5 %), which is right for
+    identifying rare PFTs and wrong for a total: the plain sample read the
+    v12e GPP at 0.95x of observed where the domain reads 1.31x
+    (CALIBRATION.md 18).
+    """
     from ibis.dimensions import GridConfig
     from ibis.io.restart import load_state
     from ibis.state.model_state import create_ibis_state
@@ -61,7 +71,13 @@ def build_sample(n_target, restart, npoi_full=95333, nbedrock=3, seed=20260911,
         want = min(want, len(idx))
         picked.append(rng.choice(idx, size=want, replace=False))
     sel = np.unique(np.concatenate(picked))
-    return sel, lat[sel], dom[sel]
+    if not return_weights:
+        return sel, lat[sel], dom[sel]
+    w = np.ones(len(sel))
+    for k, idx in strata.items():
+        in_k = np.isin(sel, idx)
+        w[in_k] = len(idx) / max(int(in_k.sum()), 1)
+    return sel, lat[sel], dom[sel], w
 
 
 def main():

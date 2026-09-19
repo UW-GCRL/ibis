@@ -460,6 +460,10 @@ def main():
                          "US drought and 2003 European heat wave -- CALIBRATION.md 10")
     ap.add_argument("--exclude-poleward", type=float, default=68.0)
     ap.add_argument("--w-lai", type=float, default=0.5)
+    ap.add_argument("--representative", type=int, default=0,
+                    help="1: weight each sampled cell by domain/sample stratum counts so the "
+                         "loss terms estimate the DOMAIN totals and patterns (CALIBRATION.md 18); "
+                         "0: plain area weights as in stages a-b3")
     ap.add_argument("--w-et", type=float, default=0.0,
                     help="Stage 2: weight on the ET term (five-product ensemble mean, "
                          "all-five cells; CALIBRATION.md 15); 0 = off")
@@ -496,11 +500,11 @@ def main():
     import cma
     from sample_cells import build_sample
 
-    sel, lat, dom = build_sample(a.cells, a.restart)
+    sel, lat, dom, w_rep = build_sample(a.cells, a.restart, return_weights=True)
     keep = np.abs(lat) < a.exclude_poleward
     log.info("sample %d cells; %d kept after |lat| < %.0f exclusion (%d dropped)",
              len(sel), keep.sum(), a.exclude_poleward, (~keep).sum())
-    sel, lat, dom = sel[keep], lat[keep], dom[keep]
+    sel, lat, dom, w_rep = sel[keep], lat[keep], dom[keep], w_rep[keep]
 
     m = np.array(xr.open_dataset(MASK).landfrac.values)
     fl = np.where(m.ravel() > 0)[0]
@@ -517,6 +521,19 @@ def main():
              np.nanmean(et_obs), np.isfinite(et_obs).sum())
     obs_m = fluxcom_monthly_at(i, j)            # (12, n) monthly totals
     area = np.cos(np.deg2rad(LATV[i]))          # relative cell area
+    if a.representative:
+        # Inverse-probability weights: the stratified sample over-samples
+        # rare strata (floor of 20 cells), so its plain-area totals are not
+        # the domain's -- v12e read 0.95x on the sample against 1.31x on the
+        # domain (CALIBRATION.md 18). Weighting by domain/sample stratum
+        # counts makes every term a domain estimate.
+        area = area * w_rep
+        log.info("REPRESENTATIVE weights on: stratum weights min/median/max %.1f/%.1f/%.1f, "
+                 "effective sample size %.0f of %d",
+                 w_rep.min(), np.median(w_rep), w_rep.max(),
+                 w_rep.sum() ** 2 / np.sum(w_rep ** 2), len(w_rep))
+    else:
+        log.info("plain area weights (sample-representative weighting OFF)")
     log.info("obs at sample: FLUXCOM GPP %.3f  MODIS LAI %.2f  CLM tree %.2f (%d cells)",
              np.nanmean(gpp_obs), np.nanmean(lai_obs), np.nanmean(tree_obs),
              np.isfinite(tree_obs).sum())
