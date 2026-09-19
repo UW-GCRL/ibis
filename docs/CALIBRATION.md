@@ -2090,6 +2090,32 @@ growing-season mean, not the calendar mean -- the (b3) fix, measured
 first (below) and then refit. v12d is not a state to close the carbon
 stage on; its structural scalars and vmax carry the missing forests.
 
+### Measured: the annual mean cannot tell a boreal forest from a steppe; the growing-season mean can
+
+From the v12d monthly climatology (`wsoi`, `tsoi`, `tg`), the root-weighted
+upper-canopy stress factor with liquid water only (frozen layers read as
+dry, as `drystress` does), at the (b2) `stressfac` -8.11; growing-season
+months = monthly mean ground temperature above 5 C:
+
+| class (natural cells) | n | frozen months | growing months | stress: annual mean | growing-season mean | cells the 0.71 gate kills: annual / growing-season |
+|---|---|---|---|---|---|---|
+| boreal forest 55-70N, tree > 0.5 | 5199 | 4.8 | 4.7 | **0.63** | **0.96** | **76 % / 0 %** |
+| temperate forest 35-55N, tree > 0.5 | 4417 | 3.0 | 6.4 | 0.77 | 0.96 | 47 % / 1 % |
+| tropical forest, tree > 0.7 | 4905 | 0 | 12 | 0.94 | 0.94 | 5 % / 5 % |
+| savanna, 0.15 < tree < 0.5 | 5364 | 0 | 12 | 0.81 | 0.81 | 16 % / 16 % |
+| phantom steppe 30-50N, tree < 0.1 | 8852 | 1.7 | 7.5 | 0.62 | **0.69** | 66 % / 46 % |
+| S-hemisphere steppe, tree < 0.1 | 3780 | 0 | 11.5 | 0.74 | 0.74 | 33 % / 33 % |
+
+On the annual mean a boreal forest (0.63) and a steppe (0.62) are the same
+number, so no threshold can keep one and remove the other -- which is what
+(b2) found out the expensive way. On the growing-season mean the forests
+sit at 0.94-0.96 and the steppes at 0.69-0.74: a gate near 0.80-0.85 with
+the ramp keeps every forest and removes most of the phantom trees. That is
+the (b3) change: the survival stress accumulates only on days whose mean
+temperature exceeds `stress_accum_tmin` (5 C; the default -100 counts
+every day and is bit-identical), the gate and the PFT blocks are refit
+from the (b2) values with the gate restarted at 0.80 / 0.10.
+
 ## 19. What is scored, and the closing protocol
 
 Asked on 2026-09-18: are the numbers spin-up results, or after spin-up?
