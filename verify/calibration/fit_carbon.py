@@ -520,7 +520,10 @@ def main():
     log.info("ET ensemble at sample: %.0f mm/yr on %d all-five cells",
              np.nanmean(et_obs), np.isfinite(et_obs).sum())
     obs_m = fluxcom_monthly_at(i, j)            # (12, n) monthly totals
-    area = np.cos(np.deg2rad(LATV[i]))          # relative cell area
+    from landmask import true_landfrac
+    area = np.cos(np.deg2rad(LATV[i])) * true_landfrac()[i, j]   # relative LAND area: the binary mask made partial cells full (CALIBRATION.md 18)
+    log.info("cell weights carry the true land fraction: mean %.2f over the sample, %d cells under 0.5",
+             float(np.mean(true_landfrac()[i, j])), int((true_landfrac()[i, j] < 0.5).sum()))
     if a.representative:
         # Inverse-probability weights: the stratified sample over-samples
         # rare strata (floor of 20 cells), so its plain-area totals are not

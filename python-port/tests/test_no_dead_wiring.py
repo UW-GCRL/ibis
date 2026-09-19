@@ -469,3 +469,14 @@ def test_fit_carbon_can_weight_the_sample_to_the_domain():
     assert "return_weights=True" in fc and "area = area * w_rep" in fc
     assert 'ap.add_argument("--representative"' in fc
     assert "w[in_k] = len(idx) / max(int(in_k.sum()), 1)" in sc
+
+
+def test_totals_and_fit_weights_carry_the_true_land_fraction():
+    """surta.nc is a binary mask (every landfrac 1.0, 165 Mkm2); the ESA CCI
+    vegtype fractions sum to the true land fraction. Totals and fit weights
+    must use it (CALIBRATION.md 18)."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2] / "verify" / "calibration"
+    assert "true_landfrac()[i, j]" in (root / "fit_carbon.py").read_text()
+    sr = (root / "state_report.py").read_text()
+    assert "area_t = area * lf" in sr and '"GPP PgC/yr TRUE land"' in sr and '"GPP PgC/yr FLUXCOM land"' in sr

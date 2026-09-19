@@ -130,14 +130,22 @@ def main():
     m = np.array(xr.open_dataset(MASK).landfrac.values) > 0
     area = cell_area()
     A = float(area[m].sum())
+    from landmask import true_landfrac
+    lf = true_landfrac()                      # the binary mask's missing land fraction
+    area_t = area * lf
+    A_t = float(area_t[m].sum())
     o = xr.open_dataset(FLUXCOM)
     fc = np.asarray(o["gpp"].mean(dim="time")) * 365.25 / 1000.0
+    cov = m & np.isfinite(fc)
+    fc_total = _wsum(np.nan_to_num(fc)[cov], area_t[cov]) / 1e12
     mod = modis_lai()
     lat = np.arange(89.75, -90, -0.5)
     LA = np.repeat(lat[:, None], 720, axis=1)
 
-    print(f"Domain: {A/1e12:.1f} Mkm2 (surta.nc landfrac), "
-          f"{int(m.sum())} cells. Fluxes = last {a.nyear} yr mean.\n")
+    print(f"Domain: {A/1e12:.1f} Mkm2 (surta.nc binary mask, {int(m.sum())} cells); "
+          f"TRUE land {A_t/1e12:.1f} Mkm2 (ESA CCI vegtype fractions); "
+          f"FLUXCOM-covered land {float(area_t[cov].sum())/1e12:.1f} Mkm2, FLUXCOM GPP there {fc_total:.1f} PgC. "
+          f"Fluxes = last {a.nyear} yr mean.\n")
     runs = {}
     for spec in a.run:
         name, rest = spec.split("=", 1)
@@ -145,18 +153,27 @@ def main():
         d, n, last = load_run(outdir, a.nyear)
         runs[name] = (d, rst, last)
 
-    rows = ["GPP PgC/yr", "NPP PgC/yr", "Rh PgC/yr", "ET mm/yr",
-            "veg C PgC", "soil C kgC/m2", "litter kgC/m2", "LAI mean"]
+    rows = ["GPP PgC/yr", "GPP PgC/yr TRUE land", "GPP PgC/yr FLUXCOM land",
+            "NPP PgC/yr", "NPP PgC/yr TRUE land", "Rh PgC/yr", "ET mm/yr",
+            "veg C PgC", "veg C PgC TRUE land", "soil C kgC/m2", "litter kgC/m2", "LAI mean"]
+    TARGET["GPP PgC/yr TRUE land"] = "120-130"
+    TARGET["GPP PgC/yr FLUXCOM land"] = f"FLUXCOM {fc_total:.0f}"
+    TARGET["NPP PgC/yr TRUE land"] = "55-60"
+    TARGET["veg C PgC TRUE land"] = "450-650"
     print(f"{'quantity':<16}" + "".join(f"{k:>14}" for k in runs) +
           f"{'observed':>14}")
     vals = {}
     for name, (d, rst, _) in runs.items():
         v = {}
         v["GPP PgC/yr"] = _wsum(d["aygpptot"][m], area[m]) / 1e12
+        v["GPP PgC/yr TRUE land"] = _wsum(d["aygpptot"][m], area_t[m]) / 1e12
+        v["GPP PgC/yr FLUXCOM land"] = _wsum(d["aygpptot"][cov], area_t[cov]) / 1e12
         v["NPP PgC/yr"] = _wsum(d["aynpptot"][m], area[m]) / 1e12
+        v["NPP PgC/yr TRUE land"] = _wsum(d["aynpptot"][m], area_t[m]) / 1e12
         v["Rh PgC/yr"] = _wsum(d["ayco2mic"][m], area[m]) / 1e12
         v["ET mm/yr"] = _wmean(d["ayaet"][m], area[m])
         v["veg C PgC"] = _wsum(d["cveg"][m], area[m]) / 1e12
+        v["veg C PgC TRUE land"] = _wsum(d["cveg"][m], area_t[m]) / 1e12
         v["LAI mean"] = _wmean(d["lai"][m], area[m])
         if rst:
             cs, lt = pools(rst)
