@@ -2273,6 +2273,27 @@ carries too little biomass per unit of forest -- allocation and turnover,
 a pool question outside the three flux criteria, and the first item for
 the stage after ET.
 
+### The harness and the validation agree; the total was under-weighted all along
+
+Replay of the (b3) parameters through the fit harness on the fit sample,
+28 years, against the run_global validation at the same cells
+(`replay_v12e.py`): year 1 1.054 vs 1.088, year 10 1.100 vs 1.099, year 20
+1.129 vs 1.130, year 28 **1.152 vs 1.161** -- 1-3 % apart throughout, the
+harness cycling 2001-2010's CO2 (371-390 ppm) against the validation's
+fixed 389.9, with the dry 2001-2003 forcing years visibly the low ones. The
+two evaluation paths are consistent; the 0.95 the fit had printed was a
+report line averaging the model over every fit cell and the observation
+over cells with data (fixed: the report now prints the ratio on the scored
+cells).
+
+So the fit did see a 1.13-1.15x total. It did not act on it because of the
+loss's arithmetic: the GPP term is `per-cell log-ratio^2 (flux-weighted) +
+w_total x ln(total ratio)^2` with `w_total` = 1 since section 9, and
+ln(1.15)^2 = 0.02 against a per-cell term of ~0.22. A 15 % global bias was
+worth a tenth of the pattern scatter; criterion 1 was never pulled on.
+`--w-total` (new; 25 makes a 10 % bias cost as much as the pattern term)
+joins the fixed gate and the land/representative weights in stage (b4).
+
 ## 19. What is scored, and the closing protocol
 
 Asked on 2026-09-18: are the numbers spin-up results, or after spin-up?
