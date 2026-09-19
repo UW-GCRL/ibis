@@ -2294,6 +2294,25 @@ worth a tenth of the pattern scatter; criterion 1 was never pulled on.
 `--w-total` (new; 25 makes a 10 % bias cost as much as the pattern term)
 joins the fixed gate and the land/representative weights in stage (b4).
 
+### Stage (b4): the gate fixed where the measurement put it, the total weighted, the areas right
+
+Launched 10:09 on 2026-09-19 (`fit_carbon_v12f`), sharing the GPU with the
+closing protocol running on (b3). From the (b3) parameters, three changes
+of scoring and one of structure, no change of physics: the tree gate is
+**fixed at 0.80 / 0.10** on the growing-season criterion (section 18's
+measurement: forests 0.94-0.96, steppes 0.69-0.74) rather than fitted --
+twice the optimiser weakened it to keep steppe trees for their GPP and LAI;
+`--w-total 25`, so a 10 % global bias costs what the pattern does;
+cell weights carry the true land fraction (499 of the 4,331 sample cells
+are under half land) and the inverse-probability stratum weights. Fitted:
+`vmax`/`specla` (24) and six structural scalars (`stressfac`, `cover_k`,
+`fl_min`, `fu_min`, `drop_stress_thresh`, `tthresh_u_abs`); 180
+evaluations. Baseline **1.6860**: GPP 0.402 (of which ~0.18 is the total
+term at ~1.09x), LAI 0.769, season 0.0168, tree 0.244; the fixed gate's
+accumulator attached through the new path and logged. Judged on the
+domain by the true-land total, the steppes' GPP, forest and boreal cover,
+and vegetation carbon.
+
 ## 19. What is scored, and the closing protocol
 
 Asked on 2026-09-18: are the numbers spin-up results, or after spin-up?
