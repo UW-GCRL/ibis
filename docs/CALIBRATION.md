@@ -2186,6 +2186,51 @@ cover. The domain validation says how much of the forest is back and how
 much of the steppe forest returned with it; the closing decision follows
 it.
 
+### Stage (b3) over the domain: the forests are back, the mean cover is right -- and the total went back up
+
+50-year validation (`val_v12e`):
+
+| | v12c (b1) | v12d (b2) | **v12e (b3)** | observed |
+|---|---|---|---|---|
+| GPP PgC/yr | 163.6 | 147.7 | **163.6** | 120-130 |
+| NPP / Rh | 77.4 / 73.1 | 67.5 / 63.6 | 73.7 / 67.9 | 55-60 / 49-58 |
+| ET mm/yr | 523 | 504 | 510 | 500-550 |
+| veg C PgC | 570 | 304 | **361** | 450-650 |
+| soil C / litter | 12.0 / 0.72 | 11.6 / 0.59 | 11.6 / 0.59 | 10-15 / 0.4-0.8 |
+| GPP by band 30S-30N / 30-50N / 50-60N / 60-70N / 70-90N | 1.10 / 1.54 / 1.30 / 1.01 / 0.69 | 0.98 / 1.39 / 1.21 / 1.12 / 1.08 | **1.13** / 1.40 / 1.10 / **1.03** / 1.10 | 1 |
+| LAI by band, same | 1.23 / 1.61 / 1.01 / 0.55 / 0.38 | 1.08 / 1.45 / 0.91 / 0.62 / 0.61 | 1.46 / 1.52 / 0.90 / 0.58 / 0.60 | 1 |
+| fu natural land / MAD / r | 0.530 / 0.280 / 0.61 | 0.289 / 0.241 / 0.47 | **0.355 / 0.210 / 0.66** | 0.335 / 0 / 1 |
+| fu where tree < 0.05 / 0.15-0.30 / > 0.70 | 0.18 / 0.63 / 0.88 | 0.10 / 0.25 / 0.58 | 0.08 / 0.31 / **0.77** | 0.01 / 0.22 / 0.91 |
+| fu 60-90N / 45-60N / 30-45N | 0.24 / 0.67 / 0.47 | 0.09 / 0.24 / 0.27 | **0.25** / 0.55 / 0.28 | 0.25 / 0.45 / 0.18 |
+| phantom / missing-tree cells, share of natural land | 10.9 / 3.4 % | 2.4 / 14.1 % | **3.7 / 7.1 %** | |
+| seasonal amplitude all / tropics / 30-50N | 0.78 / 0.90 / 0.60 | 0.81 / 0.96 / 0.60 | 0.82 / 0.96 / 0.62 | 1 |
+| ET natural land / WUE | 1.07 / 1.12 | 1.03 / 1.04 | 1.04 / 1.13 | 1 / 1 |
+| **sample, area-weighted GPP model / obs (fit report)** | | 0.89 | **0.95** | -- domain 1.31 |
+
+Three readings.
+
+1. **The structure is right for the first time.** The growing-season
+   criterion brought the forests back (fu > 0.7 class 0.58 -> 0.77, boreal
+   0.09 -> 0.25 = observed) while keeping most phantoms out (3.7 % of land);
+   mean natural-land cover 0.355 against 0.335, the pattern correlation the
+   best of any state. Boreal GPP 1.03, ET 1.04, WUE 1.13.
+2. **The total went back to 1.31x**, carried by the tropics (1.13x, with
+   `trop_bl_ever` vmax raised to 52) and the steppes (1.4-1.8x, where the
+   grass itself over-produces: treeless land at fu 0.08 still runs 1.57x).
+   Vegetation carbon (361) is low with a third of the forest cover's biomass
+   still missing and `temp_con_ever` cut to 17.6.
+3. **The fit never saw criterion 1.** On the fit sample the model reads
+   0.95x of observed GPP while the domain reads 1.31x. The sample is
+   stratified by dominant PFT for identifiability, so the rare PFTs are
+   over-represented and the many low-flux steppe and grassland cells that
+   carry the excess are under-represented; the "total" term is the sample's
+   total, not the domain's. Every stage has optimised a total that was not
+   the one being judged. The remedy is inverse-probability weighting -- each
+   sampled cell weighted by its area times the ratio of domain to sample
+   counts in its stratum -- so that the sample's totals and patterns
+   estimate the domain's; its first test is whether the (b3) parameters then
+   read ~1.3x on the sample.
+
 ## 19. What is scored, and the closing protocol
 
 Asked on 2026-09-18: are the numbers spin-up results, or after spin-up?
