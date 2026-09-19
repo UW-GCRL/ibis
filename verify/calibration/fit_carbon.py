@@ -745,6 +745,16 @@ def main():
               f"{wavg(lai_obs[msk], area[msk]):.2f}"
               f"  fu {np.nanmean(fu_m[msk]):.2f} vs tree {np.nanmean(tree_obs[msk]):.2f}"
               f"  ET {wavg(et_a[msk], area[msk]):.0f} vs {wavg(et_obs[msk], area[msk]):.0f} mm/yr")
+        # The comparable total: model and observation on the SAME cells the
+        # loss scores (gpp_obs > 0.02, lai_obs > 0.05, both finite). The
+        # line above averages the model over every fit cell and the
+        # observation over cells with data -- it read 0.95x where the
+        # domain read 1.16x (CALIBRATION.md 18).
+        okm = msk & np.isfinite(gpp) & np.isfinite(gpp_obs) & (gpp_obs > 0.02) & (lai_obs > 0.05)
+        print(f"  {nm:>9}: on the {okm.sum()} scored cells, area-weighted GPP model/obs = "
+              f"{wavg(gpp[okm], area[okm]) / wavg(gpp_obs[okm], area[okm]):.3f}"
+              f"  (ET model/obs on all-five cells = "
+              f"{wavg(et_a[okm & np.isfinite(et_obs)], area[okm & np.isfinite(et_obs)]) / max(wavg(et_obs[okm & np.isfinite(et_obs)], area[okm & np.isfinite(et_obs)]), 1e-9):.3f})")
     print(f"\nWrote {a.out}/")
 
 
