@@ -5,7 +5,7 @@ corrected carbon cycle. Order set by Hangkai: carbon, then ET, then the smaller
 parts. Methane is evaluated against FLUXNET-CH4 (Chenchen's processing).
 
 
-## State of the calibration (updated 2026-09-18 09:40; stage (b2) running)
+## State of the calibration (updated 2026-09-19 10:30; stages (b2) and (b3) validated)
 
 Three criteria for carbon (the user's): global total, spatial pattern,
 seasonal pattern. A fourth was added as the means to the second: tree
@@ -13,12 +13,17 @@ cover against the CLM tree fraction. ET follows.
 
 | version | what changed | GPP PgC/yr (obs 120-130) | GPP by band 30-50N / 60-70N / tropics | tree cover, natural land (obs 0.34) | seasonal amplitude (obs 1) | section |
 |---|---|---|---|---|---|---|
-| ctl (defaults) | -- | 234 | | | | 9 |
-| v11d | per-PFT vmax/specla fit | 182 | 1.77 / 1.82 / 1.18 | 0.66 | | 10-12 |
-| v12a, stage (a) | + stressfac, phenology scalars | 176 | 1.64 / 1.70 / 1.16 | 0.67 | 0.80 | 13-14 |
-| v12c, stage (b1) | + tree-establishment gate, cover, dormancy trigger | 164 | 1.54 / **1.02** / 1.10 | **0.53** | 0.78 | 14 |
-| corrected canopy, 2-yr probe | + `vmax_mix`, `scale_leaf_only`, no refit | **131** | 0.87 / 1.24 / 0.92 | 0.55 | | 16-18 |
-| v12d, stage (b2) | joint refit on the corrected canopy, tree weight 3 | *running* | | | | 18 |
+| ctl (defaults) | -- | 234 (192) | | | | 9 |
+| v11d | per-PFT vmax/specla fit | 182 (151) | 1.77 / 1.82 / 1.18 | 0.66 | | 10-12 |
+| v12a, stage (a) | + stressfac, phenology scalars | 176 (145) | 1.64 / 1.70 / 1.16 | 0.67 | 0.80 | 13-14 |
+| v12c, stage (b1) | + tree-establishment gate, cover, dormancy trigger | 164 (134) | 1.54 / **1.02** / 1.10 | **0.53** | 0.78 | 14 |
+| corrected canopy, 2-yr probe | + `vmax_mix`, `scale_leaf_only`, no refit | 131 | 0.87 / 1.24 / 0.92 | 0.55 | | 16-18 |
+| v12d, stage (b2) | joint refit on the corrected canopy, tree weight 3 | 148 (120) | 0.98 / 1.12 / 0.98 | 0.29 (forests lost) | 0.81 | 18 |
+| **v12e, stage (b3)** | growing-season survival stress, joint refit | 164 (**132**) | 1.40 / 1.03 / 1.13 | **0.355** (r 0.66) | 0.82 | 18 |
+
+GPP column: binary-mask total as quoted in the sections, and in brackets
+the total on TRUE land (section 18, "The mask"), which is the number to
+compare with 120-130. Earlier rows: ctl 192, v11d 151, v12a 145 on true land.
 
 Structural findings, in the order they were forced by the data:
 
@@ -2230,6 +2235,43 @@ Three readings.
    counts in its stratum -- so that the sample's totals and patterns
    estimate the domain's; its first test is whether the (b3) parameters then
    read ~1.3x on the sample.
+
+### The mask: every PgC total so far was on 165 Mkm2 of "land"
+
+Looking for the 28 PgC of model GPP in cells FLUXCOM does not cover led to
+the mask. `surta.nc` is `landfrac = 1` wherever `vegtype_frac_1992.nc` has
+any vegetation fraction: 95,333 cells, all exactly 1.0, **165 Mkm2 against
+Earth's 149**. The vegtype fractions themselves sum to the true land
+fraction of each cell (ESA CCI, 300 m to 0.5 degree): 49,682 cells are fully
+land, **45,651 are fractional**, and open-water cells with a speck of island
+-- (4.75 N, 120.25 E) in the Sulu Sea, land fraction 0.00; the Molucca Sea
+at 0.01-0.04 -- were made 100 % land, forced with 1,700 mm of rain, and grew
+rainforest: 23.6 PgC of model GPP in no-FLUXCOM cells with some MODIS
+vegetation, plus 4 PgC in the deserts (Sahara LAI 0.23, Antarctica 0.01 --
+the model is bare where it should be). The model's per-m2 fluxes are not
+at fault; the area weights were. `landmask.true_landfrac()` recovers the
+fraction (143.7 Mkm2 on the mask); `state_report` now reports on the binary
+mask, on true land, and on FLUXCOM-covered land against FLUXCOM's own total
+(108.9 PgC on 113.8 Mkm2); the fit's cell weights carry it too.
+
+Restated, last 5 years of each 50-year validation:
+
+| | ctl | v11d | v12a (a) | v12c (b1) | v12d (b2) | **v12e (b3)** | observed |
+|---|---|---|---|---|---|---|---|
+| GPP PgC/yr, binary mask (as quoted so far) | 234 | 182 | 176 | 164 | 148 | 164 | |
+| **GPP PgC/yr, true land** | 192 | 151 | 145 | 134 | 120 | **132** | 120-130 |
+| GPP, FLUXCOM-covered land | 188 | 148 | 142 | 131 | 117 | 129 | FLUXCOM 109 |
+| NPP PgC/yr, true land | 86 | 70 | 67 | 63 | 55 | **60** | 55-60 |
+| veg C PgC, true land | 630 | 498 | 488 | 447 | 235 | **281** | 450-650 |
+
+Criterion 1 on true land: (b3) at 132 sits just above the literature range
+and 1.18x FLUXCOM on the land both cover -- the excess that remains is the
+steppes' (1.4-1.8x) and the tropics' (1.13x), which sections 14-18 have
+mapped. The pool that is now plainly wrong is vegetation carbon, 281
+against 450-650: with the tree cover right for the first time, the model
+carries too little biomass per unit of forest -- allocation and turnover,
+a pool question outside the three flux criteria, and the first item for
+the stage after ET.
 
 ## 19. What is scored, and the closing protocol
 

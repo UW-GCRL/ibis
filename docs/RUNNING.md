@@ -216,6 +216,8 @@ per-PFT mortality **on**, human ignition off, fine fuel off.
   field, `verify/calibration/seasonal_baseline_sample.py` gets monthly GPP
   from `one_year` on the stratified sample with no writer.
 
+**`surta.nc` is a BINARY mask: 95,333 cells at landfrac 1.0 = 165 Mkm2 of "land"** (Earth: 149). It was cut as "any vegetation fraction > 0" from `vegtype_frac_1992.nc`, whose 15 IBIS-type fractions sum to the true land fraction (45,651 partial cells; open-water archipelago cells with a speck of island count as full land). Weight any global total by `verify/calibration/landmask.true_landfrac()` (143.7 Mkm2), or read `state_report`'s "TRUE land" rows; the per-m2 fluxes are fine (CALIBRATION.md 18).
+
 **Restart leaf counts: 258 without the tree gate, 261 with it.** `load_state`
 migrates both ways with a warning -- it fills the three trailing accumulator
 leaves from the template, or drops them when a gated restart meets an
