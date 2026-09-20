@@ -1636,7 +1636,7 @@ snow sublimation by class and month, against the ensemble's total and
 GLEAM's components where they can be had, to find which component carries
 each class's error; the levers are then the soil-evaporation resistance,
 interception capacity and the winter/sublimation path, not `coefm`.
-The port computes the components F77 does -- fvapa, fvapg, fvapi, fvaplt, fvaplw, fvaps, fvaput, fvapuw, fvapw -- but accumulates only the total (`ayaet`); the ET stage's first tool is an annual/monthly accumulator per component, or a per-month capture on the sample as lever test 9 did.
+The port computes the components F77 does but accumulated only the total (`ayaet`). **Built:** `ETParts` (`ibis/state/et_parts.py`) -- transpiration, interception evaporation (leaves and stems), soil evaporation, snow sublimation, in mm -- an optional trailing state module switched on by `physics: et_components: true`; `one_year` returns them monthly; the yearly file carries `aytrans` / `ayinterc` / `aysoilev` / `aysnowsub`. Bit-identical physics with or without it, closure to the total to 1e-6.
 
 Model ET is `ayaet` (mm/yr) yearly and `amaet` monthly; the fit harness's
 `one_year` already returns `ayaet` and the daily AET series, so the ET fit
