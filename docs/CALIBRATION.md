@@ -1638,6 +1638,35 @@ each class's error; the levers are then the soil-evaporation resistance,
 interception capacity and the winter/sublimation path, not `coefm`.
 The port computes the components F77 does but accumulated only the total (`ayaet`). **Built:** `ETParts` (`ibis/state/et_parts.py`) -- transpiration, interception evaporation (leaves and stems), soil evaporation, snow sublimation, in mm -- an optional trailing state module switched on by `physics: et_components: true`; `one_year` returns them monthly; the yearly file carries `aytrans` / `ayinterc` / `aysoilev` / `aysnowsub`. Bit-identical physics with or without it, closure to the total to 1e-6.
 
+**First decomposition** (`et_decomp1.py`; the same 70 cells, (b3)
+parameters, 6 years on 2001-03 from the v11 state -- transient-biased, so
+shares and seasonal shapes are the reading, not levels):
+
+| class | ET model / obs | transpiration | interception | soil evaporation | snow |
+|---|---|---|---|---|---|
+| forest (tree > 0.7) | 773 / 923 (0.84) | 315 (41 %) | 258 (33 %) | **195 (25 %)** | 4 |
+| open (tree < 0.3) | 551 / 659 (0.84) | 277 (50 %) | 50 (9 %) | **225 (41 %)** | -1 |
+| boreal (> 50 N) | 398 / 395 (1.01) | **87 (22 %)** | 87 (22 %) | **212 (53 %)** | 12 |
+
+Three things stand out. Soil evaporation carries a quarter of forest ET,
+half of boreal ET, and 4-6 mm/month in boreal winter -- under a closed
+canopy and over frozen or snow-covered ground it should be small; that
+is where the model puts the ET the products do not have (boreal Dec-Feb
+model 9-12 mm/month against 2-4). Boreal transpiration is 22 % of ET where
+a forest's should be half or more -- and boreal winter GPP runs 5-10x
+FLUXCOM in these cells (evergreens assimilating at sub-zero temperatures;
+small in mm but a seasonal-shape error). Forest summer ET is short
+(Jun-Aug 64-75 against 94-99) exactly where forest GPP is short (0.59-0.66
+in the same months): the coupled scheme carries the carbon deficit into the
+water, so forest ET is the carbon stage's residual, not an ET lever. In
+open land the amplitude error (section above, 2.3x) is soil evaporation
+that runs at potential when the surface is wet and collapses when it dries
+-- the model has no soil-surface resistance between the two. The domain
+decomposition (`et_decomp_domain.py`, on a hindcast written with
+`et_components`) follows; the ET levers it points to are the soil-surface
+resistance and the snow-cover / frozen-ground evaporation path, then
+interception capacity.
+
 Model ET is `ayaet` (mm/yr) yearly and `amaet` monthly; the fit harness's
 `one_year` already returns `ayaet` and the daily AET series, so the ET fit
 is the carbon harness with `fluxcom_at` -> an ET loader and the seasonal
