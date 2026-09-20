@@ -35,13 +35,13 @@ if '--structural-starts' in flags:
     t.setdefault('pft', {}).update(STRUCT_PFT); t.setdefault('pheno', {}).update(STRUCT_PHENO)
 if '--vmax-mix' in flags:
     t.setdefault('stomata', {})['vmax_mix'] = True
+    for dead, live in MIX_STARTS.items():          # behaviour-preserving starts for the newly-live entries
+        t['stomata']['vmax'][dead] = float(t['stomata']['vmax'][live])
 if '--leaf-only' in flags:
     t.setdefault('stomata', {})['scale_leaf_only'] = True
 if '--et-starts' in flags:
     t.setdefault('canopy', {})['soil_beta_power'] = 1.5
     t.setdefault('interception', {})['fmax'] = 0.25
-    for dead, live in MIX_STARTS.items():
-        t['stomata']['vmax'][dead] = float(t['stomata']['vmax'][live])
 yaml.safe_dump(t, open(out, 'w'), sort_keys=False)
 sys.path.insert(0, 'python-port')
 from ibis.io.physics_params import build_all_params, load_physics_params

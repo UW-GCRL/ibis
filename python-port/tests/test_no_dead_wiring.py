@@ -584,3 +584,27 @@ def test_et_terms_are_not_dominated_by_negative_or_near_zero_model_et():
     dirty = fc.score(gpp, lai, go, lo, 0.5, a, et=et2, et_obs=eo, w_et=1, et_m=etm2, et_obs_m=eom, w_et_season=10)
     assert fc.ET_EXCLUDED[0] == 5
     assert abs(dirty[5] - clean[5]) < 0.05 * max(clean[5], 1e-3) + 1e-6 and abs(dirty[6] - clean[6]) < 0.05 * max(clean[6], 1e-3) + 1e-6
+
+
+def test_make_start_yaml_flags_touch_only_their_own_keys(tmp_path):
+    """--et-starts must not change any vmax: a patch had slid the --vmax-mix
+    dead->live mapping under it, and the joint fit started three PFTs from
+    the wrong values (CALIBRATION.md 15)."""
+    import subprocess, sys, yaml
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    base = {"stomata": {"vmax": {"tropical_broadleaf_evergreen": 5e-5, "tropical_broadleaf_deciduous": 4e-5,
+                                 "boreal_broadleaf_deciduous": 2e-5, "temperate_broadleaf_deciduous": 6e-5,
+                                 "boreal_conifer_deciduous": 2.5e-5, "boreal_conifer_evergreen": 2.4e-5,
+                                 "deciduous_shrub": 2.8e-5, "evergreen_shrub": 3.5e-5}, "vmax_mix": True}}
+    b = tmp_path / "base.yaml"; yaml.safe_dump(base, open(b, "w"))
+    env = {"PYTHONPATH": str(root / "python-port")}
+    import os; env.update(os.environ)
+    for flag, changed in (("--et-starts", False), ("--vmax-mix", True)):
+        out = tmp_path / f"out{flag}.yaml"
+        r = subprocess.run([sys.executable, str(root / "verify" / "calibration" / "make_start_yaml.py"), str(b), str(out), flag],
+                           capture_output=True, text=True, cwd=str(root), env=env)
+        assert r.returncode == 0, r.stderr[-800:]
+        got = yaml.safe_load(open(out))["stomata"]["vmax"]
+        moved = got["tropical_broadleaf_deciduous"] != base["stomata"]["vmax"]["tropical_broadleaf_deciduous"]
+        assert moved == changed, (flag, got)
