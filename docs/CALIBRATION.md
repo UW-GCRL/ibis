@@ -2473,6 +2473,39 @@ accumulator attached through the new path and logged. Judged on the
 domain by the true-land total, the steppes' GPP, forest and boreal cover,
 and vegetation carbon.
 
+### Stage (b4) result: 1.6860 -> 1.3698; the total term did the work
+
+180 evaluations (10:09 -> 22:41, GPU shared with the closing run until
+19:14). Best at eval 29 and never beaten: GPP 0.2154 (from 0.402 -- the
+weighted total term collapsing as the sample total went from ~1.09x to
+~1.0x), LAI 0.5168 (from 0.769; the lowest of any fit), season 0.0167,
+tree 0.243 (the gate is fixed, so this is the pattern the gate leaves),
+hold-out 1.458.
+
+| scalar | start | fitted | |
+|---|---|---|---|
+| `cover_k` | 0.428 | 0.273 | understory cover thinned again |
+| `drop_stress_thresh` | 0.134 | 0.086 | dormancy trigger off, as in (b1) and (b3) |
+| `tthresh_u_abs` | 12.5 C | 12.1 C | |
+| `stressfac`, `fl_min`, `fu_min` | -6.53, 0.229, 0.033 | -6.46, 0.247, 0.040 | unchanged in effect |
+
+| PFT | vmax (b3) -> (b4) | specla (b3) -> (b4) | |
+|---|---|---|---|
+| trop_bl_ever | 52.1 -> **47.9** | 14.9 -> **11.6** | the total term pulled the tropics back |
+| trop_bl_dec | 40.3 -> 41.5 | 11.2 -> 13.3 | |
+| warm_bl_ever | 28.0 -> 29.7 | 18.2 -> 18.4 | |
+| temp_con_ever | 17.6 -> 21.4 | 14.9 -> 13.5 | |
+| temp_bl_dec | 58.3 -> 55.9 | 14.1 -> 12.0 | |
+| ever_shrub | 35.7 -> 38.9 | 8.0 -> 7.1 | |
+| c4_grass / c3_grass | 18.2 -> **21.8** / 17.0 -> 16.4 | 10.2 -> 10.0 / 11.3 -> 10.2 | |
+| boreal_con_ever, boreal_con_dec, dec_shrub, boreal_bl_dec (vmax) | frozen / unmoved | | |
+
+With the gate fixed and the total weighted, the optimiser moved capacity
+rather than structure: the tropical evergreen canopy down (vmax and
+specla), C4 grass up. The domain validation and the closing protocol,
+both running overnight, judge (b4) against (b3) on the true-land total
+(132 / 130), forest and boreal cover, the steppes and the pools.
+
 ## 19. What is scored, and the closing protocol
 
 Asked on 2026-09-18: are the numbers spin-up results, or after spin-up?
