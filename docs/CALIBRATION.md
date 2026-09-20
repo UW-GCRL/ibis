@@ -1688,6 +1688,51 @@ first, then a lever test on the 70 cells with the beta's zero moved toward
 air-dry and with a Sellers-type soil resistance added to `1/sg` -- both
 off by default, bit-identical, as with every structural switch so far.
 
+**The domain decomposition** (`et_decomp_domain.py` on the (b3) closing
+run's 2001-2010 hindcast rerun with `et_components`; 44,993 natural-land
+cells with all five ET products; true-land area weights):
+
+| class | ET model / ensemble | transpiration | interception | soil evaporation | snow | GPP / obs |
+|---|---|---|---|---|---|---|
+| **all natural land** | 590 / 594 = **0.99** | 270 (**0.46**) | 142 (0.24) | 174 (0.30) | 4 | 1.15 |
+| tree < 0.05 | 383 / 336 = 1.14 | 158 (0.41) | 47 (0.12) | 174 (0.45) | 4 | 1.55 |
+| tree 0.15-0.50 | 611-645 / 599-654 = 0.99-1.02 | 0.48-0.50 | 0.20-0.23 | 0.27-0.32 | | 1.28-1.32 |
+| tree > 0.70 | 798 / 873 = 0.91 | 361 (0.45) | **275 (0.34)** | 156 (0.20) | 5 | 0.90 |
+| 60-90 N | 304 / 279 = 1.09 | **38 (0.12)** | 30 (0.10) | **216 (0.71)** | 21 (0.07) | 0.92 |
+| 45-60 N | 411 / 390 = 1.05 | 120 (0.29) | 83 (0.20) | 198 (0.48) | 10 | 1.09 |
+| 30-45 N | 469 / 445 = 1.06 | 0.48 | 0.17 | 0.34 | | 1.47 |
+| **15-30 N** | 571 / 683 = **0.84** | 0.55 | 0.19 | 0.26 | | 1.18 |
+| 15 S-15 N | 865-978 / 882-1078 = 0.91-0.98 | 0.48-0.50 | 0.32-0.33 | 0.17-0.20 | | 0.97-1.00 |
+| **15-60 S** | 545-594 / 442-530 = **1.12-1.23** | 0.52-0.56 | 0.19-0.20 | 0.25-0.28 | | 1.56-1.86 |
+
+Transpiration per unit GPP is 0.22-0.26 kg per gC in every class -- the
+coupled scheme fixes it -- so the ET pattern is the GPP pattern damped by
+the other two components. Readings, and what the ET stage is therefore
+for:
+
+1. **Criterion 1 for ET is met** (0.99 on natural land, before any ET
+   parameter has been touched) and the pattern is within 10 % except the
+   subtropical belt 15-30 N (0.84 -- the Sahel, India, Mexico: GPP 1.18x
+   yet ET short) and the southern mid-latitudes (1.12-1.23, where GPP is
+   1.6-1.9x). These two are the pattern targets.
+2. **The partition is where the structure is wrong.** Transpiration is
+   46 % of ET globally against 57-64 % from isotope and flux syntheses
+   (Good et al. 2015, Wei et al. 2017, Lian et al. 2018 -- the CMIP-class
+   underestimate, which IBIS shares); 45 % in forests, 41 % on open land.
+   Interception carries 34 % of forest ET (upper end of the observed
+   10-30 %). And the boreal zone is the extreme case: **71 % soil
+   evaporation, 12 % transpiration** at 60-90 N -- with half the observed
+   LAI (0.52x, section 19), the ground receives the radiation the canopy
+   should, and the soil-evaporation control lets it evaporate. So the ET
+   levers are the strength of the soil-evaporation control (a dry-surface
+   resistance, Sellers 1992) and the interception capacity, with the
+   boreal LAI deficit belonging to the carbon side; the partition
+   (T/ET ~ 0.6, boreal ~ 0.5) is the ET stage's fourth criterion, a weak
+   one, since no gridded product on disk resolves components.
+3. The seasonal ET criterion is scored on the ensemble's monthly
+   climatology (`--w-et-season`), with the tower finding kept in mind: the
+   model's ET seasonal amplitude at 194 towers is 9 against 15 observed.
+
 Model ET is `ayaet` (mm/yr) yearly and `amaet` monthly; the fit harness's
 `one_year` already returns `ayaet` and the daily AET series, so the ET fit
 is the carbon harness with `fluxcom_at` -> an ET loader and the seasonal

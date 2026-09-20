@@ -1,0 +1,19 @@
+/shared/nas2/Hangkai/ibis/verify_outputs/final_v12e/hindcast_et/out
+years 2001-2010; scored cells 44993 (natural veg >= 70 %, all-five ET, land fraction > 0.5)
+ALL                        n=44993 | ET   590 obs   594 = 0.99 | transp   270 (0.46) interc   142 (0.24) soil   174 (0.30) snow    4 ( 0.01) | transp/GPP  0.23 kg/gC  GPP/obs 1.15
+-- by CLM tree fraction --
+tree 0.00-0.05             n=12419 | ET   383 obs   336 = 1.14 | transp   158 (0.41) interc    47 (0.12) soil   174 (0.45) snow    4 ( 0.01) | transp/GPP  0.26 kg/gC  GPP/obs 1.55
+tree 0.05-0.15             n= 6276 | ET   518 obs   479 = 1.08 | transp   224 (0.43) interc    86 (0.17) soil   201 (0.39) snow    6 ( 0.01) | transp/GPP  0.24 kg/gC  GPP/obs 1.39
+tree 0.15-0.30             n= 6310 | ET   611 obs   599 = 1.02 | transp   291 (0.48) interc   123 (0.20) soil   193 (0.32) snow    4 ( 0.01) | transp/GPP  0.23 kg/gC  GPP/obs 1.32
+tree 0.30-0.50             n= 4969 | ET   645 obs   654 = 0.99 | transp   320 (0.50) interc   149 (0.23) soil   173 (0.27) snow    3 ( 0.00) | transp/GPP  0.23 kg/gC  GPP/obs 1.28
+tree 0.50-0.70             n= 4089 | ET   648 obs   684 = 0.95 | transp   319 (0.49) interc   168 (0.26) soil   157 (0.24) snow    3 ( 0.01) | transp/GPP  0.22 kg/gC  GPP/obs 1.19
+tree 0.70-1.01             n=10930 | ET   798 obs   873 = 0.91 | transp   361 (0.45) interc   275 (0.34) soil   156 (0.20) snow    5 ( 0.01) | transp/GPP  0.22 kg/gC  GPP/obs 0.90
+-- by latitude --
+lat +60..+90               n= 9149 | ET   304 obs   279 = 1.09 | transp    38 (0.12) interc    30 (0.10) soil   216 (0.71) snow   21 ( 0.07) | transp/GPP  0.15 kg/gC  GPP/obs 0.92
+lat +45..+60               n=11059 | ET   411 obs   390 = 1.05 | transp   120 (0.29) interc    83 (0.20) soil   198 (0.48) snow   10 ( 0.02) | transp/GPP  0.20 kg/gC  GPP/obs 1.09
+lat +30..+45               n= 6673 | ET   469 obs   445 = 1.06 | transp   227 (0.48) interc    81 (0.17) soil   161 (0.34) snow   -1 (-0.00) | transp/GPP  0.23 kg/gC  GPP/obs 1.47
+lat +15..+30               n= 3309 | ET   571 obs   683 = 0.84 | transp   314 (0.55) interc   108 (0.19) soil   148 (0.26) snow   -0 (-0.00) | transp/GPP  0.21 kg/gC  GPP/obs 1.18
+lat +0..+15                n= 4517 | ET   865 obs   882 = 0.98 | transp   415 (0.48) interc   273 (0.32) soil   177 (0.20) snow   -0 (-0.00) | transp/GPP  0.24 kg/gC  GPP/obs 1.00
+lat -15..+0                n= 4482 | ET   978 obs  1078 = 0.91 | transp   492 (0.50) interc   320 (0.33) soil   167 (0.17) snow   -0 (-0.00) | transp/GPP  0.24 kg/gC  GPP/obs 0.97
+lat -30..-15               n= 4248 | ET   594 obs   530 = 1.12 | transp   334 (0.56) interc   114 (0.19) soil   147 (0.25) snow   -0 (-0.00) | transp/GPP  0.24 kg/gC  GPP/obs 1.56
+lat -60..-30               n= 1556 | ET   545 obs   442 = 1.23 | transp   284 (0.52) interc   109 (0.20) soil   153 (0.28) snow   -1 (-0.00) | transp/GPP  0.24 kg/gC  GPP/obs 1.86
