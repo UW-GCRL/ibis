@@ -2244,6 +2244,36 @@ Together with the tropical phase lag (the dormancy trigger that reaches
 the flux only on the corrected canopy), these are criterion 3 in full:
 the mid-latitude half is a winter the model does not have.
 
+### Lever test 13: neither the C4 envelope nor the grass threshold reaches the winter -- the shrubs do
+
+Sixty C4-dominated steppe cells at 40-55 N (warmest month 23.7 C, coldest
+-7.0 C; FLUXCOM 0.52 kgC m-2 yr-1, winter GPP ~0), the joint-fit
+parameters, 8 years cycled, years 6-8 (`lever_test13.py`):
+
+| case | dominant PFT: C4 / C3 / shrub (of 60) | annual | Nov-Feb model/obs | Jun-Jul | amplitude (obs 47) | Dec displayed LAI |
+|---|---|---|---|---|---|---|
+| as fitted (`Twarm` 22, lower-canopy threshold 0 C) | 56 / 0 / 4 | 0.98 | **5.0** | 0.58 | 5.7 | 3.3 |
+| `Twarm` 24 | 23 / 0 / **33** | 0.90 | 5.6 | 0.47 | 4.0 | 3.6 |
+| `Twarm` 26 (C4 excluded) | 7 / 0 / **49** | 0.84 | 5.7 | 0.40 | 3.4 | 3.8 |
+| `tthresh_l_c` +5 C | 52 / 0 / 6 | 0.95 | 5.1 | 0.56 | 4.9 | 3.5 |
+| `tthresh_l_c` +8 C | 35 / 0 / 22 | 0.92 | 5.4 | 0.50 | 4.1 | 3.9 |
+| `Twarm` 26 + `tthresh_l_c` +8 | 7 / 0 / 49 | 0.83 | 5.8 | 0.39 | 3.2 | 4.4 |
+
+Both levers made the winter worse, and the reason is the same in every
+row: **C3 grass wins nowhere** -- when C4 is excluded or the grasses are
+made dormant earlier, the lower canopy goes to the **evergreen shrub**
+(PFT 9: vmax 35.7 after the fits, no cold phenology at all, existence
+wherever gdd0 > 100), whose leaf area then stands at 3.5-4.4 through a
+-7 C winter and assimilates in every mild spell. The mid-latitude winter
+is therefore a lower-canopy competition problem, not a threshold: the
+real steppe is C3 grass because of cold tolerance and disturbance, and
+IBIS's lower canopy decides by NPP among a C3 grass whose vmax the fits
+have pushed to its floor (it dominates nowhere, so no loss can see it),
+a C4 grass allowed north to 55 N by a warm-month rule alone, and an
+evergreen shrub with a fitted vmax of 35.7 and no winter. Lever test 14
+removes the evergreen classes to attribute the winter GPP before any fix
+is designed.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
