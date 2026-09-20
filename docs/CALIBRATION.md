@@ -1667,24 +1667,26 @@ decomposition (`et_decomp_domain.py`, on a hindcast written with
 resistance and the snow-cover / frozen-ground evaporation path, then
 interception capacity.
 
-**The formulation behind the soil evaporation** (read, to be confirmed on
-the domain decomposition): the ground conductance is `sg = 1 / (cfi +
-1/sg0)` with `cfi` the aerodynamic resistance of the air layer between the
-lower canopy and the ground (`turcof`) -- no soil term; and the `qglif`
-weights `setsoi` hands to `turvap` partition the surface humidity among
-liquid soil water, soil ice, puddle water and puddle ice, summing to one
-whenever the top layer holds any water. So the soil surface evaporates at
-saturation humidity for its temperature, limited only by energy and
-aerodynamics, however dry the layer: IBIS 2.6 has no soil-moisture control
-on bare-soil evaporation (no "beta" or "alpha" function, no soil surface
-resistance). The decomposition shows it -- open-land soil evaporation is a
-flat 15-24 mm/month through wet and dry seasons while transpiration and
-interception carry the seasonality -- and it would produce the domain's
-treeless-land signature (ET 1.31x, ET/P 0.77 against 0.58) directly. A
-moisture-dependent surface humidity (Lee and Pielke's alpha on the top
-layer's wetness, the standard in CLM/Noah) is the first structural lever
-of the ET stage, built like the others: off by default, bit-identical,
-tested on the 70 cells before any fit.
+**The formulation behind the soil evaporation** -- corrected the same
+evening. A first reading of `setsoi` (the `qglif` weights, which only
+partition liquid / ice / puddle) and `turcof` (`cfi`, purely aerodynamic)
+led to the claim that IBIS has no soil-moisture control on bare-soil
+evaporation. It does: `turvap` (F77 `canopy.f` 792-860, ported line for
+line) scales the soil surface humidity by `qgfac0 = alpha = betas * hfac +
+(1 - betas) * q34/qg`, with `hfac = exp(psi g / (R_v T_g))` the
+matric-potential humidity of the top layer and `betas` a wetness "beta",
+`betaw = (w_top - swilt) / (1 - swilt)` corrected for the surface energy
+balance (`betafac`). So the control exists; the question is its strength.
+Two features make it weak on dry ground: the beta reaches zero only at the
+wilting point, whereas a real soil surface dries far below it (CLM and
+Noah add a dry-surface-layer or soil resistance that grows as the top
+centimetres dry), and the top layer is 10 cm thick, so the surface store
+that feeds evaporation at near-saturation humidity is large. Whether that
+is what keeps open-land soil evaporation at a flat 15-24 mm/month through
+the dry season is a measurement, not a reading: the domain decomposition
+first, then a lever test on the 70 cells with the beta's zero moved toward
+air-dry and with a Sellers-type soil resistance added to `1/sg` -- both
+off by default, bit-identical, as with every structural switch so far.
 
 Model ET is `ayaet` (mm/yr) yearly and `amaet` monthly; the fit harness's
 `one_year` already returns `ayaet` and the daily AET series, so the ET fit
