@@ -1733,6 +1733,35 @@ for:
    climatology (`--w-et-season`), with the tower finding kept in mind: the
    model's ET seasonal amplitude at 194 towers is 9 against 15 observed.
 
+**ET lever test 2 -- the soil-evaporation control strength**
+(`soil_beta_power`, built: `turvap`'s wetness beta raised to a power `p`,
+`p` = 1 bit-identical, threaded from `CanopyParams`, fittable as an extra;
+`et_lever2.py`, same 70 transient-biased cells, responses not levels):
+
+| class | p = 1 (F77): ET ratio / T/ET / Ei/ET / Es/ET / GPP / ET amp | p = 3 | p = 5 |
+|---|---|---|---|
+| forest | 0.84 / 0.41 / 0.33 / 0.25 / 0.73 / 0.66 | 0.77 / 0.47 / 0.39 / **0.14** / 0.75 / 0.64 | 0.75 / 0.49 / 0.41 / 0.10 / 0.75 / 0.65 |
+| open | 0.84 / 0.50 / 0.09 / 0.41 / 1.01 / 2.26 | 0.80 / **0.69** / 0.15 / **0.17** / **1.21** / **1.43** | 0.77 / 0.74 / 0.17 / 0.10 / 1.25 / 1.14 |
+| boreal | 1.01 / 0.22 / 0.22 / 0.53 / 0.79 / 0.24 | 0.78 / 0.31 / 0.31 / 0.34 / 0.82 / 0.23 | 0.69 / 0.36 / 0.36 / 0.23 / 0.82 / 0.22 |
+
+The lever is strong and it acts on the right things: at p = 3 the open
+land's soil evaporation falls from 41 % to 17 % of ET, transpiration rises
+to 69 %, and the seasonal amplitude error (2.3x) halves (1.4x); boreal soil
+evaporation falls from 53 % to 34 %. Two consequences bind it to the
+carbon fit. Total ET falls in every class (the saved soil water is only
+partly transpired), so on the domain -- treeless land 1.14x, boreal 1.09x,
+forests 0.91x -- it helps two classes and hurts the forests; and the water
+it saves feeds grass GPP (open land 1.01 -> 1.21x), on land whose GPP is
+already 1.55x observed. So `soil_beta_power` cannot be fitted on ET alone.
+
+**The ET stage is therefore a joint fit**, not a separate one: the (b4)
+structure with the carbon terms as they stand plus `--w-et` and
+`--w-et-season`, `soil_beta_power` and the interception capacity added to
+the structural extras, `vmax`/`specla` free -- one loss carrying the three
+carbon criteria, the tree fraction, the ET total and pattern, and the ET
+season, on the representative land-weighted sample. Launched after the
+(b4) decision on whichever carbon state wins.
+
 Model ET is `ayaet` (mm/yr) yearly and `amaet` monthly; the fit harness's
 `one_year` already returns `ayaet` and the daily AET series, so the ET fit
 is the carbon harness with `fluxcom_at` -> an ET loader and the seasonal

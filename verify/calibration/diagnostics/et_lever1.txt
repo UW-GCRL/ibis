@@ -1,0 +1,22 @@
+An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+2026-09-19 19:21:49,052 cached 36 months of forcing (0.00 GB)
+70 cells: forest (tree>0.7, |lat|<55) n=25, open (tree<0.3, |lat|<40) n=25, boreal (lat>50) n=20; obs = FLUXCOM GPP, five-product ET ensemble mean; 6 yr cycled, years 4-6
+case                           | class                          | GPP mod/obs ET mod/obs WUE mod/obs | ET amp mod/obs
+(b3) as fitted                 | forest (tree>0.7, |lat|<55)    |       0.727      0.838       0.868 |           0.66
+(b3) as fitted                 | open (tree<0.3, |lat|<40)      |       1.012      0.836       1.211 |           2.26
+(b3) as fitted                 | boreal (lat>50)                |       0.787      1.006       0.782 |           0.24
+coefm all x0.7                 | forest (tree>0.7, |lat|<55)    |       0.656      0.779       0.843 |           0.62
+coefm all x0.7                 | open (tree<0.3, |lat|<40)      |       0.948      0.802       1.183 |           1.95
+coefm all x0.7                 | boreal (lat>50)                |       0.673      0.973       0.692 |           0.23
+coefm all x1.3                 | forest (tree>0.7, |lat|<55)    |       0.752      0.880       0.854 |           0.70
+coefm all x1.3                 | open (tree<0.3, |lat|<40)      |       0.992      0.852       1.164 |           2.60
+coefm all x1.3                 | boreal (lat>50)                |       0.841      1.037       0.811 |           0.26
+coefm trees (bl, con) x0.7     | forest (tree>0.7, |lat|<55)    |       0.670      0.784       0.855 |           0.63
+coefm trees (bl, con) x0.7     | open (tree<0.3, |lat|<40)      |       0.979      0.803       1.219 |           2.31
+coefm trees (bl, con) x0.7     | boreal (lat>50)                |       0.737      0.996       0.740 |           0.23
+coefm grasses+shrub x0.7       | forest (tree>0.7, |lat|<55)    |       0.714      0.833       0.857 |           0.65
+coefm grasses+shrub x0.7       | open (tree<0.3, |lat|<40)      |       0.969      0.833       1.164 |           1.97
+coefm grasses+shrub x0.7       | boreal (lat>50)                |       0.727      0.984       0.738 |           0.23
+stressfac -4 (more stress)     | forest (tree>0.7, |lat|<55)    |       0.719      0.834       0.862 |           0.65
+stressfac -4 (more stress)     | open (tree<0.3, |lat|<40)      |       0.963      0.824       1.168 |           2.12
+stressfac -4 (more stress)     | boreal (lat>50)                |       0.767      1.004       0.764 |           0.24
