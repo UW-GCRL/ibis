@@ -5,7 +5,7 @@ corrected carbon cycle. Order set by Hangkai: carbon, then ET, then the smaller
 parts. Methane is evaluated against FLUXNET-CH4 (Chenchen's processing).
 
 
-## State of the calibration (updated 2026-09-19 19:30; (b3) closed on a self-consistent state, (b4) running)
+## State of the calibration (updated 2026-09-20 00:20; (b3) closed, (b4) validated, joint carbon + ET fit running)
 
 Three criteria for carbon (the user's): global total, spatial pattern,
 seasonal pattern. A fourth was added as the means to the second: tree
@@ -21,7 +21,8 @@ cover against the CLM tree fraction. ET follows.
 | v12d, stage (b2) | joint refit on the corrected canopy, tree weight 3 | 148 (120) | 0.98 / 1.12 / 0.98 | 0.29 (forests lost) | 0.81 | 18 |
 | **v12e, stage (b3)** | growing-season survival stress, joint refit | 164 (**132**) | 1.40 / 1.03 / 1.13 | **0.355** (r 0.66) | 0.82 | 18 |
 | **closing protocol on (b3)** | spin-up + 1901-2010 transient + hindcast, same parameters | 161 (**130**) | 1.38 / 0.98 / 1.10 | 0.323 (r 0.63) | 0.82 | 19 |
-| v12f, stage (b4) | gate fixed 0.80/0.10, total weighted, land + representative weights | *running* | | | | 18 |
+| v12f, stage (b4) | gate fixed 0.80/0.10, total weighted, land + representative weights | 149 (**118**) | 1.25 / 1.05 / 1.01 | 0.272 (forests 0.62) | 0.81 | 18 |
+| v12g, joint carbon + ET | from (b3), gate free, (b4) scoring, ET terms, soil_beta_power | *running* | | | | 15, 18 |
 
 GPP column: binary-mask total as quoted in the sections, and in brackets
 the total on TRUE land (section 18, "The mask"), which is the number to
@@ -2514,6 +2515,41 @@ residual. The domain validation and the closing protocol, both running
 overnight, say whether the domain follows -- a true-land total near
 120-125 PgC would -- and judge (b4) against (b3) on forest and boreal
 cover, the steppes and the pools.
+
+### Stage (b4) over the domain, against (b3): the total at the forests' expense again
+
+50-year validations (years 2056-60; true-land totals):
+
+| | (b3) v12e | **(b4) v12f** | observed |
+|---|---|---|---|
+| GPP PgC/yr, true land / on FLUXCOM-covered land | 132.1 / 128.9 (1.18x) | **118.4 / 115.3 (1.06x)** | 120-130 / 109 |
+| NPP true land | 59.6 | 51.1 | 55-60 |
+| GPP by band 30S-30N / 30-50N / 50-60N / 60-70N / 70-90N | 1.13 / 1.40 / 1.10 / 1.03 / 1.10 | **1.01 / 1.25 / 0.99 / 1.05 / 1.21** | 1 |
+| ET (vs MODIS) / WUE; ET vs ensemble | 1.04 / 1.13; 0.99 | 1.02 / **1.03**; 0.99 | 1 |
+| fu natural land / MAD / r | **0.355 / 0.210 / 0.66** | 0.272 / 0.227 / 0.58 | 0.335 / 0 / 1 |
+| forests (> 0.7): fu / GPP | **0.77 / 0.93** | 0.62 / 0.83 | 0.91 / 1 |
+| boreal 60-90N fu; 45-60N fu | 0.25; 0.55 | 0.22; 0.47 | 0.25; 0.45 |
+| phantom / missing-tree cells | 3.7 / **7.1 %** | 2.1 / 12.9 % | |
+| veg C PgC true land; soil C; litter | **281**; 11.6; 0.59 | 207; 11.1; 0.49 | 450-650; 10-15; 0.4-0.8 |
+| T/ET (components) | 0.46 | 0.42 | 0.57-0.64 |
+| seasonal amplitude all / tropics / 30-50N | 0.82 / 0.96 / 0.62 | 0.81 / 0.95 / 0.62 | 1 |
+
+(b4) is the best state yet on criterion 1 and on the band pattern -- and
+it got there the way (b2) did, in a milder form: the gate fixed at 0.80
+took forest cover from 0.77 to 0.62 of the observed 0.91, doubled the
+missing-tree land, and cut vegetation carbon to 207. The measurement that
+put the threshold at 0.80 (section 18) was made at `stressfac` -8.1; the
+fit ran at -6.5, a stronger stress function, and the two are one
+coordinate -- fixing one while the other moved was the mistake. On the
+sample (b4) read GPP 0.997 and ET 0.980 against the domain's 1.06x and
+0.99: with the land and representative weights the sample is now honest.
+
+**Decision.** The joint carbon + ET fit starts from **(b3)** (forests,
+pools, cover pattern) with the **gate free** again and **(b4)'s scoring**
+(total weighted 25, land and representative weights), the ET terms on,
+and `soil_beta_power` among the extras. The closing protocol on (b4) is
+stopped: it would document a state not going forward and halve the joint
+fit's speed for six hours; the (b4) 50-year validation above is its record.
 
 ## 19. What is scored, and the closing protocol
 
