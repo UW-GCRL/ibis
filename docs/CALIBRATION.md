@@ -1667,6 +1667,25 @@ decomposition (`et_decomp_domain.py`, on a hindcast written with
 resistance and the snow-cover / frozen-ground evaporation path, then
 interception capacity.
 
+**The formulation behind the soil evaporation** (read, to be confirmed on
+the domain decomposition): the ground conductance is `sg = 1 / (cfi +
+1/sg0)` with `cfi` the aerodynamic resistance of the air layer between the
+lower canopy and the ground (`turcof`) -- no soil term; and the `qglif`
+weights `setsoi` hands to `turvap` partition the surface humidity among
+liquid soil water, soil ice, puddle water and puddle ice, summing to one
+whenever the top layer holds any water. So the soil surface evaporates at
+saturation humidity for its temperature, limited only by energy and
+aerodynamics, however dry the layer: IBIS 2.6 has no soil-moisture control
+on bare-soil evaporation (no "beta" or "alpha" function, no soil surface
+resistance). The decomposition shows it -- open-land soil evaporation is a
+flat 15-24 mm/month through wet and dry seasons while transpiration and
+interception carry the seasonality -- and it would produce the domain's
+treeless-land signature (ET 1.31x, ET/P 0.77 against 0.58) directly. A
+moisture-dependent surface humidity (Lee and Pielke's alpha on the top
+layer's wetness, the standard in CLM/Noah) is the first structural lever
+of the ET stage, built like the others: off by default, bit-identical,
+tested on the 70 cells before any fit.
+
 Model ET is `ayaet` (mm/yr) yearly and `amaet` monthly; the fit harness's
 `one_year` already returns `ayaet` and the daily AET series, so the ET fit
 is the carbon harness with `fluxcom_at` -> an ET loader and the seasonal
