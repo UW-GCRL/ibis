@@ -35,7 +35,8 @@ $PY -u python-port/scripts/run_global.py $F/transient/cfg.yaml > $F/transient/ru
 [ -f $F/transient/restart/ibis_restart_2000.npz ] || { echo "no 2000 restart"; exit 1; }
 # 3. hindcast 2001-2010, monthly
 mkcfg $V/v11_transient/cfg.yaml $F/hindcast/cfg.yaml $F/hindcast
-sed -i -e 's|^  iyear0: 1901|  iyear0: 2001|' -e 's|^  nrun: 110|  nrun: 10|' -e 's|^  irestart: 1900|  irestart: 2000|' -e 's|^  imonthout: 0|  imonthout: 1|' $F/hindcast/cfg.yaml
+sed -i -e 's|^  iyear0: 1901|  iyear0: 2001|' -e 's|^  nrun: 110|  nrun: 10|' -e 's|^  irestart: 1900|  irestart: 2000|' -e 's|^  imonthout: 0|  imonthout: 1|' \
+       -e 's|^  transient_co2: true|  transient_co2: true\n  et_components: true|' $F/hindcast/cfg.yaml    # ET components in the yearly files (CALIBRATION.md 15)
 cp $F/transient/restart/ibis_restart_2000.npz $F/hindcast/restart/
 echo "=== [$TAG] HINDCAST 2001-2010 (monthly) start $(date +%H:%M) ==="; grep -E "iyear0|nrun|irestart|imonthout" $F/hindcast/cfg.yaml | tr -s ' ' | tr '\n' ';'; echo
 $PY -u python-port/scripts/run_global.py $F/hindcast/cfg.yaml > $F/hindcast/run.log 2>&1 || { echo "HINDCAST FAILED"; tail -5 $F/hindcast/run.log; exit 1; }
