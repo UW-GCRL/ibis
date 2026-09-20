@@ -1,0 +1,20 @@
+An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+/shared/nas2/Hangkai/ibis/verify_outputs/val_v12g/fit/out
+years 2056-2060; scored cells 44993 (natural veg >= 70 %, all-five ET, land fraction > 0.5)
+ALL                        n=44993 | ET   580 obs   594 = 0.98 | transp   261 (0.45) interc   126 (0.22) soil   189 (0.33) snow    4 ( 0.01) | transp/GPP  0.25 kg/gC  GPP/obs 1.04
+-- by CLM tree fraction --
+tree 0.00-0.05             n=12419 | ET   382 obs   336 = 1.14 | transp   171 (0.45) interc    38 (0.10) soil   169 (0.44) snow    4 ( 0.01) | transp/GPP  0.29 kg/gC  GPP/obs 1.50
+tree 0.05-0.15             n= 6276 | ET   513 obs   479 = 1.07 | transp   224 (0.44) interc    68 (0.13) soil   215 (0.42) snow    6 ( 0.01) | transp/GPP  0.28 kg/gC  GPP/obs 1.21
+tree 0.15-0.30             n= 6310 | ET   600 obs   599 = 1.00 | transp   277 (0.46) interc    98 (0.16) soil   221 (0.37) snow    4 ( 0.01) | transp/GPP  0.26 kg/gC  GPP/obs 1.13
+tree 0.30-0.50             n= 4969 | ET   631 obs   654 = 0.96 | transp   300 (0.48) interc   121 (0.19) soil   207 (0.33) snow    3 ( 0.00) | transp/GPP  0.24 kg/gC  GPP/obs 1.12
+tree 0.50-0.70             n= 4089 | ET   634 obs   684 = 0.93 | transp   302 (0.48) interc   148 (0.23) soil   181 (0.29) snow    3 ( 0.01) | transp/GPP  0.23 kg/gC  GPP/obs 1.08
+tree 0.70-1.01             n=10930 | ET   780 obs   873 = 0.89 | transp   336 (0.43) interc   265 (0.34) soil   174 (0.22) snow    5 ( 0.01) | transp/GPP  0.22 kg/gC  GPP/obs 0.83
+-- by latitude --
+lat +60..+90               n= 9149 | ET   298 obs   279 = 1.07 | transp    41 (0.14) interc    35 (0.12) soil   202 (0.68) snow   20 ( 0.07) | transp/GPP  0.15 kg/gC  GPP/obs 0.99
+lat +45..+60               n=11059 | ET   396 obs   390 = 1.01 | transp   113 (0.28) interc    84 (0.21) soil   189 (0.48) snow   10 ( 0.03) | transp/GPP  0.20 kg/gC  GPP/obs 1.01
+lat +30..+45               n= 6673 | ET   471 obs   445 = 1.06 | transp   230 (0.49) interc    69 (0.15) soil   173 (0.37) snow   -1 (-0.00) | transp/GPP  0.25 kg/gC  GPP/obs 1.36
+lat +15..+30               n= 3309 | ET   567 obs   683 = 0.83 | transp   312 (0.55) interc    84 (0.15) soil   171 (0.30) snow   -0 (-0.00) | transp/GPP  0.24 kg/gC  GPP/obs 1.05
+lat +0..+15                n= 4517 | ET   856 obs   882 = 0.97 | transp   403 (0.47) interc   242 (0.28) soil   211 (0.25) snow    0 ( 0.00) | transp/GPP  0.26 kg/gC  GPP/obs 0.89
+lat -15..+0                n= 4482 | ET   957 obs  1078 = 0.89 | transp   451 (0.47) interc   279 (0.29) soil   226 (0.24) snow   -0 (-0.00) | transp/GPP  0.25 kg/gC  GPP/obs 0.84
+lat -30..-15               n= 4248 | ET   586 obs   530 = 1.11 | transp   333 (0.57) interc    93 (0.16) soil   160 (0.27) snow   -0 (-0.00) | transp/GPP  0.26 kg/gC  GPP/obs 1.44
+lat -60..-30               n= 1556 | ET   525 obs   442 = 1.19 | transp   279 (0.53) interc    94 (0.18) soil   153 (0.29) snow   -1 (-0.00) | transp/GPP  0.27 kg/gC  GPP/obs 1.63

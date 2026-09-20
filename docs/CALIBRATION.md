@@ -5,7 +5,7 @@ corrected carbon cycle. Order set by Hangkai: carbon, then ET, then the smaller
 parts. Methane is evaluated against FLUXNET-CH4 (Chenchen's processing).
 
 
-## State of the calibration (updated 2026-09-20 00:20; (b3) closed, (b4) validated, joint carbon + ET fit running)
+## State of the calibration (updated 2026-09-20 12:20; joint carbon + ET fit validated; closing protocol on it running)
 
 Three criteria for carbon (the user's): global total, spatial pattern,
 seasonal pattern. A fourth was added as the means to the second: tree
@@ -22,7 +22,7 @@ cover against the CLM tree fraction. ET follows.
 | **v12e, stage (b3)** | growing-season survival stress, joint refit | 164 (**132**) | 1.40 / 1.03 / 1.13 | **0.355** (r 0.66) | 0.82 | 18 |
 | **closing protocol on (b3)** | spin-up + 1901-2010 transient + hindcast, same parameters | 161 (**130**) | 1.38 / 0.98 / 1.10 | 0.323 (r 0.63) | 0.82 | 19 |
 | v12f, stage (b4) | gate fixed 0.80/0.10, total weighted, land + representative weights | 149 (**118**) | 1.25 / 1.05 / 1.01 | 0.272 (forests 0.62) | 0.81 | 18 |
-| v12g, joint carbon + ET | from (b3), gate free, (b4) scoring, ET terms, soil_beta_power | *running* | | | | 15, 18 |
+| v12g, joint carbon + ET | from (b3), gate free, (b4) scoring, ET terms, soil_beta_power | 148 (**118**) | 1.27 / 1.05 / 0.99 | 0.312 (forests 0.67) | 0.80 | 15, 18 |
 
 GPP column: binary-mask total as quoted in the sections, and in brackets
 the total on TRUE land (section 18, "The mask"), which is the number to
@@ -1841,6 +1841,57 @@ structure with the carbon terms as they stand plus `--w-et` and
 carbon criteria, the tree fraction, the ET total and pattern, and the ET
 season, on the representative land-weighted sample. Launched after the
 (b4) decision on whichever carbon state wins.
+
+### The joint fit over the domain: the carbon terms decided everything, ET moved nowhere
+
+50-year validation (`val_v12g`, years 2056-60, with ET components), against
+the two states it descends from:
+
+| | (b3) v12e | (b4) v12f | **joint v12g** | observed |
+|---|---|---|---|---|
+| GPP PgC/yr, true land / on FLUXCOM land | 132.1 / 128.9 | 118.4 / 115.3 | **118.3 / 115.0 (1.06x)** | 120-130 / 109 |
+| NPP true land; veg C true land | 59.6; 281 | 51.1; 207 | 52.3; 225 | 55-60; 450-650 |
+| GPP by band 30S-30N / 30-50N / 50-60N / 60-70N / 70-90N | 1.13 / 1.40 / 1.10 / 1.03 / 1.10 | 1.01 / 1.25 / 0.99 / 1.05 / 1.21 | **0.99 / 1.27 / 1.03 / 1.05 / 1.26** | 1 |
+| fu natural land / r; forests fu / GPP | 0.355 / 0.66; 0.77 / 0.93 | 0.272 / 0.58; 0.62 / 0.83 | 0.312 / 0.61; 0.67 / 0.85 | 0.335; 0.91 / 1 |
+| phantom / missing-tree cells | 3.7 / 7.1 % | 2.1 / 12.9 % | 2.6 / 11.2 % | |
+| ET vs MODIS / vs ensemble; WUE | 1.04 / 0.99; 1.13 | 1.02 / 0.99; 1.03 | **1.01 / 0.98; 1.03** | 1 |
+| ET by band 15-30N / 30-45N / 15-60S; treeless | 0.87 / 1.16 / 1.29-1.32; 1.33 | 0.87 / 1.16 / 1.29-1.32; 1.32 | 0.87 / 1.15 / 1.27-1.32; 1.30 | 1 |
+| T/ET; boreal soil-evaporation share | 0.46; 0.71 | 0.42; 0.70 | 0.45; 0.68 | 0.57-0.64; -- |
+| seasonal amplitude all / tropics / 30-50N | 0.82 / 0.96 / 0.62 | 0.81 / 0.95 / 0.62 | 0.80 / 0.94 / 0.62 | 1 |
+
+Two conclusions, one for each stage.
+
+**Carbon.** The joint fit is (b4) with the gate fitted: the same total
+(118 on true land, 1.06x FLUXCOM on the land it covers, the bands within
+5 % at high latitudes and in the tropics) and forests between (b4)'s and
+(b3)'s. Three states now bracket the trade the data leave open -- (b3)
+holds the forests and the pools and runs 1.18x on covered land; (b4) and
+the joint fit sit at 1.06x and give up a fifth of the forest cover and
+the biomass with it. Criterion 1 is met by either reading; criterion 2's
+residual is the steppe and grassland belt at 1.3-1.6x (treeless land 1.47x
+with the trees gone: the grass itself over-produces) and the forests at
+0.85-0.93; criterion 3's residual is the mid-latitude amplitude at 0.6,
+untouched by every stage since (a).
+
+**ET.** At weight 1 the ET terms decided nothing: total, pattern and
+partition are the same to two decimals as in the two carbon states, and
+`soil_beta_power` settled at a mild 1.31. That is not a failure of the
+fit: the ET total was already right (0.98-1.01), and the decomposition
+(above) had shown that transpiration per unit GPP is fixed by the coupled
+scheme, so the ET pattern -- 15-30 N short, the southern mid-latitudes
+and treeless land 1.3x high -- *is* the GPP pattern (15-60 S GPP 1.4-1.6x,
+treeless 1.5x) in water. The ET stage's remaining error is therefore the
+carbon stage's remaining error: the steppe and grassland excess. The
+partition (T/ET 0.45, boreal soil evaporation 68 %) is the one ET-specific
+residual, and its lever exists (`soil_beta_power`; the joint fit did not
+need it at these weights). A dedicated ET pass, if wanted, is a fit with
+the ET weights raised on the state that has the steppes right -- which
+does not exist yet.
+
+**Closing protocol on the joint result** (`final_validation.sh v12g`,
+launched 12:15 on 2026-09-20, ~6 h): the self-consistent 2010 state with
+ET components, fire, methane and the trend, to stand beside the (b3)
+closing run (section 19) as the two candidate states.
 
 Model ET is `ayaet` (mm/yr) yearly and `amaet` monthly; the fit harness's
 `one_year` already returns `ayaet` and the daily AET series, so the ET fit

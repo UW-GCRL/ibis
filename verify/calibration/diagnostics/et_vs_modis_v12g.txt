@@ -1,0 +1,15 @@
+ALL                  n=48442  ET mod   591 obs   583 mm/yr  ratio 1.01 | ET/P mod 0.59 obs 0.58 | GPP ratio 1.04 | WUE mod 1.82 obs 1.77 gC/kg  ratio 1.03
+lat +60..+90         n=10061  ET mod   298 obs   314 mm/yr  ratio 0.95 | ET/P mod 0.61 obs 0.65 | GPP ratio 1.04 | WUE mod 0.94 obs 0.85 gC/kg  ratio 1.10
+lat +45..+60         n=11853  ET mod   400 obs   397 mm/yr  ratio 1.01 | ET/P mod 0.62 obs 0.62 | GPP ratio 1.03 | WUE mod 1.45 obs 1.42 gC/kg  ratio 1.02
+lat +30..+45         n= 7059  ET mod   482 obs   420 mm/yr  ratio 1.15 | ET/P mod 0.69 obs 0.60 | GPP ratio 1.36 | WUE mod 1.94 obs 1.65 gC/kg  ratio 1.18
+lat +15..+30         n= 3566  ET mod   596 obs   689 mm/yr  ratio 0.87 | ET/P mod 0.48 obs 0.56 | GPP ratio 1.06 | WUE mod 2.26 obs 1.85 gC/kg  ratio 1.22
+lat +0..+15          n= 4839  ET mod   878 obs   853 mm/yr  ratio 1.03 | ET/P mod 0.56 obs 0.55 | GPP ratio 0.90 | WUE mod 1.78 obs 2.04 gC/kg  ratio 0.87
+lat -15..+0          n= 4812  ET mod   976 obs  1094 mm/yr  ratio 0.89 | ET/P mod 0.53 obs 0.59 | GPP ratio 0.85 | WUE mod 1.86 obs 1.95 gC/kg  ratio 0.96
+lat -30..-15         n= 4407  ET mod   599 obs   470 mm/yr  ratio 1.27 | ET/P mod 0.69 obs 0.54 | GPP ratio 1.42 | WUE mod 2.16 obs 1.93 gC/kg  ratio 1.12
+lat -60..-30         n= 1845  ET mod   548 obs   415 mm/yr  ratio 1.32 | ET/P mod 0.68 obs 0.51 | GPP ratio 1.61 | WUE mod 2.06 obs 1.69 gC/kg  ratio 1.22
+tree 0.00-0.05       n=13031  ET mod   384 obs   294 mm/yr  ratio 1.30 | ET/P mod 0.76 obs 0.58 | GPP ratio 1.49 | WUE mod 1.55 obs 1.36 gC/kg  ratio 1.14
+tree 0.05-0.15       n= 6790  ET mod   509 obs   441 mm/yr  ratio 1.15 | ET/P mod 0.67 obs 0.58 | GPP ratio 1.22 | WUE mod 1.56 obs 1.47 gC/kg  ratio 1.06
+tree 0.15-0.30       n= 6783  ET mod   602 obs   569 mm/yr  ratio 1.06 | ET/P mod 0.64 obs 0.61 | GPP ratio 1.15 | WUE mod 1.79 obs 1.64 gC/kg  ratio 1.09
+tree 0.30-0.50       n= 5388  ET mod   642 obs   641 mm/yr  ratio 1.00 | ET/P mod 0.61 obs 0.60 | GPP ratio 1.13 | WUE mod 1.95 obs 1.73 gC/kg  ratio 1.13
+tree 0.50-0.70       n= 4505  ET mod   665 obs   709 mm/yr  ratio 0.94 | ET/P mod 0.56 obs 0.59 | GPP ratio 1.09 | WUE mod 2.05 obs 1.77 gC/kg  ratio 1.16
+tree 0.70-1.01       n=11945  ET mod   791 obs   890 mm/yr  ratio 0.89 | ET/P mod 0.49 obs 0.55 | GPP ratio 0.84 | WUE mod 1.95 obs 2.05 gC/kg  ratio 0.95

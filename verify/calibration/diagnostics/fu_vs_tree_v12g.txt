@@ -1,0 +1,31 @@
+An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+/shared/nas2/Hangkai/ibis/verify_outputs/val_v12g/fit/out
+years 2056-2060; land cells 95333, natural-veg>=70%: 65698 (89% of land area); positive GPP excess EX=7370.3 (area-wtd, all land)
+ALL natural cells: area-wtd fu=0.312 vs tree=0.335; MAD(tree term)=0.221; RMSE=0.341; r=0.61; fu floor 0.25 -> min fu=0.06
+
+-- by CLM tree fraction (natural cells) --
+tree 0.00-0.05                     n=25113 area%= 36.6  fu=0.10 tree=0.01  fl=0.26  GPP mod/obs=1.47  excess%=31
+tree 0.05-0.15                     n= 7575 area%= 10.6  fu=0.17 tree=0.09  fl=0.30  GPP mod/obs=1.23  excess%=14
+tree 0.15-0.30                     n= 7278 area%= 11.3  fu=0.25 tree=0.22  fl=0.32  GPP mod/obs=1.16  excess%=17
+tree 0.30-0.50                     n= 6018 area%=  9.8  fu=0.35 tree=0.39  fl=0.33  GPP mod/obs=1.13  excess%=15
+tree 0.50-0.70                     n= 5208 area%=  8.5  fu=0.48 tree=0.59  fl=0.32  GPP mod/obs=1.09  excess%=12
+tree 0.70-1.01                     n=14506 area%= 23.2  fu=0.67 tree=0.91  fl=0.31  GPP mod/obs=0.85  excess%=11
+
+-- by latitude (natural cells) --
+lat +60..+90                       n=14534 area%= 11.5  fu=0.25 tree=0.25  fl=0.24  GPP mod/obs=1.04  excess%=3
+lat +45..+60                       n=12886 area%= 16.4  fu=0.53 tree=0.45  fl=0.25  GPP mod/obs=1.03  excess%=11
+lat +30..+45                       n=10214 area%= 16.9  fu=0.26 tree=0.18  fl=0.29  GPP mod/obs=1.35  excess%=24
+lat +15..+30                       n= 8315 area%= 16.0  fu=0.18 tree=0.20  fl=0.28  GPP mod/obs=1.05  excess%=12
+lat +0..+15                        n= 5825 area%= 12.1  fu=0.36 tree=0.48  fl=0.33  GPP mod/obs=0.90  excess%=8
+lat -15..+0                        n= 5767 area%= 12.0  fu=0.41 tree=0.63  fl=0.36  GPP mod/obs=0.85  excess%=8
+lat -30..-15                       n= 5515 area%= 10.7  fu=0.17 tree=0.25  fl=0.34  GPP mod/obs=1.43  excess%=24
+lat -60..-30                       n= 2602 area%=  4.3  fu=0.28 tree=0.23  fl=0.31  GPP mod/obs=1.61  excess%=9
+
+-- phantom / missing trees (natural cells) --
+PHANTOM: tree<0.15 & fu>0.40       n= 1778 area%=  2.6  fu=0.88 tree=0.05  fl=0.25  GPP mod/obs=1.87  excess%=10
+PHANTOM: tree<0.15 & fu>0.60       n= 1588 area%=  2.3  fu=0.93 tree=0.05  fl=0.24  GPP mod/obs=1.87  excess%=9
+MISSING: tree>0.50 & fu<0.30       n= 6560 area%= 11.2  fu=0.08 tree=0.78  fl=0.43  GPP mod/obs=0.82  excess%=6
+agree: |fu-tree|<0.15              n=41914 area%= 61.8  fu=0.25 tree=0.22  fl=0.27  GPP mod/obs=1.03  excess%=43
+
+-- crop-dominated cells (natveg<0.3), for reference --
+natveg<0.3                         n=28101 area%= 10.8  fu=0.08 tree=0.01  fl=0.25  GPP mod/obs=1.77  excess%=0
