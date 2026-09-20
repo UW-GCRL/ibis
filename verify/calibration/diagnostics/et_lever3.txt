@@ -1,0 +1,20 @@
+An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+2026-09-19 20:25:23,611 cached 36 months of forcing (0.00 GB)
+
+(b3) parameters, years 4-6 of a 2001-03 cycle from the v11 state; obs = five-product ensemble (total). Annual, area-weighted mm/yr
+case                   | class                          | ET mod   obs ratio |  T/ET Ei/ET Es/ET | GPP/obs ET amp mod/obs
+F77 interception       | forest (tree>0.7, |lat|<55)    |    773   923  0.84 |  0.41  0.33  0.25 |   0.727           0.66
+F77 interception       | open (tree<0.3, |lat|<40)      |    551   659  0.84 |  0.50  0.09  0.41 |   1.012           2.26
+F77 interception       | boreal (lat>50)                |    398   395  1.01 |  0.22  0.22  0.53 |   0.787           0.24
+capacities x0.5        | forest (tree>0.7, |lat|<55)    |    767   923  0.83 |  0.41  0.33  0.26 |   0.714           0.65
+capacities x0.5        | open (tree<0.3, |lat|<40)      |    548   659  0.83 |  0.51  0.08  0.42 |   0.998           2.24
+capacities x0.5        | boreal (lat>50)                |    397   395  1.01 |  0.21  0.22  0.54 |   0.771           0.24
+capacities x2          | forest (tree>0.7, |lat|<55)    |    772   923  0.84 |  0.42  0.33  0.25 |   0.744           0.66
+capacities x2          | open (tree<0.3, |lat|<40)      |    553   659  0.84 |  0.51  0.09  0.40 |   1.034           2.27
+capacities x2          | boreal (lat>50)                |    395   395  1.00 |  0.22  0.21  0.54 |   0.805           0.24
+fmax 0.15              | forest (tree>0.7, |lat|<55)    |    761   923  0.82 |  0.43  0.31  0.25 |   0.760           0.66
+fmax 0.15              | open (tree<0.3, |lat|<40)      |    549   659  0.83 |  0.52  0.08  0.40 |   1.056           2.26
+fmax 0.15              | boreal (lat>50)                |    392   395  0.99 |  0.23  0.20  0.54 |   0.815           0.24
+fmax 0.40              | forest (tree>0.7, |lat|<55)    |    780   923  0.84 |  0.39  0.35  0.26 |   0.685           0.66
+fmax 0.40              | open (tree<0.3, |lat|<40)      |    552   659  0.84 |  0.49  0.10  0.42 |   0.964           2.26
+fmax 0.40              | boreal (lat>50)                |    401   395  1.02 |  0.21  0.23  0.53 |   0.755           0.24

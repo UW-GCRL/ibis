@@ -1754,10 +1754,22 @@ forests 0.91x -- it helps two classes and hurts the forests; and the water
 it saves feeds grass GPP (open land 1.01 -> 1.21x), on land whose GPP is
 already 1.55x observed. So `soil_beta_power` cannot be fitted on ET alone.
 
+**ET lever test 3 -- interception** (`et_lever3.py`, same cells): the
+water-holding capacities of leaves and stems halved or doubled move the
+interception share by at most 0.01 and total ET by under 1 % -- with a
+two-hour drip time the store is never the limit; what sets the 33-41 % of
+forest ET that is interception is the wetting-drying dynamics of the
+rain, not a parameter. `fmax`, the maximum wetted fraction, moves Ei/ET by
+only +-0.02 between 0.15 and 0.40 but moves GPP by -+6 %, because wet
+leaves do not assimilate: it is a GPP lever wearing an ET label, and it
+stays out of the ET fit. The interception EXTRAS remain available; the
+ET stage's structural lever is the soil-evaporation control alone, with
+the boreal LAI on the carbon side.
+
 **The ET stage is therefore a joint fit**, not a separate one: the (b4)
 structure with the carbon terms as they stand plus `--w-et` and
-`--w-et-season`, `soil_beta_power` and the interception capacity added to
-the structural extras, `vmax`/`specla` free -- one loss carrying the three
+`--w-et-season`, `soil_beta_power` added to the structural extras,
+`vmax`/`specla` free -- one loss carrying the three
 carbon criteria, the tree fraction, the ET total and pattern, and the ET
 season, on the representative land-weighted sample. Launched after the
 (b4) decision on whichever carbon state wins.
