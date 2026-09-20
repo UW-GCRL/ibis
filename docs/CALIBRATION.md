@@ -1826,6 +1826,14 @@ small and the shrub big leaf mixes the two) but a value no fit chose. The
 result stands as a fit from a different start; the flaw is noted, and the
 pool stage starts from a corrected base.
 
+Final report on the scored cells, model and observation on the same mask:
+**GPP 0.991 (fit) / 0.990 (held out), ET 0.971 / 0.975, LAI 1.66 vs 1.57 /
+1.59 vs 1.59, fu 0.25 vs 0.30**; 40 + 16 negative-ET cells excluded from the
+ET terms and counted. Every term agrees between fit and hold-out to a few
+hundredths -- nothing over-fitted. The domain validation (`val_v12g`, with
+ET components) decides whether this is the closing state for carbon and
+ET together.
+
 **The ET stage is therefore a joint fit**, not a separate one: the (b4)
 structure with the carbon terms as they stand plus `--w-et` and
 `--w-et-season`, `soil_beta_power` added to the structural extras,
