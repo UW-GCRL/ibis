@@ -23,9 +23,13 @@ for key in ('knb','kpb','ksb'): t['bgc'][key]=float(getattr(bgc0,key))   # undo 
 import json
 ex=json.loads(str(b['extras_json'])) if 'extras_json' in b.files else {}
 PFT_SCALARS=('cover_k','fl_min','fu_min','fu_k','tree_stress_min','tree_stress_ramp')   # PFTParams, 'pft' section
+COEFM={'coefm_bl':'broadleaf','coefm_con':'conifer','coefm_shrub':'shrub','coefm_c4':'c4_grass','coefm_c3':'c3_grass'}
 for k,v in ex.items():
     if k=='stressfac': t['stomata']['stressfac']=float(v)
     elif k in PFT_SCALARS: t.setdefault('pft',{})[k]=float(v)
+    elif k in COEFM: t['stomata']['ball_berry'][COEFM[k]]['coefm']=float(v)
+    elif k in ('wliqumax','wliqsmax','wliqlmax','fmax'): t.setdefault('interception',{})[k]=float(v)
+    elif k=='soil_beta_power': t.setdefault('canopy',{})[k]=float(v)
     else: t.setdefault('pheno',{})[k]=float(v)                                            # PhenoParams; unknown keys raise
 print('extras carried into yaml:', ex or 'none')
 out=f'{V}/fit_carbon_{TAG}/params_fit_{TAG}.yaml'; yaml.safe_dump(t,open(out,'w'),sort_keys=False)
@@ -33,7 +37,9 @@ sp,pft,bgc=build_all_params(4,np.zeros(4,np.float32),load_physics_params(out))
 ev=float(np.max(np.abs(np.asarray(sp.stomata_params.vmax_pft)-vmax))); es=float(np.max(np.abs(np.asarray(pft.specla)-specla)))
 assert ev<1e-9 and es<1e-4, (ev,es)
 for k,v in ex.items():
-    got=float(sp.stomata_params.stressfac) if k=='stressfac' else float(getattr(pft,k)) if k in PFT_SCALARS else float(getattr(sp.pheno,k))
+    got=(float(sp.stomata_params.stressfac) if k=='stressfac' else float(getattr(pft,k)) if k in PFT_SCALARS
+         else float(sp.stomata_params.coefm[list(COEFM).index(k)]) if k in COEFM else float(getattr(sp.interception,k)) if k in ('wliqumax','wliqsmax','wliqlmax','fmax')
+         else float(sp.canopy.soil_beta_power) if k=='soil_beta_power' else float(getattr(sp.pheno,k)))
     assert abs(got-float(v))<1e-9, (k,got,v)
 print(f"params_fit_{TAG}.yaml written; round-trip vmax {ev:.1e} specla {es:.1e}; soil-OM at defaults")
 PY

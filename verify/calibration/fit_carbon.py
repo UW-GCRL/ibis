@@ -312,17 +312,33 @@ def _dec(name, x):
 
 
 def extras_defaults(sp, names, pft=None):
-    """Current values of the chosen extras, read back off the SimParams tree."""
+    """Starting value of each extra, read from wherever it lives (the same
+    routing the EXTRAS setters and finalize_fit.sh use)."""
     out = {}
     for n in names:
-        if n == "stressfac":
-            out[n] = float(sp.stomata_params.stressfac)
-        elif n in ("cover_k", "fl_min", "fu_min", "fu_k", "tree_stress_min", "tree_stress_ramp"):
-            out[n] = float(getattr(pft, n))
-        else:
-            out[n] = float(getattr(sp.pheno, n))
+        out[n] = float(_extra_value(sp, pft, n))
     return out
 
+
+#: Where each extra lives. Anything not listed is a PhenoParams field.
+PFT_SCALARS = ("cover_k", "fl_min", "fu_min", "fu_k", "tree_stress_min", "tree_stress_ramp")
+COEFM_GROUPS = {"coefm_bl": 0, "coefm_con": 1, "coefm_shrub": 2, "coefm_c4": 3, "coefm_c3": 4}
+INTERCEPTION_FIELDS = ("wliqumax", "wliqsmax", "wliqlmax", "fmax")
+CANOPY_FIELDS = ("soil_beta_power",)
+
+
+def _extra_value(sp, pft, n):
+    if n == "stressfac":
+        return sp.stomata_params.stressfac
+    if n in PFT_SCALARS:
+        return getattr(pft, n)
+    if n in COEFM_GROUPS:
+        return sp.stomata_params.coefm[COEFM_GROUPS[n]]
+    if n in INTERCEPTION_FIELDS:
+        return getattr(sp.interception, n)
+    if n in CANOPY_FIELDS:
+        return getattr(sp.canopy, n)
+    return getattr(sp.pheno, n)
 
 def to_vec(vmax, specla, extras=None, names=()):
     parts = [np.log(vmax), np.log(specla)]

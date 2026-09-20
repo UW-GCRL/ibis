@@ -545,3 +545,22 @@ def test_interception_extras_exist_with_f77_defaults():
     for name, default in (("wliqumax", 0.20), ("wliqsmax", 0.40), ("wliqlmax", 0.20), ("fmax", 0.25)):
         setter, lo, hi, _ = fc.EXTRAS[name]
         assert lo <= default <= hi and getattr(ip, name) == default
+
+
+def test_every_extra_has_a_readable_default_and_a_working_setter():
+    """Each EXTRAS name must be readable by extras_defaults and settable by
+    its setter to a value the same reader returns: the joint fit died on
+    'PhenoParams has no attribute soil_beta_power' because the probes used
+    the setters and never the defaults-reader (CALIBRATION.md 15)."""
+    from pathlib import Path
+    import sys, numpy as np
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "verify" / "calibration")); sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    import importlib; fc = importlib.import_module("fit_carbon")
+    from ibis.io.physics_params import build_all_params
+    sp, pft, _ = build_all_params(4, np.zeros(4, np.float32), None)
+    for name, (setter, lo, hi, _log) in fc.EXTRAS.items():
+        d = fc.extras_defaults(sp, (name,), pft)[name]
+        assert np.isfinite(d), name
+        target = 0.5 * (lo + hi)
+        sp2, pft2 = setter(sp, pft, target)
+        assert abs(fc.extras_defaults(sp2, (name,), pft2)[name] - target) < 1e-5, (name, target)
