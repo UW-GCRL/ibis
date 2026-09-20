@@ -289,6 +289,16 @@ for _k, _nm in enumerate(("coefm_bl", "coefm_con", "coefm_shrub", "coefm_c4", "c
 #: wetness beta in turvap; 1 = F77. Log-encoded, [1, 6].
 EXTRAS["soil_beta_power"] = (_set(lambda p: p.canopy.soil_beta_power), 1.0, 6.0, True)
 
+#: Interception (CALIBRATION.md 15): the water-holding capacities of upper
+#: leaves / upper stems / lower canopy (kg m-2 per unit area index; F77 0.20,
+#: 0.40, 0.20) and the maximum wetted fraction fmax (F77 0.25). Forest
+#: interception evaporation is 33-41 % of ET on the (b3) state, the top of
+#: the observed 10-30 %. Log-encoded capacities; fmax raw.
+EXTRAS["wliqumax"] = (_set(lambda p: p.interception.wliqumax), 0.05, 0.60, True)
+EXTRAS["wliqsmax"] = (_set(lambda p: p.interception.wliqsmax), 0.10, 1.20, True)
+EXTRAS["wliqlmax"] = (_set(lambda p: p.interception.wliqlmax), 0.05, 0.60, True)
+EXTRAS["fmax"] = (_set(lambda p: p.interception.fmax), 0.10, 0.60, False)
+
 NEEDS_STRESS_ACCUM = ("tree_stress_min", "tree_stress_ramp")
 NPFT = 12
 

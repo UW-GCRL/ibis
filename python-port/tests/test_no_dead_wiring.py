@@ -532,3 +532,16 @@ def test_soil_beta_power_is_wired_and_default_identity():
     b = jnp.asarray(np.random.default_rng(0).random(50), dtype=jnp.float32)
     assert np.array_equal(np.asarray(jnp.where(jnp.asarray(1.0) == 1.0, b, b ** jnp.asarray(1.0))), np.asarray(b))
     assert np.allclose(np.asarray(jnp.where(3.0 == 1.0, b, b ** 3.0)), np.asarray(b) ** 3.0, rtol=1e-6)   # pow vs repeated multiply differ by an ulp
+
+
+def test_interception_extras_exist_with_f77_defaults():
+    from pathlib import Path
+    import sys
+    root = Path(__file__).resolve().parents[2] / "verify" / "calibration"
+    sys.path.insert(0, str(root)); sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    import importlib; fc = importlib.import_module("fit_carbon")
+    from ibis.physics.interception import InterceptionParams
+    ip = InterceptionParams()
+    for name, default in (("wliqumax", 0.20), ("wliqsmax", 0.40), ("wliqlmax", 0.20), ("fmax", 0.25)):
+        setter, lo, hi, _ = fc.EXTRAS[name]
+        assert lo <= default <= hi and getattr(ip, name) == default
