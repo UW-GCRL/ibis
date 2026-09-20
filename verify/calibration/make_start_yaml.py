@@ -1,6 +1,6 @@
 """Start yaml for a staged fit: a fitted yaml plus the starting values a stage needs.
 
-    ibis-python verify/calibration/make_start_yaml.py <base.yaml> <out.yaml> [--structural-starts] [--vmax-mix] [--leaf-only]
+    ibis-python verify/calibration/make_start_yaml.py <base.yaml> <out.yaml> [--structural-starts] [--vmax-mix] [--leaf-only] [--et-starts]
 
 --structural-starts  stage (b1): tree gate, cover and dormancy scalars at the
                      lever-test-6 starts (tree_stress_min 0.45, ramp 0.20,
@@ -16,6 +16,8 @@
                      each big leaf has in fact been running at.
 --leaf-only          `stomata.scale_leaf_only: true`: stems attenuate light but do
                      not assimilate (CALIBRATION.md 16, lever test 11).
+--et-starts          ET stage: canopy.soil_beta_power 1.5 (F77 1.0 sits on the fit bound) and
+                     interception.fmax 0.25 written explicitly (CALIBRATION.md 15).
 Everything not named is carried from the base unchanged; the result is read
 back through the loader and every injected value verified.
 """
@@ -35,6 +37,9 @@ if '--vmax-mix' in flags:
     t.setdefault('stomata', {})['vmax_mix'] = True
 if '--leaf-only' in flags:
     t.setdefault('stomata', {})['scale_leaf_only'] = True
+if '--et-starts' in flags:
+    t.setdefault('canopy', {})['soil_beta_power'] = 1.5
+    t.setdefault('interception', {})['fmax'] = 0.25
     for dead, live in MIX_STARTS.items():
         t['stomata']['vmax'][dead] = float(t['stomata']['vmax'][live])
 yaml.safe_dump(t, open(out, 'w'), sort_keys=False)
@@ -57,4 +62,6 @@ if '--vmax-mix' in flags:
     msg.append("vmax_mix on; " + ", ".join(f"{d.split('_')[0]}_{d.split('_')[-1]}={vp[NAMES.index(d)]*1e6:.1f}" for d in MIX_STARTS))
 if '--leaf-only' in flags:
     assert sp.stomata_params.scale_leaf_only is True; msg.append("scale_leaf_only on")
+if '--et-starts' in flags:
+    assert abs(float(sp.canopy.soil_beta_power) - 1.5) < 1e-9 and abs(float(sp.interception.fmax) - 0.25) < 1e-9; msg.append("ET starts: soil_beta_power 1.5, fmax 0.25")
 print(f"{out}: {'; '.join(msg) or 'base carried unchanged'}; base {base}")

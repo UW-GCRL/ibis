@@ -39,7 +39,9 @@ print(f"params_fit_{TAG}.yaml written; round-trip vmax {ev:.1e} specla {es:.1e};
 PY
 cp $V/fit_carbon_$TAG/params_fit_$TAG.yaml $R/python-port/configs/params/
 mkdir -p $V/val_$TAG/fit/{out,restart}; cp $V/v11_transient/restart/ibis_restart_2010.npz $V/val_$TAG/fit/restart/
-sed -e "s|val_v11c/fit|val_$TAG/fit|g" -e 's|^  nrun: 25|  nrun: 50|' -e "s|^params_file:.*|params_file: $V/fit_carbon_$TAG/params_fit_$TAG.yaml|" $V/val_v11c/fit/cfg.yaml > $V/val_$TAG/fit/cfg.yaml
+sed -e "s|val_v11c/fit|val_$TAG/fit|g" -e 's|^  nrun: 25|  nrun: 50|' -e "s|^params_file:.*|params_file: $V/fit_carbon_$TAG/params_fit_$TAG.yaml|" \
+    -e 's|^  transient_co2: false|  transient_co2: false\n  et_components: true|' $V/val_v11c/fit/cfg.yaml > $V/val_$TAG/fit/cfg.yaml    # ET components in the yearly files (CALIBRATION.md 15)
+grep -q "et_components: true" $V/val_$TAG/fit/cfg.yaml || { echo "et_components not inserted"; exit 1; }
 grep -E "nrun|params_file|output_dir" $V/val_$TAG/fit/cfg.yaml
 export XLA_PYTHON_CLIENT_PREALLOCATE=false XLA_PYTHON_CLIENT_MEM_FRACTION=.15
 nohup /home/hangkai/.venvs/ibis-gpu/bin/python -u python-port/scripts/run_global.py $V/val_$TAG/fit/cfg.yaml > $V/val_$TAG/fit/run.log 2>&1 &
