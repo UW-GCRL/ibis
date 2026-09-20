@@ -1616,6 +1616,28 @@ model's seasonal ET amplitude is 9 against the towers' 15: too flat, like
 GPP. Baseline on the F77 canopy; the corrected canopy moved domain ET by
 only 2 % (section 18), so this is close to the Stage-2 starting point.
 
+**ET lever test 1** (`et_lever1.py`; 70 fit-sample cells in three classes,
+(b3) parameters, 6 years cycled on 2001-03 from the v11 state -- so the
+absolute levels below carry the dry-year and transition bias of section 10
+and only the responses count): the Ball-Berry slope `coefm`, the obvious
+"ET at fixed GPP" lever, is not one. All five slopes x0.7 moves ET by -7 %
+(forest), -4 % (open), -3 % (boreal) and GPP by -10 %, -6 %, -14 %; WUE
+barely changes (forest 0.87 -> 0.84). dlnET/dln(coefm) ~ 0.2 with a GPP
+side-effect of ~0.3: the coupled scheme fixes WUE, and the stomatal
+conductance is not what limits ET in these canopies. The seasonal ET
+amplitude, on the other hand, is wrong in opposite directions -- forests
+0.66 of observed, open land 2.3x (the model's dry-season ET collapses where
+the products keep evaporating), boreal a fraction (the model's winter ET
+floor is above the products') -- and no stomatal lever touches that.
+
+So Stage 2 does not start with a fit. It starts with a decomposition of
+model ET into transpiration, soil evaporation, canopy interception and
+snow sublimation by class and month, against the ensemble's total and
+GLEAM's components where they can be had, to find which component carries
+each class's error; the levers are then the soil-evaporation resistance,
+interception capacity and the winter/sublimation path, not `coefm`.
+The port computes the components F77 does -- fvapa, fvapg, fvapi, fvaplt, fvaplw, fvaps, fvaput, fvapuw, fvapw -- but accumulates only the total (`ayaet`); the ET stage's first tool is an annual/monthly accumulator per component, or a per-month capture on the sample as lever test 9 did.
+
 Model ET is `ayaet` (mm/yr) yearly and `amaet` monthly; the fit harness's
 `one_year` already returns `ayaet` and the daily AET series, so the ET fit
 is the carbon harness with `fluxcom_at` -> an ET loader and the seasonal
