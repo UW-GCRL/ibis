@@ -512,6 +512,7 @@ def timestep_body(
             wu, ws, wl, wg, wi,
             dtime, c.tmelt, c.hvap, c.hsub, c.ch2o, c.cice,
             c.cvap, c.stef, c.rvap, c.grav, c.epsilon,
+            beta_power=params.canopy.soil_beta_power,
         )
 
         # Update working state for next iteration

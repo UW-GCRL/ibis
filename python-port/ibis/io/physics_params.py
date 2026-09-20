@@ -183,6 +183,7 @@ def build_canopy_params(d: dict) -> CanopyParams:
         chu=s.get('chu', 8436.0),
         chs=s.get('chs', 210900.0),
         chl=s.get('chl', 8436.0),
+        soil_beta_power=s.get('soil_beta_power', 1.0),
     )
 
 

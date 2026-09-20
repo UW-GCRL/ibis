@@ -285,6 +285,10 @@ def _set_idx(path, k):
 for _k, _nm in enumerate(("coefm_bl", "coefm_con", "coefm_shrub", "coefm_c4", "coefm_c3")):
     EXTRAS[_nm] = (_set_idx(lambda p: p.stomata_params.coefm, _k), 3.0, 16.0, True)
 
+#: Soil-evaporation control strength (CALIBRATION.md 15): exponent on the
+#: wetness beta in turvap; 1 = F77. Log-encoded, [1, 6].
+EXTRAS["soil_beta_power"] = (_set(lambda p: p.canopy.soil_beta_power), 1.0, 6.0, True)
+
 NEEDS_STRESS_ACCUM = ("tree_stress_min", "tree_stress_ramp")
 NPFT = 12
 

@@ -77,6 +77,11 @@ class CanopyParams(NamedTuple):
     chu: float = 8436.0       # heat capacity, upper leaves (J/m2/K)
     chs: float = 2.109e5      # heat capacity, upper stems (J/m2/K)
     chl: float = 8436.0       # heat capacity, lower canopy (J/m2/K)
+    #: Exponent on the soil-evaporation wetness beta in turvap (CALIBRATION.md
+    #: 15): betaw -> betaw**p, so the surface humidity falls off faster as the
+    #: top layer dries. 1.0 = F77 (applied through a where, bit-identical).
+    #: Fitted as a traced 0-d array via fit_carbon EXTRAS "soil_beta_power".
+    soil_beta_power: float = 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -499,6 +504,7 @@ def turvap(
     # Physical constants
     dtime, tmelt, hvap_c, hsub_c, ch2o_c, cice_c,
     cvap_c, stef_c, rvap_c, grav_c, epsilon_c,
+    beta_power=1.0,
 ):
     """Build and solve 9x9 implicit canopy system.
 
@@ -535,6 +541,11 @@ def turvap(
     hfac2 = q34 / jnp.maximum(qg, epsilon_c)
 
     betaw = jnp.clip((zwtot - swilt_1) / jnp.maximum(1.0 - swilt_1, epsilon_c), 0.0, 1.0)
+    # Soil-evaporation control strength (CALIBRATION.md 15): the F77 beta is
+    # linear in wetness above the wilting point; beta**p (p > 1) makes the
+    # surface humidity fall off faster as the top layer dries. The where keeps
+    # p = 1 bit-identical whether p is a Python float or a traced array.
+    betaw = jnp.where(beta_power == 1.0, betaw, betaw ** beta_power)
 
     emisoil = 0.95
     e34 = esat(t34)

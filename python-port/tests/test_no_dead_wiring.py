@@ -514,3 +514,21 @@ def test_et_parts_accumulate_reset_write_and_migrate():
     save_state(create_ibis_state(g, with_stress=True), f"{d}/s.npz")
     up, _ = load_state(f"{d}/s.npz", create_ibis_state(g, with_etparts=True))     # 261 -> 265: fill 4
     assert up.etparts is not None and float(up.etparts.trans.sum()) == 0.0
+
+
+def test_soil_beta_power_is_wired_and_default_identity():
+    """The soil-evaporation exponent must reach turvap from CanopyParams (and
+    the yaml / EXTRAS), and p = 1 must be an exact identity on betaw."""
+    from pathlib import Path
+    import numpy as np, jax.numpy as jnp
+    from ibis.physics.canopy_exchange import CanopyParams
+    root = Path(__file__).resolve().parents[1]
+    ce = (root / "ibis" / "physics" / "canopy_exchange.py").read_text()
+    assert "betaw = jnp.where(beta_power == 1.0, betaw, betaw ** beta_power)" in ce
+    assert "beta_power=params.canopy.soil_beta_power" in (root / "ibis" / "timestepping" / "loops.py").read_text()
+    assert "soil_beta_power=s.get('soil_beta_power', 1.0)" in (root / "ibis" / "io" / "physics_params.py").read_text()
+    assert 'EXTRAS["soil_beta_power"]' in (root.parent / "verify" / "calibration" / "fit_carbon.py").read_text()
+    assert CanopyParams().soil_beta_power == 1.0
+    b = jnp.asarray(np.random.default_rng(0).random(50), dtype=jnp.float32)
+    assert np.array_equal(np.asarray(jnp.where(jnp.asarray(1.0) == 1.0, b, b ** jnp.asarray(1.0))), np.asarray(b))
+    assert float((jnp.where(3.0 == 1.0, b, b ** 3.0) - b ** 3).max()) == 0.0
