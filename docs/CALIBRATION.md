@@ -2502,9 +2502,18 @@ hold-out 1.458.
 
 With the gate fixed and the total weighted, the optimiser moved capacity
 rather than structure: the tropical evergreen canopy down (vmax and
-specla), C4 grass up. The domain validation and the closing protocol,
-both running overnight, judge (b4) against (b3) on the true-land total
-(132 / 130), forest and boreal cover, the steppes and the pools.
+specla), C4 grass up.
+
+Final report, on the scored cells with the same mask for model and
+observation (the line added after section 18's 0.95-vs-1.16 confusion):
+**GPP model/obs 0.997 on the fit cells, 0.995 held out; ET 0.980 / 0.983
+on the all-five cells; LAI 1.61 vs 1.57.** On the representative,
+land-weighted sample the carbon total, the leaf area and the ET total all
+sit at unity, with the tree term (fu 0.22 vs 0.30) the fixed gate's
+residual. The domain validation and the closing protocol, both running
+overnight, say whether the domain follows -- a true-land total near
+120-125 PgC would -- and judge (b4) against (b3) on forest and boreal
+cover, the steppes and the pools.
 
 ## 19. What is scored, and the closing protocol
 
