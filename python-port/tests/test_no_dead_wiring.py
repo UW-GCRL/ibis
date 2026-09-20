@@ -564,3 +564,23 @@ def test_every_extra_has_a_readable_default_and_a_working_setter():
         target = 0.5 * (lo + hi)
         sp2, pft2 = setter(sp, pft, target)
         assert abs(fc.extras_defaults(sp2, (name,), pft2)[name] - target) < 1e-5, (name, target)
+
+
+def test_et_terms_are_not_dominated_by_negative_or_near_zero_model_et():
+    """Negative model ET months and near-zero annual model ET (a model
+    anomaly, DEFECTS_FOR_REVIEW.md) must not dominate the ET terms: months
+    are clipped at zero for the shape and cells with model ET below a fifth
+    of observed are excluded and counted (CALIBRATION.md 15)."""
+    from pathlib import Path
+    import sys, numpy as np
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "verify" / "calibration")); sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    import importlib; fc = importlib.import_module("fit_carbon")
+    rng = np.random.default_rng(0); n = 200
+    gpp = rng.uniform(0.5, 2, n); lai = rng.uniform(1, 4, n); go = gpp * rng.uniform(0.9, 1.1, n); lo = lai.copy(); a = np.ones(n)
+    eo = rng.uniform(300, 900, n); et = eo * rng.uniform(0.85, 1.15, n)
+    eom = np.tile(eo / 12, (12, 1)) * (1 + 0.5 * np.sin(np.linspace(0, 2 * np.pi, 12))[:, None]); etm = eom * (et / eo)
+    clean = fc.score(gpp, lai, go, lo, 0.5, a, et=et, et_obs=eo, w_et=1, et_m=etm, et_obs_m=eom, w_et_season=10)
+    et2 = et.copy(); etm2 = etm.copy(); et2[:5] = 0.5; etm2[:, :5] = -40.0; etm2[6, :5] = 200.0     # five anomalous cells
+    dirty = fc.score(gpp, lai, go, lo, 0.5, a, et=et2, et_obs=eo, w_et=1, et_m=etm2, et_obs_m=eom, w_et_season=10)
+    assert fc.ET_EXCLUDED[0] == 5
+    assert abs(dirty[5] - clean[5]) < 0.05 * max(clean[5], 1e-3) + 1e-6 and abs(dirty[6] - clean[6]) < 0.05 * max(clean[6], 1e-3) + 1e-6

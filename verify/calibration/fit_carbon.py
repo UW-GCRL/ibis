@@ -386,6 +386,10 @@ def bounds_penalty(vmax, specla):
 
 
 # ------------------------------------------------------------------------ loss
+ET_MIN_RATIO = 0.2          # model annual ET below this fraction of observed = anomaly, excluded from the ET terms
+ET_EXCLUDED = [0]           # cells excluded by ET_MIN_RATIO at the last score() call (for the report)
+
+
 def score(gpp, lai, gpp_obs, lai_obs, w_lai, area=None, w_total=1.0,
           gpp_m=None, obs_m=None, w_season=0.0,
           fu=None, tree_obs=None, w_tree=0.0,
@@ -454,20 +458,33 @@ def score(gpp, lai, gpp_obs, lai_obs, w_lai, area=None, w_total=1.0,
             wt = a * tk; wt = wt / wt.sum()
             t_term = float(np.sum(wt * np.abs(np.nan_to_num(fu[ok])
                                               - np.nan_to_num(tree_obs[ok]))))
+    # ET terms. Model monthly ET can be NEGATIVE (net deposition) and on a
+    # few subtropical cells reaches -80..-146 mm/month -- a model anomaly
+    # logged in DEFECTS_FOR_REVIEW.md, not a shape to fit. Unguarded, those
+    # cells gave the first joint-fit evaluation an ET-shape term 46x the GPP
+    # one and a per-cell term of 1.1 (median cell 0.005). So: months clipped
+    # at zero for the shape, and both ET terms restricted to cells whose
+    # model annual ET is at least a fifth of the observed (ET_MIN_RATIO);
+    # score() returns the excluded count through ET_EXCLUDED for the report.
     e_term = 0.0
     if et is not None and et_obs is not None and w_et > 0:
         ek = np.isfinite(et_obs[ok]) & np.isfinite(et[ok]) & (et_obs[ok] > 10.0)
+        anom = ek & ~(et[ok] >= ET_MIN_RATIO * et_obs[ok])
+        ET_EXCLUDED[0] = int(anom.sum()); ek = ek & ~anom
         if ek.sum() >= 20:
-            e_m, e_o, ae = np.maximum(et[ok][ek], 1.0), et_obs[ok][ek], a[ek]
+            e_m, e_o, ae = et[ok][ek], et_obs[ok][ek], a[ek]
             we = ae * e_o; we = we / we.sum()
             e_cell = float(np.sum(we * np.log(e_m / e_o) ** 2))
             e_tot = float(np.log(np.sum(ae * e_m) / np.sum(ae * e_o)) ** 2)
             e_term = e_cell + w_total * e_tot
     es_term = 0.0
     if et_m is not None and et_obs_m is not None and w_et_season > 0:
-        ek = np.isfinite(et_obs_m[:, ok]).all(axis=0) & np.isfinite(et_m[:, ok]).all(axis=0)
+        etm_c = np.maximum(et_m[:, ok], 0.0)
+        ek = np.isfinite(et_obs_m[:, ok]).all(axis=0) & np.isfinite(etm_c).all(axis=0)
+        if et is not None and et_obs is not None:
+            ek = ek & np.isfinite(et_obs[ok]) & (et[ok] >= ET_MIN_RATIO * et_obs[ok])
         if ek.sum() >= 20:
-            err, sok = seasonal_shape(et_m[:, ok][:, ek], et_obs_m[:, ok][:, ek])
+            err, sok = seasonal_shape(etm_c[:, ek], et_obs_m[:, ok][:, ek])
             if sok.sum() >= 20:
                 we = (a[ek] * np.nansum(et_obs_m[:, ok][:, ek], axis=0)) * sok; we = we / we.sum()
                 es_term = float(np.sum(we * np.nan_to_num(err)))
@@ -787,6 +804,7 @@ def main():
         # observation over cells with data -- it read 0.95x where the
         # domain read 1.16x (CALIBRATION.md 18).
         okm = msk & np.isfinite(gpp) & np.isfinite(gpp_obs) & (gpp_obs > 0.02) & (lai_obs > 0.05)
+        print(f"  {nm:>9}: ET terms excluded {ET_EXCLUDED[0]} anomalous cells (model annual ET < {ET_MIN_RATIO:.1f} x observed)")
         print(f"  {nm:>9}: on the {okm.sum()} scored cells, area-weighted GPP model/obs = "
               f"{wavg(gpp[okm], area[okm]) / wavg(gpp_obs[okm], area[okm]):.3f}"
               f"  (ET model/obs on all-five cells = "
