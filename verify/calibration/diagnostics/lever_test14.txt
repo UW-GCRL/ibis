@@ -1,0 +1,20 @@
+An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+2026-09-20 12:30:30,620 cached 36 months of forcing (0.00 GB)
+60 C4-dominated 40-55N steppe cells: tw 23.7 C (range 21.5-27.9), tc -7.0 C; FLUXCOM GPP 0.52 kgC/m2/yr
+obs monthly shape  : 0.006 0.010 0.035 0.095 0.172 0.204 0.214 0.151 0.071 0.028 0.009 0.005
+
+case                                               | dominant:  C4  C3 evs dcs trees | annual | Nov-Feb Jun-Jul |   amp | Dec LAI lower upper
+as fitted (c)                                      |  56   0   1   3     0 |   0.98 |    4.97    0.58 |   5.7 |  2.80  0.53
+   model/obs by month:  4.48  3.28  1.96  1.11  0.77  0.61  0.55  0.66  1.36  3.21  7.12  5.02
+no evergreen shrub (PFT 9)                         |  56   0   0   4     0 |   0.99 |    4.95    0.59 |   5.8 |  2.75  0.51
+   model/obs by month:  4.44  3.27  1.98  1.12  0.78  0.62  0.56  0.67  1.37  3.24  7.14  4.97
+no evergreen conifers (PFTs 4, 6)                  |  56   0   1   3     0 |   0.98 |    4.98    0.58 |   5.7 |  2.80  0.46
+   model/obs by month:  4.49  3.28  1.96  1.11  0.76  0.61  0.55  0.66  1.36  3.22  7.13  5.03
+no evergreen shrub, no evergreen conifers          |  56   0   0   4     0 |   0.99 |    4.96    0.59 |   5.8 |  2.75  0.44
+   model/obs by month:  4.45  3.27  1.97  1.12  0.77  0.62  0.56  0.67  1.38  3.24  7.14  4.98
+no C4 grass (PFT 11)                               |   0   0   1  55     4 |   0.83 |    5.83    0.39 |   3.2 |  2.79  0.93
+   model/obs by month:  5.46  3.69  1.87  0.91  0.54  0.41  0.37  0.55  1.22  3.13  7.80  6.38
+no C4, no evergreen shrub                          |   0   0   0  56     4 |   0.83 |    5.84    0.39 |   3.2 |  2.59  0.93
+   model/obs by month:  5.48  3.70  1.88  0.91  0.54  0.41  0.37  0.54  1.21  3.11  7.81  6.38
+no C4, no evergreen shrub, no evergreen conifers   |   0   0   0  56     4 |   0.83 |    5.88    0.39 |   3.1 |  2.58  0.79
+   model/obs by month:  5.51  3.71  1.87  0.90  0.54  0.41  0.36  0.55  1.22  3.14  7.86  6.42

@@ -2274,6 +2274,34 @@ evergreen shrub with a fitted vmax of 35.7 and no winter. Lever test 14
 removes the evergreen classes to attribute the winter GPP before any fix
 is designed.
 
+### Lever test 14: the evergreens are innocent; the deciduous lower canopy itself assimilates in winter
+
+Same 60 cells, PFT classes removed (pools zeroed, existence blocked),
+years 6-8 (`lever_test14.py`):
+
+| case | dominant: C4 / C3 / evergreen shrub / deciduous shrub | annual | Nov-Feb | Jun-Jul |
+|---|---|---|---|---|
+| as fitted | 56 / 0 / 1 / 3 | 0.98 | 4.97 | 0.58 |
+| no evergreen shrub | 56 / 0 / 0 / 4 | 0.99 | 4.95 | 0.59 |
+| no evergreen conifers | 56 / 0 / 1 / 3 | 0.98 | 4.98 | 0.58 |
+| no evergreens at all | 56 / 0 / 0 / 4 | 0.99 | 4.96 | 0.59 |
+| no C4 grass | 0 / 0 / 1 / **55** | 0.83 | **5.83** | 0.39 |
+| no C4, no evergreens | 0 / 0 / 0 / 56 | 0.83 | 5.88 | 0.39 |
+
+Removing every evergreen PFT changes the winter by nothing (4.97 -> 4.96),
+so section 16's previous paragraph read the wrong culprit: the "shrub" that
+took the steppe in lever test 13 was the **deciduous** shrub (PFT 10), and
+with it the winter excess grew (5.83). The winter GPP is produced by the
+deciduous lower canopy -- C4 grass or deciduous shrub -- which means
+either its cold phenology (`templ`, the shared trigger of grasses and
+deciduous shrubs) is not shutting it, or a floor keeps assimilating leaf
+area on the ground after it does. (A reading caveat for lever tests 13
+and 14: the "December LAI" columns are end-of-year states after `dynaveg`
+has reset the display to the structural LAI, and say nothing about
+winter.) Lever test 15 records the displayed LAI, `templ`, `tempu`, the
+ten-day temperature and GPP at every month-end inside the year to settle
+it.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
