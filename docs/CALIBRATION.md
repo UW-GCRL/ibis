@@ -2196,6 +2196,54 @@ the last digit: the seasonal term's weight stays where it is, and the
 savanna phase (a month of lag), not the depth, is the part of criterion 3
 to hold the model to.
 
+### Criterion 3's other half: the mid-latitude winter, and the grass that never goes dormant
+
+The tropics' phase lag (above) is one half of the seasonal residual; the
+other is the 30-60 N amplitude at 0.6, unmoved by every stage since (a).
+On the joint fit's monthly output, 16,801 cells at 30-60 N with FLUXCOM >
+0.2, flux-weighted (`midlat_season.py`):
+
+| | J | F | M | A | M | J | J | A | S | O | N | D |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| model / FLUXCOM, all 30-60 N | **4.3** | 3.3 | 2.3 | 1.4 | 0.83 | 0.61 | 0.60 | 0.76 | 1.3 | 2.6 | **4.5** | **4.9** |
+| model GPP, kgC m-2 mo-1 | .042 | .045 | .071 | .096 | .114 | .114 | .117 | .114 | .110 | .099 | .069 | .046 |
+| FLUXCOM | .010 | .014 | .031 | .068 | .137 | .186 | .196 | .151 | .083 | .038 | .015 | .009 |
+| displayed LAI, all | 4.6 | 4.6 | 4.8 | 4.8 | 4.8 | 4.7 | 4.6 | 4.5 | 4.7 | 4.8 | 4.8 | 4.6 |
+| C4-grass-dominant cells (4,156): model / obs | 2.9 | 2.3 | 1.8 | 1.2 | 1.0 | 0.83 | 0.73 | 0.80 | 1.3 | 2.3 | 3.4 | 3.3 |
+| their displayed LAI | 5.6 | 5.8 | 6.0 | 5.9 | 5.6 | 5.2 | 4.7 | 4.5 | 5.1 | 5.4 | 5.8 | 5.7 |
+| deciduous-shrub-dominant (1,786): model / obs | 2.7 | 2.2 | 1.6 | 1.0 | 0.59 | 0.47 | 0.48 | 0.60 | 1.0 | 2.0 | 3.3 | 3.2 |
+| their displayed LAI | 5.5 | 5.7 | 6.4 | 6.5 | 6.5 | 6.5 | 6.5 | 6.4 | 6.4 | 6.5 | 6.5 | 5.7 |
+
+The mid-latitude model has **no winter**: 4-5x the observed GPP in
+November-February, 0.6x in June-July, and a displayed leaf area that does
+not change through the year -- deciduous shrubs at LAI 5.5-6.5 in January,
+grasses at 5.6. Two mechanisms, both structural, both now identified.
+
+1. **The lower canopy goes dormant only below 0 C.** `pheno`'s cold trigger
+   for grasses and shrubs is `a10td < tthresh_l_c + tmelt` with
+   `tthresh_l_c` = 0 (F77), an absolute threshold at freezing: wherever
+   the ten-day mean stays above 0 C -- most of 30-45 N, all winter -- the
+   understory keeps its leaves and assimilates. Stage (a) had found
+   exactly this and pushed `tthresh_l_c` to its +8 C bound (section 14);
+   I dropped it when stage (b1) restarted from v11d and never put it
+   back among the extras. It goes back in the next fit, with
+   `gdd_thresh_l`.
+2. **C3 grass is extinct.** At the joint fit's state C3 grass is the
+   dominant PFT in **zero** cells on Earth; C4 grass dominates 4,156 cells
+   at 30-60 N, 1,727 of them at 40-60 N (the Kazakh and Mongolian steppes,
+   Ukraine: C4 LAI 1.6, C3 0.01). The lower-canopy competition is by NPP,
+   the fitted C4 vmax (21.5) beats C3's (16.2, at its floor) wherever C4
+   is allowed to exist, and the existence rule allows it on cool steppes.
+   Real C3 steppes at 45-55 N are being simulated as C4 grassland -- with
+   C4's temperature response and without dormancy -- which is part of the
+   1.35x at 30-50 N and the winter excess. The fix is on the existence
+   side (a C4 climate envelope: warm-season temperature *and* the cold
+   season) or on the competition side; a lever test decides.
+
+Together with the tropical phase lag (the dormancy trigger that reaches
+the flux only on the corrected canopy), these are criterion 3 in full:
+the mid-latitude half is a winter the model does not have.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
