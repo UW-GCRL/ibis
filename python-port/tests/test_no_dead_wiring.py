@@ -531,4 +531,4 @@ def test_soil_beta_power_is_wired_and_default_identity():
     assert CanopyParams().soil_beta_power == 1.0
     b = jnp.asarray(np.random.default_rng(0).random(50), dtype=jnp.float32)
     assert np.array_equal(np.asarray(jnp.where(jnp.asarray(1.0) == 1.0, b, b ** jnp.asarray(1.0))), np.asarray(b))
-    assert float((jnp.where(3.0 == 1.0, b, b ** 3.0) - b ** 3).max()) == 0.0
+    assert np.allclose(np.asarray(jnp.where(3.0 == 1.0, b, b ** 3.0)), np.asarray(b) ** 3.0, rtol=1e-6)   # pow vs repeated multiply differ by an ulp
