@@ -5,7 +5,7 @@ corrected carbon cycle. Order set by Hangkai: carbon, then ET, then the smaller
 parts. Methane is evaluated against FLUXNET-CH4 (Chenchen's processing).
 
 
-## State of the calibration (updated 2026-09-19 10:30; stages (b2) and (b3) validated)
+## State of the calibration (updated 2026-09-19 19:30; (b3) closed on a self-consistent state, (b4) running)
 
 Three criteria for carbon (the user's): global total, spatial pattern,
 seasonal pattern. A fourth was added as the means to the second: tree
@@ -20,6 +20,8 @@ cover against the CLM tree fraction. ET follows.
 | corrected canopy, 2-yr probe | + `vmax_mix`, `scale_leaf_only`, no refit | 131 | 0.87 / 1.24 / 0.92 | 0.55 | | 16-18 |
 | v12d, stage (b2) | joint refit on the corrected canopy, tree weight 3 | 148 (120) | 0.98 / 1.12 / 0.98 | 0.29 (forests lost) | 0.81 | 18 |
 | **v12e, stage (b3)** | growing-season survival stress, joint refit | 164 (**132**) | 1.40 / 1.03 / 1.13 | **0.355** (r 0.66) | 0.82 | 18 |
+| **closing protocol on (b3)** | spin-up + 1901-2010 transient + hindcast, same parameters | 161 (**130**) | 1.38 / 0.98 / 1.10 | 0.323 (r 0.63) | 0.82 | 19 |
+| v12f, stage (b4) | gate fixed 0.80/0.10, total weighted, land + representative weights | *running* | | | | 18 |
 
 GPP column: binary-mask total as quoted in the sections, and in brackets
 the total on TRUE land (section 18, "The mask"), which is the number to
@@ -2346,4 +2348,62 @@ checks, fire (GFED5, 2001-05 from the 2010 state), methane (GMB), and the
 one Stage 2 (ET) and the module re-validations should start from. To be
 run when the carbon structure is final -- after (b2), or after a (b3) if
 the validation tonight says one more structural pass is needed.
+
+### Closing protocol on (b3): the self-consistent state, scored on 2001-2010
+
+`final_validation.sh v12e`, 09:51-19:14 on 2026-09-19 (sharing the GPU
+with the (b4) fit): cold spin-up 1601-1900 on the (b3) parameters,
+transient 1901-2000, monthly hindcast 2001-2010, everything scored on the
+ten hindcast years -- the first numbers in this document from a state made
+entirely under the parameters being judged.
+
+| | closing (b3), 2001-2010 | (b3) cycled validation, 2056-60 | observed |
+|---|---|---|---|
+| **GPP PgC/yr, true land** | **129.8** | 132.1 | 120-130 |
+| GPP, FLUXCOM-covered land | 126.6 (1.16x) | 128.9 | FLUXCOM 109 |
+| NPP true land / Rh true land (est.) | **57.6** / ~52.8 | 59.6 / ~59 | 55-60 / 49-58 |
+| ET mm/yr | 504 | 510 | 500-550 |
+| veg C PgC, true land | **219** | 281 | 450-650 |
+| **soil C kgC m-2** | **6.9** | 11.6 (inherited from the v11 state) | 10-15 |
+| litter kgC m-2 | 0.49 | 0.59 | 0.4-0.8 |
+| GPP by band 30S-30N / 30-50N / 50-60N / 60-70N / 70-90N | 1.10 / 1.38 / 1.09 / **0.98 / 0.99** | 1.13 / 1.40 / 1.10 / 1.03 / 1.10 | 1 |
+| LAI by band, same | 1.42 / 1.49 / 0.87 / 0.52 / 0.52 | 1.46 / 1.52 / 0.90 / 0.58 / 0.60 | 1 |
+| fu natural land / MAD / r | 0.323 / 0.215 / 0.63 | 0.355 / 0.210 / 0.66 | 0.335 / 0 / 1 |
+| fu forests (> 0.7) / boreal 60-90N | 0.70 / 0.21 | 0.77 / 0.25 | 0.91 / 0.25 |
+| phantom / missing-tree cells | 3.4 % / 8.7 % | 3.7 % / 7.1 % | |
+| ET natural land / WUE; towers model/tower (ensemble/tower) | 1.03 / 1.14; 1.11 (0.99) | 1.04 / 1.13 | 1 |
+| seasonal amplitude all / tropics / 30-50N; shape error | 0.82 / 0.97 / 0.62; 0.0167 | 0.82 / 0.96 / 0.62 | 1 |
+| savanna towers: amplitude tower / FLUXCOM / model; phase lag model | 10.4 / 12.2 / **10.6**; +1.43 mo | | tower +0.21 |
+| GPP trend, 1900s -> 2000s decadal means | 135.5 -> 161.1 (**+19 %**) | v11d +21 % | |
+| fire: burned area (GFED5 4.60, spread 2.38-4.60) / rank / NMSE | 2.49 % / +0.747 / 0.858 | 2.55 % | |
+| methane `biome_tref`: Tg / split 30S-30N, 30-60N, 60-90N / peak / shape | **167.7 / 70.7, 20.5, 3.0 / 7 / 6.3** | 199 / 65, 25, 5 / 7 / 12.9 | 158 [119-203] / 70, 21, 8 / 7-8 |
+
+Readings.
+
+1. **The three flux criteria are met or nearly met on a self-consistent
+   state.** Total 130 on true land (the cycled validation's 132 held);
+   the high latitudes are exact (60-90N GPP 0.98-0.99, ET 0.98, WUE 1.02);
+   the tropics 1.10x; the 30-50N steppes 1.38x remain criterion 2's
+   residual. Season 0.82 overall, 0.97 in the tropics -- and at the savanna
+   towers the model's amplitude now equals the towers' (10.6 vs 10.4) where
+   FLUXCOM overshoots (12.2); the phase lag (+1.4 months) is what is left of
+   criterion 3.
+2. **The pools are the open problem, and the cold spin-up shows it
+   plainly.** Vegetation carbon 219 PgC against 450-650, soil carbon 6.9
+   kgC m-2 against 10-15 -- the cycled validations had carried the v11
+   state's soil (11.6); equilibrated on the corrected canopy's lower inputs
+   the soil settles well below range while Rh (~53) is inside it, so the
+   decomposition rates are too fast for the inputs (the both_fix x0.67 on
+   `knb/kpb/ksb`, undone at v11, is back on the table) and biomass per unit
+   forest is too small (allocation / wood turnover). Neither is a flux
+   criterion; both are the stage after ET.
+3. **The modules held.** Methane `biome_tref` at 167.7 Tg with the split
+   70.7 / 20.5 / 3.0 against 70 / 21 / 8 and shape error **6.3** -- the best
+   methane result of the project (the Arctic 3.0 vs 8 is the one deficit);
+   fire inside the product spread with the pattern kept.
+4. The 1901-2010 GPP trend is +19 %, as v11d's was, so the corrected
+   canopy did not change the CO2 response.
+
+`final_v12e/hindcast/restart/ibis_restart_2010.npz` is the self-consistent
+2010 state: the ET stage's start, unless (b4) supersedes it.
 
