@@ -1778,6 +1778,13 @@ model annual ET is under a fifth of the observed (count reported); on the
 (b3) output the shape term is then 0.009-0.018, the GPP term's size. The
 fit was stopped and relaunched with the guard.
 
+Relaunched 00:43 on 2026-09-20 (`fit_carbon_v12g`). Baseline **2.4407**:
+GPP 0.799 (of which ~0.55 is the weighted total -- the (b3) parameters read
+~1.16x on this sample), LAI 0.609, season 0.174, tree 0.705, **ET 0.065,
+ET shape 0.089** -- the ET terms now the size of their carbon
+counterparts. The mark to beat on the carbon terms alone is (b4)'s 1.37;
+180 evaluations, ~10 h.
+
 **The ET stage is therefore a joint fit**, not a separate one: the (b4)
 structure with the carbon terms as they stand plus `--w-et` and
 `--w-et-season`, `soil_beta_power` added to the structural extras,
