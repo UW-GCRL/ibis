@@ -349,6 +349,9 @@ def run_global_simulation(config: IBISConfig) -> None:
     _pd_gate = load_physics_params(config.params_file) if config.params_file else None
     _tsm = float(((_pd_gate or {}).get('pft') or {}).get('tree_stress_min', -1.0))
     gate_on = _tsm >= 0.0
+    et_on = bool(getattr(p, "et_components", False))
+    if et_on:
+        logger.info("ET components ACCUMULATED (physics.et_components): state carries ETParts")
     if gate_on:
         logger.info("Tree-establishment gate ACTIVE (tree_stress_min=%.2f, ramp=%.2f): "
                     "state carries StressAccum; dynaveg gets tree_surv", _tsm,
@@ -359,12 +362,12 @@ def run_global_simulation(config: IBISConfig) -> None:
     if t.irestart > 0:
         rpath = restart_path(out.restart_dir, t.irestart)
         logger.info("Loading restart from %s", rpath)
-        template = create_ibis_state(grid, p.co2init, p.o2init, with_stress=gate_on)
+        template = create_ibis_state(grid, p.co2init, p.o2init, with_stress=gate_on, with_etparts=et_on)
         state, meta = load_state(rpath, template)
         logger.info("Restart metadata: %s", meta)
     else:
         logger.info("Cold start ...")
-        state = create_ibis_state(grid, p.co2init, p.o2init, with_stress=gate_on)
+        state = create_ibis_state(grid, p.co2init, p.o2init, with_stress=gate_on, with_etparts=et_on)
 
     # Inject soil (always, since soil is static)
     state = _apply_soil(state, soil_props)
@@ -709,6 +712,7 @@ def run_global_simulation(config: IBISConfig) -> None:
 
         from ibis.physics.vegetation_dynamics import biomass_update, dynaveg
         from ibis.state.stress_accum import tree_survival, reset_stress_accum
+        from ibis.state.et_parts import reset_et_parts
         if p.isimveg > 0:
             new_veg, new_carbon, new_summary = dynaveg(
                 state.vegetation, state.carbon, state.summary,
@@ -812,6 +816,7 @@ def run_global_simulation(config: IBISConfig) -> None:
              jnp.zeros_like(state.summary.aytdrain)),
         )
         state = reset_stress_accum(state)   # after dynaveg consumed this year's mean stress
+        state = reset_et_parts(state)
 
         # Save restart
         rpath = restart_path(out.restart_dir, year)

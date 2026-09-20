@@ -212,6 +212,17 @@ def _run_day_inner(
         runof_step = st.hydrology.grunof * _dt
         drain_step = st.hydrology.gdrain * _dt
 
+        # ET components (docs/CALIBRATION.md 15): the same fluxes aet_step
+        # sums, kept apart. Static branch: free when the field is None.
+        if st.etparts is not None:
+            _snowsub = st.canopy.fvapi * st.snow.fi * _dt
+            st = eqx.tree_at(
+                lambda s: (s.etparts.trans, s.etparts.interc, s.etparts.soilev, s.etparts.snowsub), st,
+                (st.etparts.trans + st.hydrology.gtrans * _dt,
+                 st.etparts.interc + st.hydrology.ginvap * _dt,
+                 st.etparts.soilev + st.hydrology.gsuvap * _dt - _snowsub,
+                 st.etparts.snowsub + _snowsub))
+
         new_sm = eqx.tree_at(
             lambda s: (s.adrain, s.adsnow, s.adaet,
                        s.a10ancub, s.a10ancls, s.a10ancl3, s.a10ancl4,
@@ -958,7 +969,9 @@ def run_spinup_gswp3(
                    sm.aytrunof, sm.aytdrain)),
         )
         from ibis.state.stress_accum import reset_stress_accum
+        from ibis.state.et_parts import reset_et_parts
         state = reset_stress_accum(state)
+        state = reset_et_parts(state)
 
         if on_year_end is not None:
             try:

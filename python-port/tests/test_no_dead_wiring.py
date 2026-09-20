@@ -480,3 +480,37 @@ def test_totals_and_fit_weights_carry_the_true_land_fraction():
     assert "true_landfrac()[i, j]" in (root / "fit_carbon.py").read_text()
     sr = (root / "state_report.py").read_text()
     assert "area_t = area * lf" in sr and '"GPP PgC/yr TRUE land"' in sr and '"GPP PgC/yr FLUXCOM land"' in sr
+
+
+def test_et_parts_accumulate_reset_write_and_migrate():
+    """ETParts (CALIBRATION.md 15): accumulated next to aet_step in the hourly
+    loop, reset at year end on both production paths, written to the yearly
+    file, captured monthly by the harness; a state without it keeps 258
+    leaves, with it 265 (stress forced on), and restarts migrate along the
+    258 / 261 / 265 chain in both directions."""
+    from pathlib import Path
+    import numpy as np, jax, jax.numpy as jnp, equinox as eqx
+    from ibis.state.model_state import create_ibis_state
+    from ibis.io.restart import save_state, load_state
+    from ibis.dimensions import GridConfig
+    root = Path(__file__).resolve().parents[1]
+    lp = (root / "ibis" / "timestepping" / "loops_gswp3.py").read_text()
+    assert "s.etparts.trans" in lp and "st.hydrology.gtrans * _dt" in lp and "state = reset_et_parts(state)" in lp
+    rg = (root / "scripts" / "run_global.py").read_text()
+    assert rg.count("with_etparts=et_on") == 2 and "state = reset_et_parts(state)" in rg
+    assert '"aytrans"' in (root / "ibis" / "io" / "diagnostics.py").read_text()
+    assert 'diag["et_parts_monthly"]' in (root.parent / "verify" / "calibration" / "site_transient.py").read_text()
+    g = GridConfig(npoi=4, nbedrock=3)
+    n0 = len(jax.tree.leaves(create_ibis_state(g))); n1 = len(jax.tree.leaves(create_ibis_state(g, with_stress=True)))
+    s2 = create_ibis_state(g, with_etparts=True); n2 = len(jax.tree.leaves(s2))
+    assert (n1 - n0, n2 - n1) == (3, 4) and s2.stress is not None
+    import tempfile, os
+    d = tempfile.mkdtemp()
+    fu = jnp.array([0.1, 0.2, 0.3, 0.4], dtype=s2.vegetation.fu.dtype)
+    s2 = eqx.tree_at(lambda s: (s.vegetation.fu, s.etparts.trans), s2, (fu, jnp.full_like(s2.etparts.trans, 7.0)))
+    save_state(s2, f"{d}/e.npz")
+    back, _ = load_state(f"{d}/e.npz", create_ibis_state(g))                      # 265 -> 258: drop 7
+    assert back.stress is None and back.etparts is None and np.array_equal(np.asarray(back.vegetation.fu), np.asarray(fu))
+    save_state(create_ibis_state(g, with_stress=True), f"{d}/s.npz")
+    up, _ = load_state(f"{d}/s.npz", create_ibis_state(g, with_etparts=True))     # 261 -> 265: fill 4
+    assert up.etparts is not None and float(up.etparts.trans.sum()) == 0.0

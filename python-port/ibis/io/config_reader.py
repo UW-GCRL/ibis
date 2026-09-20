@@ -69,6 +69,7 @@ class PhysicsSection:
     #: 2014). Carbon totals from such a run are diagnostic, not a closed
     #: budget -- see ibis/physics/prescribed_lai.py.
     prescribe_lai: bool = False
+    et_components: bool = False   # accumulate transpiration / interception / soil evap / snow sublimation (CALIBRATION.md 15)
     #: Seed leaf area from MODIS ONCE at the start of the run, then let
     #: `dynaveg` evolve it. Distinct from `prescribe_lai`, which re-imposes
     #: the observed field every year.

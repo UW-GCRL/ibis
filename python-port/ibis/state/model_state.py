@@ -19,6 +19,7 @@ from ibis.state.carbon import CarbonState, create_carbon_state
 from ibis.state.hydrology import HydrologyDiag, create_hydrology_diag
 from ibis.state.summary import SummaryState, create_summary_state
 from ibis.state.stress_accum import create_stress_accum
+from ibis.state.et_parts import create_et_parts
 from ibis.dimensions import GridConfig
 
 
@@ -48,12 +49,16 @@ class IBISState(eqx.Module):
     #: Annual-mean soil-water stress (docs/CALIBRATION.md 14). None unless a
     #: run enables the water-limited tree establishment gate.
     stress: Optional[eqx.Module] = None
+    #: Annual ET components (docs/CALIBRATION.md 15). None unless a run asks
+    #: for them (`physics: et_components: true`); implies `stress`.
+    etparts: Optional[eqx.Module] = None
 
 
 def create_ibis_state(grid: GridConfig,
                       co2: float = 350.0e-6,
                       o2: float = 0.209,
-                      with_stress: bool = False) -> IBISState:
+                      with_stress: bool = False,
+                      with_etparts: bool = False) -> IBISState:
     """Create a cold-start IBISState with default initial values.
 
     Parameters
@@ -74,5 +79,6 @@ def create_ibis_state(grid: GridConfig,
         carbon=create_carbon_state(grid.npoi),
         hydrology=create_hydrology_diag(grid.npoi),
         summary=create_summary_state(grid.npoi, grid.npft),
-        stress=(create_stress_accum(grid.npoi) if with_stress else None),
+        stress=(create_stress_accum(grid.npoi) if (with_stress or with_etparts) else None),
+        etparts=(create_et_parts(grid.npoi) if with_etparts else None),
     )

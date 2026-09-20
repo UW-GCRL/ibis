@@ -208,6 +208,11 @@ class DiagnosticWriter:
         self._add_2d(ds, "ayprcp", state.summary.ayprcp, "mm/yr",
                      "Annual precipitation")
         self._add_2d(ds, "ayaet", state.summary.ayaet, "mm/yr", "Annual AET")
+        if getattr(state, "etparts", None) is not None:
+            self._add_2d(ds, "aytrans", state.etparts.trans, "mm/yr", "Annual transpiration")
+            self._add_2d(ds, "ayinterc", state.etparts.interc, "mm/yr", "Annual interception evaporation")
+            self._add_2d(ds, "aysoilev", state.etparts.soilev, "mm/yr", "Annual soil evaporation")
+            self._add_2d(ds, "aysnowsub", state.etparts.snowsub, "mm/yr", "Annual snow sublimation")
         self._add_2d(ds, "aygpptot", state.summary.aygpptot, "kgC/m2/yr",
                      "Annual GPP")
         self._add_2d(ds, "ayco2mic", state.summary.ayco2mic, "kgC/m2/yr",
