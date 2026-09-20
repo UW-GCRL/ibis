@@ -485,3 +485,25 @@ cannot spread.
 calibration; it is not tolerable in a released model. Localising the first
 non-finite operation (run the cell alone from the 1900 restart with
 `jax.debug` checks) is the next step when someone picks this up.
+
+## Negative monthly ET on subtropical cells (found 2026-09-20, open)
+
+On the (b3) parameters (`val_v12e/monthly`, 2001-2010 cycled at the 2060
+state) 1,139 of the 2,129 fit-sample cells with all five ET products show
+at least one month of **negative** total evapotranspiration (`amaet`), and
+a handful of cells near 29-35 N reach -80 to -146 mm/month in summer --
+net deposition of 3-5 mm/day for months, which is not dew. Examples
+(model monthly ET, mm): lat 29.2: `6 4 9 26 24 -6 -28 -27 -25 2 8 9`
+against an ensemble `14 15 18 22 34 47 60 59 48 27 16 13`; lat 34.8:
+`-14 -17 -28 -37 -36 -9 59 71 47 26 1 -9`. The sign is that of `fvapa`
+(atmosphere-to-surface), so the surface humidity exceeds the air's for
+whole months: candidates are the ground humidity factor (`qgfac`, whose
+branches on `q34 > qg` were widened by an eps-band in finding #23), a
+saturated `qa` in the GSWP3 forcing at high-elevation cells (the Tibetan
+Plateau sits at these latitudes), or the puddle (`wpud`) path. Not yet
+localised. The calibration excludes these cells from the ET terms
+(`fit_carbon.ET_MIN_RATIO`) and reports their count; they carry little
+GPP and did not affect the carbon fits. To investigate: map the cells,
+check `qa` against `qsat(ta)` in the forcing there, and the sign of
+`fvapg` / `fvaps` / `fvapi` per timestep.
+

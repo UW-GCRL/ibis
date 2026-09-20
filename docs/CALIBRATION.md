@@ -1767,6 +1767,17 @@ stays out of the ET fit. The interception EXTRAS remain available; the
 ET stage's structural lever is the soil-evaporation control alone, with
 the boreal LAI on the carbon side.
 
+**A trap found at the first joint evaluation.** Its loss was 10.77, of
+which the ET-shape term was 8.07 -- 46 times the GPP-shape term. The
+cause is a model anomaly, not a shape: 1,139 of the 2,129 all-five sample
+cells have a month of *negative* ET and a few subtropical cells reach
+-80..-146 mm/month (`DEFECTS_FOR_REVIEW.md`), which turns
+fraction-of-year shapes and log-ratios into noise (median cell 0.009,
+mean 0.58). The ET terms now clip months at zero and exclude cells whose
+model annual ET is under a fifth of the observed (count reported); on the
+(b3) output the shape term is then 0.009-0.018, the GPP term's size. The
+fit was stopped and relaunched with the guard.
+
 **The ET stage is therefore a joint fit**, not a separate one: the (b4)
 structure with the carbon terms as they stand plus `--w-et` and
 `--w-et-season`, `soil_beta_power` added to the structural extras,
