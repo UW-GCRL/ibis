@@ -1785,6 +1785,47 @@ ET shape 0.089** -- the ET terms now the size of their carbon
 counterparts. The mark to beat on the carbon terms alone is (b4)'s 1.37;
 180 evaluations, ~10 h.
 
+**Result: 2.4407 -> 1.4984** (best at eval 179, the last generation). Terms:
+GPP 0.211 (of which the weighted total ~0.02: the sample total at ~1.03x),
+LAI 0.512, season 0.0172, tree 0.231 (the lowest of any fit), ET 0.0705,
+ET shape 0.0097; hold-out 1.547. On the carbon terms alone, 1.331 --
+better than (b4)'s 1.370 with the gate fitted rather than fixed.
+
+| scalar | start (b3) | fitted | |
+|---|---|---|---|
+| `tree_stress_min` / `ramp` | 0.630 / 0.159 | **0.759 / 0.137** | between (b3)'s 0.63 and (b4)'s fixed 0.80 |
+| `stressfac` | -6.53 | **-7.67** | less stress -- moving together with the gate, as they must |
+| `soil_beta_power` | 1.5 | **1.31** | a mild strengthening of the soil-evaporation control (1 = F77) |
+| `cover_k` | 0.428 | 0.203 (floor) | understory cover thinned to the bound |
+| `drop_stress_thresh` | 0.134 | 0.277 | dormancy trigger partly live |
+| `tthresh_u_abs` | 12.5 C | 8.9 C | |
+| `fl_min`, `fu_min` | 0.229, 0.033 | 0.242, 0.063 | |
+
+| PFT | vmax start -> fitted (umol) | specla | |
+|---|---|---|---|
+| trop_bl_ever | 52.1 -> 46.7 | 14.9 -> 14.0 | |
+| trop_bl_dec | **52.1** -> 46.0 | 11.2 -> 11.3 | start should have been 40.3 (below) |
+| warm_bl_ever | 28.0 -> 26.3 | 18.2 -> 15.8 | |
+| temp_con_ever | 17.6 -> 19.1 | 14.9 -> 13.5 | |
+| temp_bl_dec | 58.3 -> 59.9 | 14.1 -> 12.2 | at the 60 ceiling |
+| boreal_bl_dec | **58.3** -> **49.9** | 30.1 -> 21.6 | start should have been 20.3 (below) |
+| ever_shrub | 35.7 -> 35.6 | 8.0 -> 8.7 | |
+| dec_shrub | **35.7** (frozen) | | should have been 28.0 (below) |
+| c4_grass / c3_grass | 18.2 -> 21.5 / 17.0 -> 16.2 | 10.2 -> 11.6 / 11.3 -> 10.0 | |
+| boreal_con_ever, boreal_con_dec | 25.0 (frozen) | | |
+
+**A provenance flaw.** The start yaml carried three vmax values that were
+not (b3)'s: `trop_bl_dec` 52.1, `boreal_bl_dec` 58.3 and `dec_shrub` 35.7
+-- the `--vmax-mix` dead-to-live mapping, which a patch to
+`make_start_yaml.py` had slid under the `--et-starts` flag (fixed and
+guarded). The optimiser re-fitted the first two (`boreal_bl_dec` settled at
+49.9, 2.5x (b3)'s 20.3 -- whether the 60-70 N band wanted that is read on
+the domain) and could not move the frozen `dec_shrub`, so the finalized
+yaml carries 35.7 where (b3) had 28.0 -- a small effect (shrub LAI is
+small and the shrub big leaf mixes the two) but a value no fit chose. The
+result stands as a fit from a different start; the flaw is noted, and the
+pool stage starts from a corrected base.
+
 **The ET stage is therefore a joint fit**, not a separate one: the (b4)
 structure with the carbon terms as they stand plus `--w-et` and
 `--w-et-season`, `soil_beta_power` added to the structural extras,
