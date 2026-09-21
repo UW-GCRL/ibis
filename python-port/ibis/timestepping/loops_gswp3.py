@@ -338,12 +338,19 @@ def _run_month_scan(
             jday_d, k_day, dtime, nband, ndaypy,
         )
 
-        # End-of-day: convert daily accumulations → 10-day running means
-        # Issue 21: Use Fortran exponential weighting (stats.f sumnow)
-        # Fortran: zweight = exp(-dtime / (10 * 86400)), applied every timestep.
-        # Since we accumulate per-day and update once, use daily equivalent:
+        # End-of-day: convert daily accumulations → 10-day running means.
+        # F77 (stats.f sumday) applies zweight = exp(-dtime / (10 * 86400))
+        # at EVERY timestep -- niter_day times a day -- so one day's decay is
+        # zweight**niter_day = exp(-1/10): a 10-day memory. This block applies
+        # the update once a day and used the per-TIMESTEP weight, exp(-1/240)
+        # for hourly steps: a 240-day memory that attenuated the annual cycle
+        # of a10td to 24 % of its amplitude with a 77-day lag (January a10td
+        # +7 C on steppe cells at -3 C), so the lower canopy never saw winter
+        # and the drought triggers on a10anc* never saw a dry season
+        # (docs/CALIBRATION.md 16, DEFECTS_FOR_REVIEW.md). Corrected to the
+        # daily-equivalent weight.
         niter_day = timesteps_per_day(dtime)
-        zweight = jnp.exp(-1.0 / (10.0 * niter_day))
+        zweight = jnp.exp(-1.0 / 10.0)              # == exp(-1/(10*niter_day)) ** niter_day
         alpha10 = 1.0 - zweight
         new_a10td    = zweight * pheno_summary.a10td    + alpha10 * td_d
         new_a10ancub = zweight * pheno_summary.a10ancub + alpha10 * (st.summary.a10ancub / day_sec)

@@ -608,3 +608,16 @@ def test_make_start_yaml_flags_touch_only_their_own_keys(tmp_path):
         got = yaml.safe_load(open(out))["stomata"]["vmax"]
         moved = got["tropical_broadleaf_deciduous"] != base["stomata"]["vmax"]["tropical_broadleaf_deciduous"]
         assert moved == changed, (flag, got)
+
+
+def test_ten_day_running_means_have_a_ten_day_memory():
+    """F77 applies exp(-dtime/(10 d)) every timestep; the port updates once a
+    day, so its weight must be the DAILY equivalent exp(-1/10). With the
+    per-timestep weight the memory was 240 days (CALIBRATION.md 16)."""
+    from pathlib import Path
+    import numpy as np
+    lp = (Path(__file__).resolve().parents[1] / "ibis" / "timestepping" / "loops_gswp3.py").read_text()
+    assert "zweight = jnp.exp(-1.0 / 10.0)" in lp and "jnp.exp(-1.0 / (10.0 * niter_day))" not in lp
+    zw = np.exp(-1.0 / 10.0)
+    assert abs(-1.0 / np.log(zw) - 10.0) < 1e-9                                  # e-folding memory 10 days
+    assert abs(np.exp(-1.0 / (10.0 * 24)) ** 24 - zw) < 1e-12                       # == F77's 24 hourly applications
