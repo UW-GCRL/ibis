@@ -5,7 +5,7 @@ corrected carbon cycle. Order set by Hangkai: carbon, then ET, then the smaller
 parts. Methane is evaluated against FLUXNET-CH4 (Chenchen's processing).
 
 
-## State of the calibration (updated 2026-09-20 12:20; joint carbon + ET fit validated; closing protocol on it running)
+## State of the calibration (updated 2026-09-21 14:45; phenology clock fixed -- all parameters to be refit on the corrected model)
 
 Three criteria for carbon (the user's): global total, spatial pattern,
 seasonal pattern. A fourth was added as the means to the second: tree
@@ -2485,6 +2485,48 @@ carries 19 % ice in the top layer only on 31 December. The January
 numbers above stand (that day followed five full years and the January of
 the sixth). Lesson recorded: a single-day probe must start from a state
 at that date.
+
+### The joint-fit parameters on the corrected clock: the season improves, the boreal vmax is now wrong
+
+50-year validation of `params_fit_v12g.yaml` with the phenology clock fixed
+(`val_v12g_clock`, years 2056-60), against the same parameters on the slow
+clock (`val_v12g`):
+
+| | slow clock | **fixed clock** | observed |
+|---|---|---|---|
+| GPP PgC/yr, true land / on FLUXCOM land | 118.3 / 115.0 | **123.6 / 120.3** (1.10x) | 120-130 / 109 |
+| NPP true land; veg C true land | 52.3; 225 | 55.6; 264 | 55-60; 450-650 |
+| GPP by band 30S-30N / 30-50N / 50-60N / 60-70N / 70-90N | 0.99 / 1.27 / 1.03 / 1.05 / 1.26 | 0.99 / 1.33 / **1.38 / 1.59 / 1.34** | 1 |
+| LAI by band, same | 1.30 / 1.35 / 0.82 / 0.60 / 0.75 | 1.30 / 1.13 / **0.49 / 0.35** / 0.64 | 1 |
+| fu natural land / r | 0.312 / 0.61 | **0.333 / 0.60** | 0.335 |
+| fu 60-90N / 45-60N | 0.25 / 0.53 | 0.37 / 0.57 | 0.25 / 0.45 |
+| seasonal amplitude all / 30-50N / 50-60N / 60-70N / 70-90N | 0.80 / 0.61 / 0.58 / 0.63 / 0.75 | **0.83 / 0.65 / 0.71 / 0.79 / 0.78** | 1 |
+| shape error, flux-weighted | 0.0169 | **0.0161** (lowest of any state) | |
+| 30-60N composite: model/obs Jan / Jul; LAI Jan / Jul | 4.3 / 0.60; 4.6 / 4.6 | 4.2 / **0.75**; **3.5 / 4.6** | 1 / 1 |
+
+The clock fix does what lever test 15 said it would: the mid-latitude and
+boreal canopies now have a seasonal cycle of leaf area (30-60 N LAI 3.5 in
+January against 4.6 in July, where it was flat) and the amplitude improves
+in every band north of 30 -- the seasonal criterion's best reading so far.
+The small-absolute winter excess is unchanged (4.2x on ~0.01 kgC m-2).
+And the boreal GPP has gone from right to 1.4-1.6x with **half the leaf
+area** (60-70 N LAI 0.35x MODIS, GPP 1.59x): on the slow clock the boreal
+evergreens and deciduous PFTs carried displayed leaves through a
+phenology that never turned off, and their `vmax` was fitted to that; on
+the corrected clock the same `vmax` on a shorter, sharper season -- and
+`boreal_bl_dec` at 49.9 from the provenance flaw -- over-produces per
+leaf while the canopy is thinner. Vegetation carbon rose (225 -> 264) with
+the trees returning at high latitude (fu 60-90 N 0.37 against 0.25: too
+many now).
+
+So every parameter fitted so far was fitted to a model with the wrong
+seasonal clock, and the next fit is a refit on the corrected model rather
+than a refinement -- stage (d): the joint fit's scoring and structure,
+`tthresh_l_c` and `gdd_thresh_l` back among the extras (the grass
+threshold matters again now that `a10td` reaches it), the `vmax_mix`
+starts corrected (`dec_shrub` 28.0, `boreal_bl_dec` 20.3), and the
+C3-versus-C4 existence question (section 16) carried as a lever test
+before it enters the structure.
 
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
