@@ -1,0 +1,14 @@
+An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+2026-09-21 14:49:39,912 cached 36 months of forcing (0.00 GB)
+60 C4-dominated 40-55N steppe cells: tw 23.7 C (range 21.5-27.9), tc -7.0 C; FLUXCOM GPP 0.52 kgC/m2/yr
+obs monthly shape  : 0.006 0.010 0.035 0.095 0.172 0.204 0.214 0.151 0.071 0.028 0.009 0.005
+
+case                           | dominant:  C4  C3 evs dcs | annual | Nov-Feb May-Aug Jun-Jul |   amp (obs 47) | LAI C4 / C3
+C3 vmax 16.2 (seeded 0.3 LAI)   |  51   0   1   4 |   1.04 |    4.59    0.73    0.67 |   6.9 | 0.98 / 0.02
+   model/obs by month:  4.03  2.87  1.82  1.17  0.89  0.70  0.64  0.69  1.46  3.37  6.76  4.77
+C3 vmax 25.0 (seeded 0.3 LAI)   |  51   2   0   3 |   1.01 |    4.50    0.70    0.64 |   6.7 | 0.89 / 0.11
+   model/obs by month:  3.96  2.79  1.75  1.13  0.85  0.67  0.61  0.67  1.42  3.29  6.63  4.74
+C3 vmax 30.0 (seeded 0.3 LAI)   |  49   7   0   0 |   1.00 |    4.57    0.68    0.62 |   6.4 | 0.80 / 0.20
+   model/obs by month:  4.02  2.82  1.74  1.12  0.84  0.66  0.59  0.66  1.40  3.27  6.70  4.89
+C3 vmax 35.0 (seeded 0.3 LAI)   |  45  11   0   0 |   1.00 |    4.76    0.67    0.61 |   6.1 | 0.69 / 0.33
+   model/obs by month:  4.21  2.94  1.77  1.12  0.83  0.65  0.58  0.65  1.40  3.31  6.94  5.21

@@ -2553,6 +2553,29 @@ starved. Lever test 21 gives C3 the F77 default (25) and above, seeds it,
 and asks whether it takes the cool steppes and what that does to their
 summer.
 
+### Lever test 21: C3 grass does not fix the steppe summer either -- the grass type is not the lever
+
+Same cells, fixed clock, C3 grass seeded (LAI 0.3) and given `vmax` 16.2
+(the fitted floor), 25 (F77), 30, 35 against C4's 21.5 (`lever_test21.py`):
+
+| C3 vmax | dominant: C4 / C3 | annual | Jun-Jul | amplitude | LAI C4 / C3 |
+|---|---|---|---|---|---|
+| 16.2 | 51 / 0 | 1.04 | 0.67 | 6.9 | 0.98 / 0.02 |
+| 25.0 | 51 / 2 | 1.01 | 0.64 | 6.7 | 0.89 / 0.11 |
+| 30.0 | 49 / 7 | 1.00 | 0.62 | 6.4 | 0.80 / 0.20 |
+| 35.0 | 45 / 11 | 1.00 | 0.61 | 6.1 | 0.69 / 0.33 |
+
+Even at a `vmax` above C4's, C3 takes a sixth of the cells and the
+**summer deficit does not move** (0.61-0.67 whichever grass grows). The
+C3-for-C4 question of section 16 is closed as a lever: the steppe's
+midsummer under-production is not the grass type. What the two grass
+tests leave is the canopy itself -- a lower canopy at LAI ~1.0 and cover
+0.25 on cells whose observed GPP is 0.52 kgC m-2 yr-1, with k ~ 1
+extinction and a quarter of the ground under leaves: the light the cell
+receives in June-July falls mostly on bare soil. Lever test 22 varies the
+cover at fixed leaf area (`fl_min` 0.25 -> 1.0, `cover_k`) and reads the
+July light partition between lower canopy, upper canopy and soil.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
