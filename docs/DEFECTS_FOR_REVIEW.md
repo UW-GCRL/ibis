@@ -507,3 +507,24 @@ GPP and did not affect the carbon fits. To investigate: map the cells,
 check `qa` against `qsat(ta)` in the forcing there, and the sign of
 `fvapg` / `fvaps` / `fvapi` per timestep.
 
+## Ten-day running means updated with the per-timestep weight (found 2026-09-20, FIXED)
+
+`loops_gswp3._day_body` updates `a10td` and the four `a10anc*` running means
+once per day but used F77's per-timestep weight `exp(-1/(10*niter_day))`
+= exp(-1/240) for hourly steps. F77 (`stats.f` sumday) applies that weight
+at every timestep, 24 times a day, so one day's decay is exp(-1/10). The
+port's memory was therefore 240 days, not 10: the annual temperature cycle
+in `a10td` was attenuated to 24 % of its amplitude and lagged 77 days
+(January `a10td` +7 C on steppe cells whose January air temperature is
+-3 C), so `pheno`'s cold triggers for the lower canopy rarely fired,
+grasses and deciduous shrubs kept 3-4 m2/m2 of displayed leaf area through
+a -7 C winter (CALIBRATION.md 16, lever test 15), and the `a10anc*`
+drought triggers averaged over eight months. Fixed to the daily-equivalent
+weight exp(-1/10) (guarded). `canopy_scaling`'s `a10scalparam` runs per
+timestep with the per-timestep weight and was correct. Consequence: every
+calibration stage through v12g ran on a model with a 240-day phenology
+clock; the seasonal criterion (mid-latitude amplitude 0.6, tropical phase
+lag) and any fitted phenology scalar (`tthresh_*`, `gdd_*`, `drop_*`) are
+re-read on the corrected model. Old-code runs are not reproducible with
+the fix in; the checkpoints are unaffected (no state field changed).
+

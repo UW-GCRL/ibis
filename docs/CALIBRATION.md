@@ -41,7 +41,13 @@ Structural findings, in the order they were forced by the data:
    not act. `scale_leaf_only` (16). Alone it takes 168 -> 131 PgC.
 3. **Four of twelve vmax entries were dead** (17): each canopy big leaf took
    ONE PFT's vmax by existence priority. `vmax_mix` weights by leaf area.
-4. **Observation caveats** (15-16): the ET products spread 38 % per cell
+4. **The phenology clock ran 24x too slow** (16): the port applied F77's
+   per-timestep ten-day-mean weight once a day, giving `a10td` and the
+   `a10anc*` drought triggers a 240-day memory -- the annual temperature
+   cycle attenuated to 24 % with a 77-day lag, so the lower canopy never
+   met winter and the dormancy triggers never met a dry season. Every fit
+   in this document ran on it. Fixed 2026-09-20 22:55.
+5. **Observation caveats** (15-16): the ET products spread 38 % per cell
    (score pattern and season, not the total); FLUXCOM's savanna phase is
    confirmed by towers but its dry-season depth is 0.6x theirs (hold the
    model to the phase).
@@ -2865,5 +2871,34 @@ Readings.
    canopy did not change the CO2 response.
 
 `final_v12e/hindcast/restart/ibis_restart_2010.npz` is the self-consistent
-2010 state: the ET stage's start, unless (b4) supersedes it.
+2010 state of (b3).
+
+### Closing protocol on the joint fit (v12g), beside (b3)
+
+`final_validation.sh v12g`, 12:09-22:52 on 2026-09-20 (the hindcast with
+ET components); both columns are cold spin-up -> transient -> 2001-2010
+hindcast under the parameters named:
+
+| | closing (b3) | **closing (joint, v12g)** | observed |
+|---|---|---|---|
+| GPP PgC/yr, true land / on FLUXCOM land | 129.8 / 126.6 (1.16x) | **115.6 / 112.5 (1.03x)** | 120-130 / 109 |
+| NPP true land / Rh | 57.6 / 60.6 | 50.3 / 53.6 | 55-60 / 49-58 |
+| ET mm/yr; ET natural land vs MODIS; WUE | 504; 1.03; 1.14 | 491; **1.00; 1.03** | 500-550; 1; 1 |
+| veg C true land; soil C; litter | 219; 6.9; 0.49 | **163; 6.3; 0.40** | 450-650; 10-15; 0.4-0.8 |
+| GPP by band 30S-30N / 30-50N / 50-60N / 60-70N / 70-90N | 1.10 / 1.38 / 1.09 / 0.98 / 0.99 | **0.96 / 1.26 / 1.00 / 1.00 / 1.17** | 1 |
+| fu natural land / r; forests fu / GPP | 0.323 / 0.63; 0.70 / 0.94 | 0.290 / 0.57; 0.61 / 0.84 | 0.335; 0.91 / 1 |
+| phantom / missing-tree cells | 3.4 / 8.7 % | 2.6 / 12.5 % | |
+| seasonal amplitude all / tropics / 30-50N | 0.82 / 0.97 / 0.62 | 0.80 / 0.94 / 0.61 | 1 |
+| savanna towers: model amplitude / phase lag | 10.6 / +1.4 mo | 7.5 / +1.2 mo | 10.4 / +0.2 |
+| ET at 194 towers, model/tower (ensemble/tower 0.99) | 1.11 | ~1.08 | 1 |
+
+The joint state has the total (1.03x FLUXCOM on covered land; 116 PgC on
+true land, at the bottom of the literature range), the ET total and WUE
+at unity and four of five bands within 4 % -- and pays for it with a third
+of the forest cover and half the vegetation carbon (163 PgC). (b3) keeps
+more forest and biomass and runs 1.16x. Neither is final: the phenology
+clock defect found the same evening (section 16) means both were fitted
+on a model whose seasons lagged the weather by 77 days, and the seasonal
+criterion and the pools are re-read on the corrected model before the
+carbon+ET stage is closed.
 
