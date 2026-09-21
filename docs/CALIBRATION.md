@@ -2363,6 +2363,35 @@ extinction are the candidates). Every calibration stage through v12g ran
 on the slow clock; the joint-fit parameters are being re-validated on the
 corrected model (`val_v12g_clock`) before anything is closed.
 
+### Lever test 17: the lower canopy carries the winter, at a third of its summer rate per leaf, at -3 C
+
+Fixed clock, same 60 steppe cells, years 6-8 (`lever_test17.py`):
+
+| case | annual | Nov-Feb model/obs | Jun-Jul | displayed LAI Jan (lower / upper) | GPP per unit displayed LAI, Jan / Jul (gC m-2 leaf mo-1) |
+|---|---|---|---|---|---|
+| as fitted, fixed clock | 1.04 | **4.5** | 0.66 | 1.8 / 0.4 | **5.2** / 16.2 |
+| `fl_min` 0.05 | 0.67 | 2.7 | 0.43 | 1.9 / 0.7 | 2.5 / 8.0 |
+| `tthresh_l_c` +8 C | 1.00 | 4.2 | 0.66 | 0.9 / 0.5 | 7.9 / 16.3 |
+| C4 vmax x0.5 | 0.83 | 4.1 | 0.51 | 1.6 / 0.6 | 5.0 / 13.2 |
+| **no lower canopy** | 0.46 | **1.4** | 0.31 | 0 / 1.0 | 3.2 / 19.2 |
+
+Three readings. (1) The winter GPP is the lower canopy's: without it,
+Nov-Feb falls from 4.5x to 1.4x (and summer to 0.31x -- the grass is also
+most of the summer). (2) Cutting its leaf area does not cut its winter
+GPP: at LAI 0.9 (`tthresh_l_c` +8) it assimilates *more per leaf* (7.9)
+than at 1.8 (5.2) -- the light-saturated canopy of section 16 again, on
+its own scale. (3) The rate itself is the finding: **5-8 gC per m2 of
+leaf per month at a ten-day mean of -3 C**, a third to half of the 16 it
+does in July at 24 C. `fl_min` acts only because it scales the whole
+canopy's cover (summer falls with winter, 0.67 annual); it is not a
+winter lever. So the mid-latitude winter is physiological: a C4 grass
+photosynthesising at freezing on days that are individually below zero.
+The candidates, in order: the C4 temperature function `tempvm_c4` (F77's
+`3.0**((T-15)/10) / ((1+exp(0.3(13-T))) (1+exp(0.3(T-36))))`) at 0 C and
+below -- checked next -- and, behind it, a C4 grass on steppes that are
+C3 in reality (the existence rule of section 16), which the fixed clock
+does not change.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
