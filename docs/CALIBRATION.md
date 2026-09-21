@@ -2392,6 +2392,29 @@ below -- checked next -- and, behind it, a C4 grass on steppes that are
 C3 in reality (the existence rule of section 16), which the fixed clock
 does not change.
 
+### Lever test 16: the tropical dry season is not the clock's
+
+The same savanna / seasonal / rainforest composites as lever tests 7 and
+12, on the fixed clock with the joint-fit parameters (`lever_test16.py`):
+
+| savanna, months from wettest | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | annual | amplitude (obs 5.5) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| trigger 0.277 (as fitted) | 0.74 | 0.76 | 0.94 | 1.17 | 1.50 | **1.86** | **1.90** | 1.44 | 1.08 | 0.94 | 0.94 | 0.83 | 0.78 | 2.7 |
+| trigger 0.7 | 0.77 | 0.79 | 0.97 | 1.18 | 1.47 | 1.79 | 1.81 | 1.34 | 0.99 | 0.92 | 0.94 | 0.84 | 0.84 | 3.1 |
+
+The corrected clock changes the savanna dry season by nothing (compare
+lever test 12's 1.67 / 1.48 at months 5-6 with the trigger at 0.7 on the
+(b3) state): in the tropics the ten-day mean was never far from the daily
+temperature, and the drought trigger reads soil stress, not `a10td`. The
+tropical phase lag is therefore its own problem, as section 16 first
+read it: the leaf area drops (`dropu` 0.76 at 0.7) and the flux barely
+follows, on a canopy whose k = 1 extinction leaves it light-saturated at
+the leaf area that remains. Two side readings: the joint fit's tropical
+`vmax` was tuned on the slow clock and reads 0.78x (savanna) and 0.77x
+(rainforest) on the fixed one over these 6 transient years, and the
+seasonal class's wet-season excess (1.28 at months 4-5) is the same shape
+one notch weaker.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
