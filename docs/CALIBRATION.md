@@ -2447,6 +2447,43 @@ investigation (the canopy energy balance in winter), the fourth found by
 the seasonal criterion after the stem credit, the dead vmax entries and
 the clock.
 
+### Lever test 19: the winter leaf is honest -- and the summer soil is frozen
+
+Hour by hour on 15 January and 15 July 2003, twenty of the steppe cells,
+fixed clock, joint-fit parameters, driving `timestep_body` directly with
+the model's own diurnal forcing (`lever_test19.py`):
+
+| 15 January (air -3.7 C, tmax 0.4) | 06 | 09 | 12 | 14 | 17 | 21 |
+|---|---|---|---|---|---|---|
+| air / lower-canopy leaf T (C) | -7.7 / -7.5 | -4.6 / -1.3 | -0.6 / **3.6** | 0.4 / **4.2** | -1.6 / 0.1 | -5.5 / -5.1 |
+| `tempvm_c4`(leaf) | 0.007 | 0.059 | 0.177 | 0.193 | 0.084 | 0.016 |
+| PAR at the lower canopy (W m-2) | 0 | 91 | 118 | 107 | 48 | 0 |
+| C4 net assimilation (umol m-2 leaf s-1) | 0 | 0.61 | 1.39 | 1.45 | 0.46 | 0 |
+
+Daily gross assimilation **0.45 gC per m2 of leaf** (July: 5.6), or ~0.26
+gC m-2 ground per day at the cell's LAI 1.16 and cover 0.25 -- 0.008
+kgC m-2 for the month against FLUXCOM's 0.003. So the winter leaf is
+honest: warmed 3-4 C above the air by the midday sun, it assimilates at
+a twelfth of its July rate through the temperature function as written;
+the "4-5x" mid-latitude winter is a *small absolute* excess (0.005-0.01
+kgC m-2 mo-1) on an observation near zero, which is why the flux-weighted
+seasonal term never moved on it, and the amplitude criterion at 30-60 N
+(0.6) is carried by the **summer deficit** (June-July 0.6-0.7x), not the
+winter. That reorders the mid-latitude problem: the grass under-produces
+in summer and stays slightly on in winter; the clock fix has put the
+phenology right and what remains is the summer -- the steppe canopy's
+light use, and the C4-for-C3 substitution of section 16.
+
+The second finding is the one that matters. On **15 July**, air 17-30 C,
+the lower-canopy leaf reads **3.5-9 C all night** and the soil surface
+**0.7-3.5 C**, warming to 19 C only by late afternoon; the top soil layer
+is at or near freezing in midsummer on a 40-55 N steppe. Frozen or
+near-frozen soil in July is a thermal anomaly (deep cold pooled in the
+column, ice that never melts, or a snowpack that never clears), and it
+sits under every steppe result in this document: the water the grass can
+draw, the soil respiration, and the canopy energy balance that sets the
+leaf temperature. Probed next on the monthly soil columns.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
