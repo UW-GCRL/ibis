@@ -2474,15 +2474,17 @@ in summer and stays slightly on in winter; the clock fix has put the
 phenology right and what remains is the summer -- the steppe canopy's
 light use, and the C4-for-C3 substitution of section 16.
 
-The second finding is the one that matters. On **15 July**, air 17-30 C,
-the lower-canopy leaf reads **3.5-9 C all night** and the soil surface
-**0.7-3.5 C**, warming to 19 C only by late afternoon; the top soil layer
-is at or near freezing in midsummer on a 40-55 N steppe. Frozen or
-near-frozen soil in July is a thermal anomaly (deep cold pooled in the
-column, ice that never melts, or a snowpack that never clears), and it
-sits under every steppe result in this document: the water the grass can
-draw, the soil respiration, and the canopy energy balance that sets the
-leaf temperature. Probed next on the monthly soil columns.
+The "second finding" was the probe's, not the model's -- corrected the
+same hour. The July day in `lever_test19.py` was run from the state the
+January day had left (no intervening months), so its soil column, snow
+and canopy temperatures were January's: the 1-3 C "July" soil surface and
+the 3-9 C night-time leaf were a January soil under a July sky. The
+monthly output of the same cells (`val_v12g/monthly`) has the top soil
+layer at 25.9 C in July, `tg` 21.7 C, no summer ice; the 2060 restart
+carries 19 % ice in the top layer only on 31 December. The January
+numbers above stand (that day followed five full years and the January of
+the sixth). Lesson recorded: a single-day probe must start from a state
+at that date.
 
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
