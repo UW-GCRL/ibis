@@ -2526,7 +2526,12 @@ than a refinement -- stage (d): the joint fit's scoring and structure,
 threshold matters again now that `a10td` reaches it), the `vmax_mix`
 starts corrected (`dec_shrub` 28.0, `boreal_bl_dec` 20.3), and the
 C3-versus-C4 existence question (section 16) carried as a lever test
-before it enters the structure.
+before it enters the structure. One start value is set by hand: C3
+grass `vmax` 25.0 (the F77 default) instead of the 16.2 the earlier fits
+had walked it to. C3 is dominant in no sample cell, so `--min-cells 30`
+freezes it at its start; an unidentifiable parameter belongs at the
+default, not at a bound the optimiser reached on noise (lever test 21
+below shows the choice does not decide the steppe season either way).
 
 ### Lever test 20: bounding C4 out of the cool steppes hands them to shrubs, not to C3 grass
 
