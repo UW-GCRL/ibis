@@ -2581,6 +2581,40 @@ receives in June-July falls mostly on bare soil. Lever test 22 varies the
 cover at fixed leaf area (`fl_min` 0.25 -> 1.0, `cover_k`) and reads the
 July light partition between lower canopy, upper canopy and soil.
 
+### Lever test 22: cover scales the whole year -- the steppe season is a timing problem
+
+Same cells, fixed clock, the lower-canopy cover floor raised at fixed
+leaf carbon (`fl_min` 0.25 as fitted -> 1.0; `cover_k` 1.0 =
+`fl = 1 - exp(-LAI)`), `lever_test22.py`:
+
+| case | annual | Jun-Jul | Nov-Feb | amplitude (obs 47) | July cover / displayed lower LAI |
+|---|---|---|---|---|---|
+| as fitted (`fl_min` 0.25, `cover_k` 0.20) | 1.04 | 0.66 | 4.5 | 7.1 | 0.25 / 3.6 |
+| `fl_min` 0.50 | 1.49 | 0.92 | 7.2 | 6.8 | 0.50 / 2.4 |
+| `fl_min` 0.75 | 1.88 | 1.10 | 9.7 | 6.4 | 0.75 / 1.9 |
+| `fl_min` 1.0 | 2.21 | 1.24 | 12.2 | 5.9 | 1.00 / 1.6 |
+| `cover_k` 1.0 | 2.04 | 1.18 | 10.8 | 6.2 | 0.78 / 1.6 |
+
+Spreading the same leaf area over more ground doubles the light the
+grass absorbs (a quarter of the cell under leaves at LAI 3.6 absorbs ~24 %
+of the incoming light; the same leaves at cover 1 absorb ~50 %) and GPP
+follows -- in **every month alike**. The summer reaches the observation
+only when the winter is twelve times it. The amplitude moves from 7 to 6
+against an observed 47. So neither the grass type (tests 20-21) nor the
+canopy geometry (this test) is the steppe lever: the model's steppe cycle
+is too flat because its **timing** is wrong. Month by month (as fitted):
+March 1.75x and April 1.15x (leaf-out a month early), June-July 0.66x,
+September 1.45x, October 3.4x, November 6.8x (senescence a month or two
+late). The observed GPP collapses in September-October at daily means of
++5 to +10 C; the model's lower canopy senesces when the ten-day mean
+falls below `tthresh_l_c` = 0 C, which on these cells is November. Stage
+(a) had fitted that threshold to +8 C and stage (b1) dropped it; stage
+(d) carries `tthresh_l_c` and `gdd_thresh_l` (leaf-out) among its
+extras, and the fixed clock now lets them act. The light-partition
+columns of the test read zero (the month-end state is a night step);
+the numbers above rest on the GPP response, which is the quantity of
+interest.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is

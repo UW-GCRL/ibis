@@ -1,0 +1,16 @@
+An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+2026-09-21 14:56:12,231 cached 36 months of forcing (0.00 GB)
+60 C4-dominated 40-55N steppe cells: tw 23.7 C (range 21.5-27.9), tc -7.0 C; FLUXCOM GPP 0.52 kgC/m2/yr
+obs monthly shape  : 0.006 0.010 0.035 0.095 0.172 0.204 0.214 0.151 0.071 0.028 0.009 0.005
+
+case                                   | annual | Jun-Jul Nov-Feb |   amp (obs 47) | Jul: fl  LAI_l | SW absorbed Jul (W/m2, month-end step): lower  soil  upper
+as fitted (fl_min 0.25, cover_k 0.20)  |   1.04 |    0.66    4.54 |   7.1 | 0.25  3.61 |      0     0      0
+   model/obs by month:  3.90  2.82  1.75  1.15  0.88  0.70  0.63  0.70  1.45  3.42  6.80  4.66
+fl_min 0.50                            |   1.49 |    0.92    7.15 |   6.8 | 0.50  2.44 |      0     0      0
+   model/obs by month:  6.28  4.66  2.89  1.85  1.33  1.01  0.84  0.88  1.87  4.66 10.42  7.28
+fl_min 0.75                            |   1.88 |    1.10    9.73 |   6.4 | 0.75  1.89 |      0     0      0
+   model/obs by month:  8.71  6.55  3.98  2.47  1.70  1.23  0.98  1.02  2.18  5.74 13.82  9.93
+fl_min 1.0 (full cover)                |   2.21 |    1.24   12.18 |   5.9 | 1.00  1.57 |      0     0      0
+   model/obs by month: 11.06  8.42  4.97  3.01  1.99  1.39  1.09  1.14  2.41  6.64 16.93 12.52
+cover_k 1.0 (fl = 1-exp(-LAI))         |   2.04 |    1.18   10.78 |   6.2 | 0.78  1.62 |      0     0      0
+   model/obs by month:  9.66  7.36  4.38  2.67  1.83  1.32  1.05  1.11  2.32  6.27 15.20 11.01
