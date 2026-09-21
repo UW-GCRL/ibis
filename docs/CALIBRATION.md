@@ -2308,6 +2308,61 @@ winter.) Lever test 15 records the displayed LAI, `templ`, `tempu`, the
 ten-day temperature and GPP at every month-end inside the year to settle
 it.
 
+### Lever test 15: the ten-day temperature never saw winter -- a port defect in the phenology clock
+
+Month-end state inside the year on the same 60 steppe cells, joint-fit
+parameters (`lever_test15.py`):
+
+| as fitted, slow clock | J | F | M | A | M | J | J | A | S | O | N | D |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| GSWP3 air temperature 2002 (C) | -2.7 | | | 10.0 | | | 24.9 | | | 10.0 | | |
+| **`a10td` (C)** | **8.3** | 7.1 | 6.7 | 7.1 | 8.3 | 9.7 | 11.5 | 12.9 | 13.4 | 13.0 | 11.9 | 9.9 |
+| `templ` | 1.00 | 1.00 | 0.99 | 0.99 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
+| displayed LAI, lower | 3.2 | 3.6 | 4.4 | 4.5 | 4.3 | 4.3 | 3.8 | 3.4 | 3.7 | 4.1 | 4.5 | 3.3 |
+| GPP model/obs | 4.5 | 3.3 | 2.0 | 1.1 | 0.77 | 0.61 | 0.55 | 0.66 | 1.4 | 3.2 | 7.1 | 5.0 |
+
+The ten-day mean temperature the phenology reads was **+8 C in January on
+cells whose January air is -3 C** and 13 C in September: an annual cycle
+of 7 C against the weather's 28, peaking in September. `pheno`'s cold
+trigger (`a10td < 0 C`) could not fire; `templ` sat at 1.00 all year and
+the grass kept 3-4 m2/m2 of displayed leaf area through a -7 C winter.
+
+The cause is in the port, not in IBIS. F77 (`stats.f`, `sumday`) updates
+the ten-day means at *every timestep* with `zweight = exp(-dtime/(10 d))`
+-- 24 applications a day for hourly steps, one day's decay exp(-1/10), a
+ten-day memory. The port (`loops_gswp3._day_body`) updates them *once a
+day* with that same per-timestep weight, exp(-1/240): a **240-day**
+memory, which attenuates an annual cycle to 24 % of its amplitude and
+lags it 77 days -- exactly the +8 C January. Every short-window
+verification passed, because the per-day difference is 0.4 %; the effect
+takes a season to show. The same weight fed the `a10anc*` drought
+triggers, which therefore averaged eight months of assimilation and could
+not see a dry season either -- part of why section 16's dormancy lever
+was so hard to make act. `canopy_scaling`'s `a10scalparam` runs per
+timestep and was right. Fixed to the daily-equivalent weight (guarded;
+`DEFECTS_FOR_REVIEW.md`).
+
+| as fitted, **fixed clock** | J | F | M | A | M | J | J | A | S | O | N | D |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `a10td` (C) | **-3.1** | -1.9 | 4.3 | 11.7 | 17.8 | 21.6 | **24.3** | 21.8 | 15.8 | 8.5 | 2.6 | -4.0 |
+| `templ` | 0.32 | 0.40 | 0.70 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 0.89 | 0.35 |
+| `tempu` | 0.00 | 0.00 | 0.24 | 0.82 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 0.72 | 0.21 | 0.00 |
+| displayed LAI, lower | 1.8 | 2.1 | 3.2 | 4.2 | 4.0 | 4.0 | 3.6 | 3.2 | 3.5 | 3.9 | 3.9 | 1.9 |
+| GPP model/obs | 3.9 | 2.8 | 1.8 | 1.2 | 0.88 | 0.70 | 0.63 | 0.70 | 1.5 | 3.4 | 6.8 | 4.7 |
+| with `tthresh_l_c` +8 C: LAI lower / GPP model/obs | 0.9 / 3.7 | 0.9 / 2.4 | 1.7 / 1.4 | 3.5 / 0.95 | | | | | | 3.0 / 3.5 | 1.7 / 6.3 | 0.9 / 4.4 |
+
+The seasons now reach the phenology: the upper canopy is bare from
+December to February, the grass at a third of its leaf area. And the
+winter GPP is still 3-4x observed with a displayed lower LAI of 0.9-2.1 --
+so the phenology was one of two problems. What remains is physiological:
+a lower canopy at LAI 0.9 assimilating 11-14 g C m-2 a month at a ten-day
+mean of -3 C. Lever test 17 measures GPP per unit displayed leaf area by
+month and takes the lower canopy out altogether to attribute it (the
+canopy floor `fl_min`, the C4 temperature response, the k = 1
+extinction are the candidates). Every calibration stage through v12g ran
+on the slow clock; the joint-fit parameters are being re-validated on the
+corrected model (`val_v12g_clock`) before anything is closed.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
