@@ -2528,6 +2528,31 @@ starts corrected (`dec_shrub` 28.0, `boreal_bl_dec` 20.3), and the
 C3-versus-C4 existence question (section 16) carried as a lever test
 before it enters the structure.
 
+### Lever test 20: bounding C4 out of the cool steppes hands them to shrubs, not to C3 grass
+
+Fixed clock, the 60 C4-dominated 40-55 N steppe cells (coldest-month mean
+-7 C, 10-90 % -15 to 0 C), joint-fit parameters, a cold-season bound
+added to the C4 existence rule (`lever_test20.py`):
+
+| C4 allowed where | dominant: C4 / C3 / evergreen shrub / deciduous shrub | annual | Jun-Jul | amplitude (obs 47) |
+|---|---|---|---|---|
+| `tw` > 22 C only (F77, as fitted) | 53 / 0 / 1 / 3 | 1.04 | 0.66 | 7.1 |
+| ... and `tc` > -5 C | 24 / 0 / 4 / 28 | 0.98 | 0.58 | 5.9 |
+| ... and `tc` > 0 C | 7 / 0 / 4 / 44 | 0.95 | 0.53 | 4.9 |
+| ... and `tc` > +5 C | 0 / 0 / 4 / 51 | 0.91 | 0.50 | 4.6 |
+
+C3 grass wins **nowhere** whatever is done to C4; the cells go to the
+deciduous shrub and the summer deficit deepens (0.66 -> 0.50). The C3
+grass has a fitted `vmax` of 16.2 -- its floor -- because it dominated no
+sample cell in any stage and no loss could ever see it: a PFT that cannot
+establish cannot be fitted, the same trap as the dead `vmax` entries of
+section 17, one level up (there the entries were never read; here the PFT
+is read but never present). The existence rule is not the lever; the
+competition is, and it is decided by NPP with a C3 `vmax` that the fits
+starved. Lever test 21 gives C3 the F77 default (25) and above, seeds it,
+and asks whether it takes the cool steppes and what that does to their
+summer.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
