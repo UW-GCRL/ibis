@@ -2415,6 +2415,38 @@ the leaf area that remains. Two side readings: the joint fit's tropical
 seasonal class's wet-season excess (1.28 at months 4-5) is the same shape
 one notch weaker.
 
+### Lever test 18: the winter GPP comes from days at 0-10 C, at half the summer rate
+
+Year-6 daily GPP on the 60 steppe cells (fixed clock, joint-fit
+parameters) binned by the day's mean air temperature (`lever_test18.py`;
+a sampling caveat: the forcing reader hands back daily means, and the
+script's hourly reshape kept only 12 days per cell per month, so the
+counts are a sample and the rates the reading):
+
+| daily mean air T | share of days | GPP on those days, gC m-2 d-1 | share of annual GPP | share of Nov-Feb GPP |
+|---|---|---|---|---|
+| below -5 C | 13 % | 0.00-0.03 | 0 | 1 % |
+| -5 .. 0 C | 11 % | **0.45** | 3 % | **19 %** |
+| 0 .. +5 C | 13 % | **0.91** | 8 % | **42 %** |
+| +5 .. +10 C | 13 % | 1.48 | 13 % | 36 % |
+| +10 .. +20 C | 27 % | 1.8-2.2 | 39 % | 1 % |
+| above 20 C | 23 % | 2.30 | 36 % | 0 |
+
+The winter excess is not a phenology-clock artefact and not a mild-day
+artefact in the ordinary sense: on days whose mean air temperature is
+0-5 C the grass assimilates 0.9 gC m-2 -- 40 % of its rate on a 25 C
+summer day -- and on days at -5 to 0 C still 0.45. The leaf temperature
+function says a C4 leaf at 0-5 C runs at 1-8 % of its 25 C rate
+(`tempvm_c4` 0.009 at 0 C, 0.077 at 5 C; C3 0.06 and 0.32), so either
+the leaves are far warmer than the air on those days -- winter sun on a
+low canopy in the port's turbulence scheme -- or the rate is not coming
+through `tempvm` at all. The next probe is at the timestep: leaf
+temperature against air temperature, `tempvm`, PAR and the assimilation
+rate, hour by hour on a January day on these cells. That is a physics
+investigation (the canopy energy balance in winter), the fourth found by
+the seasonal criterion after the stem credit, the dead vmax entries and
+the clock.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
