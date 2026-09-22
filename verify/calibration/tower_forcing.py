@@ -12,8 +12,8 @@ column of the arrays is one tower, built from its FLUXNET2015 FULLSET daily file
 
 Gaps (-9999 in the tower file, or a missing variable) fall back to GSWP3 at the tower's
 0.5-degree cell for that day and variable; `gap_report()` says how much of each month was
-tower data.  Years outside the tower record raise, so a site run can only cover tower years
-(spin-up cycles them).
+tower data.  Tower years after 2010 use GSWP3's 2010 as the fallback year (gaps and diurnal range only); a
+site run covers tower years (spin-up cycles them).
 """
 from __future__ import annotations
 import glob, re
@@ -67,7 +67,13 @@ class TowerForcingReader:
 
     def read_month(self, year, month0, latindex, lonindex, fill_value=1e20):
         assert len(latindex) == len(self.sites), 'one tower per column'
-        g = self.g.read_month(year, month0, latindex, lonindex, fill_value=fill_value)   # fallback + diurnal range
+        gy = min(max(year, 1901), 2010)                                                   # GSWP3 covers 1901-2010; later tower years use 2010's fallback fields
+        g = self.g.read_month(gy, month0, latindex, lonindex, fill_value=fill_value)      # fallback + diurnal range
+        if gy != year and g['ndays'] != pd.Timestamp(f'{year}-{month0 + 1:02d}-01').days_in_month:   # leap-day mismatch: pad or trim the fallback
+            nd = pd.Timestamp(f'{year}-{month0 + 1:02d}-01').days_in_month
+            for k in list(g):
+                if isinstance(g[k], np.ndarray) and g[k].ndim == 2: g[k] = g[k][:nd] if g[k].shape[0] > nd else np.concatenate([g[k], g[k][-1:]], 0)
+            g['ndays'] = nd
         ndays = int(g['ndays']); idx = pd.date_range(f'{year}-{month0 + 1:02d}-01', periods=ndays, freq='D')
         out = {k: np.array(g[k], dtype=np.float32) for k in ('tas', 'tasmax', 'tasmin', 'pr', 'rsds', 'rlds', 'huss', 'wind', 'ps')}
         out.update(ndays=ndays, year=year, month=month0)
