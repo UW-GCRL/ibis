@@ -22,7 +22,20 @@ files are the outputs the sections quote.
 | `lever_test10.py` | `vmax_mix` end to end: dead entry off, live entry on | 17 |
 | `lever_test11.py`, `lever_test11b.py` | GPP vs LAI at one month (11: scaled `lai`, erased daily -- measured nothing; 11b: scaled `plai`) | 16 |
 | `lever_test12.py` | trigger + `scale_leaf_only`: the causal chain restored | 16 |
+| `lever_test20.py` | bounding C4 out of the cool steppes: cells go to deciduous shrubs, never C3 | 16 |
+| `lever_test21.py` | C3 grass seeded at vmax 16-35: takes 0-11 of 60 steppe cells, summer deficit unmoved | 16 |
+| `lever_test22.py` | lower-canopy cover 0.25-1.0 at fixed leaf carbon: scales every month alike | 16 |
+| `neg_et_scan.py` | negative monthly ET in a hindcast: extent, bands, months, worst cells | 15-16 |
+| `psurf_probe.py` | surface-pressure fix: worst cells + plateau/sea-level controls, 2 yr | 16 |
 
 Reusable tools graduated out of here: `fu_vs_tree.py`, `et_vs_modis.py`,
 `et_obs.py`, `tower_phase.py`, `tower_et.py`, `make_start_yaml.py`,
 `finalize_fit.sh` (all in `verify/calibration/`).
+
+Note (2026-09-21): `lever_test10.py` and `lever_test12.py` flip
+`stomata_params.vmax_mix` / `scale_leaf_only` with `eqx.tree_at`. Those two
+fields are now declared `eqx.field(static=True)` (plain `jax.jit` traced them
+as leaves and failed on the Python `if`), and `tree_at` cannot modify a static
+field. To re-run either script, rebuild the params from a yaml with the switch
+set (`stomata: vmax_mix: true`) or use `dataclasses.replace` on the
+`StomataParams` object instead.

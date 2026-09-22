@@ -95,7 +95,7 @@ class StomataParams(eqx.Module):
     # entries of vmax_pft are never read (CALIBRATION.md 17). True: the
     # displayed-LAI-weighted mean over the PFTs in that big leaf, priority
     # pick where no leaves exist. Static switch; set `stomata: vmax_mix: true`.
-    vmax_mix: bool = False
+    vmax_mix: bool = eqx.field(static=True, default=False)
 
     # Canopy scaling denominator. F77 (False): scale = (1 - exp(-k(L+S))) / kL --
     # the PAR absorbed by leaves AND stems is credited to leaf photosynthesis,
@@ -104,7 +104,7 @@ class StomataParams(eqx.Module):
     # (CALIBRATION.md 16, lever test 11). True: divide by k(L+S) instead --
     # identically old x L/(L+S) -- so stems attenuate light and only leaf
     # area assimilates, as in CLM. Static switch; `stomata: scale_leaf_only: true`.
-    scale_leaf_only: bool = False
+    scale_leaf_only: bool = eqx.field(static=True, default=False)
 
 
 # ---------------------------------------------------------------------------

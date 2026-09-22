@@ -2615,6 +2615,73 @@ columns of the test read zero (the month-end state is a night step);
 the numbers above rest on the GPP response, which is the quantity of
 interest.
 
+### The second forcing defect: the physics ran at sea-level pressure on every cell (found and fixed 2026-09-21)
+
+The open negative-ET defect (section 15) was localised while stage (d)
+waited for the GPU. In the joint-fit closing hindcast 18 % of all
+cell-months have negative total ET and 33,169 cells have at least one
+negative month; the worst are Himalayan monsoon slopes with -175 to
+-205 mm in July-August and a **negative annual mean** under a full forest
+canopy and a ground at 17-20 C. The forcing at the worst cell (31.25 N,
+78.75 E) is ordinary: August air 13.7 C, 13.5 g/kg, surface pressure
+583 hPa, relative humidity 78 %. Read at sea-level pressure the same
+humidity is 136 % with a dew point of 18.9 C -- and the model's ground
+temperature there, 19.6 C, is that dew point: the surface condensed and
+warmed until its own saturation met the air. The GSWP3 driver had read
+`ps` into the daily weather and used it in `diurnal` to cap the hourly
+humidity, but the hourly atmosphere update never wrote `atm.psurf`, which
+stayed at its creation value 101325 Pa on every cell of every run since
+the driver was written (every restart's `leaf_110` is 101325 throughout).
+Saturation humidity scales as 1/p, so every cell above sea level ran with
+the leaf's relative humidity too high (3 % at 300 m, 11 % at 1000 m,
+17 % at 1500 m, 40 % at 4000 m) and the air density too high by the same
+factor: wider stomata and stronger turbulent exchange on every plateau.
+DEFECTS_FOR_REVIEW.md "sea-level pressure" has the full account; the fix
+is one line in `loops_gswp3._step_body` (guard
+`test_hourly_atmosphere_carries_the_forcing_surface_pressure`).
+
+Probe (`diagnostics/psurf_probe.py`): the six worst cells and seven
+controls, two years from the 2010 transient state on the joint-fit
+parameters, against the same cells in the (unfixed) closing hindcast:
+
+| cell | pressure now seen (hPa) | ET, fixed (mm/yr; Aug) | ET, hindcast (mm/yr; Aug) |
+|---|---|---|---|
+| 31.2 N 78.8 E Himalaya | 576 | 682; 90 | -775; -161 |
+| 31.2 N 79.2 E | 553 | 776; 112 | -1107; -150 |
+| 27.8 N 92.2 E | 598 | 597; 73 | -1112; -169 |
+| 28.8 N 93.8 E | 613 | 723; 76 | -1000; -155 |
+| 32.8 N 77.2 E | 568 | 538; 76 | -941; -108 |
+| 27.8 N 90.8 E | 628 | 697; 91 | -767; -135 |
+| Tibet 33 N 90 E (4800 m) | 557 | 516 | 199 |
+| Mongolia 47 N 105 E (1300 m) | 876 | 183 | 245 |
+| Great Basin 40 N 116 W (1600 m) | 815 | 179 | 238 |
+| Kenya 0 N 37 E (1700 m) | 810 | 492 | 634 |
+| Amazon 3 S 60 W (sea level) | 1004 | 1310 | 1328 |
+| Kazakh steppe 50 N 70 E (300 m) | 993 | 390 | 329 |
+| Iowa 42 N 93 W (300 m) | 976 | 732 | 647 |
+
+Exposure (GSWP3 July-2005 pressure, true-land-area weights): the
+physics' saturation humidity was low by a factor 1013/p averaging 1.12
+over land (1.07 weighted by FLUXCOM GPP); 28 % of the land, carrying 15 %
+of GPP, lies above ~1000 m with a mean error of 31 %; the 30-45 N band --
+Tibet, Iran and Anatolia, the Great Basin, the Mexican plateau -- has
+46 % of its land above 1000 m and an area-mean factor of 1.18, and it is
+the band where every stage has read GPP 1.25-1.54x (section 18). The
+tropics and the boreal plain average 1.07.
+
+Every month on the six worst cells is now positive (17-112 mm), with
+transpiration and interception the largest terms, as a wet monsoon forest
+should have. The sea-level control is unchanged within the difference of
+state and years; the three plateau controls lose a fifth to a quarter of
+their ET, in the direction the narrower stomata predict, though these
+comparisons mix the pressure change with the different starting state
+and years and are not a clean attribution. The domain-scale consequences
+-- ET and GPP on plateaus and mountain ranges, the ET pattern of section
+15 (15-30 N 0.84, which is largely the Tibetan-Himalayan and Mexican
+plateaus), and the fitted stomatal and stress parameters that
+compensated -- are read from stage (d) and its validation, the first runs
+on both corrected forcings.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is

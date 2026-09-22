@@ -218,6 +218,16 @@ per-PFT mortality **on**, human ignition off, fine fuel off.
 
 **`surta.nc` is a BINARY mask: 95,333 cells at landfrac 1.0 = 165 Mkm2 of "land"** (Earth: 149). It was cut as "any vegetation fraction > 0" from `vegtype_frac_1992.nc`, whose 15 IBIS-type fractions sum to the true land fraction (45,651 partial cells; open-water archipelago cells with a speck of island count as full land). Weight any global total by `verify/calibration/landmask.true_landfrac()` (143.7 Mkm2), or read `state_report`'s "TRUE land" rows; the per-m2 fluxes are fine (CALIBRATION.md 18).
 
+**Surface pressure reaches the physics only since 2026-09-21.** The GSWP3
+driver always read `ps`, but the hourly atmosphere update wrote every
+forcing field except `psurf`, so the canopy and soil physics ran at the
+creation value 101325 Pa on every cell (every restart before that date has
+`leaf_110` = 101325 everywhere). High cells condensed instead of
+evaporating (Himalaya -200 mm/month), plateaus ran with stomata too wide.
+Fixed in `loops_gswp3._step_body`; nothing to migrate, the first hourly step
+overwrites the value. Runs and fits from before the fix are on the old
+pressure -- DEFECTS_FOR_REVIEW.md "sea-level pressure".
+
 **Restart leaf counts: 258 without the tree gate, 261 with it.** `load_state`
 migrates both ways with a warning -- it fills the three trailing accumulator
 leaves from the template, or drops them when a gated restart meets an

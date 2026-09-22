@@ -48,7 +48,7 @@ Layout:
 |---|---|---|---|
 | **GSWP3** | `/shared/nas2/Min/GSWP3` | **276 GB** | 1901-2010, 3-hourly, 0.5 deg, 110 decade files |
 
-Variables: `tas tasmax tasmin pr rsds rlds huss ps rhs wind`.
+Variables: `tas tasmax tasmin pr rsds rlds huss ps rhs wind`. `ps` reaches the canopy and soil physics only since 2026-09-21 (before that the physics ran at 101325 Pa everywhere; DEFECTS_FOR_REVIEW.md "sea-level pressure").
 Files are decade blocks, e.g. `tas_gswp3_1901_1910.nc4`.
 
 **It ends in 2010.** That is the binding constraint on any evaluation against

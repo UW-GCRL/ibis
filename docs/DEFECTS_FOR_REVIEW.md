@@ -486,26 +486,76 @@ calibration; it is not tolerable in a released model. Localising the first
 non-finite operation (run the cell alone from the 1900 restart with
 `jax.debug` checks) is the next step when someone picks this up.
 
-## Negative monthly ET on subtropical cells (found 2026-09-20, open)
+## The physics ran at sea-level pressure on every cell (found 2026-09-20 as "negative ET", cause found and FIXED 2026-09-21)
 
-On the (b3) parameters (`val_v12e/monthly`, 2001-2010 cycled at the 2060
-state) 1,139 of the 2,129 fit-sample cells with all five ET products show
-at least one month of **negative** total evapotranspiration (`amaet`), and
-a handful of cells near 29-35 N reach -80 to -146 mm/month in summer --
-net deposition of 3-5 mm/day for months, which is not dew. Examples
-(model monthly ET, mm): lat 29.2: `6 4 9 26 24 -6 -28 -27 -25 2 8 9`
-against an ensemble `14 15 18 22 34 47 60 59 48 27 16 13`; lat 34.8:
-`-14 -17 -28 -37 -36 -9 59 71 47 26 1 -9`. The sign is that of `fvapa`
-(atmosphere-to-surface), so the surface humidity exceeds the air's for
-whole months: candidates are the ground humidity factor (`qgfac`, whose
-branches on `q34 > qg` were widened by an eps-band in finding #23), a
-saturated `qa` in the GSWP3 forcing at high-elevation cells (the Tibetan
-Plateau sits at these latitudes), or the puddle (`wpud`) path. Not yet
-localised. The calibration excludes these cells from the ET terms
-(`fit_carbon.ET_MIN_RATIO`) and reports their count; they carry little
-GPP and did not affect the carbon fits. To investigate: map the cells,
-check `qa` against `qsat(ta)` in the forcing there, and the sign of
-`fvapg` / `fvaps` / `fvapi` per timestep.
+**Symptom.** Negative monthly total evapotranspiration (`amaet`) for whole
+seasons. In the joint-fit closing hindcast (`final_v12g/hindcast`, 120
+months of 2001-2010) 33,169 of the 95,333 cells have at least one negative
+month and 18.3 % of all cell-months are negative; 21,792 cells go below
+-3 mm/month. The worst are the Himalayan monsoon slopes (27-33 N,
+77-94 E): -175 to -205 mm in July-August and a **negative annual mean**
+(-50 to -93 mm/month averaged over 120 months, negative in 87-120 of the
+120 months), with a full forest canopy (`fu` 0.98), wet soil, and a
+ground temperature of 17-20 C. The first report (2026-09-20, on the (b3)
+sample) had seen -80 to -146 mm/month near 29-35 N and guessed at the
+ground-humidity factor, the puddle, or saturated forcing humidity.
+
+**Cause.** The GSWP3 driver reads surface pressure (`ps`) into
+`DailyWeather.psurf` and `diurnal` uses it to cap the hourly humidity at
+0.99 of saturation, exactly as F77 does. The hourly atmosphere update in
+`loops_gswp3._step_body` then wrote `ta, qa, ua, coszen, solad, solai,
+fira, raina, snowa` into `atm` -- and **not `psurf`**. `atm.psurf`
+therefore kept its creation value, 101325 Pa, on every cell for the
+whole run; every saved state carries it (`leaf_110` of every restart is
+101325 everywhere). The canopy and soil physics (`turvap`, `stomata`,
+`twet3`, the fire VPD) compute saturation at that pressure. At the worst
+cell (31.25 N, 78.75 E, GSWP3 `ps` 583 hPa) the August air is 13.7 C with
+13.5 g/kg of water: 78 % relative humidity at 583 hPa, **136 % at
+1013 hPa**, dew point 10.3 C at the true pressure and 18.9 C at sea
+level. The surface condensed water and warmed until its own saturation
+matched the air's humidity -- the model's monthly ground temperature
+there, 19.6 C, is the sea-level dew point. The condensation heat (about
+190 W/m2 for -200 mm/month) was carried off as sensible heat to the
+colder air. This is not a saturation-cap or puddle question: the
+humidity the physics was handed was built at one pressure and judged at
+another.
+
+**Extent beyond the negative cells.** Saturation specific humidity scales
+as 1/p, so every cell above sea level ran with saturation too low by the
+factor p_true/1013: 3 % at 300 m, 11 % at 1000 m, 17 % at 1500 m, 40 %
+at 4000 m. The leaf saw a relative humidity too high by the same factor
+(Ball-Berry conductance is proportional to it), the VPD too low, the
+air density (p/RT) too high by the same factor in every aerodynamic
+conductance. Plateaus and mountain ranges -- Tibet, Mongolia, the Great
+Basin and Rockies, the Andes, the East African and southern African
+plateaus, Anatolia and Iran, the Brazilian shield, Greenland and
+Antarctica -- ran with wider stomata and stronger turbulent exchange
+than the forcing describes. Every archived run, fit and validation since
+the GSWP3 driver was written carries this, and the fitted stomatal and
+stress parameters partly compensate for it. Sea-level cells (the
+majority of the tropics and the boreal plain) are affected only by the
+weather's own +-2 % pressure variation, which is now also represented.
+
+**Fix (2026-09-21).** `loops_gswp3._step_body` writes `dw.psurf`
+(broadcast to the cell vector) into `atm.psurf` alongside the other
+hourly forcing. The weather-generator driver (`loops.run_day`, used by
+`run_ibis.py` and the benchmarks) had the same omission -- F77's
+`daily` computes a topography-derived pressure into `comatm` and the
+port's `weather.daily` computes the same value into
+`DailyWeather.psurf`, which its hourly update then dropped -- and gets
+the same one-line fix. The creation value 101325 Pa remains only as the
+initial value before the first hourly step. Guard:
+`test_hourly_atmosphere_carries_the_forcing_surface_pressure`. Probe
+(`verify/calibration/diagnostics/psurf_probe.py`): the six worst cells
+plus plateau and sea-level controls run two years on the joint-fit
+parameters -- results in CALIBRATION.md 16. Stage (d), the refit on the
+corrected phenology clock, was held back until this fix was in and is
+the first fit on the corrected pressure; the closing protocol re-spins
+from cold, so no saved state needs migrating (the pressure is
+overwritten on the first hourly step). The calibration's ET guard
+(`fit_carbon.ET_MIN_RATIO`, which excluded cells with model ET below a
+fifth of the observation) stays as a safety net and should now exclude
+few cells.
 
 ## Ten-day running means updated with the per-timestep weight (found 2026-09-20, FIXED)
 

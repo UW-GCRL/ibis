@@ -105,14 +105,23 @@ def _run_day_inner(
         # Override cloud-based fira with observed rlds
         # Cast forcing to match state dtype (float32 forcing → float64 state when x64 enabled)
         _cast = lambda x: jnp.asarray(x, dtype=st.atm.ta.dtype)
+        # psurf: the forcing surface pressure (GSWP3 `ps`, daily) must reach
+        # the physics.  Until 2026-09-21 only `diurnal` saw it (to cap qa at
+        # saturation) while `atm.psurf` kept its creation value 101325 Pa on
+        # every cell, so leaves and soil compared a humidity built at the
+        # true pressure against saturation at sea level: 136 % "relative
+        # humidity" and forced condensation (-200 mm/month) on the
+        # Himalaya, negative ET on 18 % of cell-months, and wider stomata on
+        # every plateau.  DEFECTS_FOR_REVIEW.md "surface pressure".
         new_atm = eqx.tree_at(
             lambda a: (a.ta, a.qa, a.ua, a.coszen,
                        a.solad, a.solai, a.fira,
-                       a.raina, a.snowa),
+                       a.raina, a.snowa, a.psurf),
             st.atm,
             (_cast(hourly.ta), _cast(hourly.qa), _cast(hourly.ua), _cast(hourly.coszen),
              _cast(hourly.solad), _cast(hourly.solai), _cast(rlds_daily),
-             _cast(hourly.raina), _cast(hourly.snowa)),
+             _cast(hourly.raina), _cast(hourly.snowa),
+             _cast(jnp.broadcast_to(dw.psurf, st.atm.psurf.shape))),
         )
         st = eqx.tree_at(lambda s: s.atm, st, new_atm)
 

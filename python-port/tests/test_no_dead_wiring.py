@@ -621,3 +621,29 @@ def test_ten_day_running_means_have_a_ten_day_memory():
     zw = np.exp(-1.0 / 10.0)
     assert abs(-1.0 / np.log(zw) - 10.0) < 1e-9                                  # e-folding memory 10 days
     assert abs(np.exp(-1.0 / (10.0 * 24)) ** 24 - zw) < 1e-12                       # == F77's 24 hourly applications
+
+
+def test_hourly_atmosphere_carries_the_forcing_surface_pressure():
+    """GSWP3 `ps` is read into DailyWeather.psurf and used by `diurnal` to cap
+    the hourly humidity at saturation; the physics reads `atm.psurf`. Until
+    2026-09-21 the hourly atmosphere update never wrote it, so every cell ran
+    at the creation value 101325 Pa: a Himalayan cell at 583 hPa saw its 78 %
+    humidity as 136 % and condensed -200 mm/month (DEFECTS_FOR_REVIEW.md
+    "surface pressure"). The update must carry dw.psurf, and the creation
+    value must stay the F77 sea-level default for paths without pressure."""
+    from pathlib import Path
+    import numpy as np, jax.numpy as jnp
+    root = Path(__file__).resolve().parents[1]
+    lp = (root / "ibis" / "timestepping" / "loops_gswp3.py").read_text()
+    body = lp[lp.index("def _step_body(carry, istep):"):lp.index("st = timestep_body(st, consts, params, dtime)")]
+    assert "a.raina, a.snowa, a.psurf)" in body and "jnp.broadcast_to(dw.psurf, st.atm.psurf.shape)" in body
+    assert body.index("a.psurf") < body.index("st.atm,") < body.index("dw.psurf")   # selector and value in the same tree_at
+    from ibis.physics.weather import DailyWeather
+    assert "psurf" in DailyWeather._fields                                             # the daily forcing carries a pressure
+    gen = (root / "ibis" / "timestepping" / "loops.py").read_text()                    # weather-generator path: same fix
+    gbody = gen[gen.index("# Update atmospheric forcing in state"):gen.index("# Run one timestep")]
+    assert "a.raina, a.snowa, a.psurf)" in gbody and "daily_weather.psurf" in gbody
+    gf = (root / "ibis" / "io" / "gswp3_forcing.py").read_text()
+    assert "psurf=ps," in gf and "_get('ps')" in gf                                    # the daily pressure IS the forcing ps
+    from ibis.state.atmosphere import create_atm_state
+    assert np.allclose(np.asarray(create_atm_state(3, 2).psurf), 101325.0)           # documented fallback, F77 default

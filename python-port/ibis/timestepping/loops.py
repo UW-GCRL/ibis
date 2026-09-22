@@ -1273,15 +1273,19 @@ def run_day(
             plens, startp, endp, subkey, dtime, nband,
         )
 
-        # Update atmospheric forcing in state
+        # Update atmospheric forcing in state.  psurf: the generator's
+        # topography-derived pressure (weather.daily) must reach the physics
+        # as in F77's comatm; until 2026-09-21 it stayed at the creation
+        # value 101325 Pa (same omission as loops_gswp3._step_body).
         new_atm = eqx.tree_at(
             lambda a: (a.ta, a.qa, a.ua, a.coszen,
                        a.solad, a.solai, a.fira,
-                       a.raina, a.snowa),
+                       a.raina, a.snowa, a.psurf),
             st.atm,
             (hourly.ta, hourly.qa, hourly.ua, hourly.coszen,
              hourly.solad, hourly.solai, hourly.fira,
-             hourly.raina, hourly.snowa),
+             hourly.raina, hourly.snowa,
+             jnp.broadcast_to(jnp.asarray(daily_weather.psurf, dtype=st.atm.psurf.dtype), st.atm.psurf.shape)),
         )
         st = eqx.tree_at(lambda s: s.atm, st, new_atm)
 
