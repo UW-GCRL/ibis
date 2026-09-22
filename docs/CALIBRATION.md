@@ -2671,11 +2671,23 @@ tropics and the boreal plain average 1.07.
 
 Every month on the six worst cells is now positive (17-112 mm), with
 transpiration and interception the largest terms, as a wet monsoon forest
-should have. The sea-level control is unchanged within the difference of
-state and years; the three plateau controls lose a fifth to a quarter of
-their ET, in the direction the narrower stomata predict, though these
-comparisons mix the pressure change with the different starting state
-and years and are not a clean attribution. The domain-scale consequences
+should have. The controls do NOT move one way: the sea-level Amazon is
+unchanged (1328 -> 1311), Mongolia, the Great Basin and Kenya lose a
+fifth to a quarter (245 -> 183, 238 -> 179, 634 -> 492), and **Tibet
+rises from 199 to 516 mm/yr**, two thirds of it soil evaporation (351 of
+516 mm). "Narrower stomata" therefore explains at most the three
+declines; the Tibetan rise is the removal of the same condensation that
+dominated the Himalayan cells (its hindcast ET was negative from November
+to April). And none of these before/after pairs is an attribution: the
+"before" is the 2001-2010 hindcast from a cold spin-up, the "after" two
+years from the v11 2010 state, so state and years differ as well as the
+pressure. GPP on the probe cells is also far from the observation either
+way (Himalaya #2 5.8x, Tibet 2.9x, Kazakh 2.3x, Iowa 2.0x, Kenya 0.04x
+FLUXCOM after two years from an un-equilibrated state): a positive ET
+says nothing about the ecosystem on that cell. The controlled
+comparison that separates the two fixes from state and years -- same
+cells, same forcing years, same start state, same parameters, no fix /
+clock only / pressure only / both -- is the next entry. The domain-scale consequences
 -- ET and GPP on plateaus and mountain ranges, the ET pattern of section
 15 (15-30 N 0.84, which is largely the Tibetan-Himalayan and Mexican
 plateaus), and the fitted stomatal and stress parameters that
