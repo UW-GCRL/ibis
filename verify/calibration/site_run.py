@@ -67,7 +67,31 @@ def tower_monthly(site):
     return pd.DataFrame({'year': d['year'], 'month': d['month'], 'gpp': g.values, 'et': et.values}).set_index(['year', 'month'])
 
 
+def compute_metrics(sites, YEARS, GM, EM, LL, LU, obs_g, obs_e, notes, i, modis):
+    """Per-tower metrics from the saved arrays (also used by --recompute)."""
+    rows = []; y0, y1 = YEARS[0], YEARS[-1]
+    for n, s in enumerate(sites):
+        og = np.maximum(np.nanmean(obs_g[:, :, n], 0), 0.0); mg = GM[:, :, n].mean(0); oe = np.nanmean(obs_e[:, :, n], 0); me = EM[:, :, n].mean(0)
+        ok = np.isfinite(og); usable = bool(ok.any()) and np.nansum(og) > 100.0      # no tower months, or < 100 gC/m2/yr: ratios are meaningless
+        r = np.corrcoef(mg[ok], og[ok])[0, 1] if ok.sum() > 3 else np.nan
+        NH = LATV[i[n]] >= 0; summer = [5, 6, 7] if NH else [11, 0, 1]; winter = [10, 11, 0, 1] if NH else [4, 5, 6, 7]
+        rows.append(dict(site=s, igbp=notes[s]['igbp'], pfts='+'.join(notes[s]['pfts']), years=f'{y0}-{y1}', usable=bool(usable), gpp_model=mg.sum() / 1000, gpp_tower=np.nansum(og) / 1000, gpp_ratio=mg.sum() / np.nansum(og) if usable else np.nan,
+                         gpp_r=r, gpp_rmse=float(np.sqrt(np.nanmean((mg - og) ** 2))), winter_share_model=float(mg[winter].sum() / max(mg.sum(), 1e-6)), winter_share_tower=float(np.nansum(og[winter]) / np.nansum(og)) if usable else np.nan, peak_model=int(np.argmax(mg) + 1), peak_tower=int(np.nanargmax(og) + 1) if ok.any() else -1,
+                         et_model=me.sum(), et_tower=np.nansum(oe) if np.isfinite(oe).any() else np.nan, et_ratio=me.sum() / np.nansum(oe) if np.isfinite(oe).any() and np.nansum(oe) > 0 else np.nan,
+                         lai_summer_model=float((LL[:, summer, n] + LU[:, summer, n]).mean()), lai_modis_max=float(modis[n]), fu=notes[s]['fu'], fl=notes[s]['fl'], note=notes[s]['note']))
+    return pd.DataFrame(rows)
+
+
+def recompute(out):
+    """Metrics from a saved run directory (site_runs.npz + site_runs.json)."""
+    z = np.load(f'{out}/site_runs.npz', allow_pickle=True); meta = json.load(open(f'{out}/site_runs.json'))
+    sites = [str(x) for x in z['sites']]; YEARS = [int(y) for y in z['years']]; i = z['i']; j = z['j']
+    df = compute_metrics(sites, YEARS, z['gpp'], z['et'], z['lai_l'], z['lai_u'], z['obs_gpp'], z['obs_et'], meta['notes'], i, modis_at(i, j))
+    df.to_csv(f'{out}/site_metrics.csv', index=False); pd.set_option('display.width', 250); print(df.drop(columns=['note']).to_string(index=False, float_format=lambda x: f'{x:.2f}')); return df
+
+
 def main():
+    if len(sys.argv) == 3 and sys.argv[1] == '--recompute': recompute(sys.argv[2]); return
     ap = argparse.ArgumentParser()
     ap.add_argument('--sites', required=True); ap.add_argument('--params', required=True); ap.add_argument('--cycles', type=int, default=3)
     ap.add_argument('--out', required=True); ap.add_argument('--pft', default='', help='overrides: SITE=pft,pft;SITE=...'); ap.add_argument('--years', default='', help='SITE=y0-y1;... restrict tower years')
@@ -135,15 +159,7 @@ def main():
                 if (yr, mo + 1) in tm.index: obs_g[yi, mo, n] = tm.loc[(yr, mo + 1), 'gpp']; obs_e[yi, mo, n] = tm.loc[(yr, mo + 1), 'et']
     np.savez(f'{a.out}/site_runs.npz', sites=np.array(sites), years=np.array(YEARS), gpp=GM, et=EM, lai_l=LL, lai_u=LU, obs_gpp=obs_g, obs_et=obs_e, i=i, j=j)
     json.dump(dict(notes=notes, gaps={f'{k[0]}|{k[1]}': v for k, v in rd.gap_report().items()}, params=a.params, cycles=a.cycles), open(f'{a.out}/site_runs.json', 'w'), indent=1)
-    for n, s in enumerate(sites):
-        og = np.maximum(np.nanmean(obs_g[:, :, n], 0), 0.0); mg = GM[:, :, n].mean(0); oe = np.nanmean(obs_e[:, :, n], 0); me = EM[:, :, n].mean(0)
-        ok = np.isfinite(og); usable = bool(ok.any()) and np.nansum(og) > 100.0      # no tower months, or < 100 gC/m2/yr: ratios are meaningless; r = np.corrcoef(mg[ok], og[ok])[0, 1] if ok.sum() > 3 else np.nan
-        NH = LATV[i[n]] >= 0; summer = [5, 6, 7] if NH else [11, 0, 1]; winter = [10, 11, 0, 1] if NH else [4, 5, 6, 7]
-        rows.append(dict(site=s, igbp=notes[s]['igbp'], pfts='+'.join(notes[s]['pfts']), years=f'{y0}-{y1}', usable=bool(usable), gpp_model=mg.sum() / 1000, gpp_tower=np.nansum(og) / 1000, gpp_ratio=mg.sum() / np.nansum(og) if usable else np.nan,
-                         gpp_r=r, gpp_rmse=float(np.sqrt(np.nanmean((mg - og) ** 2))), winter_share_model=float(mg[winter].sum() / max(mg.sum(), 1e-6)), winter_share_tower=float(np.nansum(og[winter]) / np.nansum(og)) if usable else np.nan, peak_model=int(np.argmax(mg) + 1), peak_tower=int(np.nanargmax(og) + 1) if ok.any() else -1,
-                         et_model=me.sum(), et_tower=np.nansum(oe) if np.isfinite(oe).any() else np.nan, et_ratio=me.sum() / np.nansum(oe) if np.isfinite(oe).any() and np.nansum(oe) > 0 else np.nan,
-                         lai_summer_model=float((LL[:, summer, n] + LU[:, summer, n]).mean()), lai_modis_max=float(modis[n]), fu=notes[s]['fu'], fl=notes[s]['fl'], note=notes[s]['note']))
-    df = pd.DataFrame(rows); df.to_csv(f'{a.out}/site_metrics.csv', index=False)
+    df = compute_metrics(sites, YEARS, GM, EM, LL, LU, obs_g, obs_e, notes, i, modis); df.to_csv(f'{a.out}/site_metrics.csv', index=False)
     pd.set_option('display.width', 250); print(df.drop(columns=['note']).to_string(index=False, float_format=lambda x: f'{x:.2f}'))
     # --- figures (optional here; `site_plot.py <out>` draws them from the npz with an interpreter that has matplotlib)
     try:
