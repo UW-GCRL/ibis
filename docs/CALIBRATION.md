@@ -2694,6 +2694,42 @@ plateaus), and the fitted stomatal and stress parameters that
 compensated -- are read from stage (d) and its validation, the first runs
 on both corrected forcings.
 
+### Controlled attribution of the two forcing fixes (2026-09-22, `diagnostics/controlled_4way.py`)
+
+Same 123 cells in seven groups (30 C4 steppe 40-55 N, 20 boreal forest,
+20 temperate forest, 20 tropical savanna, 20 rainforest, the 6 Himalayan
+condensation cells, 7 plateau and sea-level controls), same 2001-2005
+forcing, same 2010 start state, same parameters (defaults, and the joint
+fit); four model variants built from the current source by substituting
+the two fixed lines back: no fix / clock only / pressure only / both. Mean
+of years 4-5. Output `diagnostics/controlled_4way_pass1.txt`; figures in
+the local document folder (F9, F10).
+
+- **Pressure fix alone**: the six Himalayan cells go from -280..-877 mm/yr
+  of ET to +539..+855 and Tibet from -53 to 540, while Mongolia, the Great
+  Basin, Kenya, Kazakhstan, Iowa and the Amazon change by 0-5 %. The
+  "plateau ET down 20 %" of the earlier before/after probe was state and
+  years, not the pressure. GPP falls with elevation by the stomatal
+  humidity mechanism: -49 % at 1600 m (Great Basin), -40 % at 1700 m
+  (Kenya), -27 % at 1300 m (Mongolia), 0-7 % near sea level; by group
+  (defaults) steppe 2.39 -> 2.26, savanna 1.61 -> 1.52, boreal 1.70 ->
+  1.66, rainforest unchanged. ET rises where the surface had condensed
+  (boreal group 1.03 -> 1.19, temperate 0.87 -> 1.01).
+- **Clock fix alone**: `a10td` January/July on the steppes 8.0/11.0 ->
+  -5.0/23.5 C, boreal -1.0/2.1 -> -12.7/15.5, temperate 1.2/4.5 ->
+  -15.9/18.6. Temperate-forest amplitude ratio 0.04 -> 0.41 (joint fit
+  0.09 -> 0.86); with the joint-fit parameters the temperate annual GPP
+  goes 0.41 -> 0.98 and the boreal 0.93 -> 1.44 (the source of the
+  fixed-clock validation's boreal 1.6x). Steppe Nov-Feb excess 16.1 ->
+  12.2 (joint fit 5.4 -> 4.3): smaller, still a non-dormant grass.
+  Tropics unchanged.
+- **Both fixes, defaults, by group** (annual / Jun-Jul / Nov-Feb GPP
+  ratio; ET ratio): steppe 2.04 / 1.17 / 11.7; 1.37. Boreal 1.66 / 1.09
+  / 137; 1.20. Temperate 1.01 / 0.66 / 10.9; 1.04. Savanna 1.53 / 1.49 /
+  1.49; 1.28. Rainforest 1.12 / 1.09 / 1.20; 0.95. The fixed-composition
+  pass (section 20) separates the vegetation the model grows from the
+  physiology of what should be there.
+
 ## 17. Dead parameters in the vmax table: the upper canopy's vmax is chosen by existence, not composition
 
 `stomata._select_vmax_upper` (F77 `stomata.f` design): the upper canopy is
