@@ -3324,3 +3324,61 @@ on a model whose seasons lagged the weather by 77 days, and the seasonal
 criterion and the pools are re-read on the corrected model before the
 carbon+ET stage is closed.
 
+## 20. Site-first calibration (pivot of 2026-09-22)
+
+Hangkai's decision after the review of the record and a discussion with a
+labmate: calibrate at flux towers first, then the spatial pattern and the
+totals while keeping the sites good; carbon, then ET, then methane. The
+global refit queued as stage (d) is withdrawn. The plan with its open
+questions is `/shared/nas2/Hangkai/ibis_local_document/SITE_CALIBRATION_PLAN.md`;
+the running record with figures is `IBIS_work_record_2026-09-22.md` in the
+same folder.
+
+**Tools** (all under `verify/calibration/`): `tower_forcing.py`
+(FLUXNET2015 daily tower meteorology in the GSWP3 reader contract; the
+diurnal range from the half-hourly files; gaps and years after 2010 from
+GSWP3 at the tower's cell), `site_run.py` (prescribed composition from
+the IGBP class via `prescribe()`, existence held to the prescription,
+spin-up on cycled tower years with dynamic vegetation off, one evaluation
+pass, monthly GPP and ET against the tower, summer LAI against the MODIS
+maximum; `--recompute` from a saved run), `site_plot.py`,
+`site_compare.py` (per-class summary and figure across parameter sets).
+Site inventory and batches: `site_inventory.py` in the scratchpad ->
+`site_inventory.csv`, `site_batches.txt` (114 natural-vegetation towers
+with three or more years; common-year batches 2008-2012 (62), 2001-2005
+(14), 2005-2009 (8), 2010-2014 (5), 2002-2006 (4); 47 towers need
+three-year windows).
+
+**S0, the corrected-model reference (done 2026-09-22):** the fixed model
+under IBIS defaults and under the joint-fit parameters, 50 years plus 10
+monthly years each (`val_base_default`, `val_base_v12g`; report
+`val_report_baseline.txt`). Defaults: GPP true land 183 PgC (1.5x), NPP
+82, ET 568, vegetation carbon 580 (in range), soil carbon 13.8 (in
+range), boreal LAI = MODIS; LAI 2.8-2.9x MODIS in the tropics and
+mid-latitudes; shape error 0.0172, amplitude 0.63-0.67 at 30-70 N;
+phantom trees on 15 % of the area; forest ET 57 % transpiration, 37 %
+interception, 6 % soil. Joint fit on the fixed model: GPP 114, ET 549,
+vegetation carbon 219, boreal LAI 0.35x with boreal GPP 1.54x; shape
+error 0.0157, amplitude 0.84; interception share unchanged (36 %). Each
+set gets its own fitted targets and the other's wrong. The closing
+protocol (cold spin-up) on the defaults runs overnight
+(`final_base_default`).
+
+**S1.3, the site baseline (done 2026-09-22):** 90 towers with the joint
+fit, 63 with defaults (two batches rerunning), tower meteorology,
+prescribed composition, two spin cycles, evaluated on the batch window.
+Defaults: median GPP ratio 1.04 but 37 % of towers within 0.8-1.25;
+forests 0.84-0.88 with model summer LAI twice the MODIS maximum,
+grasslands 1.53, shrublands 2.25, semi-arid towers 1.5-9x. Joint fit:
+median 0.91, 32 % within 0.8-1.25; leaf area brought to MODIS, needleleaf
+0.73, grasslands 0.78, shrublands 1.33, deciduous 0.97. Invariant between
+the two sets and therefore not a vmax/SLA question: the needleleaf and
+mixed forests peak a month late; the cold-season share of GPP is
+0.12-0.20 against 0.01-0.07 at the towers (evergreen conifers
+photosynthesising at 50-60 gC m-2 month-1 in winter at Tharandt against
+15-25; C4 grass at Walnut Gulch producing 15-25 in a dry winter where the
+tower is at zero); forest ET 1.1-1.7x the tower LE. Tropical seasonality
+has no skill (Guyaflux r 0.05; Australian savannas two to four months
+off). Order for S1.4: phenology timing and cold-season dormancy,
+interception, then leaf area against capacity (SLA, allocation, vmax),
+then water limitation at dry sites.
