@@ -17,11 +17,15 @@ def smooth(x, w=15):
     x = np.asarray(x, float); k = np.ones(w) / w; xp = np.pad(x, (w // 2, w // 2), mode='edge'); return np.convolve(xp, k, mode='valid')[:len(x)]
 
 
-def crossings(daily, frac):
-    """(rising DOY, falling DOY) at `frac` of the annual amplitude of a smoothed daily series with a mid-year maximum; NaN if flat."""
-    y = smooth(np.nan_to_num(daily, nan=0.0)); lo, hi = np.nanpercentile(y, 5), np.nanmax(y)
+def crossings(daily, frac, ref=None):
+    """(rising DOY, falling DOY) where a smoothed daily series with a mid-year maximum crosses `frac` of its annual amplitude; NaN if flat.
+
+    `ref=(lo, hi)` times the run against a FIXED level instead of its own amplitude. Sensitivity runs must use the base run's
+    (lo, hi), otherwise a perturbation that only changes the magnitude moves the self-referential level and fakes a date shift."""
+    y = smooth(np.nan_to_num(daily, nan=0.0)); lo, hi = (np.nanpercentile(y, 5), np.nanmax(y)) if ref is None else ref
     if hi - lo <= 0 or hi < 0.5: return np.nan, np.nan            # < 0.5 gC/m2/d peak: no season to time
     lev = lo + frac * (hi - lo); imax = int(np.argmax(y))
+    if y[imax] < lev: return np.nan, np.nan                        # never reaches the fixed level
     above = y >= lev
     r = next((d for d in range(imax, -1, -1) if not above[d]), -1) + 1           # last below-level day before the peak, +1
     f = next((d for d in range(imax, len(y)) if not above[d]), len(y)) - 1      # last above-level day after the peak

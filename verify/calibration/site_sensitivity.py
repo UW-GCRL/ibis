@@ -15,7 +15,7 @@ import jax, jax.numpy as jnp, equinox as eqx
 from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, apply_params, _extra_value, modis_at
 import site_transient; from site_transient import one_year
 from site_run import prescribe, tower_monthly, tower_mat, META, SEED_LAI, SEED_WOOD
-from phenology_vs_phenocam import crossings
+from phenology_vs_phenocam import crossings, smooth
 from tower_forcing import TowerForcingReader
 from ibis.dimensions import GridConfig; from ibis.io.restart import load_state
 from ibis.state.model_state import create_ibis_state; from ibis.state.stress_accum import create_stress_accum; from ibis.state.et_parts import create_et_parts
@@ -45,24 +45,51 @@ PERTURBATIONS = [
     ('fl_min 0.5', 'extras', {'fl_min': lambda d: 0.5}), ('cover_k x2', 'extras', {'cover_k': lambda d: d * 2.0}),
 ]
 
+# Wide-range phenology set. The upper-canopy senescence threshold is max(0 C, tc + tthresh_u_offset, tthresh_u_abs), so at
+# cold-winter sites the 0 C floor pins it and the offset cannot move it: `tthresh_u_abs` is the working knob. Leaf-out needs
+# hundreds of growing-degree-days to move weeks, so the range is widened accordingly.
+PHENOLOGY_WIDE = [
+    ('gdd_thresh_u +300', 'extras', {'gdd_thresh_u': lambda d: d + 300.0}), ('gdd_thresh_u +600', 'extras', {'gdd_thresh_u': lambda d: d + 600.0}), ('gdd_thresh_u +1000', 'extras', {'gdd_thresh_u': lambda d: d + 1000.0}),
+    ('gdd_thresh_l +300', 'extras', {'gdd_thresh_l': lambda d: d + 300.0}), ('gdd_thresh_l +600', 'extras', {'gdd_thresh_l': lambda d: d + 600.0}),
+    ('gthresh_u_c +5 C (slower GDD)', 'extras', {'gthresh_u_c': lambda d: d + 5.0}), ('gthresh_l_c +5 C', 'extras', {'gthresh_l_c': lambda d: d + 5.0}),
+    ('tthresh_u_abs 5 C', 'extras', {'tthresh_u_abs': lambda d: 5.0}), ('tthresh_u_abs 8 C', 'extras', {'tthresh_u_abs': lambda d: 8.0}), ('tthresh_u_abs 12 C', 'extras', {'tthresh_u_abs': lambda d: 12.0}),
+    ('tthresh_l_c 5 C', 'extras', {'tthresh_l_c': lambda d: 5.0}), ('tthresh_l_c 10 C', 'extras', {'tthresh_l_c': lambda d: 10.0}), ('tthresh_l_c 15 C', 'extras', {'tthresh_l_c': lambda d: 15.0}),
+    ('ddays 5 (fast drop)', 'extras', {'ddays': lambda d: 5.0}), ('ddays 30 (slow drop)', 'extras', {'ddays': lambda d: 30.0}),
+    ('tthresh_u_abs 8 C + gdd_thresh_u +600', 'extras', {'tthresh_u_abs': lambda d: 8.0, 'gdd_thresh_u': lambda d: d + 600.0}),
+]
 
-def metrics(gm, gd, etm, lai_l, lai_u, og, oe, NH):
+
+def metrics(gm, gd, etm, lai_l, lai_u, og, oe, NH, ref=None, lai_m=None):
     """Per-tower metrics from 3 evaluation years: gm (3,12,n) gC/m2/mo, gd (3,366,n) gC/m2/d, etm (3,12,n) mm, og/oe (12,n) tower climatology."""
     m = gm.mean(0); e = etm.mean(0); out = {}
     jj = [5, 6] if NH else [11, 0]; win = [10, 11, 0, 1] if NH else [4, 5, 6, 7]
     out['gpp_ratio'] = m.sum(0) / np.maximum(np.nansum(og, 0), 1e-6); out['junjul_ratio'] = m[jj].sum(0) / np.maximum(np.nansum(og[jj], 0), 1e-6)
     out['winter_share'] = m[win].sum(0) / np.maximum(m.sum(0), 1e-6); out['et_ratio'] = e.sum(0) / np.maximum(np.nansum(oe, 0), 1e-6)
     out['lai_summer'] = (lai_l + lai_u).mean(0)
-    lo, se = [], []
+    lo, se, amp = [], [], []
     for k in range(gm.shape[2]):
-        r = [crossings(gd[y, :, k], 0.25) for y in range(gd.shape[0])]; r = [x for x in r if np.isfinite(x[0])]
+        rk = None if ref is None else (ref[0][k], ref[1][k])
+        r = [crossings(gd[y, :, k], 0.25, ref=rk) for y in range(gd.shape[0])]; r = [x for x in r if np.isfinite(x[0])]
         lo.append(np.mean([x[0] for x in r]) if r else np.nan); se.append(np.mean([x[1] for x in r]) if r else np.nan)
+        yk = np.nanmean(gd[:, :, k], axis=0); amp.append((np.nanpercentile(smooth(np.nan_to_num(yk)), 5), np.nanmax(smooth(np.nan_to_num(yk)))))
     out['leafout_doy'] = np.array(lo); out['senesc_doy'] = np.array(se)
+    out['_amp_lo'] = np.array([a[0] for a in amp]); out['_amp_hi'] = np.array([a[1] for a in amp])
+    if lai_m is not None:                                           # displayed-LAI season, independent of any GPP threshold
+        L = np.nanmean(lai_m, axis=0)                               # (12, n)
+        on, off, rng = [], [], []
+        for k in range(L.shape[1]):
+            v = L[:, k]; hi2, lo2 = np.nanmax(v), np.nanmin(v)
+            if hi2 - lo2 < 0.2: on.append(np.nan); off.append(np.nan); rng.append(hi2 - lo2); continue
+            lev2 = lo2 + 0.5 * (hi2 - lo2); im = int(np.nanargmax(v)); above = v >= lev2
+            r0 = next((m for m in range(im, -1, -1) if not above[m]), -1) + 1
+            f0 = next((m for m in range(im, 12) if not above[m]), 12) - 1
+            on.append(r0 + 1); off.append(f0 + 1); rng.append(hi2 - lo2)
+        out['lai_on_month'] = np.array(on, float); out['lai_off_month'] = np.array(off, float); out['lai_range'] = np.array(rng, float)
     return out
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument('--out', required=True); ap.add_argument('--per-class', type=int, default=4); ap.add_argument('--params', default='python-port/configs/params/default.yaml'); ap.add_argument('--only', default='', help='comma list of perturbation labels (smoke test)')
+    ap = argparse.ArgumentParser(); ap.add_argument('--out', required=True); ap.add_argument('--per-class', type=int, default=4); ap.add_argument('--params', default='python-port/configs/params/default.yaml'); ap.add_argument('--only', default='', help='comma list of perturbation labels (smoke test)'); ap.add_argument('--set', default='', choices=['', 'phenology'], help="'phenology': the wide-range phenology set instead of the standard 32")
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     # towers: batch 1 (2008-2012), up to per-class per IGBP, ordered by record length
     b1 = open(f'{S}/site_batches.txt').readline().split()[1].split(','); inv = pd.read_csv(f'{S}/site_inventory.csv').set_index('site')
@@ -107,24 +134,28 @@ def main():
         for mo in range(12):
             sub = tm[tm.index.get_level_values(1) == mo + 1]
             if len(sub): og[mo, n] = np.nanmean(np.maximum(sub['gpp'].values, 0)); oe[mo, n] = np.nanmean(sub['et'].values)
-    def run_cycle(st, sp, pft, key, n_eval=3):
-        ctx = dict(i=i, j=j, lat_rad=lat_rad, sp=sp, pft=pft, consts=consts, reader=rd); GM = []; GD = []; EM = []; LL = []; LU = []
+    def run_cycle(st, sp, pft, key, n_eval=3, ref=None):
+        ctx = dict(i=i, j=j, lat_rad=lat_rad, sp=sp, pft=pft, consts=consts, reader=rd); GM = []; GD = []; EM = []; LL = []; LU = []; LM = []
         for k, yr in enumerate(YEARS):
             REC.clear(); st, key, d = one_year(st, key, yr, ctx, 0); st = hold(st)
             if k >= len(YEARS) - n_eval:
                 GM.append(d['gpp_monthly'] * 1000); gd = np.full((366, len(sel)), np.nan, np.float32); gd[:d['gpp_daily'].shape[0]] = d['gpp_daily'] * 1000; GD.append(gd); EM.append(d['aet_monthly'])
                 summer = [5, 6, 7] if NH else [11, 0, 1]; LL.append(np.mean([REC[mo][0] for mo in summer], 0)); LU.append(np.mean([REC[mo][1] for mo in summer], 0))
-        return st, key, metrics(np.array(GM), np.array(GD), np.array(EM), np.array(LL), np.array(LU), og, oe, NH)
+                LM.append(np.array([REC[mo][0] + REC[mo][1] for mo in range(12)]))          # (12, n) displayed LAI
+        return st, key, metrics(np.array(GM), np.array(GD), np.array(EM), np.array(LL), np.array(LU), og, oe, NH, ref=ref, lai_m=np.array(LM))
     # base: two spin cycles, then one scored cycle
     key = jax.random.PRNGKey(0); st = st0
     for c in range(2): st, key, _ = run_cycle(st, sp0, pft0, key)
     st_base = st; key_base = key
-    _, _, base = run_cycle(st_base, sp0, pft0, key_base); print('base done', flush=True)
+    _, _, base = run_cycle(st_base, sp0, pft0, key_base); REF = (base['_amp_lo'], base['_amp_hi'])
+    _, _, base = run_cycle(st_base, sp0, pft0, key_base, ref=REF)                 # re-score the base at its own fixed level
+    print('base done', flush=True)
     rows = []
     def add(label, met):
-        for n, s in enumerate(sites): rows.append(dict(pert=label, site=s, igbp=META.loc[s, 'IGBP'], **{k: float(v[n]) for k, v in met.items()}))
+        for n, s in enumerate(sites): rows.append(dict(pert=label, site=s, igbp=META.loc[s, 'IGBP'], **{k: float(v[n]) for k, v in met.items() if not k.startswith('_')}))
     add('base', base)
-    todo = [p for p in PERTURBATIONS if (not a.only or p[0] in a.only.split(','))]
+    pool = PHENOLOGY_WIDE if a.set == 'phenology' else PERTURBATIONS
+    todo = [p for p in pool if (not a.only or p[0] in a.only.split(','))]
     for label, kind, spec in todo:
         sp, pft = sp0, pft0; vm, sl = vmax0.copy(), specla0.copy(); ex = {}
         if kind == 'vmax': vm = vmax0 * spec
@@ -135,7 +166,7 @@ def main():
             pft = eqx.tree_at(lambda q: (q.aleaf, q.awood, q.aroot), pft0, tuple(jnp.asarray(x, dtype=pft0.aleaf.dtype) for x in (al, aw, ar)))
         elif kind == 'extras': ex = {k: f(float(_extra_value(sp0, pft0, k))) for k, f in spec.items()}
         sp, pft = apply_params(sp, pft, vm, sl, ex)
-        _, _, met = run_cycle(st_base, sp, pft, key_base); add(label, met); print(f'{label}: done', flush=True)
+        _, _, met = run_cycle(st_base, sp, pft, key_base, ref=REF); add(label, met); print(f'{label}: done', flush=True)
         pd.DataFrame(rows).to_csv(f'{a.out}/sensitivity_runs.csv', index=False)
     df = pd.DataFrame(rows); df.to_csv(f'{a.out}/sensitivity_runs.csv', index=False)
     base_df = df[df['pert'] == 'base'].set_index('site'); out = []
@@ -144,9 +175,9 @@ def main():
         for c, grp in d.groupby('igbp'):
             b = base_df.loc[grp.index]
             out.append(dict(pert=label, igbp=c, n=len(grp), d_gpp_ratio=float((grp['gpp_ratio'] - b['gpp_ratio']).mean()), d_junjul_ratio=float((grp['junjul_ratio'] - b['junjul_ratio']).mean()), d_winter_share=float((grp['winter_share'] - b['winter_share']).mean()),
-                            d_leafout_days=float((grp['leafout_doy'] - b['leafout_doy']).mean()), d_senesc_days=float((grp['senesc_doy'] - b['senesc_doy']).mean()), d_et_ratio=float((grp['et_ratio'] - b['et_ratio']).mean()), d_lai_summer=float((grp['lai_summer'] - b['lai_summer']).mean())))
+                            d_leafout_days=float((grp['leafout_doy'] - b['leafout_doy']).mean()), d_senesc_days=float((grp['senesc_doy'] - b['senesc_doy']).mean()), d_lai_on_month=float((grp['lai_on_month'] - b['lai_on_month']).mean()), d_lai_off_month=float((grp['lai_off_month'] - b['lai_off_month']).mean()), d_et_ratio=float((grp['et_ratio'] - b['et_ratio']).mean()), d_lai_summer=float((grp['lai_summer'] - b['lai_summer']).mean())))
     sens = pd.DataFrame(out); sens.to_csv(f'{a.out}/sensitivity_by_class.csv', index=False)
-    pd.set_option('display.width', 250); print('\nBASE by class:'); print(base_df.groupby('igbp')[['gpp_ratio', 'junjul_ratio', 'winter_share', 'leafout_doy', 'senesc_doy', 'et_ratio', 'lai_summer']].mean().round(2).to_string())
+    pd.set_option('display.width', 250); print('\nBASE by class:'); print(base_df.groupby('igbp')[['gpp_ratio', 'junjul_ratio', 'winter_share', 'leafout_doy', 'senesc_doy', 'lai_on_month', 'lai_off_month', 'lai_range', 'et_ratio', 'lai_summer']].mean().round(2).to_string())
     print('\nCHANGE from base, mean per class:'); print(sens.round(3).to_string(index=False))
 
 
