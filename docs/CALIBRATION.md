@@ -3399,3 +3399,23 @@ has no skill (Guyaflux r 0.05; Australian savannas two to four months
 off). Order for S1.4: phenology timing and cold-season dormancy,
 interception, then leaf area against capacity (SLA, allocation, vmax),
 then water limitation at dry sites.
+
+**Phenology timing, quantified (2026-09-23; `phenology_vs_phenocam.py` on
+`site_runs/default_phenocam_2008-2012`):** 23 PhenoCam-matched towers
+rerun on defaults with daily GPP; transition dates = 25 % of the annual
+amplitude of the 15-day-smoothed curve, rising and falling, for the model
+GPP, the tower GPP (FULLSET daily) and the camera greenness (network
+transition dates, gcc_90). Summer-growing towers with a camera (n = 14):
+model leaf-out 30 d before the camera and 31 d before the tower GPP
+onset; senescence 21 d after the camera and 26 d after the tower GPP;
+tower GPP and camera agree within 3 d. Deciduous broadleaf (4): -34/+35
+vs camera, -43/+44 vs tower GPP. Grassland meadows (3): -44/+40.
+Evergreen needleleaf (4): -18/-6 (their winter error is a rate, not a
+date). Mixed (2): +2/+22. Winter-growing semi-arid and Mediterranean
+towers excluded (the crossing search does not apply; 6) plus 2 with an
+untimeable tower season. Same sign and size as Kucharik et al. 2006 at
+Harvard, Willow Creek and Park Falls. S1.4 target: leaf-out ~40 d later,
+senescence ~40 d earlier at deciduous and grass towers -> `gdd_thresh_u/l`
+and ramps, `tthresh_u_abs`, `tthresh_l_c`, the drop triggers.
+Data: `inputs/sites/PhenoCam/` (29 towers), `inputs/sites/
+FLUXNET2015_FULLSET/`.

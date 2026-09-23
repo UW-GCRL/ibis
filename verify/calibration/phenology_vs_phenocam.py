@@ -28,7 +28,7 @@ def crossings(daily, frac):
     return float(r + 1), float(f + 1)                                            # 1-based DOY
 
 
-def cam_dates(tower, igbp, years, matches):
+def cam_dates(tower, igbp, years, matches, all_years=False):
     rows = matches[(matches['tower'] == tower) & (matches['roitype'].isin(ROI_FOR.get(igbp, ['DB', 'EN', 'GR', 'SH'])))]
     out = {'r25': [], 'f25': [], 'r50': [], 'f50': []}; n_roi = 0
     for _, r in rows.iterrows():
@@ -37,7 +37,7 @@ def cam_dates(tower, igbp, years, matches):
         d = pd.read_csv(f, comment='#'); d = d[d['gcc_value'] == 'gcc_90']; n_roi += 1
         for _, x in d.iterrows():
             t25 = pd.to_datetime(x['transition_25']); t50 = pd.to_datetime(x['transition_50'])
-            if t25.year not in years: continue
+            if not all_years and t25.year not in years: continue
             if x['direction'] == 'rising': out['r25'].append(t25.dayofyear); out['r50'].append(t50.dayofyear)
             else: out['f25'].append(t25.dayofyear); out['f50'].append(t50.dayofyear)
     return {k: (float(np.mean(v)) if v else np.nan) for k, v in out.items()}, n_roi, len(out['r25'])
@@ -70,8 +70,16 @@ def main():
             r25, f25 = crossings(gd[yi, :, n], 0.25); r50, f50 = crossings(gd[yi, :, n], 0.50)
             if np.isfinite(r25): acc['r25'].append(r25); acc['f25'].append(f25); acc['r50'].append(r50); acc['f50'].append(f50)
         mod = {k: (float(np.mean(v)) if v else np.nan) for k, v in acc.items()}
-        cam, n_roi, n_cam_yrs = cam_dates(s, igbp, set(years), matches); tow, n_tow = tower_gpp_dates(s, years)
-        rows.append(dict(site=s, igbp=igbp, years=f'{years[0]}-{years[-1]}', cam_rois=n_roi, cam_years=n_cam_yrs, tower_years=n_tow,
+        cam, n_roi, n_cam_yrs = cam_dates(s, igbp, set(years), matches); cam_src = 'run years'
+        if n_cam_yrs < 2:
+            cam, n_roi, n_cam_yrs = cam_dates(s, igbp, set(years), matches, all_years=True); cam_src = 'all camera years' if n_cam_yrs else 'none'
+        tow, n_tow = tower_gpp_dates(s, years)
+        # winter-growing (Mediterranean) sites: the model's annual minimum falls in June-August; the mid-year-peak crossing search does not apply
+        gm = np.nanmean(np.nan_to_num(gd[:, :365, n]), axis=0); winter_growing = 152 <= int(np.argmin(smooth(gm))) <= 243
+        # ... or the camera or the tower says so (the model may fail to be Mediterranean where the site is: Vaira, Tonzi)
+        if np.isfinite(cam.get('r25', np.nan)) and cam['r25'] > 180: winter_growing = True
+        if np.isfinite(tow.get('r25', np.nan)) and (tow['r25'] < 40 or tow['r25'] > 180): winter_growing = True
+        rows.append(dict(site=s, igbp=igbp, years=f'{years[0]}-{years[-1]}', cam_rois=n_roi, cam_years=n_cam_yrs, cam_src=cam_src, tower_years=n_tow, winter_growing=winter_growing,
                          leafout25_model=mod['r25'], leafout25_cam=cam['r25'], leafout25_towerGPP=tow.get('r25', np.nan),
                          senesc25_model=mod['f25'], senesc25_cam=cam['f25'], senesc25_towerGPP=tow.get('f25', np.nan),
                          leafout50_model=mod['r50'], leafout50_cam=cam['r50'], senesc50_model=mod['f50'], senesc50_cam=cam['f50']))
@@ -80,12 +88,16 @@ def main():
         df[f'{k}_model_minus_cam'] = df[f'{k}_model'] - df[f'{k}_cam']; df[f'{k}_model_minus_towerGPP'] = df[f'{k}_model'] - df[f'{k}_towerGPP']; df[f'{k}_towerGPP_minus_cam'] = df[f'{k}_towerGPP'] - df[f'{k}_cam']
     df.to_csv(f'{run}/phenology_vs_phenocam.csv', index=False)
     pd.set_option('display.width', 250)
-    cols = ['site', 'igbp', 'cam_rois', 'cam_years', 'leafout25_cam', 'leafout25_towerGPP', 'leafout25_model', 'leafout25_model_minus_cam', 'senesc25_cam', 'senesc25_towerGPP', 'senesc25_model', 'senesc25_model_minus_cam']
+    cols = ['site', 'igbp', 'cam_years', 'cam_src', 'winter_growing', 'leafout25_cam', 'leafout25_towerGPP', 'leafout25_model', 'leafout25_model_minus_cam', 'senesc25_cam', 'senesc25_towerGPP', 'senesc25_model', 'senesc25_model_minus_cam']
     print(df[cols].to_string(index=False, float_format=lambda x: f'{x:.0f}'))
-    ok = df.dropna(subset=['leafout25_cam', 'leafout25_model'])
-    g = ok.groupby('igbp').agg(n=('site', 'count'), leafout_model_minus_cam=('leafout25_model_minus_cam', 'mean'), senesc_model_minus_cam=('senesc25_model_minus_cam', 'mean'), leafout_towerGPP_minus_cam=('leafout25_towerGPP_minus_cam', 'mean'), senesc_towerGPP_minus_cam=('senesc25_towerGPP_minus_cam', 'mean'))
+    ok = df.dropna(subset=['leafout25_cam', 'leafout25_model']); ok = ok[~ok['winter_growing']]
+    print(f"\nwinter-growing towers excluded from the means: {list(df[df['winter_growing']]['site'])}")
+    g = ok.groupby('igbp').agg(n=('site', 'count'), leafout_model_minus_cam=('leafout25_model_minus_cam', 'mean'), senesc_model_minus_cam=('senesc25_model_minus_cam', 'mean'), leafout_model_minus_towerGPP=('leafout25_model_minus_towerGPP', 'mean'), senesc_model_minus_towerGPP=('senesc25_model_minus_towerGPP', 'mean'), leafout_towerGPP_minus_cam=('leafout25_towerGPP_minus_cam', 'mean'), senesc_towerGPP_minus_cam=('senesc25_towerGPP_minus_cam', 'mean'))
     print('\nby class (days; positive = model later than the camera):'); print(g.round(0).to_string())
-    print(f"\nall towers with a camera date: n {len(ok)}; leaf-out model minus camera {ok['leafout25_model_minus_cam'].mean():+.0f} d (tower GPP minus camera {ok['leafout25_towerGPP_minus_cam'].mean():+.0f} d); senescence model minus camera {ok['senesc25_model_minus_cam'].mean():+.0f} d (tower GPP minus camera {ok['senesc25_towerGPP_minus_cam'].mean():+.0f} d)")
+    print(f"\nsummer-growing towers with a camera date: n {len(ok)}; leaf-out model minus camera {ok['leafout25_model_minus_cam'].mean():+.0f} d, model minus tower GPP {ok['leafout25_model_minus_towerGPP'].mean():+.0f} d (tower GPP minus camera {ok['leafout25_towerGPP_minus_cam'].mean():+.0f} d); senescence model minus camera {ok['senesc25_model_minus_cam'].mean():+.0f} d, model minus tower GPP {ok['senesc25_model_minus_towerGPP'].mean():+.0f} d (tower GPP minus camera {ok['senesc25_towerGPP_minus_cam'].mean():+.0f} d)")
+    allsg = df[~df['winter_growing']].dropna(subset=['leafout25_towerGPP', 'leafout25_model'])
+    print(f"summer-growing towers with tower GPP (camera or not): n {len(allsg)}; leaf-out model minus tower GPP {allsg['leafout25_model_minus_towerGPP'].mean():+.0f} d; senescence {allsg['senesc25_model_minus_towerGPP'].mean():+.0f} d")
+    print(allsg.groupby('igbp').agg(n=('site','count'), leafout_model_minus_towerGPP=('leafout25_model_minus_towerGPP','mean'), senesc_model_minus_towerGPP=('senesc25_model_minus_towerGPP','mean')).round(0).to_string())
     try:
         import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
         fig, axs = plt.subplots(1, 2, figsize=(10, 4.4))
