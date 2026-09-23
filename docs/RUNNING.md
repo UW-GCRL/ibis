@@ -50,6 +50,23 @@ expected, not a fault.
 
 ## 2. The canonical reference state
 
+**Since 2026-09-11 the reference is the v11 pair** (CALIBRATION.md 12). The
+state described under 2a below, `both_fix`, was the reference before that and
+is superseded.
+```
+/shared/nas2/Hangkai/ibis/verify_outputs/v11_spinup/      cold start 1601-1900 on IBIS DEFAULT parameters,
+                                                            1901-1930 GSWP3 cycled, 296 ppm  (cfg.yaml there)
+/shared/nas2/Hangkai/ibis/verify_outputs/v11_transient/   1901-2010 real years, transient CO2
+  restart/ibis_restart_2010.npz                           the state EVERY fit, validation and site run starts from
+```
+It carries no empirical correction (no vmax x0.54, no soil-OM x0.67). Its
+totals on IBIS defaults are the S0 corrected baseline of CALIBRATION.md 20
+(GPP 183 PgC on true land, vegetation C 580, soil C 13.8). Since 2026-09-21
+the model has two forcing fixes (phenology clock, surface pressure) that every
+state saved before that date lacks; states are not migrated -- the first hourly
+step overwrites the affected fields.
+
+### 2a. The previous reference state (both_fix, 2026-09-02) -- superseded
 ```
 /shared/nas2/Hangkai/ibis/verify_outputs/both_fix/
   restart/ibis_restart_2200.npz     the blessed state
@@ -72,8 +89,9 @@ docs/GPP.md. 0 NaN, soil-carbon drift +0.003 %/yr.
 | litter | 0.60 | 0.4-0.8 |
 | vegetation C | 481 PgC | 450-650 |
 
-GPP is 1.01x FLUXCOM on matched cells. **Use this for carbon, water and
-methane.**
+GPP is 1.01x FLUXCOM on matched cells, bought with the two empirical
+corrections; **superseded by v11 for carbon, water and methane** (kept as a
+record; the September PI deck used its numbers).
 
 **Do NOT use it for fire without re-calibrating.** Burned area falls
 0.90x -> 0.78x GFED5 because the fire parameters were fitted against a fuel
@@ -81,7 +99,7 @@ load ~1.7x too high. Fire work should start from `spinup_cold_v10` until that
 re-calibration is done, and should not treat the old 0.92x agreement as
 validation.
 
-### 2a. The previous reference state
+### 2b. The reference before that (spinup_cold_v10, 2026-08-31) -- superseded
 
 ```
 /shared/nas2/Hangkai/ibis/verify_outputs/spinup_cold_v10/
@@ -106,7 +124,7 @@ their spatial detail is coarser than labelled, and they predate the NEE and
 total-vs-above-ground-NPP fixes. They also cannot be loaded any more: `npoi`
 changed 88 484 -> 95 333.
 
-### 2a. The superseded reference state
+### 2c. The reference before those (spinup_fire_v8, August) -- superseded, not loadable
 
 ```
 /shared/nas2/Hangkai/ibis/verify_outputs/spinup_fire_v8/
