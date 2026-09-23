@@ -84,6 +84,7 @@ def one_year(state, key, year, ctx, isimveg=1):
     leap = is_leap_year(year)
     tmean = []
     gpp_m = []          # (12, npoi) monthly GPP, kgC m-2 month-1, from the daily diag
+    gpp_d = []          # (ndays, npoi) daily GPP, kgC m-2 day-1 (phenology timing at towers)
     aet_m = []          # (12, npoi) monthly AET, mm month-1 (dd[1] is daily AET)
     ep_m = []           # (12, 4, npoi) monthly ET components from the ETParts accumulator, if attached
     _parts = lambda s_: (np.stack([np.asarray(getattr(s_.etparts, f)) for f in ("trans", "interc", "soilev", "snowsub")])
@@ -99,6 +100,7 @@ def one_year(state, key, year, ctx, isimveg=1):
         # dd = (daily_gpp, daily_aet, daily_rh), each (ndays, npoi); it was
         # being discarded, which is why nothing seasonal was ever scored.
         gpp_m.append(np.asarray(dd[0]).sum(axis=0))
+        gpp_d.append(np.asarray(dd[0]))
         aet_m.append(np.asarray(dd[1]).sum(axis=0))
         if ep_prev is not None:
             ep_now = _parts(state); ep_m.append(ep_now - ep_prev); ep_prev = ep_now
@@ -131,6 +133,7 @@ def one_year(state, key, year, ctx, isimveg=1):
     diag = {n: np.asarray(getattr(state.summary, n)).copy() for n in AY}
     diag["lai"] = np.asarray(state.vegetation.plai).sum(axis=1)
     diag["gpp_monthly"] = np.stack(gpp_m, axis=0)          # (12, npoi)
+    diag["gpp_daily"] = np.concatenate(gpp_d, axis=0)      # (365|366, npoi), kgC m-2 day-1
     diag["aet_monthly"] = np.stack(aet_m, axis=0)          # (12, npoi), mm
     if ep_m:
         diag["et_parts_monthly"] = np.stack(ep_m, axis=0)  # (12, 4, npoi): trans, interc, soilev, snowsub (mm)

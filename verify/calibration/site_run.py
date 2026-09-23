@@ -145,9 +145,10 @@ def main():
         for yr in YEARS:
             st, key, d = one_year(st, key, yr, ctx, 0); st = hold(st)
         print(f'  spin cycle {c + 1}/{a.cycles} done: annual GPP {np.round(d["aygpptot"], 2)} kgC/m2, LAI {np.round(np.asarray(st.vegetation.plai).sum(1), 2)}', flush=True)
-    REC.clear(); GM = []; EM = []; LL = []; LU = []
+    REC.clear(); GM = []; EM = []; LL = []; LU = []; GD = []
     for yr in YEARS:
         st, key, d = one_year(st, key, yr, ctx, 0); st = hold(st); GM.append(d['gpp_monthly'] * 1000); EM.append(d['aet_monthly'])
+        gd = np.full((366, len(sel)), np.nan, np.float32); gd[:d['gpp_daily'].shape[0]] = d['gpp_daily'] * 1000; GD.append(gd)       # gC m-2 d-1
         LL.append(np.array([r[0] for r in REC[-12:]])); LU.append(np.array([r[1] for r in REC[-12:]]))
     GM = np.array(GM); EM = np.array(EM); LL = np.array(LL); LU = np.array(LU)             # (nyr, 12, nsite)
     # --- observations, saved with the run BEFORE any metric is computed
@@ -157,7 +158,7 @@ def main():
         for yi, yr in enumerate(YEARS):
             for mo in range(12):
                 if (yr, mo + 1) in tm.index: obs_g[yi, mo, n] = tm.loc[(yr, mo + 1), 'gpp']; obs_e[yi, mo, n] = tm.loc[(yr, mo + 1), 'et']
-    np.savez(f'{a.out}/site_runs.npz', sites=np.array(sites), years=np.array(YEARS), gpp=GM, et=EM, lai_l=LL, lai_u=LU, obs_gpp=obs_g, obs_et=obs_e, i=i, j=j)
+    np.savez(f'{a.out}/site_runs.npz', sites=np.array(sites), years=np.array(YEARS), gpp=GM, et=EM, lai_l=LL, lai_u=LU, obs_gpp=obs_g, obs_et=obs_e, i=i, j=j, gpp_daily=np.array(GD))
     json.dump(dict(notes=notes, gaps={f'{k[0]}|{k[1]}': v for k, v in rd.gap_report().items()}, params=a.params, cycles=a.cycles), open(f'{a.out}/site_runs.json', 'w'), indent=1)
     df = compute_metrics(sites, YEARS, GM, EM, LL, LU, obs_g, obs_e, notes, i, modis); df.to_csv(f'{a.out}/site_metrics.csv', index=False)
     pd.set_option('display.width', 250); print(df.drop(columns=['note']).to_string(index=False, float_format=lambda x: f'{x:.2f}'))
