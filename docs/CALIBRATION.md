@@ -3360,9 +3360,26 @@ phantom trees on 15 % of the area; forest ET 57 % transpiration, 37 %
 interception, 6 % soil. Joint fit on the fixed model: GPP 114, ET 549,
 vegetation carbon 219, boreal LAI 0.35x with boreal GPP 1.54x; shape
 error 0.0157, amplitude 0.84; interception share unchanged (36 %). Each
-set gets its own fitted targets and the other's wrong. The closing
-protocol (cold spin-up) on the defaults runs overnight
-(`final_base_default`).
+set gets its own fitted targets and the other's wrong.
+
+**Closing protocol on the defaults (`final_base_default`, done 2026-09-23
+12:46; cold spin-up 1601-1900, transient 1901-2000, monthly hindcast
+2001-2010, scored 2006-2010):** GPP true land 177.5 PgC (1.4x; bands
+tropics 1.40, 30-50 N 2.02, 50-60 N 1.88, 60-70 N 2.23), NPP 78.8, Rh
+84.5, ET 564, vegetation C true land 471 (in range), soil C 14.0 (in
+range), litter 1.01 (high); LAI 2.8x MODIS south of 50 N, 0.86x at 60-70
+N; tree cover 0.663 vs CLM 0.335 (phantom forest on 15 % of the area,
+GPP 2.2x there, 25 % of the excess); ET 1.16 of the ensemble (treeless
+1.48; 30-45 N 1.34; tropics 1.02), and at 194 towers model/tower 1.24
+where ensemble/tower is 0.99; seasonal shape 0.0173, amplitude 0.85
+(tropics 1.00, 30-70 N 0.62-0.66), savanna GPP peak +1.3 months after the
+rain (towers +0.2); GPP trend 1900s -> 2000s +18 %; **burned area 4.62 %
+vs GFED5 4.60 % (1.01x, rank r 0.76)**; methane biome_tref 268.9 Tg
+(GMB 158, range 119-203; split 61/26/6.5 vs 70/21/8; shape 15.9).
+Against the two fitted closings ((b3): GPP 129.8, veg C 219, soil C 6.9,
+fire 2.49 %, methane 167.7 / shape 6.3; joint: GPP 115.6, veg C 163):
+the defaults hold the pools and the fire, the fitted sets held GPP. The
+site-first calibration starts from the defaults.
 
 **S1.3, the site baseline (done 2026-09-22):** 90 towers with the joint
 fit, 63 with defaults (two batches rerunning), tower meteorology,
