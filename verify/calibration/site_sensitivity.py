@@ -89,7 +89,7 @@ def metrics(gm, gd, etm, lai_l, lai_u, og, oe, NH, ref=None, lai_m=None):
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument('--out', required=True); ap.add_argument('--per-class', type=int, default=4); ap.add_argument('--params', default='python-port/configs/params/default.yaml'); ap.add_argument('--only', default='', help='comma list of perturbation labels (smoke test)'); ap.add_argument('--set', default='', choices=['', 'phenology'], help="'phenology': the wide-range phenology set instead of the standard 32")
+    ap = argparse.ArgumentParser(); ap.add_argument('--out', required=True); ap.add_argument('--per-class', type=int, default=4); ap.add_argument('--params', default='python-port/configs/params/default.yaml'); ap.add_argument('--only', default='', help='comma list of perturbation labels (smoke test)'); ap.add_argument('--set', default='', choices=['', 'phenology'], help="'phenology': the wide-range phenology set instead of the standard 32"); ap.add_argument('--dump-monthly', action='store_true', help='also save the monthly GPP and displayed-LAI series per perturbation')
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     # towers: batch 1 (2008-2012), up to per-class per IGBP, ordered by record length
     b1 = open(f'{S}/site_batches.txt').readline().split()[1].split(','); inv = pd.read_csv(f'{S}/site_inventory.csv').set_index('site')
@@ -142,7 +142,9 @@ def main():
                 GM.append(d['gpp_monthly'] * 1000); gd = np.full((366, len(sel)), np.nan, np.float32); gd[:d['gpp_daily'].shape[0]] = d['gpp_daily'] * 1000; GD.append(gd); EM.append(d['aet_monthly'])
                 summer = [5, 6, 7] if NH else [11, 0, 1]; LL.append(np.mean([REC[mo][0] for mo in summer], 0)); LU.append(np.mean([REC[mo][1] for mo in summer], 0))
                 LM.append(np.array([REC[mo][0] + REC[mo][1] for mo in range(12)]))          # (12, n) displayed LAI
-        return st, key, metrics(np.array(GM), np.array(GD), np.array(EM), np.array(LL), np.array(LU), og, oe, NH, ref=ref, lai_m=np.array(LM))
+        met = metrics(np.array(GM), np.array(GD), np.array(EM), np.array(LL), np.array(LU), og, oe, NH, ref=ref, lai_m=np.array(LM))
+        met['_gm'] = np.array(GM).mean(0); met['_lm'] = np.array(LM).mean(0); met['_gd'] = np.array(GD).mean(0)
+        return st, key, met
     # base: two spin cycles, then one scored cycle
     key = jax.random.PRNGKey(0); st = st0
     for c in range(2): st, key, _ = run_cycle(st, sp0, pft0, key)
@@ -151,7 +153,9 @@ def main():
     _, _, base = run_cycle(st_base, sp0, pft0, key_base, ref=REF)                 # re-score the base at its own fixed level
     print('base done', flush=True)
     rows = []
+    DUMP = {}
     def add(label, met):
+        DUMP[label] = {'gpp': met['_gm'], 'lai': met['_lm'], 'gpp_daily': met['_gd']}
         for n, s in enumerate(sites): rows.append(dict(pert=label, site=s, igbp=META.loc[s, 'IGBP'], **{k: float(v[n]) for k, v in met.items() if not k.startswith('_')}))
     add('base', base)
     pool = PHENOLOGY_WIDE if a.set == 'phenology' else PERTURBATIONS
@@ -169,6 +173,7 @@ def main():
         _, _, met = run_cycle(st_base, sp, pft, key_base, ref=REF); add(label, met); print(f'{label}: done', flush=True)
         pd.DataFrame(rows).to_csv(f'{a.out}/sensitivity_runs.csv', index=False)
     df = pd.DataFrame(rows); df.to_csv(f'{a.out}/sensitivity_runs.csv', index=False)
+    if a.dump_monthly: np.savez(f'{a.out}/monthly_series.npz', sites=np.array(sites), og=og, oe=oe, **{f'{lab}|{k}': v for lab, m in DUMP.items() for k, v in m.items()})
     base_df = df[df['pert'] == 'base'].set_index('site'); out = []
     for label in [p[0] for p in todo]:
         d = df[df['pert'] == label].set_index('site')
