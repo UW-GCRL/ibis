@@ -14,7 +14,7 @@ sys.path.insert(0, 'python-port'); sys.path.insert(0, 'verify/calibration')
 import jax, jax.numpy as jnp, equinox as eqx
 from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, apply_params, _extra_value, modis_at
 import site_transient; from site_transient import one_year
-from site_run import prescribe, tower_monthly, tower_mat, META, SEED_LAI, SEED_WOOD
+from site_run import prescribe, tower_monthly, tower_mat, enforce_prescription, META, SEED_LAI, SEED_WOOD
 from phenology_vs_phenocam import crossings, smooth
 from tower_forcing import TowerForcingReader
 from ibis.dimensions import GridConfig; from ibis.io.restart import load_state
@@ -120,7 +120,7 @@ def main():
     st0 = eqx.tree_at(lambda s: (s.vegetation.cbiol, s.vegetation.cbiow, s.vegetation.cbior, s.vegetation.plai, s.vegetation.exist, s.vegetation.fu, s.vegetation.fl), st0,
                       tuple(jnp.asarray(x, dtype=jnp.float32) for x in (cbiol, cbiow, cbior, cbiol * specla0[None, :], mask, fu, fl_)))
     consts = PhysicalConstants(); site_transient.apply_co2 = lambda q, y, series=None: eqx.tree_at(lambda z: z.atm.co2conc, q, 370.0e-6)
-    hold = lambda s_: eqx.tree_at(lambda z: z.vegetation.exist, s_, jnp.asarray(mask))
+    hold = lambda s_: enforce_prescription(s_, mask, specla0)
     REC = []
     def hook(fn):
         def rec(state, *aa, **kk):

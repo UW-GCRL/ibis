@@ -51,6 +51,23 @@ def prescribe(igbp, lat, mat):
     raise ValueError(f'{igbp}: not a natural-vegetation class handled here (WET -> methane stage, CRO not in IBIS)')
 
 
+def enforce_prescription(state, mask, specla):
+    """Re-impose the prescribed composition after a year.
+
+    `one_year` recomputes `exist` from the climate at year end, BEFORE the biomass update allocates NPP, so PFTs the site does
+    not have receive carbon every year. Their leaf area then enters the canopy regardless of `exist` (the displayed upper LAI
+    sums evergreen PFTs unweighted), which turned prescribed deciduous stands into evergreen ones at mild sites. Setting `exist`
+    alone is not enough: the carbon pools and `plai` of the non-prescribed PFTs have to be cleared too.
+    """
+    import jax.numpy as _jnp
+    m = _jnp.asarray(mask, dtype=state.vegetation.cbiol.dtype)
+    v = state.vegetation
+    cbiol = v.cbiol * m; cbiow = v.cbiow * m; cbior = v.cbior * m
+    plai = cbiol * _jnp.asarray(specla, dtype=cbiol.dtype)[None, :]
+    return eqx.tree_at(lambda s: (s.vegetation.exist, s.vegetation.cbiol, s.vegetation.cbiow, s.vegetation.cbior, s.vegetation.plai),
+                       state, (_jnp.asarray(mask, dtype=v.exist.dtype), cbiol, cbiow, cbior, plai))
+
+
 def tower_mat(site):
     """Mean air temperature (C) over the tower record, from the yearly file."""
     f = glob.glob(f'{FLUX_DIR}/FLX_{site}_FLUXNET2015_FULLSET_YY_*.csv'); d = pd.read_csv(f[0])
@@ -75,7 +92,8 @@ def compute_metrics(sites, YEARS, GM, EM, LL, LU, obs_g, obs_e, notes, i, modis)
         ok = np.isfinite(og); usable = bool(ok.any()) and np.nansum(og) > 100.0      # no tower months, or < 100 gC/m2/yr: ratios are meaningless
         r = np.corrcoef(mg[ok], og[ok])[0, 1] if ok.sum() > 3 else np.nan
         NH = LATV[i[n]] >= 0; summer = [5, 6, 7] if NH else [11, 0, 1]; winter = [10, 11, 0, 1] if NH else [4, 5, 6, 7]
-        rows.append(dict(site=s, igbp=notes[s]['igbp'], pfts='+'.join(notes[s]['pfts']), years=f'{y0}-{y1}', usable=bool(usable), gpp_model=mg.sum() / 1000, gpp_tower=np.nansum(og) / 1000, gpp_ratio=mg.sum() / np.nansum(og) if usable else np.nan,
+        died = float((LL[:, summer, n] + LU[:, summer, n]).mean()) < 0.2          # the prescribed stand did not survive the spin-up
+        rows.append(dict(site=s, igbp=notes[s]['igbp'], pfts='+'.join(notes[s]['pfts']), years=f'{y0}-{y1}', usable=bool(usable), stand_died=bool(died), gpp_model=mg.sum() / 1000, gpp_tower=np.nansum(og) / 1000, gpp_ratio=mg.sum() / np.nansum(og) if usable else np.nan,
                          gpp_r=r, gpp_rmse=float(np.sqrt(np.nanmean((mg - og) ** 2))), winter_share_model=float(mg[winter].sum() / max(mg.sum(), 1e-6)), winter_share_tower=float(np.nansum(og[winter]) / np.nansum(og)) if usable else np.nan, peak_model=int(np.argmax(mg) + 1), peak_tower=int(np.nanargmax(og) + 1) if ok.any() else -1,
                          et_model=me.sum(), et_tower=np.nansum(oe) if np.isfinite(oe).any() else np.nan, et_ratio=me.sum() / np.nansum(oe) if np.isfinite(oe).any() and np.nansum(oe) > 0 else np.nan,
                          lai_summer_model=float((LL[:, summer, n] + LU[:, summer, n]).mean()), lai_modis_max=float(modis[n]), fu=notes[s]['fu'], fl=notes[s]['fl'], note=notes[s]['note']))
@@ -134,7 +152,7 @@ def main():
                      st, tuple(jnp.asarray(x, dtype=jnp.float32) for x in (cbiol, cbiow, cbior, plai, mask, fu, fl_)))
     consts = PhysicalConstants(); ctx = dict(i=i, j=j, lat_rad=lat_rad, sp=sp, pft=pft, consts=consts, reader=rd)
     site_transient.apply_co2 = lambda q, y, series=None: eqx.tree_at(lambda z: z.atm.co2conc, q, 370.0e-6)   # ~2000 level; tower years 1991-2014
-    hold = lambda s_: eqx.tree_at(lambda z: z.vegetation.exist, s_, jnp.asarray(mask))
+    hold = lambda s_: enforce_prescription(s_, mask, specla)
     key = jax.random.PRNGKey(0); REC = []
     def hook(fn):
         def rec(state, *aa, **kk):
