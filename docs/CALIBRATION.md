@@ -3454,3 +3454,50 @@ senescence ~40 d earlier at deciduous and grass towers -> `gdd_thresh_u/l`
 and ramps, `tthresh_u_abs`, `tthresh_l_c`, the drop triggers.
 Data: `inputs/sites/PhenoCam/` (29 towers), `inputs/sites/
 FLUXNET2015_FULLSET/`.
+
+## 21. Two formulation gaps the site stage exposed (2026-09-24)
+
+The screening and the corrected site baseline separate our errors into two
+kinds. Capacity, leaf area, water stress and the spring degree-day
+threshold are parameter errors and the fit can reach them. Two are not,
+and the literature names both, with published equations and constants.
+The plan for Hangkai and his labmate to choose from is
+`/shared/nas2/Hangkai/ibis_local_document/REVISED_PLAN_2026-09-24.md`.
+
+**(a) No cold-season down-regulation of photosynthesis.** Our cold-season
+GPP share is 0.12-0.16 against 0.01-0.06 at the towers, in every class,
+and no phenology parameter moves it at the evergreen conifers at all.
+Evergreen needleleaf forests down-regulate photosynthesis completely in
+winter while staying green; CLM5 shows the same overestimate in both its
+prescribed-LAI and prognostic modes. The standard representation is a
+state of acclimation: a first-order delay of temperature with a time
+constant near 8 days (200 h) multiplying the photosynthetic capacity
+(Makela et al. 2004, Tree Physiology 24, 369; Kolari et al.;
+Gea-Izquierdo et al. 2010). Related: thermal acclimation of the Farquhar
+parameters (Kattge & Knorr 2007) implemented in JULES vn5.6 (Oliver et
+al. 2022, GMD 15, 5567: tropical GPP -5..-10 %, high-latitude +20 %), and
+photoperiod control of capacity (Bauerle et al. 2012, PNAS 109, 8612:
+-4 PgC/yr globally). IBIS has a constant per-PFT vmax with an
+instantaneous temperature response and no memory.
+
+**(b) Senescence has no photoperiod gate.** The upper-canopy rule is a
+pure threshold on the ten-day mean temperature, floored at 0 C; the
+sweep showed it cannot pull autumn back by more than 12 days, against a
+target of about 40. The standard replacement is Delpierre et al. (2009):
+senescence accumulates only when day length is below a threshold, at a
+rate set by the temperature deficit (refined by Lang et al. 2019, Zani et
+al. 2020, the DP3 model 2025). Our spring rule is likewise the oldest
+form, a bare growing-degree-day threshold with no chilling requirement,
+which is why leaf-out is a month early. For scale, a seven-model European
+evaluation found growing-season starts ~0.6 months late and ends ~0.5
+months early (Biogeosciences 18, 2405, 2021), citing a 235 gC m-2 yr-1
+GPP error at deciduous sites from a two-week spring bias; our biases are
+larger and of the opposite sign.
+
+**A method correction on the way through.** Model leaf area at a tower was
+compared with MODIS at the tower's 0.5-degree CELL. Tower canopies carry
+1.69x their cell's satellite LAI (site-attribute dataset, ESSD 17, 117,
+2025), so the model reads 2.20x the cell but 1.23x the site. Published
+representativeness work says the same: mean absolute vegetation-index
+bias grows from 4.3 % at site scale to 12.1 % at land-model grid scale
+(Chu et al. 2021, AFM 301-302, 108350; Sun et al. 2024, Sci. Data).
