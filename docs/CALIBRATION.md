@@ -3400,6 +3400,41 @@ off). Order for S1.4: phenology timing and cold-season dormancy,
 interception, then leaf area against capacity (SLA, allocation, vmax),
 then water limitation at dry sites.
 
+**S1.3 CORRECTED (2026-09-23 23:05) -- harness defect, and a wrong LAI
+reference.** Two errors invalidated the model side of the S1.3 numbers
+above. (1) `site_transient.one_year` recomputes `exist` from climate at
+year end BEFORE `biomass_update`, so non-prescribed PFTs gained carbon
+every year and their leaf area entered `avglaiu` regardless of `exist`
+(evergreen PFTs are summed unweighted there): prescribed deciduous stands
+ran EVERGREEN at mild towers. `site_run.enforce_prescription()` now clears
+the carbon and `plai` of non-prescribed PFTs each year (commit ef0e019);
+verified at IT-Col (displayed LAI was stuck at 5.10 with tempu = 0 from
+October to May; now 0). (2) Model leaf area at a tower was compared with
+MODIS at the tower's 0.5-deg CELL. The towers' own canopies carry 1.69x
+the cell's satellite LAI, so the model reads 2.20x the cell but only
+1.23x the site's measured maximum; by class against the site value:
+DBF 1.05, ENF 0.80, MF 0.45, GRA 1.75, SAV 1.57, CSH 2.15. Forests do
+not carry too much leaf.
+
+Corrected results, 62 towers, defaults, composition held:
+- **Dynamic carbon: the prescribed stand DIES at 12 of 61 towers**
+  (DK-Sor, BE-Bra, FR-Fon, NL-Loo, RU-Fyo, IT-Col, IT-Ren, IT-SRo,
+  IT-Ro2, FR-Pue, AU-Tum, CA-Gro) -- default allocation/turnover cannot
+  sustain the type those sites carry; the invaders had hidden it. New
+  `stand_died` flag. GRA 1.59 -> 1.08 and CSH 2.04 -> 1.23 once the
+  composition is held (their excess was the invaders); forests unchanged.
+- **Fixed vegetation** (`--fixed-lai attrs`: leaf carbon held at the site
+  attribute LAI_Max, phenology still modulates the displayed canopy; the
+  review's fixed-vegetation experiment): GPP model/tower DBF 0.75, ENF
+  0.81, EBF 0.85, GRA 0.87, MF 1.00, SAV 1.00-1.28, OSH 2.12, all 0.85;
+  monthly r 0.86; ET 1.15 (DBF 1.62, MF 1.35, ENF 0.99); peak lag +1 at
+  ENF and MF, 0 elsewhere. **Cold-season share 0.12-0.16 vs tower
+  0.01-0.06, unchanged by either correction, in every class.**
+- Order for S1.4 revised: cold-season rate first, then forest capacity
+  (the model UNDER-produces 15-25 % with the right canopy), then
+  semi-arid water stress (OSH 2.1x), then allocation/turnover for the
+  stands that cannot stand up.
+
 **Phenology timing, quantified (2026-09-23; `phenology_vs_phenocam.py` on
 `site_runs/default_phenocam_2008-2012`):** 23 PhenoCam-matched towers
 rerun on defaults with daily GPP; transition dates = 25 % of the annual

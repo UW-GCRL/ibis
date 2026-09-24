@@ -51,8 +51,13 @@ def prescribe(igbp, lat, mat):
     raise ValueError(f'{igbp}: not a natural-vegetation class handled here (WET -> methane stage, CRO not in IBIS)')
 
 
-def enforce_prescription(state, mask, specla):
+def enforce_prescription(state, mask, specla, fix_cbiol=None):
     """Re-impose the prescribed composition after a year.
+
+    With `fix_cbiol` the leaf carbon is held at a prescribed value as well, so the stand cannot decay: the fixed-vegetation
+    experiment that isolates photosynthesis, water and phenology from allocation and turnover (the phenology still modulates
+    the DISPLAYED leaf area through the cold and drought triggers). Without it the leaf carbon evolves under the model's own
+    allocation, and a stand whose parameters cannot sustain it dies -- reported by the `stand_died` flag.
 
     `one_year` recomputes `exist` from the climate at year end, BEFORE the biomass update allocates NPP, so PFTs the site does
     not have receive carbon every year. Their leaf area then enters the canopy regardless of `exist` (the displayed upper LAI
@@ -62,7 +67,8 @@ def enforce_prescription(state, mask, specla):
     import jax.numpy as _jnp
     m = _jnp.asarray(mask, dtype=state.vegetation.cbiol.dtype)
     v = state.vegetation
-    cbiol = v.cbiol * m; cbiow = v.cbiow * m; cbior = v.cbior * m
+    cbiol = v.cbiol * m if fix_cbiol is None else _jnp.asarray(fix_cbiol, dtype=v.cbiol.dtype)
+    cbiow = v.cbiow * m; cbior = v.cbior * m
     plai = cbiol * _jnp.asarray(specla, dtype=cbiol.dtype)[None, :]
     return eqx.tree_at(lambda s: (s.vegetation.exist, s.vegetation.cbiol, s.vegetation.cbiow, s.vegetation.cbior, s.vegetation.plai),
                        state, (_jnp.asarray(mask, dtype=v.exist.dtype), cbiol, cbiow, cbior, plai))
@@ -114,6 +120,7 @@ def main():
     ap.add_argument('--sites', required=True); ap.add_argument('--params', required=True); ap.add_argument('--cycles', type=int, default=3)
     ap.add_argument('--out', required=True); ap.add_argument('--pft', default='', help='overrides: SITE=pft,pft;SITE=...'); ap.add_argument('--years', default='', help='SITE=y0-y1;... restrict tower years')
     ap.add_argument('--no-hh', action='store_true', help='ignore half-hourly files (diurnal range from GSWP3)')
+    ap.add_argument('--fixed-lai', default='', choices=['', 'state', 'attrs'], help="hold leaf carbon: 'state' at the prescribed starting value, 'attrs' at the site-attribute maximum LAI (fixed-vegetation experiment)")
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     sites = a.sites.split(','); over = {kv.split('=')[0]: [int(x) for x in kv.split('=')[1].split(',')] for kv in a.pft.split(';') if kv}
     yrs = {kv.split('=')[0]: tuple(int(x) for x in kv.split('=')[1].split('-')) for kv in a.years.split(';') if kv}
@@ -152,7 +159,20 @@ def main():
                      st, tuple(jnp.asarray(x, dtype=jnp.float32) for x in (cbiol, cbiow, cbior, plai, mask, fu, fl_)))
     consts = PhysicalConstants(); ctx = dict(i=i, j=j, lat_rad=lat_rad, sp=sp, pft=pft, consts=consts, reader=rd)
     site_transient.apply_co2 = lambda q, y, series=None: eqx.tree_at(lambda z: z.atm.co2conc, q, 370.0e-6)   # ~2000 level; tower years 1991-2014
-    hold = lambda s_: enforce_prescription(s_, mask, specla)
+    fix = None
+    if a.fixed_lai:
+        fix = np.asarray(cbiol).copy()
+        if a.fixed_lai == 'attrs':
+            from site_attributes import prescribe_from_attributes
+            for n, s in enumerate(sites):
+                at = prescribe_from_attributes(s)
+                if at is None or not np.isfinite(at['lai_max']) or at['lai_max'] <= 0: continue
+                share = mask[n] / max(mask[n].sum(), 1)                      # split the site's max LAI over its prescribed PFTs
+                fix[n] = share * at['lai_max'] / np.maximum(specla, 1e-6)
+                notes[s]['lai_max_source'] = f"site attributes ({at['lai_max']:.1f})"
+        log_lai = (fix * specla[None, :]).sum(1)
+        print('  fixed leaf area (m2/m2): ' + ', '.join(f'{s} {log_lai[n]:.1f}' for n, s in enumerate(sites)), flush=True)
+    hold = lambda s_: enforce_prescription(s_, mask, specla, fix_cbiol=fix)
     key = jax.random.PRNGKey(0); REC = []
     def hook(fn):
         def rec(state, *aa, **kk):
