@@ -35,7 +35,17 @@ from ibis.io.gswp3_reader import GSWP3Reader; from ibis.constants import Physica
 from ibis.timestepping.loops_gswp3 import _cast_tree_f32
 V = '/shared/nas2/Hangkai/ibis/verify_outputs'; S = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'site_data')   # tower batches and inventory
 FX = '/shared/nas2/Hangkai/ibis/inputs/sites/FLUXNET2015_FULLSET/daily_monthly_yearly'
-YEARS = [2008, 2009, 2010, 2011, 2012]; TRAIN_Y = [1, 2, 3]; HOLD_Y = [4]         # indices into YEARS; 2008 is warm-up
+YEARS = [2008, 2009, 2010, 2011, 2012]; TRAIN_Y = [1, 2, 3]; HOLD_Y = [4]         # indices into YEARS; 2008 is warm-up (--years, --hold-last)
+
+
+def configure_years(a):
+    """YEARS / TRAIN_Y / HOLD_Y from --years A-B and --hold-last K: the first year is warm-up, the last K are held out.
+    Module globals, so workers (which rebuild the setup from the same arguments) score the same years."""
+    global YEARS, TRAIN_Y, HOLD_Y
+    y0, y1 = (int(x) for x in getattr(a, 'years', '2008-2012').split('-')); k = int(getattr(a, 'hold_last', 1))
+    YEARS = list(range(y0, y1 + 1)); n = len(YEARS)
+    if n - 1 - k < 1: raise SystemExit(f'--years {a.years} with --hold-last {k} leaves no training year after the warm-up')
+    TRAIN_Y = list(range(1, n - k)); HOLD_Y = list(range(n - k, n))
 
 
 def tower_obs(site):
@@ -49,6 +59,10 @@ def tower_obs(site):
     gs = np.maximum.reduce([(nt - dt).abs() / 2.0, 0.1 * g.abs(), pd.Series(5.0, index=d.index)])
     k = 86400.0 / 2.45e6 * nd; le = w('LE_CORR') * k; lef = w('LE_F_MDS') * k
     es = np.maximum.reduce([(le - lef).abs() / 2.0, 0.1 * le.abs(), pd.Series(3.0, index=d.index)])
+    if le.notna().sum() == 0 and lef.notna().sum() > 0:
+        # no energy-balance-corrected LE at this tower (e.g. US-Ha1): the gap-filled LE, with a wider sigma since the
+        # closure correction is unknown; fill-value years drop out through LE_F_MDS_QC below
+        le = lef; es = np.maximum.reduce([0.15 * le.abs(), pd.Series(3.0, index=d.index)])
     qn = w('NEE_VUT_REF_QC'); ql = w('LE_F_MDS_QC'); nee = w('NEE_VUT_REF') * nd
     for yi, yr in enumerate(YEARS):
         for mo in range(12):
@@ -76,6 +90,10 @@ def _args(argv=None):
     ap.add_argument('--n-evals', type=int, default=200); ap.add_argument('--sigma', type=float, default=0.2); ap.add_argument('--w-et', type=float, default=0.5)
     ap.add_argument('--holdout', type=float, default=1 / 3); ap.add_argument('--seed', type=int, default=1); ap.add_argument('--out', required=True)
     ap.add_argument('--only-baseline', action='store_true', help='score the starting parameters and stop (smoke test)')
+    ap.add_argument('--years', default='2008-2012', help='simulated years A-B: the first is warm-up (default: the 2008-2012 batch)')
+    ap.add_argument('--hold-last', type=int, default=1, help='hold out the last K simulated years (scored, not fitted)')
+    ap.add_argument('--lai', default='', help='SITE=value[,SITE=value]: leaf area to hold where the site attributes have none')
+    ap.add_argument('--co2', default='fixed', choices=['fixed', 'series'], help="'fixed' 385 ppm (the batch fits) or the historical annual series")
     ap.add_argument('--sites', default='', help='comma list: only these towers of the class (probes, single-tower tests)')
     ap.add_argument('--start', default='', help="best.json of an earlier fit: start from its parameters (with --only-baseline: a replay)")
     ap.add_argument('--popsize', type=int, default=0, help='CMA-ES population (0: the default 4 + 3 ln n); a multiple of --workers wastes no round')
@@ -88,6 +106,7 @@ def setup(a, spin=True, verbose=True):
     """Towers, the prescribed start state, parameter coding and observations; with `spin`, one spin-up cycle and `run`.
     Deterministic in `a`, so the parent and every worker build the same towers, split and coding."""
     say = (lambda m: print(m, flush=True)) if verbose else (lambda m: None)
+    configure_years(a)
     b1 = open(f'{S}/site_batches.txt').readline().split()[1].split(',')
     sites = [s for s in b1 if META.loc[s, 'IGBP'] == a.igbp]
     if getattr(a, 'sites', ''):
@@ -124,6 +143,9 @@ def setup(a, spin=True, verbose=True):
         if at is not None and np.isfinite(at['lai_max']) and at['lai_max'] > 0:
             cb[n] = mask[n] / max(mask[n].sum(), 1) * at['lai_max'] / np.maximum(specla, 1e-6); lai_src[s] = f"attributes {at['lai_max']:.1f}"
         else: lai_src[s] = f"state {float((cb[n] * specla).sum()):.1f}"
+        given = dict(kv.split('=') for kv in getattr(a, 'lai', '').split(',') if kv)
+        if s in given:
+            cb[n] = mask[n] / max(mask[n].sum(), 1) * float(given[s]) / np.maximum(specla, 1e-6); lai_src[s] = f"given {float(given[s]):.1f}"
     st = eqx.tree_at(lambda s: (s.vegetation.cbiol, s.vegetation.cbiow, s.vegetation.cbior, s.vegetation.plai, s.vegetation.exist, s.vegetation.fu, s.vegetation.fl),
                      st, tuple(jnp.asarray(x, dtype=jnp.float32) for x in (cb, cw, cr, cb * specla[None, :], mask, fu, flw)))
     say('leaf area: ' + ', '.join(f'{s} {lai_src[s]}' for s in sites))
@@ -159,7 +181,8 @@ def setup(a, spin=True, verbose=True):
     if not spin: return C
     # --- spin once with the starting parameters (fixed vegetation: soil water/temperature and seasonal states settle)
     rd = TowerForcingReader(sites, GSWP3Reader(GSWP3)); consts = PhysicalConstants()
-    site_transient.apply_co2 = lambda q, y, series=None: eqx.tree_at(lambda z: z.atm.co2conc, q, 385.0e-6)
+    from ibis.io.co2 import co2_molmol          # an ARRAY, not a Python float: a float is static under filter_jit and recompiles per value
+    site_transient.apply_co2 = (lambda q, y, series=None: eqx.tree_at(lambda z: z.atm.co2conc, q, jnp.asarray(co2_molmol(y) if a.co2 == 'series' else 385.0e-6, jnp.float32)))
     ctx0 = dict(i=i, j=j, lat_rad=lat_rad, sp=sp0, pft=pft0, consts=consts, reader=rd); key0 = jax.random.PRNGKey(0); t0 = time.time()
     for yr in YEARS: st, key0, _ = one_year(st, key0, yr, ctx0, 0); st = hold_fn(st)
     print(f'{"" if verbose else f"worker {os.getpid()}: "}spin-up cycle done in {time.time() - t0:.0f} s', flush=True)
@@ -236,7 +259,7 @@ def main():
         return Ls
     try:
         L0 = objective_batch([C.z0], local=True)[0]; print(f'baseline loss {L0:.4f}', flush=True)       # in the parent, while workers start
-        json.dump(dict(igbp=a.igbp, params=a.params, fit=names, train=train, hold=hold, lai=C.lai_src, w_et=a.w_et, years=YEARS, train_years=[YEARS[k] for k in TRAIN_Y], hold_years=[YEARS[k] for k in HOLD_Y], workers=a.workers, popsize=a.popsize, seed=a.seed, sigma=a.sigma, n_evals=a.n_evals), open(f'{a.out}/setup.json', 'w'), indent=1)
+        json.dump(dict(igbp=a.igbp, params=a.params, fit=names, train=train, hold=hold, lai=C.lai_src, w_et=a.w_et, years=YEARS, train_years=[YEARS[k] for k in TRAIN_Y], hold_years=[YEARS[k] for k in HOLD_Y], workers=a.workers, popsize=a.popsize, seed=a.seed, sigma=a.sigma, n_evals=a.n_evals, co2=a.co2, lai_given=a.lai), open(f'{a.out}/setup.json', 'w'), indent=1)
         if a.only_baseline: return
         es = cma.CMAEvolutionStrategy(C.z0, a.sigma, {'bounds': [0, 1], 'maxfevals': a.n_evals, 'seed': a.seed, 'verbose': -9, **({'popsize': a.popsize} if a.popsize else {})})
         while not es.stop():

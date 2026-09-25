@@ -50,8 +50,7 @@ def wrapped(tu, tl, t12, t34, q12, q34, su, sl, psurf, topparu, topparl, termu6,
     return out
 
 
-a = site_fit._args(['--igbp', igbp, '--params', yml, '--fit', f"vmax:{'temp_con_ever' if col else 'temp_bl_dec'}", '--out', '/tmp/unused'])
-site_fit.YEARS = [2008, 2009]
+a = site_fit._args(['--igbp', igbp, '--params', yml, '--fit', f"vmax:{'temp_con_ever' if col else 'temp_bl_dec'}", '--out', '/tmp/unused', '--years', '2008-2009', '--hold-last', '0'])
 C = site_fit.setup(a, spin=True, verbose=True)
 st, key, c = C.base_state, C.base_key, C.ctx0
 for im in range(month - 1):
