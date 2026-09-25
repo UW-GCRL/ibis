@@ -76,6 +76,7 @@ def _args(argv=None):
     ap.add_argument('--n-evals', type=int, default=200); ap.add_argument('--sigma', type=float, default=0.2); ap.add_argument('--w-et', type=float, default=0.5)
     ap.add_argument('--holdout', type=float, default=1 / 3); ap.add_argument('--seed', type=int, default=1); ap.add_argument('--out', required=True)
     ap.add_argument('--only-baseline', action='store_true', help='score the starting parameters and stop (smoke test)')
+    ap.add_argument('--sites', default='', help='comma list: only these towers of the class (probes, single-tower tests)')
     ap.add_argument('--start', default='', help="best.json of an earlier fit: start from its parameters (with --only-baseline: a replay)")
     ap.add_argument('--popsize', type=int, default=0, help='CMA-ES population (0: the default 4 + 3 ln n); a multiple of --workers wastes no round')
     ap.add_argument('--workers', type=int, default=1, help='evaluate each CMA-ES generation in this many spawned processes; '
@@ -89,6 +90,10 @@ def setup(a, spin=True, verbose=True):
     say = (lambda m: print(m, flush=True)) if verbose else (lambda m: None)
     b1 = open(f'{S}/site_batches.txt').readline().split()[1].split(',')
     sites = [s for s in b1 if META.loc[s, 'IGBP'] == a.igbp]
+    if getattr(a, 'sites', ''):
+        want = a.sites.split(','); bad = [s for s in want if s not in sites]
+        if bad: raise SystemExit(f'{bad} not {a.igbp} towers of the 2008-2012 batch: {sites}')
+        sites = want
     rng = np.random.default_rng(a.seed); order = rng.permutation(len(sites)); n_hold = int(round(a.holdout * len(sites)))
     hold = sorted(sites[k] for k in order[:n_hold]); train = sorted(s for s in sites if s not in hold); sites = train + hold
     say(f'{a.igbp}: {len(sites)} towers; train {train}; hold-out {hold}')
