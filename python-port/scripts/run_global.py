@@ -350,6 +350,13 @@ def run_global_simulation(config: IBISConfig) -> None:
     _tsm = float(((_pd_gate or {}).get('pft') or {}).get('tree_stress_min', -1.0))
     gate_on = _tsm >= 0.0
     et_on = bool(getattr(p, "et_components", False))
+    _st_sec = ((_pd_gate or {}).get('stomata') or {}); _ph_sec = ((_pd_gate or {}).get('pheno') or {})
+    seas_on = bool(_st_sec.get('acclim_on', False)) or bool(_ph_sec.get('sen_photoperiod_u', False)) \
+        or bool(_ph_sec.get('sen_photoperiod_l', False))
+    if seas_on:
+        logger.info("Seasonal formulations ACTIVE (acclim_on=%s, sen_photoperiod_u=%s, sen_photoperiod_l=%s): "
+                    "state carries SeasonalState (CALIBRATION.md 21-22)", bool(_st_sec.get('acclim_on', False)),
+                    bool(_ph_sec.get('sen_photoperiod_u', False)), bool(_ph_sec.get('sen_photoperiod_l', False)))
     if et_on:
         logger.info("ET components ACCUMULATED (physics.et_components): state carries ETParts")
     if gate_on:
@@ -362,12 +369,12 @@ def run_global_simulation(config: IBISConfig) -> None:
     if t.irestart > 0:
         rpath = restart_path(out.restart_dir, t.irestart)
         logger.info("Loading restart from %s", rpath)
-        template = create_ibis_state(grid, p.co2init, p.o2init, with_stress=gate_on, with_etparts=et_on)
+        template = create_ibis_state(grid, p.co2init, p.o2init, with_stress=gate_on, with_etparts=et_on, with_seasonal=seas_on)
         state, meta = load_state(rpath, template)
         logger.info("Restart metadata: %s", meta)
     else:
         logger.info("Cold start ...")
-        state = create_ibis_state(grid, p.co2init, p.o2init, with_stress=gate_on, with_etparts=et_on)
+        state = create_ibis_state(grid, p.co2init, p.o2init, with_stress=gate_on, with_etparts=et_on, with_seasonal=seas_on)
 
     # Inject soil (always, since soil is static)
     state = _apply_soil(state, soil_props)

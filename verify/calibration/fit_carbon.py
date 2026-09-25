@@ -299,6 +299,19 @@ EXTRAS["wliqsmax"] = (_set(lambda p: p.interception.wliqsmax), 0.10, 1.20, True)
 EXTRAS["wliqlmax"] = (_set(lambda p: p.interception.wliqlmax), 0.05, 0.60, True)
 EXTRAS["fmax"] = (_set(lambda p: p.interception.fmax), 0.10, 0.60, False)
 
+#: Temperature acclimation of photosynthetic capacity (CALIBRATION.md 21-22; StomataParams, active only with
+#: `stomata: acclim_on: true` in the yaml): time constant (d), onset (C) and range to full capacity (C) of the
+#: Makela (2004) / PRELES state of acclimation. PRELES 10-site conifer values 10.93, -3.063, 17.72.
+EXTRAS["acclim_tau"] = (_set(lambda p: p.stomata_params.acclim_tau), 2.0, 30.0, True)
+EXTRAS["acclim_s0"] = (_set(lambda p: p.stomata_params.acclim_s0), -10.0, 5.0, False)
+EXTRAS["acclim_smax"] = (_set(lambda p: p.stomata_params.acclim_smax), 5.0, 30.0, True)
+#: Photoperiod-gated senescence (Delpierre 2009 structure; PhenoParams, active only with
+#: `pheno: sen_photoperiod_u / _l: true`): critical day length (h), base temperature (C), critical sum (C d).
+for _c in ("u", "l"):
+    EXTRAS[f"sen_pstart_{_c}"] = (_set(eval(f"lambda p: p.pheno.sen_pstart_{_c}")), 11.0, 16.0, False)
+    EXTRAS[f"sen_tb_{_c}"] = (_set(eval(f"lambda p: p.pheno.sen_tb_{_c}")), 10.0, 28.0, False)
+    EXTRAS[f"sen_ycrit_{_c}"] = (_set(eval(f"lambda p: p.pheno.sen_ycrit_{_c}")), 30.0, 1500.0, True)
+
 NEEDS_STRESS_ACCUM = ("tree_stress_min", "tree_stress_ramp")
 NPFT = 12
 
@@ -325,6 +338,7 @@ PFT_SCALARS = ("cover_k", "fl_min", "fu_min", "fu_k", "tree_stress_min", "tree_s
 COEFM_GROUPS = {"coefm_bl": 0, "coefm_con": 1, "coefm_shrub": 2, "coefm_c4": 3, "coefm_c3": 4}
 INTERCEPTION_FIELDS = ("wliqumax", "wliqsmax", "wliqlmax", "fmax")
 CANOPY_FIELDS = ("soil_beta_power",)
+STOMATA_FIELDS = ("acclim_tau", "acclim_s0", "acclim_smax")
 
 
 def _extra_value(sp, pft, n):
@@ -338,6 +352,8 @@ def _extra_value(sp, pft, n):
         return getattr(sp.interception, n)
     if n in CANOPY_FIELDS:
         return getattr(sp.canopy, n)
+    if n in STOMATA_FIELDS:
+        return getattr(sp.stomata_params, n)
     return getattr(sp.pheno, n)
 
 def to_vec(vmax, specla, extras=None, names=()):

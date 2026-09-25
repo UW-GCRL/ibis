@@ -47,6 +47,7 @@ from ibis.io.gswp3_reader import GSWP3Reader
 from ibis.io.gswp3_forcing import make_monthly_daily_weather
 from ibis.physics.weather import DailyWeather, compute_precip_timing, diurnal
 from ibis.physics.phenology import pheno
+from ibis.state.seasonal import daylength_hours
 from ibis.physics.biogeochem import soilbgc
 
 logger = logging.getLogger(__name__)
@@ -333,9 +334,33 @@ def _run_month_scan(
              z, z, z, z),
         )
 
+        # Seasonal states (CALIBRATION.md 21-22), advanced once a day from the daily mean temperature before
+        # phenology and physics read them: the state of acclimation (Makela 2004 / PRELES: S += (T - S)/tau)
+        # and the Delpierre senescence sums (cold degree-days below Tb while day length is decreasing and
+        # below Pstart; reset otherwise). Present only if the run enables a formulation; inert otherwise.
+        sen_on_u = None
+        sen_on_l = None
+        if getattr(st, "seasonal", None) is not None:
+            _pp = params.pheno; _sp = params.stomata_params
+            _tc = td_d - 273.16
+            _dl = daylength_hours(params.latitude, jday_d)
+            _dec = _dl < daylength_hours(params.latitude, jday_d - 1)     # day length decreasing
+            _sea = st.seasonal
+            _x = _sea.acclim_x + (_tc - _sea.acclim_x) / _sp.acclim_tau
+            _su = jnp.where(_dec & (_dl < _pp.sen_pstart_u), _sea.ssen_u + jnp.maximum(_pp.sen_tb_u - _tc, 0.0), 0.0)
+            _sl = jnp.where(_dec & (_dl < _pp.sen_pstart_l), _sea.ssen_l + jnp.maximum(_pp.sen_tb_l - _tc, 0.0), 0.0)
+            _cast_s = lambda a: jnp.asarray(a, dtype=_sea.acclim_x.dtype)
+            st = eqx.tree_at(lambda s: (s.seasonal.acclim_x, s.seasonal.ssen_u, s.seasonal.ssen_l),
+                             st, (_cast_s(_x), _cast_s(_su), _cast_s(_sl)))
+            if _pp.sen_photoperiod_u:
+                sen_on_u = _su >= _pp.sen_ycrit_u
+            if _pp.sen_photoperiod_l:
+                sen_on_l = _sl >= _pp.sen_ycrit_l
+
         # Phenology update (once per day, before timestep physics)
         new_veg = pheno(st.vegetation, pheno_summary, td_d, consts.epsilon,
-                        params.pheno, st.soil.stresstu, st.soil.stresstl)
+                        params.pheno, st.soil.stresstu, st.soil.stresstl,
+                        sen_on_u=sen_on_u, sen_on_l=sen_on_l)
         st = eqx.tree_at(lambda s: s.vegetation, st, new_veg)
 
         k, k_timing, k_day = jax.random.split(k, 3)

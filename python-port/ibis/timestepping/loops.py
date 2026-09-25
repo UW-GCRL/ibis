@@ -244,6 +244,13 @@ def timestep_body(
     can = state.canopy
     atm = state.atm
     veg = state.vegetation
+    # Temperature acclimation of photosynthetic capacity (StomataParams.acclim_on; CALIBRATION.md 21-22):
+    # f_S from the state of acclimation, applied to the PFTs in acclim_pfts. None keeps the F77 path.
+    acclim_vfac = None
+    if getattr(state, "seasonal", None) is not None and sp.acclim_on:
+        _fs = jnp.clip((state.seasonal.acclim_x - sp.acclim_s0) / sp.acclim_smax, 0.0, 1.0)
+        _mask = jnp.zeros((veg.plai.shape[1],), dtype=_fs.dtype).at[jnp.array(sp.acclim_pfts)].set(1.0)
+        acclim_vfac = 1.0 - _mask[jnp.newaxis, :] + _mask[jnp.newaxis, :] * _fs[:, jnp.newaxis]
 
     npoi = soil.tg.shape[0]
     nsoilay = soil.tsoi.shape[1]
@@ -446,7 +453,7 @@ def timestep_body(
             a10sp_u, a10dl_u,
             a10sp_l, a10dl_l,
             atm.co2conc, dtime, sp, c.epsilon,
-            frac=veg.frac,
+            frac=veg.frac, vfac=acclim_vfac,
         )
         ci_upper = stom.ci_upper
         gs_upper = stom.gs_upper

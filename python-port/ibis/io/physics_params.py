@@ -146,6 +146,11 @@ def build_stomata_params(d: dict) -> StomataParams:
         stressfac=s.get('stressfac', -5.0),
         vmax_mix=bool(s.get('vmax_mix', False)),      # F77: priority pick
         scale_leaf_only=bool(s.get('scale_leaf_only', False)),   # F77: stems credited to leaves
+        acclim_on=bool(s.get('acclim_on', False)),              # CALIBRATION.md 21-22; off: bit-identical
+        acclim_pfts=tuple(int(k) for k in s.get('acclim_pfts', (3, 5, 8))),
+        acclim_tau=float(s.get('acclim_tau', 10.93)),
+        acclim_s0=float(s.get('acclim_s0', -3.063)),
+        acclim_smax=float(s.get('acclim_smax', 17.72)),
         gamma=gamma,
         coefm=coefm,
         coefb=coefb,
@@ -330,7 +335,8 @@ def build_pheno_params(d: dict):
     if bad:
         raise KeyError(f"unknown pheno parameter(s) {sorted(bad)}; "
                        f"allowed: {sorted(allowed)}")
-    return PhenoParams(**{k: float(v) for k, v in sec.items()})
+    _d = PhenoParams()
+    return PhenoParams(**{k: (bool(v) if isinstance(getattr(_d, k), bool) else float(v)) for k, v in sec.items()})
 
 
 def build_sim_params(

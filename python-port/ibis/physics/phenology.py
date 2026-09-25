@@ -68,6 +68,22 @@ class PhenoParams(eqx.Module):
     #: 0.96 and 0.69. Default -100 C counts every day: the annual mean,
     #: bit-identical.
     stress_accum_tmin: float = -100.0
+    #: Photoperiod-gated senescence (docs/CALIBRATION.md 21-22; Delpierre et al. 2009 structure, x = 1, y = 0).
+    #: When on, leaves of the canopy also start to fall once its senescence state -- cold degree-days below `tb`
+    #: accumulated while day length is decreasing and below `pstart` -- reaches `ycrit`; the degree-day sum for
+    #: the next leaf-out is held at zero meanwhile. The states live in `state.seasonal`. The starting values are
+    #: chosen, not taken from a published table (Delpierre's fitted values are in an online supplement): with
+    #: Pstart 14 h, Tb 20 C and Ycrit 300 C d the upper canopy at Harvard Forest starts to fall around 10 October,
+    #: against the tower GPP's 25 %-decline near 7 October and the model's default near 3 December. Off by
+    #: default: bit-identical.
+    sen_photoperiod_u: bool = eqx.field(static=True, default=False)
+    sen_pstart_u: float = 14.0
+    sen_tb_u: float = 20.0
+    sen_ycrit_u: float = 300.0
+    sen_photoperiod_l: bool = eqx.field(static=True, default=False)
+    sen_pstart_l: float = 14.0
+    sen_tb_l: float = 20.0
+    sen_ycrit_l: float = 300.0
 
 
 def pheno(
@@ -78,6 +94,8 @@ def pheno(
     params: PhenoParams | None = None,
     stresstu=None,
     stresstl=None,
+    sen_on_u=None,
+    sen_on_l=None,
 ) -> VegetationState:
     """Update leaf phenology and derive canopy structure.
 
@@ -124,14 +142,20 @@ def pheno(
                                pp.tthresh_u_abs + tmelt)
     gthreshold_u = pp.gthresh_u_c + tmelt
 
+    cold_u = a10td < tthreshold_u
+    greset_u = a10td < gthreshold_u
+    if sen_on_u is not None:            # photoperiod-gated senescence (PhenoParams.sen_photoperiod_u)
+        cold_u = cold_u | sen_on_u
+        greset_u = greset_u | sen_on_u
+
     agddu = jnp.where(
-        a10td < gthreshold_u,
+        greset_u,
         0.0,
         veg.agddu + td - gthreshold_u,
     )
 
     tempu = jnp.where(
-        a10td < tthreshold_u,
+        cold_u,
         jnp.maximum(0.0, veg.tempu - ddfac),
         jnp.minimum(1.0, jnp.maximum(0.0, agddu - pp.gdd_thresh_u) / pp.gdd_ramp_u),
     )
@@ -140,14 +164,20 @@ def pheno(
     tthreshold_l = pp.tthresh_l_c + tmelt
     gthreshold_l = pp.gthresh_l_c + tmelt
 
+    cold_l = a10td < tthreshold_l
+    greset_l = a10td < gthreshold_l
+    if sen_on_l is not None:            # photoperiod-gated senescence (PhenoParams.sen_photoperiod_l)
+        cold_l = cold_l | sen_on_l
+        greset_l = greset_l | sen_on_l
+
     agddl = jnp.where(
-        a10td < gthreshold_l,
+        greset_l,
         0.0,
         veg.agddl + td - gthreshold_l,
     )
 
     templ = jnp.where(
-        a10td < tthreshold_l,
+        cold_l,
         jnp.maximum(0.0, veg.templ - ddfac),
         jnp.minimum(1.0, jnp.maximum(0.0, agddl - pp.gdd_thresh_l) / pp.gdd_ramp_l),
     )

@@ -295,8 +295,10 @@ def test_pheno_params_reach_pheno_through_the_gswp3_loop():
     from pathlib import Path
     root = Path(__file__).resolve().parents[1] / "ibis"
     loop = (root / "timestepping" / "loops_gswp3.py").read_text()
-    assert "params.pheno, st.soil.stresstu, st.soil.stresstl)" in loop, (
+    assert "params.pheno, st.soil.stresstu, st.soil.stresstl," in loop, (
         "loops_gswp3 must pass SimParams.pheno AND both soil stress factors into pheno()")
+    assert "sen_on_u=sen_on_u, sen_on_l=sen_on_l)" in loop, (
+        "loops_gswp3 must pass the photoperiod-senescence flags into pheno() (CALIBRATION.md 21-22)")
     sim = (root / "timestepping" / "loops.py").read_text()
     assert "pheno: PhenoParams" in sim
     ph = (root / "physics" / "phenology.py").read_text()

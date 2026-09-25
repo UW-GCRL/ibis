@@ -30,6 +30,7 @@ for k,v in ex.items():
     elif k in COEFM: t['stomata']['ball_berry'][COEFM[k]]['coefm']=float(v)
     elif k in ('wliqumax','wliqsmax','wliqlmax','fmax'): t.setdefault('interception',{})[k]=float(v)
     elif k=='soil_beta_power': t.setdefault('canopy',{})[k]=float(v)
+    elif k in ('acclim_tau','acclim_s0','acclim_smax'): t['stomata'][k]=float(v)          # CALIBRATION.md 21-22
     else: t.setdefault('pheno',{})[k]=float(v)                                            # PhenoParams; unknown keys raise
 print('extras carried into yaml:', ex or 'none')
 out=f'{V}/fit_carbon_{TAG}/params_fit_{TAG}.yaml'; yaml.safe_dump(t,open(out,'w'),sort_keys=False)
@@ -39,7 +40,7 @@ assert ev<1e-9 and es<1e-4, (ev,es)
 for k,v in ex.items():
     got=(float(sp.stomata_params.stressfac) if k=='stressfac' else float(getattr(pft,k)) if k in PFT_SCALARS
          else float(sp.stomata_params.coefm[list(COEFM).index(k)]) if k in COEFM else float(getattr(sp.interception,k)) if k in ('wliqumax','wliqsmax','wliqlmax','fmax')
-         else float(sp.canopy.soil_beta_power) if k=='soil_beta_power' else float(getattr(sp.pheno,k)))
+         else float(sp.canopy.soil_beta_power) if k=='soil_beta_power' else float(getattr(sp.stomata_params,k)) if k in ('acclim_tau','acclim_s0','acclim_smax') else float(getattr(sp.pheno,k)))
     assert abs(got-float(v))<1e-9, (k,got,v)
 print(f"params_fit_{TAG}.yaml written; round-trip vmax {ev:.1e} specla {es:.1e}; soil-OM at defaults")
 PY

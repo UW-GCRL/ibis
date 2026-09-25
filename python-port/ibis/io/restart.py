@@ -55,6 +55,11 @@ def save_state(state, path: str, metadata: Optional[dict] = None) -> None:
     np.savez_compressed(path, **save_dict)
 
 
+#: Leaf counts of the optional trailing modules, in chain order (StressAccum, ETParts, SeasonalState).
+#: Guarded against the real modules by tests/test_seasonal_formulations.py.
+CHAIN_LEAVES = (3, 4, 3)
+
+
 def load_state(path: str, template_state):
     """Load IBISState from a checkpoint file.
 
@@ -83,7 +88,22 @@ def load_state(path: str, template_state):
     num_leaves = int(data["num_leaves"])
 
     n_fill = len(leaves_template) - num_leaves
-    if -7 <= n_fill < 0:
+    # The optional trailing modules form one nested chain: StressAccum (3 leaves), ETParts (4), SeasonalState (3),
+    # each implying the ones before it, so a state carries 0, 3, 7 or 10 trailing leaves (258 / 261 / 265 / 268).
+    # A checkpoint may load into a template anywhere on that chain; any other difference is a real mismatch.
+    _chain = [0]
+    for _n in CHAIN_LEAVES:
+        _chain.append(_chain[-1] + _n)
+    _off_t = sum(len(jax.tree.leaves(_m)) for _m in (getattr(template_state, "stress", None),
+                                                     getattr(template_state, "etparts", None),
+                                                     getattr(template_state, "seasonal", None)) if _m is not None)
+    _off_c = _off_t - n_fill
+    if _off_t not in _chain or _off_c not in _chain:
+        raise ValueError(
+            f"Checkpoint has {num_leaves} leaves but template has {len(leaves_template)} "
+            f"(trailing offsets {_off_c} and {_off_t} are not both on the optional-module chain {_chain}). "
+            f"State structure mismatch. Use scripts/convert_restart.py to migrate old restarts.")
+    if n_fill < 0:
         # The converse migration: a checkpoint written WITH the StressAccum
         # (a gated run) loading into a template without it. The trailing
         # leaves are the accumulator; an ungated run has no use for them.
@@ -93,7 +113,7 @@ def load_state(path: str, template_state):
             "leaves (optional trailing accumulators not in this template).",
             num_leaves, len(leaves_template), -n_fill)
         n_fill = 0
-    if n_fill < 0 or n_fill > 7:
+    if n_fill < 0 or n_fill > _chain[-1]:
         raise ValueError(
             f"Checkpoint has {num_leaves} leaves but template has "
             f"{len(leaves_template)}. State structure mismatch. "

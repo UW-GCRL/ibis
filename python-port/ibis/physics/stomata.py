@@ -105,6 +105,17 @@ class StomataParams(eqx.Module):
     # identically old x L/(L+S) -- so stems attenuate light and only leaf
     # area assimilates, as in CLM. Static switch; `stomata: scale_leaf_only: true`.
     scale_leaf_only: bool = eqx.field(static=True, default=False)
+    # Temperature acclimation of photosynthetic capacity (docs/CALIBRATION.md 21-22): the state of acclimation of
+    # Makela et al. (2004) in PRELES form, S <- S + (T - S)/tau daily, scales vmax (and so dark respiration) by
+    # f_S = clip((S - acclim_s0)/acclim_smax, 0, 1) for the PFTs in `acclim_pfts` (default: temperate and boreal
+    # evergreen conifers and the evergreen shrub, which stay green through a frozen winter). Defaults are the
+    # PRELES calibration to ten Scandinavian conifer sites (Rpreles `PRELES.R`: tauGPP 10.93 d, S0GPP -3.063 C,
+    # SmaxGPP 17.72 C). The state lives in `state.seasonal.acclim_x`. Static switch, off: bit-identical.
+    acclim_on: bool = eqx.field(static=True, default=False)
+    acclim_pfts: tuple = eqx.field(static=True, default=(3, 5, 8))
+    acclim_tau: float = 10.93
+    acclim_s0: float = -3.063
+    acclim_smax: float = 17.72
 
 
 # ---------------------------------------------------------------------------
@@ -447,11 +458,12 @@ def _mix_vmax(frac, vp, idx, fallback, eps=1e-6):
     ix = jnp.array(idx)
     w = frac[:, ix]                                   # [npoi, len(idx)]
     tot = jnp.sum(w, axis=1)
-    mixed = jnp.sum(w * vp[ix][jnp.newaxis, :], axis=1) / jnp.maximum(tot, eps)
+    vpi = vp[:, ix] if vp.ndim == 2 else vp[ix][jnp.newaxis, :]   # per-point table under acclimation
+    mixed = jnp.sum(w * vpi, axis=1) / jnp.maximum(tot, eps)
     return jnp.where(tot > eps, mixed, fallback)
 
 
-def _select_vmax_upper(exist, params, frac=None):
+def _select_vmax_upper(exist, params, frac=None, vp=None):
     """Nominal Vmax of the two upper-canopy big leaves.
 
     F77 (params.vmax_mix False, or no `frac`): ONE PFT's vmax each, by
@@ -474,24 +486,26 @@ def _select_vmax_upper(exist, params, frac=None):
     vmaxub, vmaxuc : arrays [npoi]
         Nominal Vmax for the broadleaf and conifer big leaves.
     """
-    vp = params.vmax_pft
-    vmaxub = jnp.where(exist[:, 0] > 0.5, vp[0],
-             jnp.where(exist[:, 2] > 0.5, vp[2], vp[4]))
-    vmaxuc = jnp.where(exist[:, 3] > 0.5, vp[3], vp[5])
+    vp = params.vmax_pft if vp is None else vp        # (npft,) or, under acclimation, (npoi, npft)
+    col = (lambda k: vp[:, k]) if vp.ndim == 2 else (lambda k: vp[k])
+    vmaxub = jnp.where(exist[:, 0] > 0.5, col(0),
+             jnp.where(exist[:, 2] > 0.5, col(2), col(4)))
+    vmaxuc = jnp.where(exist[:, 3] > 0.5, col(3), col(5))
     if params.vmax_mix and frac is not None:
         vmaxub = _mix_vmax(frac, vp, BROADLEAF_PFTS, vmaxub)
         vmaxuc = _mix_vmax(frac, vp, CONIFER_PFTS, vmaxuc)
     return vmaxub, vmaxuc
 
 
-def _select_vmax_shrub(params, frac=None):
+def _select_vmax_shrub(params, frac=None, vp=None):
     """Nominal Vmax of the lower-canopy shrub big leaf: F77 reads the
     evergreen shrub's (PFT 8) for both shrub PFTs; composition mixes 8 and 9."""
-    vp = params.vmax_pft
-    base = jnp.broadcast_to(vp[8], frac.shape[:1]) if frac is not None else vp[8]
+    vp = params.vmax_pft if vp is None else vp
+    v8 = vp[:, 8] if vp.ndim == 2 else vp[8]
+    base = jnp.broadcast_to(v8, frac.shape[:1]) if frac is not None else v8
     if params.vmax_mix and frac is not None:
         return _mix_vmax(frac, vp, SHRUB_PFTS, base)
-    return vp[8]
+    return v8
 
 
 # ---------------------------------------------------------------------------
@@ -580,7 +594,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
             stresstu, stresstl,
             a10scalparamu, a10daylightu,
             a10scalparaml, a10daylightl,
-            co2conc, dtime, params, epsilon=1.0e-7, frac=None):
+            co2conc, dtime, params, epsilon=1.0e-7, frac=None, vfac=None):
     """Full stomata calculation for all 5 PFT groups.
 
     Computes Farquhar photosynthesis + Ball-Berry stomatal conductance
@@ -661,8 +675,10 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     qsat12 = qsat(esat12, psurf)
     rh12 = jnp.maximum(0.30, q12 / jnp.maximum(qsat12, epsilon))
 
-    # Select Vmax per PFT
-    vmaxub_nom, vmaxuc_nom = _select_vmax_upper(exist, params, frac)
+    # Select Vmax per PFT. `vfac` (npoi, npft) is the acclimation factor of StomataParams.acclim_on (built in
+    # timestep_body from state.seasonal); None keeps the F77 path bit-identical.
+    vp_eff = None if vfac is None else params.vmax_pft[jnp.newaxis, :] * vfac
+    vmaxub_nom, vmaxuc_nom = _select_vmax_upper(exist, params, frac, vp=vp_eff)
 
     # --- Broadleaf (ub) ---
     vmax_ub = vmaxub_nom * tempvm_c3_u * stresstu
@@ -745,7 +761,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     rh34 = jnp.maximum(0.30, q34 / jnp.maximum(qsat34, epsilon))
 
     # --- Shrub (ls) - C3 ---
-    vmaxls_nom = _select_vmax_shrub(params, frac)
+    vmaxls_nom = _select_vmax_shrub(params, frac, vp=vp_eff)
     vmax_ls = vmaxls_nom * tempvm_c3_l * stresstl
     rdark_ls = params.gamma[2] * vmaxls_nom * tempvm_c3_l
     ag_ls, an_ls = farquhar_c3(
@@ -758,7 +774,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
         params.gsmin[2], gamstar_min_l, params.cimax)
 
     # --- C3 grass (l3) ---
-    vmaxl3_nom = params.vmax_pft[11]
+    vmaxl3_nom = params.vmax_pft[11] if vp_eff is None else vp_eff[:, 11]
     vmax_l3 = vmaxl3_nom * tempvm_c3_l * stresstl
     rdark_l3 = params.gamma[4] * vmaxl3_nom * tempvm_c3_l
     ag_l3, an_l3 = farquhar_c3(
@@ -771,7 +787,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
         params.gsmin[4], gamstar_min_l, params.cimax)
 
     # --- C4 grass (l4) ---
-    vmaxl4_nom = params.vmax_pft[10]
+    vmaxl4_nom = params.vmax_pft[10] if vp_eff is None else vp_eff[:, 10]
     vmax_l4 = vmaxl4_nom * tempvm_c4_l * stresstl
     rdark_l4 = params.gamma[3] * vmaxl4_nom * tempvm_c4_l
     ag_l4, an_l4 = farquhar_c4(
