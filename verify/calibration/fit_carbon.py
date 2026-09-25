@@ -393,6 +393,18 @@ def apply_params(sp, pft, vmax, specla, extras=None):
     return sp, pft
 
 
+def trace_extras(sp, pft):
+    """Every EXTRAS parameter as a 0-d float32 array at its current value.
+
+    `_set` makes a fitted extra an array, but the parameters as built are Python floats, and eqx.filter_jit keys
+    its cache on which leaves are arrays: the first run with a new set of array leaves recompiles every month
+    kernel (up to 8; about 35 min for the set on the GPU for 17 towers). A spin-up on the built parameters followed
+    by fitted evaluations compiled twice, and a sweep compiled once per perturbed extra. Converting all of them
+    once gives every run the same pytree. Values are unchanged (float32 rounding of the same numbers)."""
+    return apply_params(sp, pft, np.asarray(sp.stomata_params.vmax_pft), np.asarray(pft.specla),
+                        {n: float(_extra_value(sp, pft, n)) for n in EXTRAS})
+
+
 def bounds_penalty(vmax, specla):
     return float(
         np.sum(np.maximum(0, np.log(VMAX_LO / vmax)) ** 2) +

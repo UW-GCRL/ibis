@@ -22,7 +22,7 @@ and the held-out year's loss to history.csv.
 import sys, os, glob, json, time, argparse, numpy as np, pandas as pd, xarray as xr, warnings; warnings.filterwarnings('ignore')
 sys.path.insert(0, 'python-port'); sys.path.insert(0, 'verify/calibration')
 import jax, jax.numpy as jnp, equinox as eqx
-from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, PFT_NAMES, apply_params, EXTRAS, _enc, _dec, _extra_value, VMAX_LO, VMAX_HI
+from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, PFT_NAMES, apply_params, trace_extras, EXTRAS, _enc, _dec, _extra_value, VMAX_LO, VMAX_HI
 import site_transient; from site_transient import one_year
 from site_run import prescribe, tower_mat, enforce_prescription, META, SEED_LAI, SEED_WOOD
 from site_attributes import prescribe_from_attributes
@@ -93,7 +93,8 @@ def main():
     st = eqx.tree_at(lambda s: s.stress, st, create_stress_accum(ns), is_leaf=lambda x: x is None)
     st = eqx.tree_at(lambda s: s.etparts, st, create_et_parts(ns), is_leaf=lambda x: x is None)
     st = eqx.tree_at(lambda s: s.seasonal, st, _cast_tree_f32(create_seasonal(ns, 5.0)), is_leaf=lambda x: x is None)
-    sp0, pft0, _ = build_all_params(ns, lat_rad, load_physics_params(a.params)); specla = np.asarray(pft0.specla); vmax0 = np.asarray(sp0.stomata_params.vmax_pft)
+    sp0, pft0, _ = build_all_params(ns, lat_rad, load_physics_params(a.params)); sp0, pft0 = trace_extras(sp0, pft0)   # one compile for spin-up and every evaluation
+    specla = np.asarray(pft0.specla); vmax0 = np.asarray(sp0.stomata_params.vmax_pft)
     mask = np.zeros((ns, 12), np.float32); fu = np.zeros(ns, np.float32); flw = np.zeros(ns, np.float32)
     cb = np.asarray(st.vegetation.cbiol).copy(); cw = np.asarray(st.vegetation.cbiow).copy(); cr = np.asarray(st.vegetation.cbior).copy(); lai_src = {}
     for n, s in enumerate(sites):

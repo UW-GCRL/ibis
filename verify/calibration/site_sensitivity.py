@@ -12,7 +12,7 @@ per perturbation and class, relative to the base run), printed.
 import sys, os, glob, json, argparse, numpy as np, pandas as pd, xarray as xr, warnings; warnings.filterwarnings('ignore')
 sys.path.insert(0, 'python-port'); sys.path.insert(0, 'verify/calibration')
 import jax, jax.numpy as jnp, equinox as eqx
-from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, apply_params, _extra_value, modis_at
+from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, apply_params, trace_extras, _extra_value, modis_at
 import site_transient; from site_transient import one_year
 from site_run import prescribe, tower_monthly, tower_mat, enforce_prescription, META, SEED_LAI, SEED_WOOD
 from phenology_vs_phenocam import crossings, smooth
@@ -121,7 +121,8 @@ def main():
     cut = lambda x: x[sel] if isinstance(x, jnp.ndarray) and x.ndim >= 1 and x.shape[0] == NPOI_FULL else x
     st0 = _cast_tree_f32(jax.tree.map(cut, full)); st0 = eqx.tree_at(lambda s: s.stress, st0, create_stress_accum(len(sel)), is_leaf=lambda x: x is None); st0 = eqx.tree_at(lambda s: s.etparts, st0, create_et_parts(len(sel)), is_leaf=lambda x: x is None)
     st0 = eqx.tree_at(lambda s: s.seasonal, st0, _cast_tree_f32(create_seasonal(len(sel), 5.0)), is_leaf=lambda x: x is None)   # inert unless a formulation is on (CALIBRATION.md 21-22)
-    sp0, pft0, _ = build_all_params(len(sel), lat_rad, load_physics_params(a.params)); specla0 = np.asarray(pft0.specla); vmax0 = np.asarray(sp0.stomata_params.vmax_pft)
+    sp0, pft0, _ = build_all_params(len(sel), lat_rad, load_physics_params(a.params)); sp0, pft0 = trace_extras(sp0, pft0)   # one compile for the base and every perturbation
+    specla0 = np.asarray(pft0.specla); vmax0 = np.asarray(sp0.stomata_params.vmax_pft)
     mask = np.zeros((len(sel), 12), np.float32); fu = np.zeros(len(sel), np.float32); fl_ = np.zeros(len(sel), np.float32)
     cbiol = np.asarray(st0.vegetation.cbiol).copy(); cbiow = np.asarray(st0.vegetation.cbiow).copy(); cbior = np.asarray(st0.vegetation.cbior).copy()
     for n, s in enumerate(sites):
