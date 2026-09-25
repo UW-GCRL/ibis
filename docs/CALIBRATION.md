@@ -3806,3 +3806,49 @@ in the loss.
   the months of small tower GPP and small sigma, before it lifts the summer. This is the same structural limit as
   in section 24, seen from the loss side.
 - IT-Ro2 (Mediterranean oak) collapses in summer with ET, a model drought that none of these parameters touch.
+
+## 26. The canopy-capacity scaling: implemented as a switch, first tower test (2026-09-25)
+
+**Why.** Hangkai's review of the C1 figures: "the magnitude is off by 50 %". This is right, and no parameter
+closes it (sections 22, 24, 25). The structural cause, measured by the probe of section 22: F77 scales the top
+leaf's rate by the light-profile integral, so a forest canopy has the capacity of about 1 m2 of top leaf.
+
+**What (commit `d2e65d4`).** `stomata: cap_scale_u / cap_scale_l` (static switches, off = F77, bit-identical;
+full suite 708 passed; `tests/test_canopy_capacity.py`):
+- The Rubisco and sink limits (C4: the CO2 limit) and dark respiration are scaled by
+  f_cap = (1 - e^-Kn L)/(Kn L).
+- The light limit keeps F77's f_light.
+- The canopy rate is the co-limitation of the scaled limits.
+- With f_cap = f_light this is F77 exactly.
+- `cap_kn` defaults to 0.15 (Lloyd et al. 2010: 0.13-0.23), is traced and fittable.
+
+**First test.** The 29 ENF and DBF towers of the 2008-2012 batch were run with fixed leaf area, both Stage A
+formulations on and default parameters, with the switch off and on for the upper canopy:
+`site_runs/capscale_AB_{off,capu}`, `diagnostics/magnitude_ab.py` -> `capscale_AB_magnitude.txt`, and
+`light_response.py`. Class medians, model/tower:
+
+| | ENF off | ENF on | DBF off | DBF on |
+|---|---|---|---|---|
+| peak month | 0.53 | 1.20 | 0.45 | 1.03 |
+| June-August | 0.49 | 1.19 | 0.50 | 1.06 |
+| annual | 0.50 | 1.28 | 0.65 | 1.40 |
+| ET | 0.91 | 1.01 | 1.03 | 1.19 |
+| summer days SW < 150 / >= 250 W m-2 | 0.67 / 0.45 | 1.24 / 1.19 | 0.65 / 0.46 | 1.11 / 1.10 |
+| light-response slope, gC m-2 d-1 per 100 W m-2 (towers 1.69 / 2.13) | 0.20 | 1.60 | 0.64 | 3.11 |
+
+**Reading.**
+- **The diagnosis is confirmed.** Given the capacity of its leaves, the canopy reaches the towers' summer magnitude
+  with default capacity, and at the conifers the light response acquires the towers' slope.
+- **It overshoots in two ways, so it is not adopted as it stands.**
+  1. On dim days (daily SW < 75 W m-2) the model makes 7-8.5 gC m-2 d-1 against the towers' 4-5 (DE-Tha, FI-Hyy,
+     DE-Hai, DK-Sor). The capacity limit no longer hides the light-limited canopy rate, and co-limiting at canopy
+     level credits the whole canopy with the top leaf's light efficiency. This is the big-leaf overestimate of
+     de Pury & Farquhar (1997) and the shaded-leaf warning of Bonan et al. (2012). F77's stem credit (f_light
+     divides by kL, about +25 %) adds to it.
+  2. The deciduous season becomes a box. Full GPP is reached in April and held to October, because the default
+     leaf-out, four weeks early, is no longer capped.
+- **A refit of vmax and phenology can fix the second, but not the first:** the light-limited rate does not depend
+  on vmax.
+- **Next test:** the same with `scale_leaf_only` (the stem credit removed; with capacity scaled separately it
+  lowers only the light-limited part). Then, if the dim-day excess remains, a sunlit/shaded two-leaf canopy
+  (option 2 of section 22).
