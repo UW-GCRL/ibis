@@ -3571,3 +3571,22 @@ Both are what the stage C1 fit is for: conifer vmax, and the three acclimation c
    above against 265 s once compiled, on the GPU for 17 towers. `fit_carbon.trace_extras` now makes every EXTRAS
    entry an array before the first run (commit `cb7e51e`). The site tools also use a persistent XLA compilation
    cache.
+
+**The stem-credit correction at the same towers (added 05:55).**
+- The site stage has run on `default.yaml`, which is the F77 canopy: both corrections of sections 16-17
+  (`scale_leaf_only`, `vmax_mix`) are off, although section 17 set them as rules for every fit. The approved
+  plan names neither.
+- At the ENF towers only `scale_leaf_only` can matter, because the stands are single-PFT. Two CPU baselines
+  isolate it (`$V/site_fit/ab_cpu_seasonal`, `ab_cpu_seasonal_leafonly`, both with the formulations of this
+  section on):
+  - The CPU baseline reproduces the GPU one to 3e-5 (21.6947 vs 21.6941).
+  - Removing the credit lowers GPP by 17 % (median x0.83, range 0.81-0.88). The median ratio to the towers
+    goes from 0.51 to 0.43.
+  - The loss goes from 21.69 to 26.28, and the monthly NEE RMSE from 65 to 73 gC m-2.
+- So the stem credit was not hiding the summer deficit; the physically correct canopy makes it larger.
+- The conifers produce about half the tower GPP with realistic leaf area and ET close to the towers' (ratio
+  0.85-1.0). The model's water-use efficiency is therefore about half the towers'.
+- The C1 fit (F77 canopy, as in the plan) will show whether vmax within its bounds can close this. If it presses
+  the upper bound, the deficit is in canopy light use rather than capacity.
+- Per-tower ratios: `$V/site_fit/leafonly_AB_ratios_2026-09-25.txt`.
+- Whether the site stage should carry the two corrections is for Hangkai to decide.
