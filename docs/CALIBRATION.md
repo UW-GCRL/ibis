@@ -3852,3 +3852,27 @@ formulations on and default parameters, with the switch off and on for the upper
 - **Next test:** the same with `scale_leaf_only` (the stem credit removed; with capacity scaled separately it
   lowers only the light-limited part). Then, if the dim-day excess remains, a sunlit/shaded two-leaf canopy
   (option 2 of section 22).
+
+**Second test: capacity scaling plus `scale_leaf_only` (added 14:00).** The same 29 towers and defaults, with the
+stem credit also removed (`site_runs/capscale_AB_capu_leafonly`). Class medians, model/tower:
+
+| | ENF | DBF |
+|---|---|---|
+| peak month | 1.06 | 0.92 |
+| June-August | 1.04 | 0.93 |
+| annual | 1.22 | 1.33 (shoulders: default leaf-out) |
+| ET | 1.00 | 1.18 |
+| summer days SW < 150 / >= 250 W m-2 | 1.03 / 1.07 | 0.91 / 0.99 |
+| light-response slope (towers 1.69 / 2.13) | 1.80 | 3.19 |
+
+- At default capacity, the conifer summer matches the towers in magnitude and in light response.
+- Per tower, 7 of 17 ENF towers follow the towers' light response closely.
+- The departures are site-specific:
+  - Too high at CA-TP1 (a young plantation on the grid state's LAI), CH-Dav, IT-Ren and US-NR1.
+  - Too low at the summer-dry US-Me2 and IT-SRo.
+- The dimmest bin (SW < 75) stays 1.5-2.5x the towers at several towers. There are few days in it, but the
+  residual is systematic; watch it.
+- This configuration is `configs/params/default_seasonal_canopy.yaml` (commit `0ccea86`). The C1 fits are
+  repeated on it from 14:05: `$V/site_fit/C1b_ENF` (vmax x2, acclim_s0, acclim_smax; Kn held at 0.15) and
+  `C1b_DBF` (vmax, gdd_thresh_u, sen_ycrit_u). They are judged first on the peak-month and June-August ratios
+  and the light response, then on the loss.
