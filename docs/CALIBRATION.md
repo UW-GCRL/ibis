@@ -3708,3 +3708,55 @@ processes (`$V/site_runs/stageB_standard_a`, `_b`, `stageB_seasonal`); their bas
   Run: 150 evaluations, 4 workers, `$V/site_fit/C1_DBF`.
 - In both classes, vmax will absorb the canopy-scaling gap of section 22. Its fitted value is an effective
   canopy capacity, not a leaf trait, until that gap is decided.
+
+## 24. C1 ENF: the fixed-vegetation fit of the evergreen conifers (2026-09-25)
+
+**Setup.**
+- 17 ENF towers of the 2008-2012 batch: 11 training towers and 6 held out (seed 1). 2008 is warm-up, 2009-2011
+  train, and 2012 is held out at every tower.
+- `default_seasonal.yaml` (A1 and A2 on, F77 canopy). Composition prescribed, leaf carbon held at the site-attribute
+  LAI where one exists (else the grid state's).
+- Loss of section 22: monthly GPP (mean of NT and DT) and LE_CORR, w_et 0.5, QC >= 0.5.
+- CMA-ES over six parameters, 209 evaluations, sigma 0.2, population 8, 4 GPU workers
+  (`$V/site_fit/C1_ENF`).
+- The replays (`C1_ENF_replay_baseline`, `C1_ENF_replay_best`) reproduce the fit's first and best losses exactly
+  (21.6739, 15.3899) and add monthly NEE. Report: `diagnostics/c1_report.py` -> `C1_ENF_report.txt/.png`.
+
+**Result.**
+
+| | baseline | best (eval 202) |
+|---|---|---|
+| loss, training towers | 21.67 | 15.39 (-29 %) |
+| held-out towers | 20.43 | 15.25 (-25 %) |
+| held-out year 2012 | 18.89 | 13.56 (-28 %) |
+| median GPP ratio, train / held out | 0.51 / 0.57 | 0.73 / 0.80 |
+| median NDJF share, train (towers 0.055) | 0.063 | 0.071 |
+| median ET ratio, train / held out | 0.84 / 0.94 | 0.88 / 0.98 |
+| median monthly NEE RMSE, train / held out (gC m-2) | 65 / 70 | 52 / 53 (not fitted) |
+
+The improvement holds on the held-out towers and the held-out year about as well as on the training towers, so
+the fit generalises within the class. The best was still improving slowly at 209 evaluations (15.64 at 157), so the
+optimum is not sharply resolved.
+
+**Parameters.**
+
+| parameter | start | best | bound |
+|---|---|---|---|
+| vmax temp_con_ever | 30.0 | 40.3 umol m-2 s-1 | [15, 50] |
+| vmax boreal_con_ever | 25.0 | 39.6 | [15, 40], at the bound |
+| acclim_s0 | -3.06 C | -4.20 C | |
+| acclim_smax | 17.7 C | 20.0 C | |
+| acclim_tau | 10.9 d | 2.9 d | inert here (section 23) |
+| stressfac | -5.0 | -4.5 | inert here (section 23) |
+
+- **The summer deficit is not closed.** Boreal conifer capacity sits at its bound and GPP stops at three quarters
+  of the towers'. Temperate summer peaks stay far below (DE-Tha about 200 vs 350 gC m-2 month-1; IT-Lav 220 vs
+  355). This is the canopy-scaling gap of section 22 showing through the fit: the fitted vmax is an effective
+  canopy capacity, 30-60 % above its start, and it should not go to the domain as a leaf trait until that gap is
+  decided.
+- **The acclimation constants moved modestly** and keep the winter right.
+- **The two inert parameters wandered.** A 2.9 d tau is not a finding.
+- **Per tower:** CA-TP1 overshoots (1.21), a young plantation run with the grid state's LAI 4.0 for want of a site
+  value. Towers without site LAI should get a measured value before C2.
+- **NEE stays far off,** a near-neutral summer against tower sinks of 100-250 gC m-2 month-1. There is too little
+  GPP, and the respiration comes from the grid cell's soil pools (IT-Lav bias +170). NEE belongs to C2, as planned.
