@@ -12,7 +12,7 @@ the training towers, the held-out towers and the held-out year. Writes the figur
 import sys, os, json, numpy as np, pandas as pd
 sys.path.insert(0, 'python-port'); sys.path.insert(0, 'verify/calibration')
 from site_fit import tower_obs, misfit, TRAIN_Y, HOLD_Y, YEARS
-from fit_carbon import EXTRAS
+from fit_carbon import EXTRAS, VMAX_LO, VMAX_HI, PFT_NAMES
 
 fit_dir, base_dir, best_dir = sys.argv[1:4]; fig_path = sys.argv[4] if len(sys.argv) > 4 else ''
 h = pd.read_csv(f'{fit_dir}/history.csv'); best = json.load(open(f'{fit_dir}/best.json')); setup = json.load(open(f'{fit_dir}/setup.json'))
@@ -31,9 +31,10 @@ for q in (0.25, 0.5, 0.75, 1.0):
 print('\nparameters (start -> best, [bounds]; * = within 2 % of a bound):')
 for nm in names:
     v0, v1 = b0[nm], best['params'][nm]
-    if nm.startswith('vmax:'): lo, hi = None, None; txt = f"{v0 * 1e6:8.2f} -> {v1 * 1e6:8.2f} umol m-2 s-1"
+    if nm.startswith('vmax:'):
+        k_ = PFT_NAMES.index(nm[5:]); lo, hi = VMAX_LO[k_], VMAX_HI[k_]; txt = f"{v0 * 1e6:8.2f} -> {v1 * 1e6:8.2f} umol m-2 s-1 [{lo * 1e6:.0f}, {hi * 1e6:.0f}]"
     else: lo, hi = EXTRAS[nm][1], EXTRAS[nm][2]; txt = f"{v0:8.3f} -> {v1:8.3f}   [{lo}, {hi}]"
-    edge = '' if lo is None else ('*' if min(abs(v1 - lo), abs(v1 - hi)) < 0.02 * (hi - lo) else '')
+    edge = '*' if min(abs(v1 - lo), abs(v1 - hi)) < 0.02 * (hi - lo) else ''
     print(f"  {nm:24s} {txt} {edge}")
 
 def per_tower(S):
