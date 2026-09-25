@@ -3767,3 +3767,42 @@ optimum is not sharply resolved.
   value. Towers without site LAI should get a measured value before C2.
 - **NEE stays far off,** a near-neutral summer against tower sinks of 100-250 gC m-2 month-1. There is too little
   GPP, and the respiration comes from the grid cell's soil pools (IT-Lav bias +170). NEE belongs to C2, as planned.
+
+## 25. C1 DBF: the fixed-vegetation fit of the deciduous forests (2026-09-25)
+
+**Verdict: timing improved; magnitude not acceptable.** The summer magnitude is far off, as at the conifers:
+- The peak month of model GPP is at a median 0.56 of the towers' (0.36-0.79; DE-Lnf 144 vs 405, US-Oho 205 vs 418,
+  DK-Sor 239 vs 462 gC m-2 month-1).
+- June-August is at 0.61, and annual GPP at 0.65 (training) and 0.75 (held out). The fit did not move these (0.65
+  -> 0.65).
+- The loss reduction is almost all timing. The fitted values are not to be used for magnitude. They are repeated
+  after the canopy scaling is addressed.
+
+**Setup.**
+- 12 DBF towers: 8 training, 4 held out.
+- `default_seasonal.yaml`, fixed leaf area, loss of section 22.
+- CMA-ES over `vmax:temp_bl_dec`, `gdd_thresh_u` and `sen_ycrit_u`: 153 evaluations, population 8, 4 GPU workers
+  (`$V/site_fit/C1_DBF`).
+- The replays reproduce the first and best losses exactly (36.4487, 23.4981).
+
+**Result.**
+
+| | baseline | best (eval 144) |
+|---|---|---|
+| loss, training / held-out towers / held-out year | 36.45 / 87.49 / 70.06 | 23.50 / 49.23 / 40.69 |
+| vmax temp_bl_dec | 30.0 | 36.6 umol m-2 s-1 (bound 60, not binding) |
+| gdd_thresh_u | 100 | 310 C d (above the old bound 250) |
+| sen_ycrit_u | 300 | 169 C d |
+| leaf-out vs PhenoCam (4) / tower GPP (11) | -26 / -28 d | -9 / -10 d |
+| senescence vs PhenoCam (4) / tower GPP (11) | +4 / +7 d | -10 / -8 d |
+
+The timing columns come from `site_run.py --fixed-lai attrs` runs with the baseline and the fitted yaml
+(`site_runs/C1_DBF_timing_{baseline,best}`, `phenology_vs_phenocam.py`). Neither PhenoCam nor the daily dates were
+in the loss.
+
+- Leaf-out comes within about 10 days.
+- Senescence now overshoots by about a week early.
+- vmax stayed low. The canopy's flat light response means more capacity inflates the spring and autumn shoulders,
+  the months of small tower GPP and small sigma, before it lifts the summer. This is the same structural limit as
+  in section 24, seen from the loss side.
+- IT-Ro2 (Mediterranean oak) collapses in summer with ET, a model drought that none of these parameters touch.
