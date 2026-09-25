@@ -18,7 +18,7 @@ from site_run import prescribe, tower_monthly, tower_mat, enforce_prescription, 
 from phenology_vs_phenocam import crossings, smooth
 from tower_forcing import TowerForcingReader
 from ibis.dimensions import GridConfig; from ibis.io.restart import load_state
-from ibis.state.model_state import create_ibis_state; from ibis.state.stress_accum import create_stress_accum; from ibis.state.et_parts import create_et_parts
+from ibis.state.model_state import create_ibis_state; from ibis.state.stress_accum import create_stress_accum; from ibis.state.et_parts import create_et_parts; from ibis.state.seasonal import create_seasonal
 from ibis.io.physics_params import build_all_params, load_physics_params
 from ibis.io.gswp3_reader import GSWP3Reader; from ibis.constants import PhysicalConstants
 from ibis.timestepping.loops_gswp3 import _cast_tree_f32
@@ -58,6 +58,21 @@ PHENOLOGY_WIDE = [
     ('tthresh_u_abs 8 C + gdd_thresh_u +600', 'extras', {'tthresh_u_abs': lambda d: 8.0, 'gdd_thresh_u': lambda d: d + 600.0}),
 ]
 
+# Parameters of the two seasonal formulations (CALIBRATION.md 21-22), plus a wide leaf-out range, for a base yaml that
+# switches the formulations on (python-port/configs/params/default_seasonal.yaml).
+SEASONAL_SET = [
+    ('acclim_tau x0.5', 'extras', {'acclim_tau': lambda d: d * 0.5}), ('acclim_tau x2', 'extras', {'acclim_tau': lambda d: d * 2.0}),
+    ('acclim_s0 -3 C', 'extras', {'acclim_s0': lambda d: d - 3.0}), ('acclim_s0 +3 C', 'extras', {'acclim_s0': lambda d: d + 3.0}),
+    ('acclim_smax x0.6', 'extras', {'acclim_smax': lambda d: d * 0.6}), ('acclim_smax x1.5', 'extras', {'acclim_smax': lambda d: d * 1.5}),
+    ('sen_pstart_u -1 h', 'extras', {'sen_pstart_u': lambda d: d - 1.0}), ('sen_pstart_u +1 h', 'extras', {'sen_pstart_u': lambda d: d + 1.0}),
+    ('sen_tb_u -4 C', 'extras', {'sen_tb_u': lambda d: d - 4.0}), ('sen_tb_u +4 C', 'extras', {'sen_tb_u': lambda d: d + 4.0}),
+    ('sen_ycrit_u x0.5', 'extras', {'sen_ycrit_u': lambda d: d * 0.5}), ('sen_ycrit_u x2', 'extras', {'sen_ycrit_u': lambda d: d * 2.0}),
+    ('sen_pstart_l -1 h', 'extras', {'sen_pstart_l': lambda d: d - 1.0}), ('sen_ycrit_l x0.5', 'extras', {'sen_ycrit_l': lambda d: d * 0.5}),
+    ('sen_ycrit_l x2', 'extras', {'sen_ycrit_l': lambda d: d * 2.0}), ('sen_tb_l +4 C', 'extras', {'sen_tb_l': lambda d: d + 4.0}),
+    ('gdd_thresh_u +300', 'extras', {'gdd_thresh_u': lambda d: d + 300.0}), ('gdd_thresh_u +600', 'extras', {'gdd_thresh_u': lambda d: d + 600.0}),
+    ('gthresh_u_c +5 C', 'extras', {'gthresh_u_c': lambda d: d + 5.0}), ('gdd_thresh_l +300', 'extras', {'gdd_thresh_l': lambda d: d + 300.0}),
+]
+
 
 def metrics(gm, gd, etm, lai_l, lai_u, og, oe, NH, ref=None, lai_m=None):
     """Per-tower metrics from 3 evaluation years: gm (3,12,n) gC/m2/mo, gd (3,366,n) gC/m2/d, etm (3,12,n) mm, og/oe (12,n) tower climatology."""
@@ -89,7 +104,7 @@ def metrics(gm, gd, etm, lai_l, lai_u, og, oe, NH, ref=None, lai_m=None):
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument('--out', required=True); ap.add_argument('--per-class', type=int, default=4); ap.add_argument('--params', default='python-port/configs/params/default.yaml'); ap.add_argument('--only', default='', help='comma list of perturbation labels (smoke test)'); ap.add_argument('--set', default='', choices=['', 'phenology'], help="'phenology': the wide-range phenology set instead of the standard 32"); ap.add_argument('--dump-monthly', action='store_true', help='also save the monthly GPP and displayed-LAI series per perturbation')
+    ap = argparse.ArgumentParser(); ap.add_argument('--out', required=True); ap.add_argument('--per-class', type=int, default=4); ap.add_argument('--params', default='python-port/configs/params/default.yaml'); ap.add_argument('--only', default='', help='comma list of perturbation labels (smoke test)'); ap.add_argument('--set', default='', choices=['', 'phenology', 'seasonal'], help="'phenology': the wide-range phenology set; 'seasonal': the CALIBRATION.md 21-22 formulation parameters (run with a yaml that switches them on)"); ap.add_argument('--fixed-lai', default='', choices=['', 'attrs'], help="'attrs': hold leaf carbon at the site-attribute maximum LAI (fixed vegetation, stage C1)"); ap.add_argument('--dump-monthly', action='store_true', help='also save the monthly GPP and displayed-LAI series per perturbation')
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     # towers: batch 1 (2008-2012), up to per-class per IGBP, ordered by record length
     b1 = open(f'{S}/site_batches.txt').readline().split()[1].split(','); inv = pd.read_csv(f'{S}/site_inventory.csv').set_index('site')
@@ -105,6 +120,7 @@ def main():
     full, _ = load_state(f'{V}/v11_transient/restart/ibis_restart_2010.npz', create_ibis_state(GridConfig(npoi=NPOI_FULL, nbedrock=3)))
     cut = lambda x: x[sel] if isinstance(x, jnp.ndarray) and x.ndim >= 1 and x.shape[0] == NPOI_FULL else x
     st0 = _cast_tree_f32(jax.tree.map(cut, full)); st0 = eqx.tree_at(lambda s: s.stress, st0, create_stress_accum(len(sel)), is_leaf=lambda x: x is None); st0 = eqx.tree_at(lambda s: s.etparts, st0, create_et_parts(len(sel)), is_leaf=lambda x: x is None)
+    st0 = eqx.tree_at(lambda s: s.seasonal, st0, _cast_tree_f32(create_seasonal(len(sel), 5.0)), is_leaf=lambda x: x is None)   # inert unless a formulation is on (CALIBRATION.md 21-22)
     sp0, pft0, _ = build_all_params(len(sel), lat_rad, load_physics_params(a.params)); specla0 = np.asarray(pft0.specla); vmax0 = np.asarray(sp0.stomata_params.vmax_pft)
     mask = np.zeros((len(sel), 12), np.float32); fu = np.zeros(len(sel), np.float32); fl_ = np.zeros(len(sel), np.float32)
     cbiol = np.asarray(st0.vegetation.cbiol).copy(); cbiow = np.asarray(st0.vegetation.cbiow).copy(); cbior = np.asarray(st0.vegetation.cbior).copy()
@@ -120,7 +136,17 @@ def main():
     st0 = eqx.tree_at(lambda s: (s.vegetation.cbiol, s.vegetation.cbiow, s.vegetation.cbior, s.vegetation.plai, s.vegetation.exist, s.vegetation.fu, s.vegetation.fl), st0,
                       tuple(jnp.asarray(x, dtype=jnp.float32) for x in (cbiol, cbiow, cbior, cbiol * specla0[None, :], mask, fu, fl_)))
     consts = PhysicalConstants(); site_transient.apply_co2 = lambda q, y, series=None: eqx.tree_at(lambda z: z.atm.co2conc, q, 370.0e-6)
-    hold = lambda s_: enforce_prescription(s_, mask, specla0)
+    fix = None
+    if a.fixed_lai == 'attrs':
+        from site_attributes import prescribe_from_attributes
+        fix = np.asarray(cbiol).copy()
+        for n, s in enumerate(sites):
+            at = prescribe_from_attributes(s)
+            if at is not None and np.isfinite(at['lai_max']) and at['lai_max'] > 0:
+                fix[n] = mask[n] / max(mask[n].sum(), 1) * at['lai_max'] / np.maximum(specla0, 1e-6)
+        st0 = eqx.tree_at(lambda s: (s.vegetation.cbiol, s.vegetation.plai), st0, (jnp.asarray(fix, dtype=jnp.float32), jnp.asarray(fix * specla0[None, :], dtype=jnp.float32)))
+        print('fixed vegetation: leaf carbon held (site-attribute LAI where available)', flush=True)
+    hold = lambda s_: enforce_prescription(s_, mask, specla0, fix_cbiol=fix)
     REC = []
     def hook(fn):
         def rec(state, *aa, **kk):
@@ -158,7 +184,7 @@ def main():
         DUMP[label] = {'gpp': met['_gm'], 'lai': met['_lm'], 'gpp_daily': met['_gd']}
         for n, s in enumerate(sites): rows.append(dict(pert=label, site=s, igbp=META.loc[s, 'IGBP'], **{k: float(v[n]) for k, v in met.items() if not k.startswith('_')}))
     add('base', base)
-    pool = PHENOLOGY_WIDE if a.set == 'phenology' else PERTURBATIONS
+    pool = PHENOLOGY_WIDE if a.set == 'phenology' else SEASONAL_SET if a.set == 'seasonal' else PERTURBATIONS
     todo = [p for p in pool if (not a.only or p[0] in a.only.split(','))]
     for label, kind, spec in todo:
         sp, pft = sp0, pft0; vm, sl = vmax0.copy(), specla0.copy(); ex = {}

@@ -19,7 +19,7 @@ from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, PFT_NAMES, modis_at
 import site_transient; from site_transient import one_year
 from tower_forcing import TowerForcingReader, F as FLUX_DIR
 from ibis.dimensions import GridConfig; from ibis.io.restart import load_state
-from ibis.state.model_state import create_ibis_state; from ibis.state.stress_accum import create_stress_accum; from ibis.state.et_parts import create_et_parts
+from ibis.state.model_state import create_ibis_state; from ibis.state.stress_accum import create_stress_accum; from ibis.state.et_parts import create_et_parts; from ibis.state.seasonal import create_seasonal
 from ibis.io.physics_params import build_all_params, load_physics_params
 from ibis.io.gswp3_reader import GSWP3Reader; from ibis.constants import PhysicalConstants
 from ibis.timestepping.loops_gswp3 import _cast_tree_f32
@@ -138,6 +138,7 @@ def main():
     full, _ = load_state(f'{V}/v11_transient/restart/ibis_restart_2010.npz', create_ibis_state(GridConfig(npoi=NPOI_FULL, nbedrock=3)))
     cut = lambda x: x[sel] if isinstance(x, jnp.ndarray) and x.ndim >= 1 and x.shape[0] == NPOI_FULL else x
     st = _cast_tree_f32(jax.tree.map(cut, full)); st = eqx.tree_at(lambda s: s.stress, st, create_stress_accum(len(sel)), is_leaf=lambda x: x is None); st = eqx.tree_at(lambda s: s.etparts, st, create_et_parts(len(sel)), is_leaf=lambda x: x is None)
+    st = eqx.tree_at(lambda s: s.seasonal, st, _cast_tree_f32(create_seasonal(len(sel), 5.0)), is_leaf=lambda x: x is None)   # inert unless a formulation is on (CALIBRATION.md 21-22)
     sp, pft, _ = build_all_params(len(sel), lat_rad, load_physics_params(a.params)); specla = np.asarray(pft.specla)
     mask = np.zeros((len(sel), 12), np.float32); fu = np.zeros(len(sel), np.float32); fl_ = np.zeros(len(sel), np.float32); notes = {}
     cbiol = np.asarray(st.vegetation.cbiol).copy(); cbiow = np.asarray(st.vegetation.cbiow).copy(); cbior = np.asarray(st.vegetation.cbior).copy()
