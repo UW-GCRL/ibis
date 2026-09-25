@@ -165,7 +165,7 @@ def setup(a, spin=True, verbose=True):
         for yr in YEARS:
             s_, k_, d = one_year(s_, k_, yr, ctx, 0); s_ = hold_fn(s_); GM.append(d['gpp_monthly'] * 1000); EM.append(d['aet_monthly']); NM.append(d['nee_monthly'] * 1000)
         return np.array(GM), np.array(EM), np.array(NM)
-    C.run = run
+    C.run = run; C.base_state, C.base_key, C.ctx0, C.hold_fn = base_state, base_key, ctx0, hold_fn   # for probes
     return C
 
 

@@ -3611,3 +3611,48 @@ and on the steppes. The next process probe is an hourly one at a humid conifer t
 rate (light, Rubisco or sink), ci, gs, the stress factors and the scaling factor.
 
 Figures are in the local document (F12, F13). The tables are `$V/site_runs/light_response_{ENF,DBF}.txt`.
+
+**What sets the plateau: an hourly probe inside the canopy (added 06:25).**
+`diagnostics/canopy_plateau_probe.py` wraps `stomata` in the production month (a `jax.debug.callback`; no change to
+the physics). It was run in July 2010 at the 17 ENF towers: prescribed stands, fixed leaf area, formulations of this
+section on, F77 canopy. It records the conifer big leaf's inputs and limiting rates every hour; the last of the
+three canopy iterations is kept. Raw record: `$V/site_fit/plateau_probe_ENF_201007.npz`. Medians over daylight
+hours:
+
+| top PAR | vmax (T, stress) | ci | leaf T | soil stress | wet fraction | limit: light / Rubisco / sink | top-leaf Ag |
+|---|---|---|---|---|---|---|---|
+| 126 W m-2 | 37 umol m-2 s-1 | 224 ppm | 22.7 C | 0.995 | 0.04 | 7 % / 87 % / 7 % | 8.7 umol m-2 s-1 |
+
+| extinction k | LAI / SAI | scale (1 - e^-k(L+S))/(kL) | effective leaf area, scale x L | model GPP | tower GPP |
+|---|---|---|---|---|---|
+| 2.2 (daytime mean) | 4.1 / 0.85 | 0.245 | **1.00** | 4.6 gC m-2 d-1 | 9.4 gC m-2 d-1 |
+
+The top leaf is Rubisco-limited in almost every daylight hour. Water stress and wet leaves play no part.
+
+The effective leaf area is 1.0 at every tower, with LAI anywhere from 2.5 to 7.3. The F77 big leaf computes the
+top-of-canopy leaf rate and multiplies it by the light-profile integral. The canopy's capacity therefore declines
+with the instantaneous PAR extinction coefficient, 1-2 at midday and more at low sun. A dense canopy then has the
+capacity of about 1/k square metres of top leaf, independent of its leaf area. (This is also why removing 90 % of
+plai left 58 % of GPP in lever test 11b.)
+
+Observed within-canopy gradients of photosynthetic capacity are far shallower. Lloyd et al. (2010), from numerous
+forest canopies: Kn = exp(0.00963 Vcmax25 - 2.43), i.e. 0.13-0.23 for the Kattge et al. (2009) values. CLM4 used
+Kn = 0.11. Bonan et al. (2012, JGR-Biogeosciences 117, G02026) used a multilayer canopy to show how strongly
+canopy GPP depends on this scaling:
+- With a shallow Kn, CLM4's two-leaf canopy gives too much shaded-leaf photosynthesis. CLM4 compensated by
+  reducing Vcmax below the TRY values.
+- A multilayer canopy with the observed Vcmax matched the towers as well or better.
+
+IBIS errs the other way: its implied Kn equals k, 5-10x the observed gradient. So the site fit can close the
+summer deficit only with an effective vmax well above leaf measurements, and the canopy light response stays
+flat.
+
+This is a third formulation gap next to section 21 (a) and (b), for Hangkai to decide. The candidates, lightest
+first:
+1. Scale the capacity-limited rates (jc, js) with a fixed Kn (Lloyd 2010), and the light-limited rate with the
+   absorbed-light integral, co-limiting at canopy level.
+2. A sunlit/shaded two-leaf canopy (de Pury & Farquhar 1997) with that Kn, using the two-stream direct/diffuse
+   fluxes IBIS already computes.
+
+Either must be checked against the tower light-response curves, not only totals, given Bonan's warning about
+shaded-leaf overshoot.
