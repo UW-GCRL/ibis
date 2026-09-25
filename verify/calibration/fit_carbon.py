@@ -245,7 +245,9 @@ def _set_pft(path):
 
 EXTRAS = {
     "stressfac":        (_set(lambda p: p.stomata_params.stressfac), -10.0, -2.5, False),
-    "gdd_thresh_u":     (_set(lambda p: p.pheno.gdd_thresh_u),        50.0, 250.0, True),
+    # upper bound 1000 (was 250): at the deciduous towers leaf-out is ~30 d early and Stage B needs ~+300 C d to move
+    # it 25 d (CALIBRATION.md 22); forcing sums at base 0 C run to several hundred C d without a chilling term
+    "gdd_thresh_u":     (_set(lambda p: p.pheno.gdd_thresh_u),        50.0, 1000.0, True),
     "gdd_ramp_u":       (_set(lambda p: p.pheno.gdd_ramp_u),          20.0, 150.0, True),
     "gdd_thresh_l":     (_set(lambda p: p.pheno.gdd_thresh_l),        50.0, 300.0, True),
     "gdd_ramp_l":       (_set(lambda p: p.pheno.gdd_ramp_l),          20.0, 150.0, True),
