@@ -76,6 +76,7 @@ def _args(argv=None):
     ap.add_argument('--n-evals', type=int, default=200); ap.add_argument('--sigma', type=float, default=0.2); ap.add_argument('--w-et', type=float, default=0.5)
     ap.add_argument('--holdout', type=float, default=1 / 3); ap.add_argument('--seed', type=int, default=1); ap.add_argument('--out', required=True)
     ap.add_argument('--only-baseline', action='store_true', help='score the starting parameters and stop (smoke test)')
+    ap.add_argument('--start', default='', help="best.json of an earlier fit: start from its parameters (with --only-baseline: a replay)")
     ap.add_argument('--popsize', type=int, default=0, help='CMA-ES population (0: the default 4 + 3 ln n); a multiple of --workers wastes no round')
     ap.add_argument('--workers', type=int, default=1, help='evaluate each CMA-ES generation in this many spawned processes; '
                     'at a few towers the GPU is latency-bound, so concurrent evaluations cost little more than one')
@@ -136,6 +137,12 @@ def setup(a, spin=True, verbose=True):
         if nm.startswith('vmax:'): return np.log(vmax0[PFT_NAMES.index(nm[5:])])
         return _enc(nm, float(_extra_value(sp0, pft0, nm)))
     lo = np.array([enc_bounds(nm)[0] for nm in names]); hi = np.array([enc_bounds(nm)[1] for nm in names])
+    if a.start:                                                                       # an earlier fit's parameters (natural units)
+        prev = json.load(open(a.start))['params']
+        start0 = start
+        def start(nm):
+            if nm not in prev: return start0(nm)
+            return np.log(prev[nm]) if nm.startswith('vmax:') else _enc(nm, float(prev[nm]))
     z0 = np.clip((np.array([start(nm) for nm in names]) - lo) / (hi - lo), 0.0, 1.0)
     def decode(z):
         x = lo + np.clip(z, 0, 1) * (hi - lo); vm = vmax0.copy(); ex = {}
@@ -154,10 +161,10 @@ def setup(a, spin=True, verbose=True):
     base_state, base_key = st, key0
     def run(vm, ex):
         sp, pft = apply_params(sp0, pft0, vm, specla, ex); ctx = dict(i=i, j=j, lat_rad=lat_rad, sp=sp, pft=pft, consts=consts, reader=rd)
-        s_, k_ = base_state, base_key; GM = []; EM = []
+        s_, k_ = base_state, base_key; GM = []; EM = []; NM = []
         for yr in YEARS:
-            s_, k_, d = one_year(s_, k_, yr, ctx, 0); s_ = hold_fn(s_); GM.append(d['gpp_monthly'] * 1000); EM.append(d['aet_monthly'])
-        return np.array(GM), np.array(EM)
+            s_, k_, d = one_year(s_, k_, yr, ctx, 0); s_ = hold_fn(s_); GM.append(d['gpp_monthly'] * 1000); EM.append(d['aet_monthly']); NM.append(d['nee_monthly'] * 1000)
+        return np.array(GM), np.array(EM), np.array(NM)
     C.run = run
     return C
 
@@ -175,8 +182,8 @@ def _wready():
 
 
 def _weval(z):
-    t1 = time.time(); vm, ex = _W.decode(np.asarray(z)); gm, em = _W.run(vm, ex)
-    return gm, em, time.time() - t1
+    t1 = time.time(); vm, ex = _W.decode(np.asarray(z)); gm, em, ne = _W.run(vm, ex)
+    return gm, em, ne, time.time() - t1
 
 
 def main():
@@ -192,6 +199,10 @@ def main():
         hy = [misfit(gm, em, obs[n], n, HOLD_Y, a.w_et) for n in range(ns)]
         f = lambda v: float(np.nanmean(v)) if np.isfinite(v).any() else np.nan
         return f(tr), f(ho), f(hy), tr, ho
+    def nee_rmse(ne, towers):
+        # monthly NEE RMSE (gC m-2 mo-1) over the training years, mean over towers; tower NEE_VUT_REF, all months with a value
+        r = [np.sqrt(np.nanmean((ne[TRAIN_Y, :, n] - obs[n]['nee'][TRAIN_Y]) ** 2)) for n in towers if np.isfinite(obs[n]['nee'][TRAIN_Y]).any()]
+        return float(np.mean(r)) if r else np.nan
     pool = None
     if a.workers > 1 and not a.only_baseline:
         import multiprocessing as mp; from concurrent.futures import ProcessPoolExecutor
@@ -202,18 +213,19 @@ def main():
         if pool is not None and not local: return list(pool.map(_weval, [np.asarray(z) for z in Z]))
         out = []
         for z in Z:
-            t1 = time.time(); vm, ex = C.decode(z); gm, em = C.run(vm, ex); out.append((gm, em, time.time() - t1))
+            t1 = time.time(); vm, ex = C.decode(z); gm, em, ne = C.run(vm, ex); out.append((gm, em, ne, time.time() - t1))
         return out
     hist = []; best = {'loss': np.inf}
     def objective_batch(Z, local=False):
         Ls = []
-        for z, (gm, em, secs) in zip(Z, evaluate(Z, local)):
+        for z, (gm, em, ne, secs) in zip(Z, evaluate(Z, local)):
             vm, ex = C.decode(z); L, Lh, Ly, tr, ho = score(gm, em)
-            rec = dict(eval=len(hist) + 1, loss=L, holdout_towers=Lh, holdout_year=Ly, secs=round(secs, 1), **{nm: (float(vm[PFT_NAMES.index(nm[5:])]) if nm.startswith('vmax:') else float(ex[nm])) for nm in names})
+            ne_tr, ne_ho = nee_rmse(ne, range(ntr)), nee_rmse(ne, range(ntr, ns))            # reported, not in the loss
+            rec = dict(eval=len(hist) + 1, loss=L, holdout_towers=Lh, holdout_year=Ly, nee_rmse_train=ne_tr, nee_rmse_hold=ne_ho, secs=round(secs, 1), **{nm: (float(vm[PFT_NAMES.index(nm[5:])]) if nm.startswith('vmax:') else float(ex[nm])) for nm in names})
             hist.append(rec); pd.DataFrame(hist).to_csv(f'{a.out}/history.csv', index=False)
             if np.isfinite(L) and L < best['loss']:
                 best.update(loss=L, holdout_towers=Lh, holdout_year=Ly, eval=rec['eval'], params={k: rec[k] for k in names}, per_tower_train=dict(zip(train, map(float, tr))), per_tower_hold=dict(zip(hold, map(float, ho))))
-                json.dump(best, open(f'{a.out}/best.json', 'w'), indent=1); np.savez(f'{a.out}/best_series.npz', sites=np.array(sites), gpp=gm, et=em, years=np.array(YEARS))
+                json.dump(best, open(f'{a.out}/best.json', 'w'), indent=1); np.savez(f'{a.out}/best_series.npz', sites=np.array(sites), gpp=gm, et=em, nee=ne, years=np.array(YEARS))
             print(f"eval {rec['eval']:4d}  loss {L:9.3f}  hold-out towers {Lh:9.3f}  hold-out year {Ly:9.3f}  ({rec['secs']:.0f} s)  " + ' '.join(f'{k}={rec[k]:.4g}' for k in names), flush=True)
             Ls.append(L if np.isfinite(L) else 1e6)
         return Ls
