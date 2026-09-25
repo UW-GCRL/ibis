@@ -3,7 +3,7 @@
     python verify/calibration/diagnostics/light_response.py <site_runs.npz> <IGBP> [<figure.png>]
 
 <site_runs.npz> is a `site_run.py` output with daily GPP (gpp_daily, years x 366 x towers; tower meteorology, so the model
-sees the tower's shortwave). For the towers of the class: June-August days of the evaluation years 2009-2011, daily GPP
+sees the tower's shortwave). For the towers of the class: June-August days of the run's years 2-4, daily GPP
 (tower: mean of the NT and DT partitions, days with NEE_VUT_REF_QC >= 0.8) binned by the tower's daily incoming shortwave.
 A deficit that is the same fraction at every light level is light use (absorption or quantum efficiency); one that opens
 up only at high light is capacity (vmax, or stomatal/water limitation at the plateau).
@@ -14,7 +14,7 @@ from site_run import META
 FX = '/shared/nas2/Hangkai/ibis/inputs/sites/FLUXNET2015_FULLSET/daily_monthly_yearly'
 npz, igbp = sys.argv[1], sys.argv[2]; fig_path = sys.argv[3] if len(sys.argv) > 3 else ''
 R = np.load(npz, allow_pickle=True); sites = [str(s) for s in R['sites']]; years = [int(y) for y in R['years']]
-EVAL = [y for y in years if 2009 <= y <= 2011]
+EVAL = years[1:4] if len(years) >= 4 else years[1:]                  # the run's years 2-4 (the first is warm-up)
 BINS = np.arange(0, 401, 50)
 rows = []; curves = {}
 for n, s in enumerate(sites):
