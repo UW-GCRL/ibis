@@ -3461,7 +3461,7 @@ The screening and the corrected site baseline separate our errors into two
 kinds. Capacity, leaf area, water stress and the spring degree-day
 threshold are parameter errors and the fit can reach them. Two are not,
 and the literature names both, with published equations and constants.
-The plan for Hangkai and his labmate to choose from is
+The plan for Hangkai and their labmate to choose from is
 `/shared/nas2/Hangkai/ibis_local_document/REVISED_PLAN_2026-09-24.md`.
 
 **(a) No cold-season down-regulation of photosynthesis.** Our cold-season
@@ -3501,3 +3501,73 @@ compared with MODIS at the tower's 0.5-degree CELL. Tower canopies carry
 representativeness work says the same: mean absolute vegetation-index
 bias grows from 4.3 % at site scale to 12.1 % at land-model grid scale
 (Chu et al. 2021, AFM 301-302, 108350; Sun et al. 2024, Sci. Data).
+
+## 22. Stage A: the two formulations in the model, and what they do at the towers (2026-09-25)
+
+Both formulations of section 21 are in the model (commit `0b3c9b3`), each behind a static switch that is off
+by default. `configs/params/default_seasonal.yaml` is `default.yaml` with both switched on.
+
+**(a) Acclimation of photosynthetic capacity** (`stomata: acclim_on`). This is the state of acclimation of
+Makela et al. (2004) in PRELES form. Once a day, S <- S + (T - S)/tau, with T the daily mean air temperature.
+The model multiplies vmax, and with it dark respiration, by f_S = clip((S - S0)/Smax, 0, 1) for the PFTs in
+`acclim_pfts`: temperate and boreal evergreen conifers and the evergreen shrub (3, 5, 8), which stay green
+through a frozen winter. The defaults are the Rpreles calibration to ten Scandinavian conifer sites
+(tau 10.93 d, S0 -3.063 C, Smax 17.72 C).
+
+**(b) Photoperiod-gated senescence** (`pheno: sen_photoperiod_u / _l`). This has the structure of Delpierre et
+al. (2009) with x = 1, y = 0. While day length is decreasing and below Pstart, the canopy accumulates cold
+degree-days below Tb. Once the sum reaches Ycrit, its leaves fall as if the ten-day temperature had crossed the
+drop threshold, and the degree-day sum for the next leaf-out is held at zero. The sum resets while day length
+is not decreasing, i.e. from the winter to the summer solstice. The starting values of 14 h, 20 C and 300 C d
+are chosen, not published.
+
+**Where they live.** Both states are in a new optional `SeasonalState` (acclim_x, ssen_u, ssen_l). It extends
+the chain of optional trailing modules (StressAccum -> ETParts -> SeasonalState), so a state carries 258, 261,
+265 or 268 leaves. `load_state` now checks both ends of a migration against that chain instead of a bare limit.
+The fitted constants are traced floats and are `fit_carbon.EXTRAS` entries (acclim_tau/s0/smax,
+sen_pstart/tb/ycrit_u/l). `finalize_fit.sh` carries them back into yaml. `run_global` attaches the module when
+either switch is on.
+
+**Verification.**
+- Unit tests: 7 in `tests/test_seasonal_formulations.py`. Full suite: 703 passed.
+- Bit-identity: in the real GSWP3 loop, attaching the module with both switches off changes 0 state fields and
+  no monthly GPP.
+- Senescence on: Harvard Forest November GPP falls from 143 to 6 gC m-2.
+
+**The conifer A/B.** The 17 ENF towers of the 2008-2012 batch were run with composition prescribed and leaf area
+held at the site's measured maximum (`site_fit.py --only-baseline`), with and without the formulations. Monthly
+GPP climatology, 2009-2011, gC m-2 month-1:
+
+| tower | | J | F | M | A | M | J | J | A | S | O | N | D | cold share (NDJF) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| CZ-BK1 | tower | 30 | 19 | 59 | 235 | 243 | 285 | 300 | 296 | 220 | 127 | 54 | 7 | 0.06 |
+| | off | 23 | 28 | 73 | 140 | 141 | 152 | 161 | 169 | 157 | 122 | 96 | 33 | 0.14 |
+| | on | 1 | 1 | 14 | 83 | 107 | 139 | 159 | 167 | 146 | 82 | 48 | 8 | 0.06 |
+| IT-Ren | tower | 5 | 11 | 41 | 161 | 246 | 288 | 301 | 251 | 206 | 130 | 58 | 7 | 0.05 |
+| | off | 46 | 43 | 73 | 110 | 133 | 139 | 158 | 166 | 154 | 124 | 88 | 35 | 0.17 |
+| | on | 1 | 2 | 7 | 42 | 77 | 104 | 141 | 149 | 123 | 69 | 30 | 4 | 0.05 |
+| US-NR1 | tower | 0 | 1 | 1 | 15 | 95 | 174 | 196 | 190 | 117 | 58 | 6 | 0 | 0.01 |
+| | off | 14 | 10 | 23 | 30 | 68 | 99 | 114 | 113 | 93 | 68 | 51 | 21 | 0.14 |
+| | on | 0 | 0 | 1 | 4 | 22 | 63 | 98 | 100 | 72 | 35 | 10 | 0 | 0.02 |
+
+Over all 17 towers, the median cold-season share is 0.050 at the towers, 0.153 without the formulations and
+0.063 with them. The site loss of section 20 falls from 29.98 to 21.69 on the training towers, from 29.31 to
+20.43 on the held-out towers, and from 29.91 to 18.85 on the held-out year.
+
+The winter excess that no parameter could move (section 21a) is gone at every conifer tower from Finland to
+Italy. What remains is capacity:
+- Summer GPP is about half the tower value at most sites (DE-Tha June 150 vs 346, IT-Lav 137 vs 353).
+- With the default acclimation constants, spring now comes late at the warmer sites (CZ-BK1 April 83 vs 235,
+  DE-Obe 74 vs 183).
+
+Both are what the stage C1 fit is for: conifer vmax, and the three acclimation constants.
+
+**Two harness defects found on the way.**
+1. `tests/test_forcing_invariants.py` had only ever passed alone. In a full run, the fire test modules switch
+   x64 on at import, and the float64 parameter tables promote the soil-BGC carry. The test now runs in production
+   precision (commit `54aa5d6`).
+2. eqx.filter_jit keys its cache on which parameter leaves are arrays. A spin-up on the parameters as built,
+   followed by fitted evaluations, therefore compiled every month kernel twice: 1784 s for the first evaluation
+   above against 265 s once compiled, on the GPU for 17 towers. `fit_carbon.trace_extras` now makes every EXTRAS
+   entry an array before the first run (commit `cb7e51e`). The site tools also use a persistent XLA compilation
+   cache.
