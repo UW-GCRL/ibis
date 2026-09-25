@@ -393,6 +393,14 @@ def apply_params(sp, pft, vmax, specla, extras=None):
     return sp, pft
 
 
+def enable_compile_cache():
+    """Persistent XLA compilation cache: the same program (same cells, same yaml switches, traced extras) is compiled
+    once and loaded by every later process -- a full set of month kernels takes ~30 min to compile on the GPU for
+    17 towers (~2.5 min on the CPU). Location `IBIS_JAX_CACHE`, default ~/.cache/jax_ibis. Call before the first run."""
+    jax.config.update('jax_compilation_cache_dir', os.environ.get('IBIS_JAX_CACHE', os.path.expanduser('~/.cache/jax_ibis')))
+    jax.config.update('jax_persistent_cache_min_compile_time_secs', 1.0)
+
+
 def trace_extras(sp, pft):
     """Every EXTRAS parameter as a 0-d float32 array at its current value.
 

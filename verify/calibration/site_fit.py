@@ -1,7 +1,7 @@
 """Per-class site calibration in fixed-vegetation mode (CALIBRATION.md 22, stage C1 of the site-first plan).
 
     python verify/calibration/site_fit.py --igbp ENF --params python-port/configs/params/default_seasonal.yaml \\
-        --fit vmax:temp_con_ever,vmax:bor_con_ever,acclim_tau,acclim_s0,acclim_smax --n-evals 200 --out <dir>
+        --fit vmax:temp_con_ever,vmax:boreal_con_ever,acclim_tau,acclim_s0,acclim_smax --n-evals 200 --workers 4 --out <dir>
 
 Towers: every tower of the IGBP class in the 2008-2012 batch (`site_batches.txt`, line 1). Composition from the site's
 class (`site_run.prescribe`, IBIS's temperate/boreal rule); upper-canopy leaf area held at the tower's measured maximum
@@ -19,10 +19,10 @@ NEE fit would tune respiration to pool disequilibrium (the literature adds a per
 stage C2). CMA-ES on bounds-normalised coordinates; every evaluation logs the training loss, the held-out towers' loss
 and the held-out year's loss to history.csv.
 """
-import sys, os, glob, json, time, argparse, numpy as np, pandas as pd, xarray as xr, warnings; warnings.filterwarnings('ignore')
+import sys, os, glob, json, time, types, argparse, numpy as np, pandas as pd, xarray as xr, warnings; warnings.filterwarnings('ignore')
 sys.path.insert(0, 'python-port'); sys.path.insert(0, 'verify/calibration')
 import jax, jax.numpy as jnp, equinox as eqx
-from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, PFT_NAMES, apply_params, trace_extras, EXTRAS, _enc, _dec, _extra_value, VMAX_LO, VMAX_HI
+from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, PFT_NAMES, apply_params, trace_extras, enable_compile_cache, EXTRAS, _enc, _dec, _extra_value, VMAX_LO, VMAX_HI
 import site_transient; from site_transient import one_year
 from site_run import prescribe, tower_mat, enforce_prescription, META, SEED_LAI, SEED_WOOD
 from site_attributes import prescribe_from_attributes
@@ -33,7 +33,7 @@ from ibis.state.et_parts import create_et_parts; from ibis.state.seasonal import
 from ibis.io.physics_params import build_all_params, load_physics_params
 from ibis.io.gswp3_reader import GSWP3Reader; from ibis.constants import PhysicalConstants
 from ibis.timestepping.loops_gswp3 import _cast_tree_f32
-V = '/shared/nas2/Hangkai/ibis/verify_outputs'; S = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'
+V = '/shared/nas2/Hangkai/ibis/verify_outputs'; S = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'site_data')   # tower batches and inventory
 FX = '/shared/nas2/Hangkai/ibis/inputs/sites/FLUXNET2015_FULLSET/daily_monthly_yearly'
 YEARS = [2008, 2009, 2010, 2011, 2012]; TRAIN_Y = [1, 2, 3]; HOLD_Y = [4]         # indices into YEARS; 2008 is warm-up
 
@@ -70,26 +70,33 @@ def misfit(gm, em, obs, n, years, w_et):
     return lg + (w_et * le if np.isfinite(le) else 0.0)
 
 
-def main():
+def _args(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument('--igbp', required=True); ap.add_argument('--params', required=True); ap.add_argument('--fit', required=True)
     ap.add_argument('--n-evals', type=int, default=200); ap.add_argument('--sigma', type=float, default=0.2); ap.add_argument('--w-et', type=float, default=0.5)
     ap.add_argument('--holdout', type=float, default=1 / 3); ap.add_argument('--seed', type=int, default=1); ap.add_argument('--out', required=True)
     ap.add_argument('--only-baseline', action='store_true', help='score the starting parameters and stop (smoke test)')
-    a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
-    import cma
+    ap.add_argument('--workers', type=int, default=1, help='evaluate each CMA-ES generation in this many spawned processes; '
+                    'at a few towers the GPU is latency-bound, so concurrent evaluations cost little more than one')
+    return ap.parse_args(argv)
+
+
+def setup(a, spin=True, verbose=True):
+    """Towers, the prescribed start state, parameter coding and observations; with `spin`, one spin-up cycle and `run`.
+    Deterministic in `a`, so the parent and every worker build the same towers, split and coding."""
+    say = (lambda m: print(m, flush=True)) if verbose else (lambda m: None)
     b1 = open(f'{S}/site_batches.txt').readline().split()[1].split(',')
     sites = [s for s in b1 if META.loc[s, 'IGBP'] == a.igbp]
     rng = np.random.default_rng(a.seed); order = rng.permutation(len(sites)); n_hold = int(round(a.holdout * len(sites)))
     hold = sorted(sites[k] for k in order[:n_hold]); train = sorted(s for s in sites if s not in hold); sites = train + hold
-    print(f'{a.igbp}: {len(sites)} towers; train {train}; hold-out {hold}', flush=True)
+    say(f'{a.igbp}: {len(sites)} towers; train {train}; hold-out {hold}')
     # --- start state at the tower cells, prescribed and fixed
     m = np.array(xr.open_dataset(MASK).landfrac.values) > 0; fl = np.where(m.ravel())[0]; posmap = {g: p for p, g in enumerate(fl)}
     i = np.array([int(np.argmin(np.abs(LATV - META.loc[s, 'LOCATION_LAT']))) for s in sites], np.int32); j = np.array([int(np.argmin(np.abs(LONV - META.loc[s, 'LOCATION_LONG']))) for s in sites], np.int32)
     sel = np.array([posmap[ii * 720 + jj] for ii, jj in zip(i, j)]); lat_rad = np.deg2rad(LATV[i]).astype(np.float32); ns = len(sites)
     full, _ = load_state(f'{V}/v11_transient/restart/ibis_restart_2010.npz', create_ibis_state(GridConfig(npoi=NPOI_FULL, nbedrock=3)))
     cut = lambda x: x[sel] if isinstance(x, jnp.ndarray) and x.ndim >= 1 and x.shape[0] == NPOI_FULL else x
-    st = _cast_tree_f32(jax.tree.map(cut, full))
+    st = _cast_tree_f32(jax.tree.map(cut, full)); del full
     st = eqx.tree_at(lambda s: s.stress, st, create_stress_accum(ns), is_leaf=lambda x: x is None)
     st = eqx.tree_at(lambda s: s.etparts, st, create_et_parts(ns), is_leaf=lambda x: x is None)
     st = eqx.tree_at(lambda s: s.seasonal, st, _cast_tree_f32(create_seasonal(ns, 5.0)), is_leaf=lambda x: x is None)
@@ -112,11 +119,9 @@ def main():
         else: lai_src[s] = f"state {float((cb[n] * specla).sum()):.1f}"
     st = eqx.tree_at(lambda s: (s.vegetation.cbiol, s.vegetation.cbiow, s.vegetation.cbior, s.vegetation.plai, s.vegetation.exist, s.vegetation.fu, s.vegetation.fl),
                      st, tuple(jnp.asarray(x, dtype=jnp.float32) for x in (cb, cw, cr, cb * specla[None, :], mask, fu, flw)))
-    print('leaf area: ' + ', '.join(f'{s} {lai_src[s]}' for s in sites), flush=True)
+    say('leaf area: ' + ', '.join(f'{s} {lai_src[s]}' for s in sites))
     fix = cb.copy(); hold_fn = lambda s_: enforce_prescription(s_, mask, specla, fix_cbiol=fix)
     obs = [tower_obs(s) for s in sites]
-    rd = TowerForcingReader(sites, GSWP3Reader(GSWP3)); consts = PhysicalConstants()
-    site_transient.apply_co2 = lambda q, y, series=None: eqx.tree_at(lambda z: z.atm.co2conc, q, 385.0e-6)
     # --- parameter vector: 'vmax:<pft>' or an EXTRAS name; bounds-normalised coordinates
     names = a.fit.split(',')
     for nm in names:                                                                  # fail before the spin-up, with the valid names
@@ -137,10 +142,14 @@ def main():
             if nm.startswith('vmax:'): vm[PFT_NAMES.index(nm[5:])] = np.exp(xv)
             else: ex[nm] = _dec(nm, xv)
         return vm, ex
+    C = types.SimpleNamespace(sites=sites, train=train, hold=hold, ns=ns, names=names, z0=z0, decode=decode, obs=obs, lai_src=lai_src)
+    if not spin: return C
     # --- spin once with the starting parameters (fixed vegetation: soil water/temperature and seasonal states settle)
+    rd = TowerForcingReader(sites, GSWP3Reader(GSWP3)); consts = PhysicalConstants()
+    site_transient.apply_co2 = lambda q, y, series=None: eqx.tree_at(lambda z: z.atm.co2conc, q, 385.0e-6)
     ctx0 = dict(i=i, j=j, lat_rad=lat_rad, sp=sp0, pft=pft0, consts=consts, reader=rd); key0 = jax.random.PRNGKey(0); t0 = time.time()
     for yr in YEARS: st, key0, _ = one_year(st, key0, yr, ctx0, 0); st = hold_fn(st)
-    print(f'spin-up cycle done in {time.time() - t0:.0f} s', flush=True)
+    print(f'{"" if verbose else f"worker {os.getpid()}: "}spin-up cycle done in {time.time() - t0:.0f} s', flush=True)
     base_state, base_key = st, key0
     def run(vm, ex):
         sp, pft = apply_params(sp0, pft0, vm, specla, ex); ctx = dict(i=i, j=j, lat_rad=lat_rad, sp=sp, pft=pft, consts=consts, reader=rd)
@@ -148,6 +157,33 @@ def main():
         for yr in YEARS:
             s_, k_, d = one_year(s_, k_, yr, ctx, 0); s_ = hold_fn(s_); GM.append(d['gpp_monthly'] * 1000); EM.append(d['aet_monthly'])
         return np.array(GM), np.array(EM)
+    C.run = run
+    return C
+
+
+_W = None                               # a worker's setup (--workers > 1): built once per spawned process by _winit
+
+
+def _winit(av):
+    global _W
+    warnings.filterwarnings('ignore'); enable_compile_cache(); _W = setup(argparse.Namespace(**av), spin=True, verbose=False)
+
+
+def _wready():
+    return os.getpid()
+
+
+def _weval(z):
+    t1 = time.time(); vm, ex = _W.decode(np.asarray(z)); gm, em = _W.run(vm, ex)
+    return gm, em, time.time() - t1
+
+
+def main():
+    a = _args(); os.makedirs(a.out, exist_ok=True)
+    import cma
+    enable_compile_cache()
+    C = setup(a, spin=True)      # with workers, this spin-up compiles and fills the persistent cache; theirs then load it
+    names, train, hold, sites, ns, obs = C.names, C.train, C.hold, C.sites, C.ns, C.obs
     ntr = len(train)
     def score(gm, em):
         tr = [misfit(gm, em, obs[n], n, TRAIN_Y, a.w_et) for n in range(ntr)]
@@ -155,24 +191,42 @@ def main():
         hy = [misfit(gm, em, obs[n], n, HOLD_Y, a.w_et) for n in range(ns)]
         f = lambda v: float(np.nanmean(v)) if np.isfinite(v).any() else np.nan
         return f(tr), f(ho), f(hy), tr, ho
+    pool = None
+    if a.workers > 1 and not a.only_baseline:
+        import multiprocessing as mp; from concurrent.futures import ProcessPoolExecutor
+        pool = ProcessPoolExecutor(max_workers=a.workers, mp_context=mp.get_context('spawn'), initializer=_winit, initargs=(vars(a),))
+        for _ in range(a.workers): pool.submit(_wready)                  # spawn every worker now: they spin up during the baseline
+        print(f'{a.workers} worker processes started; each spins up once (loading the cached kernels)', flush=True)
+    def evaluate(Z, local=False):
+        if pool is not None and not local: return list(pool.map(_weval, [np.asarray(z) for z in Z]))
+        out = []
+        for z in Z:
+            t1 = time.time(); vm, ex = C.decode(z); gm, em = C.run(vm, ex); out.append((gm, em, time.time() - t1))
+        return out
     hist = []; best = {'loss': np.inf}
-    def objective(z):
-        t1 = time.time(); vm, ex = decode(z); gm, em = run(vm, ex); L, Lh, Ly, tr, ho = score(gm, em)
-        rec = dict(eval=len(hist) + 1, loss=L, holdout_towers=Lh, holdout_year=Ly, secs=round(time.time() - t1, 1), **{nm: (float(vm[PFT_NAMES.index(nm[5:])]) if nm.startswith('vmax:') else float(ex[nm])) for nm in names})
-        hist.append(rec); pd.DataFrame(hist).to_csv(f'{a.out}/history.csv', index=False)
-        if np.isfinite(L) and L < best['loss']:
-            best.update(loss=L, holdout_towers=Lh, holdout_year=Ly, eval=rec['eval'], params={k: rec[k] for k in names}, per_tower_train=dict(zip(train, map(float, tr))), per_tower_hold=dict(zip(hold, map(float, ho))))
-            json.dump(best, open(f'{a.out}/best.json', 'w'), indent=1); np.savez(f'{a.out}/best_series.npz', sites=np.array(sites), gpp=gm, et=em, years=np.array(YEARS))
-        print(f"eval {rec['eval']:4d}  loss {L:9.3f}  hold-out towers {Lh:9.3f}  hold-out year {Ly:9.3f}  ({rec['secs']:.0f} s)  " + ' '.join(f'{k}={rec[k]:.4g}' for k in names), flush=True)
-        return L if np.isfinite(L) else 1e6
-    L0 = objective(z0); print(f'baseline loss {L0:.4f}', flush=True)
-    json.dump(dict(igbp=a.igbp, params=a.params, fit=names, train=train, hold=hold, lai=lai_src, w_et=a.w_et, years=YEARS, train_years=[YEARS[k] for k in TRAIN_Y], hold_years=[YEARS[k] for k in HOLD_Y]), open(f'{a.out}/setup.json', 'w'), indent=1)
-    if a.only_baseline: return
-    es = cma.CMAEvolutionStrategy(z0, a.sigma, {'bounds': [0, 1], 'maxfevals': a.n_evals, 'seed': a.seed, 'verbose': -9})
-    while not es.stop():
-        Z = es.ask(); es.tell(Z, [objective(z) for z in Z])
-    print(f"\nBEST eval {best.get('eval')}: loss {best['loss']:.4f} (baseline {L0:.4f}); hold-out towers {best.get('holdout_towers', np.nan):.4f}; hold-out year {best.get('holdout_year', np.nan):.4f}", flush=True)
-    print('BEST PARAMETERS ' + json.dumps(best.get('params', {})), flush=True)
+    def objective_batch(Z, local=False):
+        Ls = []
+        for z, (gm, em, secs) in zip(Z, evaluate(Z, local)):
+            vm, ex = C.decode(z); L, Lh, Ly, tr, ho = score(gm, em)
+            rec = dict(eval=len(hist) + 1, loss=L, holdout_towers=Lh, holdout_year=Ly, secs=round(secs, 1), **{nm: (float(vm[PFT_NAMES.index(nm[5:])]) if nm.startswith('vmax:') else float(ex[nm])) for nm in names})
+            hist.append(rec); pd.DataFrame(hist).to_csv(f'{a.out}/history.csv', index=False)
+            if np.isfinite(L) and L < best['loss']:
+                best.update(loss=L, holdout_towers=Lh, holdout_year=Ly, eval=rec['eval'], params={k: rec[k] for k in names}, per_tower_train=dict(zip(train, map(float, tr))), per_tower_hold=dict(zip(hold, map(float, ho))))
+                json.dump(best, open(f'{a.out}/best.json', 'w'), indent=1); np.savez(f'{a.out}/best_series.npz', sites=np.array(sites), gpp=gm, et=em, years=np.array(YEARS))
+            print(f"eval {rec['eval']:4d}  loss {L:9.3f}  hold-out towers {Lh:9.3f}  hold-out year {Ly:9.3f}  ({rec['secs']:.0f} s)  " + ' '.join(f'{k}={rec[k]:.4g}' for k in names), flush=True)
+            Ls.append(L if np.isfinite(L) else 1e6)
+        return Ls
+    try:
+        L0 = objective_batch([C.z0], local=True)[0]; print(f'baseline loss {L0:.4f}', flush=True)       # in the parent, while workers start
+        json.dump(dict(igbp=a.igbp, params=a.params, fit=names, train=train, hold=hold, lai=C.lai_src, w_et=a.w_et, years=YEARS, train_years=[YEARS[k] for k in TRAIN_Y], hold_years=[YEARS[k] for k in HOLD_Y], workers=a.workers, seed=a.seed, sigma=a.sigma, n_evals=a.n_evals), open(f'{a.out}/setup.json', 'w'), indent=1)
+        if a.only_baseline: return
+        es = cma.CMAEvolutionStrategy(C.z0, a.sigma, {'bounds': [0, 1], 'maxfevals': a.n_evals, 'seed': a.seed, 'verbose': -9})
+        while not es.stop():
+            Z = es.ask(); es.tell(Z, objective_batch(Z))
+        print(f"\nBEST eval {best.get('eval')}: loss {best['loss']:.4f} (baseline {L0:.4f}); hold-out towers {best.get('holdout_towers', np.nan):.4f}; hold-out year {best.get('holdout_year', np.nan):.4f}", flush=True)
+        print('BEST PARAMETERS ' + json.dumps(best.get('params', {})), flush=True)
+    finally:
+        if pool is not None: pool.shutdown(wait=False, cancel_futures=True)
 
 
 if __name__ == '__main__':

@@ -12,7 +12,7 @@ per perturbation and class, relative to the base run), printed.
 import sys, os, glob, json, argparse, numpy as np, pandas as pd, xarray as xr, warnings; warnings.filterwarnings('ignore')
 sys.path.insert(0, 'python-port'); sys.path.insert(0, 'verify/calibration')
 import jax, jax.numpy as jnp, equinox as eqx
-from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, apply_params, trace_extras, _extra_value, modis_at
+from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, apply_params, trace_extras, enable_compile_cache, _extra_value, modis_at
 import site_transient; from site_transient import one_year
 from site_run import prescribe, tower_monthly, tower_mat, enforce_prescription, META, SEED_LAI, SEED_WOOD
 from phenology_vs_phenocam import crossings, smooth
@@ -22,7 +22,7 @@ from ibis.state.model_state import create_ibis_state; from ibis.state.stress_acc
 from ibis.io.physics_params import build_all_params, load_physics_params
 from ibis.io.gswp3_reader import GSWP3Reader; from ibis.constants import PhysicalConstants
 from ibis.timestepping.loops_gswp3 import _cast_tree_f32
-V = '/shared/nas2/Hangkai/ibis/verify_outputs'; S = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'
+V = '/shared/nas2/Hangkai/ibis/verify_outputs'; S = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'site_data')   # tower batches and inventory
 CLASSES = ['ENF', 'DBF', 'GRA', 'MF', 'EBF', 'OSH', 'WSA', 'SAV']
 
 # (label, kind, spec): kind 'extras' -> dict name: function(default) ; 'vmax'/'specla'/'tauleaf'/'aleaf' -> factor or delta on all 12 PFTs
@@ -105,7 +105,7 @@ def metrics(gm, gd, etm, lai_l, lai_u, og, oe, NH, ref=None, lai_m=None):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--out', required=True); ap.add_argument('--per-class', type=int, default=4); ap.add_argument('--params', default='python-port/configs/params/default.yaml'); ap.add_argument('--only', default='', help='comma list of perturbation labels (smoke test)'); ap.add_argument('--set', default='', choices=['', 'phenology', 'seasonal'], help="'phenology': the wide-range phenology set; 'seasonal': the CALIBRATION.md 21-22 formulation parameters (run with a yaml that switches them on)"); ap.add_argument('--fixed-lai', default='', choices=['', 'attrs'], help="'attrs': hold leaf carbon at the site-attribute maximum LAI (fixed vegetation, stage C1)"); ap.add_argument('--dump-monthly', action='store_true', help='also save the monthly GPP and displayed-LAI series per perturbation')
-    a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
+    a = ap.parse_args(); os.makedirs(a.out, exist_ok=True); enable_compile_cache()
     # towers: batch 1 (2008-2012), up to per-class per IGBP, ordered by record length
     b1 = open(f'{S}/site_batches.txt').readline().split()[1].split(','); inv = pd.read_csv(f'{S}/site_inventory.csv').set_index('site')
     sites = []
