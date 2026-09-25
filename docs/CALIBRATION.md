@@ -3656,3 +3656,55 @@ first:
 
 Either must be checked against the tower light-response curves, not only totals, given Bonan's warning about
 shaded-leaf overshoot.
+
+## 23. Stage B: the screening redone on the corrected harness (2026-09-25)
+
+**Setup.** 28 towers of the 2008-2012 batch (up to 4 per class) were run on `default_seasonal.yaml` (both Stage A
+formulations on), with composition prescribed and leaf carbon held at the site-attribute LAI (`--fixed-lai attrs`).
+There were 52 one-at-a-time perturbations: the 32 of section 20 and the 20 of the new constants
+(`--set seasonal`). Each is one 5-year cycle from a shared base, scored on 2010-2012. The sweep ran as three GPU
+processes (`$V/site_runs/stageB_standard_a`, `_b`, `stageB_seasonal`); their bases agree to the last bit. Ranking:
+`diagnostics/stageB_rank.py` -> `$V/site_runs/stageB_ranking.txt`.
+
+**Base by class** (model/tower unless stated):
+
+| class | GPP | Jun-Jul GPP | NDJF share (model) | leaf-out DOY | senescence DOY | ET | summer LAI |
+|---|---|---|---|---|---|---|---|
+| DBF | 0.63 | 0.44 | 0.013 | 96 | 285 | 1.62 | 5.7 |
+| ENF | 0.55 | 0.48 | 0.079 | 92 | 318 | 1.07 | 4.5 |
+| MF | 0.92 | 0.64 | 0.062 | 89 | 314 | 1.50 | 6.5 |
+| EBF | 1.05 | 0.99 | 0.334 | 86 | 229 | 1.32 | 3.6 |
+| GRA | 1.16 | 3.07* | 0.097 | 76 | 257 | 1.48 | 3.7 |
+| OSH | 2.64 | 2.92 | 0.213 | 169 | 271 | 1.36 | 2.1 |
+| SAV / WSA | 1.07 / 1.18 | 0.45 / 0.96 | 0.49 / 0.29 | | | 1.20 / 1.24 | 1.7 / 2.4 |
+
+*US-Var is a winter-growing grassland; its near-zero summer GPP makes the Jun-Jul ratio meaningless for the class.
+
+**What moves what, per forest class** (class-mean change):
+
+- **ENF.**
+  - Live: vmax x1.4 raises the GPP ratio by 0.19. `acclim_smax` x1.5 / x0.6 changes it by -0.15 / +0.12.
+    `acclim_s0` +/-3 C changes it by -0.10 / +0.08 and moves both season edges by about 15 d.
+  - Dead at these towers (|dGPP| < 0.01): `acclim_tau`, `stressfac`, `fmax`.
+  - The running C1 ENF fit carries `acclim_tau` and `stressfac`. Expect them to be poorly determined; their
+    fitted values should not be read as findings.
+- **DBF.**
+  - Live: vmax x1.4 gives +0.21.
+  - Leaf-out: `gdd_thresh_u` +150 / +300 / +600 C d delays it by 14 / 25 / 47 d. `gthresh_u_c` +5 C delays it by
+    23 d.
+  - Senescence: `sen_ycrit_u` x2 / x0.5 moves it by +18 / -14 d. `sen_tb_u` -4 / +4 C moves it by +16 / -14 d.
+    These are the same lever for practical purposes. `sen_pstart_u` is weaker.
+  - Water stress is inert at these towers.
+  - The leaf-out threshold had a fit bound of 250 C d (default 100). The PhenoCam timing (-30 d) needs about
+    +300, so the bound is now 1000 (commit `ff0e39d`).
+- **MF.** Live: vmax (+0.30), then the acclimation constants. Phenology is secondary.
+- **GRA / OSH.** As in section 20: vmax, `soil_beta_power` (+0.25 GRA, +0.79 OSH), and the lower-canopy thresholds
+  (`tthresh_l_c` +10 C: -0.66 GRA, leaf-out +55 d).
+
+**For C1.**
+- ENF is running with capacity plus acclimation.
+- DBF was launched at 07:50 on vmax (`temp_bl_dec`, the only live deciduous vmax under the F77 priority rule),
+  `gdd_thresh_u` and `sen_ycrit_u`, with `sen_tb_u` and `sen_pstart_u` fixed to avoid the Tb/Ycrit degeneracy.
+  Run: 150 evaluations, 4 workers, `$V/site_fit/C1_DBF`.
+- In both classes, vmax will absorb the canopy-scaling gap of section 22. Its fitted value is an effective
+  canopy capacity, not a leaf trait, until that gap is decided.
