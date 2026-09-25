@@ -116,6 +116,18 @@ class StomataParams(eqx.Module):
     acclim_tau: float = 10.93
     acclim_s0: float = -3.063
     acclim_smax: float = 17.72
+    # Canopy scaling of photosynthetic capacity (docs/CALIBRATION.md 22, 26). F77 computes the TOP leaf's rate and
+    # multiplies it by the light-profile integral f_light = (1 - e^-k(L+S))/(kL), so capacity falls through the canopy
+    # with the instantaneous PAR extinction k (about 2 over the day at the conifer towers) and a dense canopy has the
+    # capacity of about 1/k m2 of top leaf, whatever its leaf area (probe: effective leaf area 1.0 at 17 ENF towers,
+    # LAI 2.5-7.3; summer GPP half the towers'). Observed capacity gradients are far shallower (Lloyd et al. 2010:
+    # Kn = exp(0.00963 Vcmax25 - 2.43), 0.13-0.23). When on, the Rubisco and sink (C4: CO2) limits and dark
+    # respiration are scaled by f_cap = (1 - e^-Kn L)/(Kn L) and the light limit by f_light, and the canopy rate is
+    # the co-limitation of the scaled limits. With f_cap = f_light this is F77 exactly (the co-limitation is
+    # homogeneous of degree one). Static switches per canopy, off: bit-identical; `cap_kn` is traced (fittable).
+    cap_scale_u: bool = eqx.field(static=True, default=False)
+    cap_scale_l: bool = eqx.field(static=True, default=False)
+    cap_kn: float = 0.15
 
 
 # ---------------------------------------------------------------------------
@@ -182,7 +194,7 @@ def colimit(j1, j2, theta):
 # C3 photosynthesis (Farquhar et al. 1980)
 # ---------------------------------------------------------------------------
 
-def farquhar_c3(par, ci, vmax, gamstar, kc, ko, o2conc, rdark, params):
+def farquhar_c3(par, ci, vmax, gamstar, kc, ko, o2conc, rdark, params, f_light=None, f_cap=None):
     """C3 leaf-level photosynthesis.
 
     Parameters
@@ -212,10 +224,15 @@ def farquhar_c3(par, ci, vmax, gamstar, kc, ko, o2conc, rdark, params):
     je = par * 4.59e-06 * params.alpha3 * (ci - gamstar) / (ci + 2.0 * gamstar)
     # Rubisco-limited rate
     jc = vmax * (ci - gamstar) / (ci + kc * (1.0 + o2conc / ko))
-    # Co-limit light and Rubisco
-    jp = colimit(je, jc, params.theta3)
     # TPU-limited rate (sink limitation)
     js = vmax / 2.2
+    if f_cap is not None:
+        # Canopy-level co-limitation (StomataParams.cap_scale_u/_l): the light limit follows the light profile,
+        # capacity (Rubisco, sink) and dark respiration their own shallower profile. Returns canopy-mean rates per
+        # unit leaf area, i.e. what F77 gets from leaf rate x f_light.
+        je, jc, js, rdark = je * f_light, jc * f_cap, js * f_cap, rdark * f_cap
+    # Co-limit light and Rubisco
+    jp = colimit(je, jc, params.theta3)
     # Co-limit with sink
     ag = colimit(jp, js, params.beta3)
     an = ag - rdark
@@ -226,7 +243,7 @@ def farquhar_c3(par, ci, vmax, gamstar, kc, ko, o2conc, rdark, params):
 # C4 photosynthesis
 # ---------------------------------------------------------------------------
 
-def farquhar_c4(par, ci, vmax, rdark, params):
+def farquhar_c4(par, ci, vmax, rdark, params, f_light=None, f_cap=None):
     """C4 leaf-level photosynthesis.
 
     Parameters
@@ -250,10 +267,12 @@ def farquhar_c4(par, ci, vmax, rdark, params):
     je = par * 4.59e-06 * params.alpha4
     # Rubisco-limited
     jc = vmax
-    # Co-limit light and Rubisco
-    jp = colimit(je, jc, params.theta4)
     # CO2-limited
     ji = 18.0e3 * vmax * ci
+    if f_cap is not None:                     # canopy-level co-limitation, as in farquhar_c3
+        je, jc, ji, rdark = je * f_light, jc * f_cap, ji * f_cap, rdark * f_cap
+    # Co-limit light and Rubisco
+    jp = colimit(je, jc, params.theta4)
     # Co-limit with CO2
     ag = colimit(jp, ji, params.beta4)
     an = ag - rdark
@@ -321,6 +340,14 @@ def ball_berry_step(an, cs_old, gs_old, ci_old, co2conc, gbco2, rh,
 # ---------------------------------------------------------------------------
 # Canopy PAR scaling
 # ---------------------------------------------------------------------------
+
+def _capacity_integral(lai_canopy, kn, epsilon):
+    """Canopy-mean relative photosynthetic capacity per unit leaf area, (1 - e^-Kn L)/(Kn L) (-> 1 as L -> 0; 0 without
+    leaves), for an exponential capacity profile with coefficient Kn (StomataParams.cap_kn; CALIBRATION.md 26)."""
+    x = kn * lai_canopy
+    f = jnp.where(x > 1.0e-4, -jnp.expm1(-x) / jnp.maximum(x, 1.0e-4), 1.0 - 0.5 * x)     # float32-safe near 0
+    return jnp.where(lai_canopy > 0.0, f, 0.0)
+
 
 def canopy_scaling(toppar, term6, term7, scalcoef, lai_canopy, sai_canopy,
                    a10scalp, a10daylight, dtime, epsilon, leaf_only=False):
@@ -686,6 +713,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     ag_ub, an_ub = farquhar_c3(
         topparu, ci_ub, vmax_ub, gamstar_u, kc_u, ko_u,
         params.o2conc, rdark_ub, params)
+    ci_ub0 = ci_ub                                   # the ci this step's rates used (cap_scale_u)
     cs_ub, gs_ub, ci_ub = ball_berry_step(
         an_ub, cs_upper[:, 0], gs_upper[:, 0], ci_ub,
         co2conc, gbco2u, rh12,
@@ -698,6 +726,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     ag_uc, an_uc = farquhar_c3(
         topparu, ci_uc, vmax_uc, gamstar_u, kc_u, ko_u,
         params.o2conc, rdark_uc, params)
+    ci_uc0 = ci_uc
     cs_uc, gs_uc, ci_uc = ball_berry_step(
         an_uc, cs_upper[:, 1], gs_upper[:, 1], ci_uc,
         co2conc, gbco2u, rh12,
@@ -712,10 +741,18 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
         leaf_only=params.scale_leaf_only)
 
     # Scale to canopy level
-    agc_ub = ag_ub * scale_u
-    agc_uc = ag_uc * scale_u
-    anc_ub = an_ub * scale_u
-    anc_uc = an_uc * scale_u
+    if params.cap_scale_u:
+        # capacity with its own profile, light with the light profile, co-limited at canopy level (CALIBRATION.md 26)
+        fcap_u = _capacity_integral(lai[:, 1], params.cap_kn, epsilon)
+        agc_ub, anc_ub = farquhar_c3(topparu, ci_ub0, vmax_ub, gamstar_u, kc_u, ko_u, params.o2conc, rdark_ub, params,
+                                     f_light=scale_u, f_cap=fcap_u)
+        agc_uc, anc_uc = farquhar_c3(topparu, ci_uc0, vmax_uc, gamstar_u, kc_u, ko_u, params.o2conc, rdark_uc, params,
+                                     f_light=scale_u, f_cap=fcap_u)
+    else:
+        agc_ub = ag_ub * scale_u
+        agc_uc = ag_uc * scale_u
+        anc_ub = an_ub * scale_u
+        anc_uc = an_uc * scale_u
 
     # Canopy-average surface CO2 and stomatal conductance
     csc_ub = jnp.maximum(gamstar_min_u, co2conc - anc_ub / gbco2u)
@@ -767,6 +804,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     ag_ls, an_ls = farquhar_c3(
         topparl, ci_ls, vmax_ls, gamstar_l, kc_l, ko_l,
         params.o2conc, rdark_ls, params)
+    ci_ls0 = ci_ls
     cs_ls, gs_ls, ci_ls = ball_berry_step(
         an_ls, cs_lower[:, 0], gs_lower[:, 0], ci_ls,
         co2conc, gbco2l, rh34,
@@ -780,6 +818,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     ag_l3, an_l3 = farquhar_c3(
         topparl, ci_l3, vmax_l3, gamstar_l, kc_l, ko_l,
         params.o2conc, rdark_l3, params)
+    ci_l30 = ci_l3
     cs_l3, gs_l3, ci_l3 = ball_berry_step(
         an_l3, cs_lower[:, 1], gs_lower[:, 1], ci_l3,
         co2conc, gbco2l, rh34,
@@ -792,6 +831,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     rdark_l4 = params.gamma[3] * vmaxl4_nom * tempvm_c4_l
     ag_l4, an_l4 = farquhar_c4(
         topparl, ci_l4, vmax_l4, rdark_l4, params)
+    ci_l40 = ci_l4
     cs_l4, gs_l4, ci_l4 = ball_berry_step(
         an_l4, cs_lower[:, 2], gs_lower[:, 2], ci_l4,
         co2conc, gbco2l, rh34,
@@ -807,12 +847,20 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
         leaf_only=params.scale_leaf_only)
 
     # Scale to canopy level
-    agc_ls = ag_ls * scale_l
-    agc_l3 = ag_l3 * scale_l
-    agc_l4 = ag_l4 * scale_l
-    anc_ls = an_ls * scale_l
-    anc_l3 = an_l3 * scale_l
-    anc_l4 = an_l4 * scale_l
+    if params.cap_scale_l:
+        fcap_l = _capacity_integral(lai[:, 0], params.cap_kn, epsilon)
+        agc_ls, anc_ls = farquhar_c3(topparl, ci_ls0, vmax_ls, gamstar_l, kc_l, ko_l, params.o2conc, rdark_ls, params,
+                                     f_light=scale_l, f_cap=fcap_l)
+        agc_l3, anc_l3 = farquhar_c3(topparl, ci_l30, vmax_l3, gamstar_l, kc_l, ko_l, params.o2conc, rdark_l3, params,
+                                     f_light=scale_l, f_cap=fcap_l)
+        agc_l4, anc_l4 = farquhar_c4(topparl, ci_l40, vmax_l4, rdark_l4, params, f_light=scale_l, f_cap=fcap_l)
+    else:
+        agc_ls = ag_ls * scale_l
+        agc_l3 = ag_l3 * scale_l
+        agc_l4 = ag_l4 * scale_l
+        anc_ls = an_ls * scale_l
+        anc_l3 = an_l3 * scale_l
+        anc_l4 = an_l4 * scale_l
 
     # Canopy-average surface CO2 and stomatal conductance
     csc_ls = jnp.maximum(gamstar_min_l, co2conc - anc_ls / gbco2l)

@@ -151,6 +151,9 @@ def build_stomata_params(d: dict) -> StomataParams:
         acclim_tau=float(s.get('acclim_tau', 10.93)),
         acclim_s0=float(s.get('acclim_s0', -3.063)),
         acclim_smax=float(s.get('acclim_smax', 17.72)),
+        cap_scale_u=bool(s.get('cap_scale_u', False)),         # CALIBRATION.md 26; off: bit-identical
+        cap_scale_l=bool(s.get('cap_scale_l', False)),
+        cap_kn=float(s.get('cap_kn', 0.15)),
         gamma=gamma,
         coefm=coefm,
         coefb=coefb,

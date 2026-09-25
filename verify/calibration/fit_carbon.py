@@ -307,6 +307,9 @@ EXTRAS["fmax"] = (_set(lambda p: p.interception.fmax), 0.10, 0.60, False)
 EXTRAS["acclim_tau"] = (_set(lambda p: p.stomata_params.acclim_tau), 2.0, 30.0, True)
 EXTRAS["acclim_s0"] = (_set(lambda p: p.stomata_params.acclim_s0), -10.0, 5.0, False)
 EXTRAS["acclim_smax"] = (_set(lambda p: p.stomata_params.acclim_smax), 5.0, 30.0, True)
+#: Capacity-profile coefficient of the canopy scaling (CALIBRATION.md 26; active with `stomata: cap_scale_u/_l`).
+#: Lloyd et al. (2010): 0.13-0.23 for observed Vcmax; log-encoded, [0.05, 1.0].
+EXTRAS["cap_kn"] = (_set(lambda p: p.stomata_params.cap_kn), 0.05, 1.0, True)
 #: Photoperiod-gated senescence (Delpierre 2009 structure; PhenoParams, active only with
 #: `pheno: sen_photoperiod_u / _l: true`): critical day length (h), base temperature (C), critical sum (C d).
 for _c in ("u", "l"):
@@ -340,7 +343,7 @@ PFT_SCALARS = ("cover_k", "fl_min", "fu_min", "fu_k", "tree_stress_min", "tree_s
 COEFM_GROUPS = {"coefm_bl": 0, "coefm_con": 1, "coefm_shrub": 2, "coefm_c4": 3, "coefm_c3": 4}
 INTERCEPTION_FIELDS = ("wliqumax", "wliqsmax", "wliqlmax", "fmax")
 CANOPY_FIELDS = ("soil_beta_power",)
-STOMATA_FIELDS = ("acclim_tau", "acclim_s0", "acclim_smax")
+STOMATA_FIELDS = ("acclim_tau", "acclim_s0", "acclim_smax", "cap_kn")
 
 
 def _extra_value(sp, pft, n):

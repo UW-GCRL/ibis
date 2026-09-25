@@ -20,7 +20,7 @@ COEFM = {'coefm_bl': 'broadleaf', 'coefm_con': 'conifer', 'coefm_shrub': 'shrub'
 for k, v in P.items():
     v = float(v)
     if k.startswith('vmax:'): t['stomata']['vmax'][VKEYS[PFT_NAMES.index(k[5:])]] = v
-    elif k == 'stressfac' or k in ('acclim_tau', 'acclim_s0', 'acclim_smax'): t['stomata'][k] = v
+    elif k == 'stressfac' or k in ('acclim_tau', 'acclim_s0', 'acclim_smax', 'cap_kn'): t['stomata'][k] = v
     elif k in COEFM: t['stomata']['ball_berry'][COEFM[k]]['coefm'] = v
     elif k in PFT_SCALARS: t.setdefault('pft', {})[k] = v
     elif k in ('wliqumax', 'wliqsmax', 'wliqlmax', 'fmax'): t.setdefault('interception', {})[k] = v
@@ -30,7 +30,7 @@ yaml.safe_dump(t, open(out, 'w'), sort_keys=False)
 sp, pft, _ = build_all_params(4, np.zeros(4, np.float32), load_physics_params(out))
 for k, v in P.items():
     if k.startswith('vmax:'): got = float(np.asarray(sp.stomata_params.vmax_pft)[PFT_NAMES.index(k[5:])])
-    elif k == 'stressfac' or k.startswith('acclim_'): got = float(getattr(sp.stomata_params, k))
+    elif k == 'stressfac' or k.startswith('acclim_') or k == 'cap_kn': got = float(getattr(sp.stomata_params, k))
     elif k in COEFM: got = float(np.asarray(sp.stomata_params.coefm)[list(COEFM).index(k)])
     elif k in PFT_SCALARS: got = float(getattr(pft, k))
     elif k in ('wliqumax', 'wliqsmax', 'wliqlmax', 'fmax'): got = float(getattr(sp.interception, k))
