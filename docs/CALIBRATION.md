@@ -3897,3 +3897,7 @@ stem credit also removed (`site_runs/capscale_AB_capu_leafonly`). Class medians,
 The effective leaf area is the same at every tower whatever the LAI: US-Ha1 at LAI 8.6 has 1.006, FR-Fon at LAI 4.1
 has 0.967. This confirms that the deciduous deficit of section 25 is the canopy scaling, not leaf area, water
 (except IT-Ro2, stress 0.32) or wet leaves.
+
+**Order (Hangkai, 14:20).** "Currently we do not need to run globally, just fit for the site point first." The global
+with/without test of the canopy switch is deferred. The site fits (C1b ENF and DBF, then the remaining classes) come
+first, and they are checked at held-out towers and years only.
