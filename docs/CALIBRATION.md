@@ -3590,3 +3590,24 @@ Both are what the stage C1 fit is for: conifer vmax, and the three acclimation c
   the upper bound, the deficit is in canopy light use rather than capacity.
 - Per-tower ratios: `$V/site_fit/leafonly_AB_ratios_2026-09-25.txt`.
 - Whether the site stage should carry the two corrections is for Hangkai to decide.
+
+**Where the forest deficit sits: the summer light response (added 06:05).** June-August daily GPP was binned by the
+tower's own incoming shortwave. The fixed-vegetation run on defaults (`site_runs/default_2008-2012_fixedlai`, tower
+meteorology) was compared with the towers' daily GPP (mean of NT and DT, NEE QC >= 0.8), using
+`diagnostics/light_response.py`:
+
+| | model/tower, SW < 150 W m-2 | model/tower, SW >= 250 | slope, gC m-2 d-1 per 100 W m-2 (model / tower) |
+|---|---|---|---|
+| ENF, 17 towers | 0.74 | 0.46 | 0.22 / 1.69 |
+| DBF, 12 towers | 0.65 | 0.46 | 0.63 / 2.13 |
+
+The model's summer canopy is flat at 4-5.5 gC m-2 d-1 from the dimmest to the brightest days. The towers rise from
+3-4 to 10-12. On the dimmest days the model matches the towers or exceeds them.
+
+The deficit is therefore the high-light plateau, not absorption or quantum efficiency. The plateau could come from
+the capacity of the scaled big leaf (vmax times the canopy scaling), from a stomatal limit, or from a stress factor
+that binds on bright days. It is the same "light-saturated canopy" that lever tests 16 and 21 met in the tropics
+and on the steppes. The next process probe is an hourly one at a humid conifer tower: absorbed PAR, the limiting
+rate (light, Rubisco or sink), ci, gs, the stress factors and the scaling factor.
+
+Figures are in the local document (F12, F13). The tables are `$V/site_runs/light_response_{ENF,DBF}.txt`.
