@@ -3711,6 +3711,13 @@ processes (`$V/site_runs/stageB_standard_a`, `_b`, `stageB_seasonal`); their bas
 
 ## 24. C1 ENF: the fixed-vegetation fit of the evergreen conifers (2026-09-25)
 
+**Verdict: not an acceptable fit.** Summer GPP at the temperate conifer towers stays at 55-70 % of the towers'
+(DE-Tha about 200 vs 350 gC m-2 month-1), and annual GPP at 0.73-0.80. The loss fell because the baseline was
+poor, not because the model reproduces the towers. Capacity went to its bound and the magnitude did not close; that
+is the structural limit of section 22. The fitted values are not to be used. The C1 fits are repeated after the
+canopy-capacity scaling is addressed. (Verdict added 13:00 after Hangkai's review of the figures: "the magnitude is
+off by 50 %". The first write-up below led with the loss reduction and should not have.)
+
 **Setup.**
 - 17 ENF towers of the 2008-2012 batch: 11 training towers and 6 held out (seed 1). 2008 is warm-up, 2009-2011
   train, and 2012 is held out at every tower.
