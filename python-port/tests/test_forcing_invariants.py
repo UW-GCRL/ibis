@@ -36,7 +36,19 @@ def _cells():
     return np.array([posmap[i * 720 + j] for i, j in ij]), np.array([i for i, _ in ij], np.int32), np.array([j for _, j in ij], np.int32), lat
 
 
-def test_year_of_real_forcing_carries_pressure_and_a_ten_day_clock():
+@pytest.fixture
+def production_f32():
+    """Production precision: run_global never enables x64, but the fire test modules switch it on at import, so
+    in a full-suite run build_all_params hands float64 tables (bgc cnr, vmax_pft, ...) to a float32 state and the
+    soil-BGC carry promotes. Run this production-loop test in the production mode and restore the flag after."""
+    import jax
+    was = jax.config.read("jax_enable_x64")
+    jax.config.update("jax_enable_x64", False)
+    yield
+    jax.config.update("jax_enable_x64", was)
+
+
+def test_year_of_real_forcing_carries_pressure_and_a_ten_day_clock(production_f32):
     import jax, jax.numpy as jnp, equinox as eqx
     from ibis.dimensions import GridConfig
     from ibis.io.restart import load_state
