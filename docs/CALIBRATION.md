@@ -3876,3 +3876,24 @@ stem credit also removed (`site_runs/capscale_AB_capu_leafonly`). Class medians,
   repeated on it from 14:05: `$V/site_fit/C1b_ENF` (vmax x2, acclim_s0, acclim_smax; Kn held at 0.15) and
   `C1b_DBF` (vmax, gdd_thresh_u, sen_ycrit_u). They are judged first on the peak-month and June-August ratios
   and the light response, then on the loss.
+
+**The hourly probe at the deciduous towers (added 14:15).** Same probe as section 22, with the fitted C1 DBF parameters
+(`$V/site_fit/C1_DBF/params_C1_DBF_best.yaml`, F77 canopy), July 2010, 12 DBF towers
+(`$V/site_fit/plateau_probe_DBF_201007.{npz,txt}`). Daylight medians:
+
+| quantity | value |
+|---|---|
+| top leaf limit: light / Rubisco / sink | 12 / 82 / 6 % of hours |
+| vmax at leaf T | 47.5 umol m-2 s-1 |
+| ci | 282 ppm |
+| soil stress | 0.94 |
+| wet fraction | 0.03 |
+| top-leaf Ag | 13.6 umol m-2 s-1 |
+| k | 2.2 |
+| LAI | 5.4 (range 4.1-8.6) |
+| effective leaf area | **1.01 (range 0.97-1.03)** |
+| GPP, model / tower | 7.5 / 12.0 gC m-2 d-1 |
+
+The effective leaf area is the same at every tower whatever the LAI: US-Ha1 at LAI 8.6 has 1.006, FR-Fon at LAI 4.1
+has 0.967. This confirms that the deciduous deficit of section 25 is the canopy scaling, not leaf area, water
+(except IT-Ro2, stress 0.32) or wet leaves.
