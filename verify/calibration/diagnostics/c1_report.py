@@ -44,7 +44,8 @@ def per_tower(S):
         g_o = np.nanmean(o['gpp'][tr], 0); g_m = gm[tr, :, n].mean(0); e_o = np.nanmean(o['et'][tr], 0); e_m = em[tr, :, n].mean(0)
         ok = np.isfinite(g_o); oke = np.isfinite(e_o)
         r = dict(site=s, set='train' if s in train else 'hold', loss_train_years=misfit(gm, em, o, n, tr, w_et), loss_hold_year=misfit(gm, em, o, n, HOLD_Y, w_et),
-                 gpp_ratio=g_m[ok].sum() / max(g_o[ok].sum(), 1e-6), et_ratio=e_m[oke].sum() / max(e_o[oke].sum(), 1e-6) if oke.any() else np.nan,
+                 gpp_ratio=g_m[ok].sum() / max(g_o[ok].sum(), 1e-6), peak_ratio=g_m.max() / max(np.nanmax(g_o), 1e-6),
+                 jja_ratio=g_m[[5, 6, 7]].sum() / max(np.nansum(g_o[[5, 6, 7]]), 1e-6), et_ratio=e_m[oke].sum() / max(e_o[oke].sum(), 1e-6) if oke.any() else np.nan,
                  ndjf_model=g_m[[10, 11, 0, 1]].sum() / max(g_m.sum(), 1e-6), ndjf_tower=np.nansum(g_o[[10, 11, 0, 1]]) / max(np.nansum(g_o), 1e-6))
         if nm_ is not None:
             d = nm_[tr, :, n] - o['nee'][tr]; r['nee_rmse'] = float(np.sqrt(np.nanmean(d ** 2))) if np.isfinite(d).any() else np.nan
@@ -54,7 +55,7 @@ def per_tower(S):
 
 P0, P1 = per_tower(B0), per_tower(B1)
 pd.set_option('display.width', 250)
-cols = [c for c in ('loss_train_years', 'loss_hold_year', 'gpp_ratio', 'et_ratio', 'ndjf_model', 'ndjf_tower', 'nee_rmse', 'nee_bias') if c in P1]
+cols = [c for c in ('loss_train_years', 'loss_hold_year', 'gpp_ratio', 'peak_ratio', 'jja_ratio', 'et_ratio', 'ndjf_model', 'ndjf_tower', 'nee_rmse', 'nee_bias') if c in P1]
 T = pd.concat({'baseline': P0[cols], 'best': P1[cols]}, axis=1).round(3); T.insert(0, 'set', P1['set'])
 print('\nper tower (training years 2009-2011 unless noted):'); print(T.to_string())
 print('\nmedians:')
