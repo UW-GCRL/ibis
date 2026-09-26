@@ -3901,3 +3901,79 @@ has 0.967. This confirms that the deciduous deficit of section 25 is the canopy 
 **Order (Hangkai, 14:20).** "Currently we do not need to run globally, just fit for the site point first." The global
 with/without test of the canopy switch is deferred. The site fits (C1b ENF and DBF, then the remaining classes) come
 first, and they are checked at held-out towers and years only.
+
+## 27. The canopy scaling traced to its sources: k, the capacity profile, vmax (2026-09-26)
+
+**Order (Hangkai, 2026-09-26).** "Check all the related variables, and double check how others solve this issue online, like
+the Beer's law, the k factor, can we change it? Also check the vcmax, is it wrong? Dig into it rather than change the
+parameters without any clues." Full record with figures: `ibis_local_document/CANOPY_SCALING_INVESTIGATION_2026-09-26.md`.
+
+**The two Harvard fits (1994-2002, LAI 4.7, CO2 series; `$V/site_fit/Ha1_{A_original,B_corrected}`)** both reach a
+monthly loss of 18 (from 47.4 and 206.7) by compensation: A raises vmax to 44.3e-6 (68 umol m-2 s-1 at 25 C, 1.5x TRY)
+with the stomatal slope at 15; B lowers it to 23.5e-6 (36, 0.6x TRY) with the slope at 5.8 (ci 240 ppm). Replayed hourly
+on July 2010 (`diag_US-Ha1/{f77,canopy}_{default,fitHa1}_L47.npz`, `model_hourly_lr.py`) both give alpha 0.030 against
+the tower's 0.065-0.068 and 25-26 umol m-2 s-1 in bright hours against 29 (21-yr July mean) to 37 (2010).
+
+**What the F77 canopy does (physiology.f, comment block at the scaling):** "an(x) is proportional to apar(x)"; the top-leaf
+rate is multiplied by (1 - e^-k(L+S))/k with k = extpar, the two-stream extinction of THIS HOUR's absorbed PAR. The light-
+limited part is Beer's law exactly (alpha x the leaves' share of APAR); the capacity-limited part gets 1/k top leaves:
+1.4 at noon (k 0.70), < 1 at low sun (k 1.7 at 07/17 h, clipped at 10 at 06/18 h), 1.00 on the daylight average at LAI
+4.8 and 1.01 at LAI 8.6. Sellers (1992), whom IBIS-2 (Kucharik 2000) follows, argued with the TIME-MEAN light profile;
+IBIS-1 integrated sunlit and shaded leaves. Every other variable of the big leaf is ordinary in July (hourly record,
+`model_hourly_lr.py`): top leaf Rubisco-limited 80 % of daylight hours, vmax(T) 45 = 30 x 1.52 x 0.988 (no stress), leaf
+T 25 C, ci 289 ppm, wet fraction 0.04, gs 0.22.
+
+**k.** Not a free parameter (two-stream with chifuz 0, rhoveg 0.10, tauveg 0.07): beam 0.5/cos z, diffuse ~0.9, blend
+0.70 at noon, 0.79 light-weighted. Measured daily k for broadleaf forests 0.59 (Zhang et al. 2014 meta-analysis; PnET at
+Harvard 0.58). Lowering k for light is wrong for radiation and insufficient for capacity: canopy capacity
+(1 - e^-Kn L)/Kn at LAI 4.7 is 0.99 top leaves at Kn 1.0, 1.4 at 0.7 (time-mean), 1.8 at 0.5, 2.5 at 0.3, 3.4 at 0.15.
+Observed Kn 0.13-0.23 (Lloyd et al. 2010: loge kV = 0.00963 Vmax(0) - 2.43; "kP should always be substantially less than
+kI"); de Pury & Farquhar 1997 kn 0.713 per canopy (0.18 per LAI); JULES kn 0.78 per canopy; CLM4 0.11, CLM4.5 Lloyd's
+relation. Capacity needs its own coefficient.
+
+**The reference (`diagnostics/canopy_reference.py`):** the record's hourly inputs (tower PPFD, big-leaf T, ci, vmax(T,
+stress), L, S) integrated with IBIS's own leaf model in a 60-layer sunlit/shaded canopy (de Pury & Farquhar light model,
+kb 0.5/sin(elev), kd 0.78, scattering 0.15, diffuse fraction from the clearness index, stems attenuate, leaves assimilate,
+V0 e^-Kn x). July 2010 at LAI 4.8, bright hours (> 1500 umol m-2 s-1) / tower 2010 36.8 / tower 21-yr 30:
+
+| canopy | alpha | bright | dim (< 500) | bright / 21-yr tower |
+|---|---|---|---|---|
+| F77 record | 0.023 | 17.2 | 4.3 | 0.57 |
+| sunlit/shaded multilayer, Kn 0.15, IBIS vmax | 0.059 | 24.1 | 7.7 | 0.80 |
+| two-big-leaf sunlit/shaded closed form | 0.062 | 24.5 | 7.9 | 0.82 |
+| multilayer, layer-mean light (no split) | 0.047 | 32.6 | 7.9 | 1.09 |
+| one big leaf, Kn 0.15, canopy-level co-limitation (= cap_scale) | 0.058 | 39.5 | 8.5 | 1.32 |
+| big leaf, time-mean k 0.79 (Sellers) / Kn 0.5 | 0.089 / 0.076 | 15.2 / 22.2 | 7.5 / 8.1 | 0.51 / 0.74 |
+| reference + TRY vmax (57.7) / + Bernacchi T / both | 0.057 / 0.050 / 0.049 | 27.9 / 25.8 / 30.0 | 8.0 / 7.5 / 7.8 | 0.93 / 0.86 / 1.00 |
+
+Typical year (2001 record; tower alpha 0.065, bright 28.6): F77 0.60, reference 0.87, reference + TRY vmax 1.01
+(bins 200-1800: 0.96, 0.99, 0.92, 1.04, 1.04, 1.04, 1.06, 0.99), + Bernacchi 0.99, cap_scale 1.40.
+
+**Readings.**
+1. The sunlit/shaded canopy with IBIS's leaves has the tower's low-light response (bins 200-600 within 10-15 %) and
+   80-87 % of its bright-hour rate; the closed-form two-big-leaf is within 2 % of the multilayer.
+2. `cap_scale` (section 26) has the right capacity total and the wrong integration: co-limiting once at canopy level
+   (+20 %) on top of the layer-mean light (+35 %) gives +64 % over the reference at LAI 4.7, +97 % at 8.6 -- de Pury &
+   Farquhar's big-leaf error (20 % at LAI 4, 45 % at 6; "no distribution of nitrogen or capacity that allows the big-leaf
+   model to work directly"). The B fit hid it with vmax 36 and slope 5.8. `scale_leaf_only` also discounts the LIGHT-
+   limited rate for stems a second time (topparu already carries L/(L+S)): x0.74-0.80 here.
+3. vmax: 30e-6 at 15 C = 46 at 25 C vs TRY 57.7 (temperate deciduous; Kattge 2009; JULES9 57.3) -> 0.80. The temperature
+   function exp(3500 (1/288 - 1/T)) is 29 kJ mol-1 (Q10 1.5) vs 65.3 measured (Bernacchi 2001) / 71.5 with deactivation and
+   acclimation (Kattge & Knorr 2007): 1.21x at 30 C vs 1.40-1.54x; 0.65x at 15 C vs 0.39-0.40x. kc, ko, gamma* match Collatz
+   at 25 C. Whole table (IBIS at 25 C / TRY): tropical evergreen 99.5 / 41.2 (2.4x; Yuan et al. 2014 inverted -50 % for EBF
+   and +24..61 % for every other type at 62 towers), warm-temperate evergreen 61 / 61, temperate conifer 46 / 54-62,
+   boreal conifer 38 / 54-62, shrubs 42 / 50-62, C4 23 / 32-52, C3 38 / 51-78.
+4. Neither vmax nor k is the main gap; the canopy integration is. With the integration right, TRY vmax (and the measured
+   temperature response) puts the July light response on the 21-year tower mean at every light level.
+
+**Proposal (decisions pending with Hangkai, section 8 of the local record):** sunlit/shaded two-big-leaf canopy as a
+switch (bit-identical off) reproducing `canopy_reference.py` at Harvard; Kn per PFT from Lloyd's relation; TRY vmax
+defaults as a second parameter file; temperature-response switch (IBIS / Bernacchi / Kattge-Knorr); then refit Harvard
+within TRY bounds and judge on the hourly light response. `cap_scale` and `scale_leaf_only` would be superseded.
+
+**Tools.** `diagnostics/tower_light_response_hourly.py <SITE> <out>` (per-year alpha/Amax, 200-umol bins, hourly csv),
+`diagnostics/model_hourly_lr.py <record> <hourly.csv>` (every variable of the big leaf by hour; July extract),
+`diagnostics/canopy_reference.py <extract> <lat> [LAI SAI] [--vmax-scan]`, `site_diag_year.py` now passes extra
+`site_fit` options (`--lai`, `--co2`). Tower facts (US-Ha1 July 1992-2012, NEE QC 0, NT/DT mean; the two partitions
+agree within 5 %): alpha median 0.065 (0.050-0.082), Amax 40 (33-59), GPP above 1500 umol m-2 s-1 28.6 (23.7-37.5;
+2010 the highest); apparent yield at 100-400 umol m-2 s-1 0.050 per absorbed photon = IBIS's leaf-level 0.055.

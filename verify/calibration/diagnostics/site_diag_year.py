@@ -82,7 +82,7 @@ def wrapped(tu, tl, t12, t34, q12, q34, su, sl, psurf, topparu, topparl, termu6,
 
 
 a = site_fit._args(['--igbp', igbp, '--params', yml, '--fit', 'vmax:temp_con_ever', '--out', '/tmp/unused', '--years', '2008-2009', '--hold-last', '0']
-                   + (['--sites', only] if only else []))           # two spin-up years
+                   + (['--sites', only] if only else []) + sys.argv[6:])   # two spin-up years; extra site_fit options (e.g. --lai US-Ha1=4.7 --co2 series)
 C = site_fit.setup(a, spin=True, verbose=True)
 st, key, c = C.base_state, C.base_key, C.ctx0
 st = site_transient.reset_annual(st, len(C.sites))                  # annual sums from 1 January: month differences are clean
