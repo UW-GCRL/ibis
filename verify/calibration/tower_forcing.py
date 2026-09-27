@@ -20,6 +20,7 @@ import glob, re
 import numpy as np, pandas as pd
 
 F = '/shared/nas2/Min/FLUXNET2015/fluxnet_compact'
+FX = '/shared/nas2/Hangkai/ibis/inputs/sites/FLUXNET2015_FULLSET/halfhourly'        # full HH/HR files of the candidate towers
 _MISSING = -9000.0
 
 
@@ -38,12 +39,32 @@ def _huss_from_vpd(t_c, vpd_hpa, ps_pa):
     return 0.622 * e / np.maximum(ps_pa - 0.378 * e, 1.0)
 
 
+def _load_hourly_sw(site):
+    """The tower's shortwave at each hour's instant (W m-2), NaN where missing: the mean of the two half-hourly
+    intervals around the hour (or of the two hourly intervals, for hourly towers), from SW_IN_F_MDS with SW_IN_F where
+    that is missing. The compact file first, then the full FULLSET HH/HR file; None when the tower has neither."""
+    f = glob.glob(f'{F}/FLX_{site}_FLUXNET2015_FULLSET_HH_*.csv')
+    if f:
+        d = pd.read_csv(f[0], usecols=lambda c: c in ('TIMESTAMP', 'SW_IN_F_MDS', 'SW_IN_F')); t = pd.to_datetime(d['TIMESTAMP'])
+    else:
+        f = glob.glob(f'{FX}/FLX_{site}_FLUXNET2015_FULLSET_H[HR]_*.csv')
+        if not f: return None
+        d = pd.read_csv(f[0], usecols=lambda c: c in ('TIMESTAMP_START', 'SW_IN_F_MDS', 'SW_IN_F')); t = pd.to_datetime(d['TIMESTAMP_START'].astype(str), format='%Y%m%d%H%M')
+    sw = d['SW_IN_F_MDS'].where(d['SW_IN_F_MDS'] > _MISSING) if 'SW_IN_F_MDS' in d else pd.Series(np.nan, index=d.index)
+    if 'SW_IN_F' in d: sw = sw.where(sw.notna(), d['SW_IN_F'].where(d['SW_IN_F'] > _MISSING))
+    x = pd.Series(np.maximum(sw.values.astype(float), 0.0), index=t).sort_index()
+    inst = 0.5 * (x + x.shift(1))                                          # the interval ending at the hour and the one starting there
+    return inst[inst.index.minute == 0].rename('sw')
+
+
 class TowerForcingReader:
-    def __init__(self, sites, gswp3_reader, use_hh=True):
+    def __init__(self, sites, gswp3_reader, use_hh=True, use_hourly_sw=False):
         """sites: list of FLUXNET SITE_IDs (one column each); gswp3_reader: GSWP3Reader for gaps
-        and for the diurnal range where no half-hourly file exists."""
+        and for the diurnal range where no half-hourly file exists. use_hourly_sw: also return the tower's hourly
+        shortwave ('rsds_hourly', (ndays, 24, nsite), and 'rsds_hourly_ok', (ndays, nsite): days with all 24 hours) so
+        the day loop drives radiation with it instead of the weather generator's cycle (CALIBRATION.md 27)."""
         self.sites = list(sites); self.g = gswp3_reader; self.variables = gswp3_reader.variables
-        self.dd = {}; self.hh = {}; self.gap = {}
+        self.dd = {}; self.hh = {}; self.gap = {}; self.sw_h = {}
         for s in self.sites:
             f = glob.glob(f'{F}/FLX_{s}_FLUXNET2015_FULLSET_DD_*.csv')
             if not f: raise FileNotFoundError(f'no daily FLUXNET file for {s}')
@@ -57,6 +78,7 @@ class TowerForcingReader:
                     hd['t'] = _dates(hd['TIMESTAMP'])
                     ta = hd['TA_F_MDS'].where(hd['TA_F_MDS'] > _MISSING)
                     self.hh[s] = pd.DataFrame({'tmax': ta.groupby(hd['t']).max(), 'tmin': ta.groupby(hd['t']).min()})
+            self.sw_h[s] = _load_hourly_sw(s) if use_hourly_sw else None
         self.years = {s: (int(self.dd[s].index.year.min()), int(self.dd[s].index.year.max())) for s in self.sites}
 
     def _col(self, s, name, idx):
@@ -94,6 +116,14 @@ class TowerForcingReader:
             rng_hi = g['tasmax'][:, n] - g['tas'][:, n]; rng_lo = g['tas'][:, n] - g['tasmin'][:, n]
             tx = np.where(np.isfinite(tx), tx, out['tas'][:, n] + rng_hi); tn = np.where(np.isfinite(tn), tn, out['tas'][:, n] - rng_lo)
             out['tasmax'][:, n] = np.maximum(tx, out['tas'][:, n]).astype(np.float32); out['tasmin'][:, n] = np.minimum(tn, out['tas'][:, n]).astype(np.float32)
+        if any(v is not None for v in self.sw_h.values()):
+            idx_h = pd.date_range(f'{year}-{month0 + 1:02d}-01', periods=ndays * 24, freq='h')
+            swh = np.zeros((ndays, 24, len(self.sites)), np.float32); ok = np.zeros((ndays, len(self.sites)), bool)
+            for n, s in enumerate(self.sites):
+                if self.sw_h[s] is None: continue
+                v = self.sw_h[s].reindex(idx_h).values.reshape(ndays, 24)
+                good = np.isfinite(v).all(1); swh[:, :, n] = np.where(good[:, None], v, 0.0); ok[:, n] = good; gap[(s, 'rsds_hourly')] = float(good.mean())
+            out['rsds_hourly'] = swh; out['rsds_hourly_ok'] = ok
         self.gap[(year, month0)] = gap
         return out
 

@@ -445,6 +445,41 @@ def compute_precip_timing(key, precip, dtime):
 # Diurnal disaggregation
 # ---------------------------------------------------------------------------
 
+def effective_solar_constant(jday):
+    """Solar constant times the orbital factor (Hartmann), W m-2; the expression `diurnal` has always used."""
+    orbit = 2.0 * _PI * jday / 365.2425
+    return 1370.0 * (1.000110
+                     + 0.034221 * jnp.cos(orbit)
+                     + 0.001280 * jnp.sin(orbit)
+                     + 0.000719 * jnp.cos(2.0 * orbit)
+                     + 0.000077 * jnp.sin(2.0 * orbit))
+
+
+def observed_shortwave(sw_obs, use, coszen, jday, solad_gen, solai_gen, nband=2):
+    """An observed hourly shortwave total in place of the generator's diurnal cycle (site runs; CALIBRATION.md 27).
+
+    Where `use` is set, the observed total `sw_obs` (W m-2, instantaneous at the step's hour) is split into direct and
+    diffuse with the hourly relation of Spitters et al. (1986) on the clearness index kt = sw_obs / (S0 cos z):
+    fd = 1 (kt <= 0.22); 1 - 6.4 (kt - 0.22)^2 (kt <= 0.35); 1.47 - 1.66 kt (kt <= K); R above, with
+    R = 0.847 - 1.61 sin(beta) + 1.04 sin(beta)^2 and K = (1.47 - R)/1.66; all diffuse when the sun is down. Then into
+    the visible and near-infrared bands with the generator's fractions (0.46, 0.54). Elsewhere the generator's
+    `solad_gen`, `solai_gen` are returned unchanged, so a mask that is off is bit-identical.
+    """
+    kt = jnp.clip(sw_obs / jnp.maximum(effective_solar_constant(jday) * coszen, 1.0), 0.0, 1.0)
+    r = 0.847 - 1.61 * coszen + 1.04 * coszen ** 2
+    kk = (1.47 - r) / 1.66
+    fd = jnp.where(kt <= 0.22, 1.0,
+                   jnp.where(kt <= 0.35, 1.0 - 6.4 * (kt - 0.22) ** 2,
+                             jnp.where(kt <= kk, 1.47 - 1.66 * kt, r)))
+    fd = jnp.where(coszen <= 0.0, 1.0, jnp.clip(fd, 0.0, 1.0))
+    frac = jnp.array([0.46, 0.54])[:nband]
+    sw = jnp.maximum(sw_obs, 0.0)
+    solad = sw[:, None] * frac[None, :] * (1.0 - fd)[:, None]
+    solai = sw[:, None] * frac[None, :] * fd[:, None]
+    return (jnp.where(use[:, None], solad, solad_gen).astype(solad_gen.dtype),
+            jnp.where(use[:, None], solai, solai_gen).astype(solai_gen.dtype))
+
+
 def diurnal(time, jday, daily_weather, latitude, plens, startp, endp,
             key, dtime, nband=2):
     """Disaggregate daily weather to sub-daily timestep.
@@ -495,11 +530,7 @@ def diurnal(time, jday, daily_weather, latitude, plens, startp, endp,
     angle = 2.0 * _PI * (rtime - 12.0) / 24.0
 
     # Effective solar constant
-    sw = 1370.0 * (1.000110
-                   + 0.034221 * jnp.cos(orbit)
-                   + 0.001280 * jnp.sin(orbit)
-                   + 0.000719 * jnp.cos(2.0 * orbit)
-                   + 0.000077 * jnp.sin(2.0 * orbit))
+    sw = effective_solar_constant(jday)
 
     # Solar zenith angle
     xlat = latitude * _PI / 180.0

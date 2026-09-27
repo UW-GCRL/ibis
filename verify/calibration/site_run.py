@@ -120,6 +120,7 @@ def main():
     ap.add_argument('--sites', required=True); ap.add_argument('--params', required=True); ap.add_argument('--cycles', type=int, default=3)
     ap.add_argument('--out', required=True); ap.add_argument('--pft', default='', help='overrides: SITE=pft,pft;SITE=...'); ap.add_argument('--years', default='', help='SITE=y0-y1;... restrict tower years')
     ap.add_argument('--no-hh', action='store_true', help='ignore half-hourly files (diurnal range from GSWP3)')
+    ap.add_argument('--hourly-sw', action='store_true', help="the tower's hourly shortwave instead of the weather generator's cycle (CALIBRATION.md 27)")
     ap.add_argument('--fixed-lai', default='', choices=['', 'state', 'attrs'], help="hold leaf carbon: 'state' at the prescribed starting value, 'attrs' at the site-attribute maximum LAI (fixed-vegetation experiment)")
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     sites = a.sites.split(','); over = {kv.split('=')[0]: [int(x) for x in kv.split('=')[1].split(',')] for kv in a.pft.split(';') if kv}
@@ -128,7 +129,7 @@ def main():
     i = np.array([int(np.argmin(np.abs(LATV - META.loc[s, 'LOCATION_LAT']))) for s in sites], np.int32); j = np.array([int(np.argmin(np.abs(LONV - META.loc[s, 'LOCATION_LONG']))) for s in sites], np.int32)
     for s, ii, jj in zip(sites, i, j): assert ii * 720 + jj in posmap, f'{s}: tower cell not on the land mask'
     sel = np.array([posmap[ii * 720 + jj] for ii, jj in zip(i, j)]); lat_rad = np.deg2rad(LATV[i]).astype(np.float32)
-    g = GSWP3Reader(GSWP3); rd = TowerForcingReader(sites, g, use_hh=not a.no_hh)
+    g = GSWP3Reader(GSWP3); rd = TowerForcingReader(sites, g, use_hh=not a.no_hh, use_hourly_sw=a.hourly_sw)
     years = {s: yrs.get(s, rd.years[s]) for s in sites}
     y0 = max(v[0] for v in years.values()); y1 = min(v[1] for v in years.values())       # common years (cells run together)
     y0 = max(y0, 1901)                                                                    # GSWP3 fallback covers 1901-2010; later years fall back to 2010

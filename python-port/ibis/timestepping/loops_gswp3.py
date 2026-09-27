@@ -45,7 +45,7 @@ from ibis.timestepping.calendar import (
 )
 from ibis.io.gswp3_reader import GSWP3Reader
 from ibis.io.gswp3_forcing import make_monthly_daily_weather
-from ibis.physics.weather import DailyWeather, compute_precip_timing, diurnal
+from ibis.physics.weather import DailyWeather, compute_precip_timing, diurnal, observed_shortwave
 from ibis.physics.phenology import pheno
 from ibis.state.seasonal import daylength_hours
 from ibis.physics.biogeochem import soilbgc
@@ -70,6 +70,14 @@ def _cast_tree_f32(tree):
 # _run_day_inner: single day body, called from the day-level scan
 # ---------------------------------------------------------------------------
 
+def latitude_degrees(params):
+    """The latitude `diurnal` needs. SimParams.latitude is in RADIANS (build_all_params, daylength_hours); `diurnal`
+    converts from DEGREES as F77 does (`xlat = latscale * pi / 180`). Until 2026-09-27 the drivers passed the radians
+    straight through, so every cell's solar geometry was that of latitude |lat| < 1.05 degrees: 11-13 h days all year,
+    the noon sun overhead in December (DEFECTS_FOR_REVIEW.md "solar latitude")."""
+    return params.latitude * (180.0 / jnp.pi)
+
+
 def _run_day_inner(
     state: IBISState,
     consts: PhysicalConstants,
@@ -84,6 +92,8 @@ def _run_day_inner(
     dtime: float,
     nband: int = 2,
     ndaypy: int = 365,
+    sw_day: jax.Array | None = None,     # (nsteps, npoi) observed shortwave, W m-2 (site runs; CALIBRATION.md 27)
+    use_day: jax.Array | None = None,    # (npoi,) bool: take sw_day instead of the generator's cycle
 ) -> tuple[IBISState, jax.Array]:
     """Run all timesteps for one day inside a lax.scan.
 
@@ -99,9 +109,13 @@ def _run_day_inner(
         time = istep * dtime  # seconds since midnight
 
         _, hourly = diurnal(
-            time, jday, dw, params.latitude,
+            time, jday, dw, latitude_degrees(params),
             plens, startp, endp, subkey, dtime, nband,
         )
+        if sw_day is not None:
+            # the tower's observed hourly shortwave, Spitters diffuse split; the generator's cycle where the mask is off
+            solad_o, solai_o = observed_shortwave(sw_day[istep], use_day, hourly.coszen, jday, hourly.solad, hourly.solai, nband)
+            hourly = eqx.tree_at(lambda h: (h.solad, h.solai), hourly, (solad_o, solai_o))
 
         # Override cloud-based fira with observed rlds
         # Cast forcing to match state dtype (float32 forcing → float64 state when x64 enabled)
@@ -287,26 +301,35 @@ def _run_month_scan(
     key: jax.Array,
     consts: PhysicalConstants,
     params: SimParams,
-    xs: tuple,           # (td, tmax, tmin, cloud, precip, psurf, qd, ud, iwet, rlds, jdays)
+    xs: tuple,           # (td, tmax, tmin, cloud, precip, psurf, qd, ud, iwet, rlds, jdays, sw_h, use_h)
     nsoilcall: int,
     ndaypy: int,
     dtime: float,
     nband: int,
+    obs_sw: bool = False,   # static: xs carries (sw_h, use_h) and the day loop uses the observed shortwave
 ) -> tuple[IBISState, jax.Array, tuple]:
     """JIT-compiled day scan for one month.
 
     xs must be a tuple of (ndays, npoi) JAX arrays in the order:
-    td, tmax, tmin, cloud, precip, psurf, qd, ud, iwet, rlds, jdays.
+    td, tmax, tmin, cloud, precip, psurf, qd, ud, iwet, rlds, jdays, plus sw_h (ndays, nsteps, npoi) and
+    use_h (ndays, npoi): the observed hourly shortwave and where to use it (all False: the generator, bit-identical).
     """
-    (td, tmax, tmin, cloud, precip, psurf, qd, ud, iwet, rlds, jdays) = xs
+    if obs_sw:
+        (td, tmax, tmin, cloud, precip, psurf, qd, ud, iwet, rlds, jdays, sw_h, use_h) = xs
+    else:                      # the original graph, unchanged: bit-identical to runs before the option existed
+        (td, tmax, tmin, cloud, precip, psurf, qd, ud, iwet, rlds, jdays) = xs; sw_h = use_h = None
     npoi = td.shape[1]
     xstore_zeros = jnp.zeros((npoi, 3), dtype=jnp.float32)
     day_sec = float(timesteps_per_day(dtime)) * dtime   # = 86400.0 for hourly
 
     def _day_body(carry, xs_d):
         st, k = carry
-        (td_d, tmax_d, tmin_d, cloud_d, precip_d,
-         psurf_d, qd_d, ud_d, iwet_d, rlds_d, jday_d) = xs_d
+        if obs_sw:
+            (td_d, tmax_d, tmin_d, cloud_d, precip_d,
+             psurf_d, qd_d, ud_d, iwet_d, rlds_d, jday_d, sw_d, use_d) = xs_d
+        else:
+            (td_d, tmax_d, tmin_d, cloud_d, precip_d,
+             psurf_d, qd_d, ud_d, iwet_d, rlds_d, jday_d) = xs_d; sw_d = use_d = None
 
         # Snapshot annual accumulators before this day for daily diagnostics
         gpp_before = st.summary.aygpptot
@@ -370,6 +393,7 @@ def _run_month_scan(
             st, consts, params, dw,
             rlds_d, plens, startp, endp,
             jday_d, k_day, dtime, nband, ndaypy,
+            sw_day=sw_d, use_day=use_d,
         )
 
         # End-of-day: convert daily accumulations → 10-day running means.
@@ -511,7 +535,7 @@ def _run_month_scan(
 
         return (st, k), (daily_gpp, daily_aet, daily_rh)
 
-    xs_all = (td, tmax, tmin, cloud, precip, psurf, qd, ud, iwet, rlds, jdays)
+    xs_all = (td, tmax, tmin, cloud, precip, psurf, qd, ud, iwet, rlds, jdays) + ((sw_h, use_h) if obs_sw else ())
     (state_out, key_out), daily_diag = jax.lax.scan(_day_body, (state, key), xs_all)
     return state_out, key_out, daily_diag
 
@@ -578,13 +602,19 @@ def run_month_gswp3(
     # Number of days in the year (used by soilbgc)
     ndaypy = 366 if leap else 365
 
+    # observed hourly shortwave (TowerForcingReader(use_hourly_sw=True); CALIBRATION.md 27); absent: the generator's cycle
+    nsteps = timesteps_per_day(dtime); npoi_f = len(latindex)
+    sw_h = gswp3_month.get('rsds_hourly'); use_h = gswp3_month.get('rsds_hourly_ok'); obs_sw = sw_h is not None
     xs = (td, tmax, tmin, cloud, precip, psurf, qd, ud, iwet, rlds, jdays)
+    if obs_sw:
+        assert np.shape(sw_h) == (ndays, nsteps, npoi_f), f'hourly shortwave {np.shape(sw_h)} vs {(ndays, nsteps, npoi_f)}'
+        xs = xs + (jnp.asarray(sw_h, jnp.float32), jnp.asarray(use_h, bool))
     # Ensure state is float32 before entering JIT-compiled scan
     # (restart files may contain float64 arrays from older runs)
     state = _cast_tree_f32(state)
     state_out, key_out, daily_diag = _run_month_scan(
         state, key, consts, params, xs,
-        nsoilcall, ndaypy, dtime, nband,
+        nsoilcall, ndaypy, dtime, nband, obs_sw,
     )
 
     # --- wetland CH4, monthly (docs/METHANE.md) ---------------------------

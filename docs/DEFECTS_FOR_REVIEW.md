@@ -578,3 +578,28 @@ lag) and any fitted phenology scalar (`tthresh_*`, `gdd_*`, `drop_*`) are
 re-read on the corrected model. Old-code runs are not reproducible with
 the fix in; the checkpoints are unaffected (no state field changed).
 
+
+## The weather generator received latitude in radians and read it as degrees (found 2026-09-27)
+
+**Symptom.** At Harvard Forest (42.5 N) the generator's shortwave integrated to 193 W m-2 in January against the
+71 W m-2 of the daily forcing, 197 against 65 in December and 218 against 255 in July; its daylight ran 06-18 h in
+every month. At 60 N a June day had 13 h of light instead of 19, a December day 11 h instead of 5, and the noon
+sun stood at cos z = 0.92 the whole year.
+
+**Cause.** `SimParams.latitude` holds radians (`build_all_params(npoi, lat_rad, ...)`; `daylength_hours` reads it as
+radians). `weather.diurnal` converts from degrees, as F77 does (`xlat = latscale(jj) * pi / 180.0`). Both day loops
+(`loops_gswp3._run_day_inner`, `loops._run_day`) passed `params.latitude` straight through, so every cell's solar
+geometry was that of latitude |lat| = (lat in radians) degrees, i.e. within 1.6 degrees of the equator. The cloud
+fraction that the daily forcing is inverted into (`rsds_to_cloud`, radians, correct) then met a diurnal cycle of the
+wrong shape and length, and the daily shortwave the model received was not the forcing's.
+
+**Exposure.** Every run of the JAX port through the day loops: all GSWP3 global runs (spin-ups, transients,
+validations, the calibration stages), all site runs at the towers, and the tests that inspect them. The unit tests of
+`diurnal` pass degrees and were green. The equator's insolation is far too strong in the mid- and high-latitude
+winter and too weak in their summer; the "mid-latitude winter GPP 4-5x FLUXCOM, June-July 0.6x" residual
+(CALIBRATION.md 16, 20) and the towers' cold-season GPP share of 0.12-0.16 against 0.01-0.06 (section 20, "the one
+robust class-wide error") are candidates for this cause and must be re-read on the corrected model.
+
+**Fix.** `loops_gswp3.latitude_degrees(params)` at the generator call, the same conversion in `loops.py`;
+`tests/test_solar_latitude.py` guards the convention at both call sites and the day lengths. The correction changes
+every result; no earlier run is reproducible against it.

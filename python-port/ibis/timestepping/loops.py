@@ -1276,8 +1276,11 @@ def run_day(
         time = istep * dtime  # seconds since midnight
 
         # Generate hourly forcing
+        # SimParams.latitude is in radians; diurnal converts from degrees as F77 does. Passing the radians
+        # through (until 2026-09-27) put every cell's solar geometry within a degree of the equator
+        # (DEFECTS_FOR_REVIEW.md "solar latitude").
         _, hourly = diurnal(
-            time, jday, daily_weather, params.latitude,
+            time, jday, daily_weather, params.latitude * (180.0 / jnp.pi),
             plens, startp, endp, subkey, dtime, nband,
         )
 

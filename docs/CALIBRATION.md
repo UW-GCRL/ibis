@@ -4013,3 +4013,34 @@ that light.
 - ET: June-August AET +5 % relative to the F77 canopy (2001: 75/90/100 mm against the tower's 81/92/78).
 - Monthly GPP 2010 May-Sep: 260/254/268/274/266 gC against the tower's 305/475/451/298/209: the summer plateau is
   still 0.6 of the tower with IBIS's vmax and the generator's light; the shoulders are high (default phenology).
+
+**Hourly tower shortwave in the site harness (2026-09-27, Hangkai: "do that next").** `TowerForcingReader(use_hourly_sw=True)`
+(`site_fit --hourly-sw`, `site_run --hourly-sw`) returns each day's 24 hourly shortwave values from the tower's HH/HR file
+(SW_IN_F_MDS, SW_IN_F where missing; the mean of the two intervals around each hour, so the value is the instant the
+generator's step represents; days with a gap keep the generator); `run_month_gswp3` carries them as two more scan inputs
+under a STATIC flag and `weather.observed_shortwave` replaces the generator's direct and diffuse fluxes with the
+observed total split by Spitters et al. (1986) hourly diffuse fraction and the generator's band fractions. Off is the
+original graph (a mask-off replay reproduced the earlier record to the bit only after the flag was made static; a
+`where` on the same arrays changed XLA's fusion at the 1e-5 level, which a two-year spin-up amplified).
+
+**Found on the way: the weather generator's latitude (DEFECTS_FOR_REVIEW.md "solar latitude").** The generator's
+daylight at Harvard ran 06-18 h in every month and its shortwave was 2.7x the forcing in January, 0.85x in July.
+`SimParams.latitude` is radians, `diurnal` converts from degrees (F77), both day loops passed the radians through:
+every cell in every run had the equator's solar geometry. Fixed at both calls (`latitude_degrees`), guarded by
+`tests/test_solar_latitude.py`. Harvard, sunlit/shaded canopy, IBIS vmax, 2010:
+
+| | day length Jun / Dec | generator SW / forcing, Jan..Dec | GPP Jun-Aug / tower | July bright hours / tower (2010; 21-yr) |
+|---|---|---|---|---|
+| before (generator) | 13 / 11 h | 2.7 .. 0.85 .. 3.0 | 0.65 | 0.61; 0.75 |
+| generator, latitude fixed | 15 / 9 h | 1.02-1.07 every month | 0.74 | 0.60; 0.74 |
+| hourly tower shortwave, latitude fixed | 17 / 11 h (tower's own) | 1.00 | 0.76 | 0.63; 0.77 |
+
+- With the geometry right, the generator's daylight is within 3 % of the tower's hourly light for June-August GPP:
+  most of the "13 % generator effect" of the previous entry was the latitude.
+- The hourly path gives the model the tower's own light response: alpha 0.066 against the tower's 0.068, the 200-600
+  bins at 0.87-0.89 of the 21-year mean; the plateau, 23 against 30 (21-year) and 37 (2010), is capacity.
+- The annual total looks better than it is (0.92-0.95 of the tower) because the default phenology holds April at 237-254
+  and October at 146-154 gC against the tower's 90 and 80.
+- Every earlier site and global result was produced on the equator's insolation. The class-wide cold-season excess of
+  section 20 and the mid-latitude amplitude of section 16 have to be re-read on the corrected model before anything
+  else is concluded from them.
