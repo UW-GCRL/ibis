@@ -4092,3 +4092,54 @@ light or by construction of the code (the phenology clock, the surface pressure,
 capacity profile); the numbers do not. Stage A's acclimation and photoperiod senescence stay in as formulations; their
 fitted constants are to be re-read. The local record of 09-26 is superseded on its Harvard numbers by section 27's
 corrected table.
+
+## 29. Harvard on the corrected model: the fit within the TRY range (2026-09-27)
+
+**Order (Hangkai).** "Fit vmax within the TRY range" (temperate deciduous Vcmax25 57.7 +- 21.2 umol m-2 s-1, Kattge et
+al. 2009 as tabulated by Ma et al. 2022 ESSD; `site_fit --vmax-bounds 36.5,78.9`, converted to IBIS's 15 C basis with its
+own temperature function: 23.9-51.6e-6). Configuration: `default_seasonal_sunshade.yaml`, LAI 4.7, CO2 series,
+`--hourly-sw`, corrected latitude; fitted vmax:temp_bl_dec, gdd_thresh_u, gdd_ramp_u, sen_ycrit_u, coefm_bl on 1994-2002
+(monthly GPP + 0.5 ET); 127 evaluations, 367 s each, 3 CPU workers (`$V/site_fit/Ha1_C_sunshade_hourly`). Held out:
+2003-2012 (`daily_{fitted,default}_2003-2012.npz`, `diagnostics/site_daily_replay.py`; `site_replay_report.py`); the
+hourly year 2010 (`diag_US-Ha1/sunshade_fitC_hourly_L47_2010.npz`).
+
+**Result.** Loss 91.99 -> 10.44 (held-out years: 49.7 -> 18.0). vmax 31.8e-6 = 48.6 at 25 C, inside the range and
+close to IBIS's 45.9, the optimiser having explored 36-68; leaf-out 533 degree-days, ramp 108, senescence Ycrit 211,
+stomatal slope 10.7 (default 10). Held-out 2003-2012, model / tower:
+
+| | peak month | June-August | annual | ET (LE_F_MDS, uncorrected) | leaf-out 25 / 50 % (DOY) | senescence 50 / 25 % |
+|---|---|---|---|---|---|---|
+| tower GPP | | | | | 130 / 148 (camera 120 / 129) | 259 / 282 (camera 282 / 291) |
+| default parameters | 0.79 | 0.97 | 1.03 | 1.41 | 102 / 107 | 282 / 295 |
+| **fitted** | **0.84** | **1.02** | **0.83** | 1.37 | 143 / 147 | 278 / 288 |
+
+July 2010 hourly light response, fitted: alpha 0.068 (tower 0.068); plateau 24.6 against 30 (21-year July mean, 0.82)
+and 36.8 (2010, 0.67). 2003-2012 daily climatology: plateau (July-August) 10.5 against 11.7 (0.90); July 0.85.
+
+**Readings, verdict first.**
+1. **The summer is at 0.85-0.90 of the tower and the fit did not buy more with vmax.** With the light response's slope
+   exact and the plateau 10-18 % low, raising vmax above 49 would also raise April-May and ET; the monthly loss
+   preferred a later leaf-out. The remaining plateau gap is the leaf temperature response and the July of 2010 (an
+   exceptional year), not something a bounded vmax reaches.
+2. **The shape of the spring is the largest remaining error, and no phenology parameter can fix it.** The forest's GPP
+   rises over 40 days (25 / 50 / 90 % of the plateau on DOY 124 / 141 / 164) while its greenness completes leaf-out in
+   about ten (camera 120 -> 129): the leaves are there by mid-May, their photosynthetic capacity matures until mid-June.
+   IBIS switches on the full capacity with the leaf area: the model's LAI goes from 10 to 90 % in eight days (DOY
+   130-138 fitted, 88-93 default) and its GPP with it (25 / 50 / 90 % on 141 / 147 / 153). The optimiser can only slide
+   that step: it put it in the middle of the tower's ramp, three weeks later than the camera's leaf-out, and lost April-
+   May (annual 0.83 with the summer at 1.0). The autumn has the same signature: the tower's plateau starts to fall on
+   DOY 225 and is halved on 271; the model holds until 243 and halves on 283 (leaf area falls 283-295) -- capacity
+   declines with leaf age before the leaves drop. Wilson, Baldocchi & Hanson (2001, PCE 24:571) measured exactly this at
+   a deciduous forest (Vcmax rising for a month after leaf-out, declining from late summer) and showed a model without it
+   misses spring and autumn NEE; ORCHIDEE carries leaf-age classes with a capacity efficiency for the purpose.
+3. **ET at Harvard cannot be fitted to LE_F_MDS.** The tower's uncorrected LE gives 300-480 mm yr-1 against 840-1630 mm
+   of precipitation (2010: 199, a fill artefact); there is no LE_CORR at US-Ha1. The model's 475-611 is the plausible
+   range for this forest. The 0.5 ET term in the loss pulled on a target that is 30 % low; it should be off at this
+   tower or replaced by another ET reference.
+4. Timing (the fitted step at DOY 143-147 against the camera's 120-129 and senescence 278-288 against 282-291) is not
+   a phenology-parameter result to keep: it is the compensation for reading 2.
+
+**Next (proposed, one decision): leaf-age development of photosynthetic capacity** as a switch -- vmax x f_age, f_age
+rising from about 0.3 at leaf emergence to 1 over ~30 days and declining after ~100 days of leaf age (Wilson et al. 2001
+shapes; ORCHIDEE's efficiency by age class), the phenology dates then re-fitted against the camera. F8 in the local
+figures folder (`figures/canopy/F8_harvard_fit_TRY.png`).
