@@ -1,6 +1,6 @@
 """Reference canopy integrations against the tower's hourly light response (CALIBRATION.md 27).
 
-    python verify/calibration/diagnostics/canopy_reference.py <record_july_lr.npz> <lat> [<LAI> <SAI>] [--vmax-scan]
+    python verify/calibration/diagnostics/canopy_reference.py <record_july_lr.npz> <lat> [<LAI> <SAI>] [--vmax-scan] [--model-light]
 
 <record_july_lr.npz> is the hourly July extract of a site_diag_year record (model_hourly_lr.py): the tower's incident
 PPFD, the big leaf's temperature, ci, temperature- and stress-adjusted top-leaf vmax, leaf and stem area, hour of day
@@ -17,7 +17,9 @@ over the canopy in several ways, all with light penetrating leaves AND stems and
                  light extinction, the Sellers 1992 argument) and Kn = 0.5 (JULES-type)
   f77 .........  the record's own canopy rate (IBIS as ported: capacity follows the instantaneous two-stream extinction)
 
-Direct/diffuse from the tower clearness index (Spitters et al. 1986). Prints alpha and Amax of a rectangular hyperbola
+Direct/diffuse from the tower clearness index (Spitters et al. 1986), or with --model-light the model's own hourly visible
+direct and diffuse radiation (the weather generator's diurnal cycle of the daily tower forcing), to compare the canopy in the
+model with the reference under identical light. Prints alpha and Amax of a rectangular hyperbola
 fitted to each against incident PPFD, the mean rate in bright (> 1500) and dim (< 500 umol m-2 s-1) hours, and the
 July daily mean, next to the tower; with --vmax-scan, the multilayer reference at 0.5-2x the top-leaf vmax.
 """
@@ -53,6 +55,9 @@ kt = np.clip(ppfd / np.maximum(ppfd_pot, 1e-3), 0, 1)             # clearness in
 Rr = 0.847 - 1.61 * sinb + 1.04 * sinb ** 2; K = (1.47 - Rr) / 1.66
 fd = np.where(kt <= 0.22, 1.0, np.where(kt <= 0.35, 1 - 6.4 * (kt - 0.22) ** 2, np.where(kt <= K, 1.47 - 1.66 * kt, Rr)))
 fd = np.clip(fd, 0.1, 1.0); Ib0, Id0 = ppfd * (1 - fd), ppfd * fd
+if '--model-light' in sys.argv:                     # the model's own hourly light (site_diag_year records the visible direct and diffuse)
+    assert 'solad' in R, 'the extract has no model light: rerun site_diag_year and model_hourly_lr'
+    Ib0, Id0 = R['solad'] * 4.59, R['solai'] * 4.59; ppfd = Ib0 + Id0; fd = Id0 / np.maximum(ppfd, 1e-6)
 kb = 0.5 / sinb; kbp = 0.46 / sinb; kdp = 0.719
 rho_h = (1 - np.sqrt(1 - SIGMA)) / (1 + np.sqrt(1 - SIGMA)); rho_cb = 1 - np.exp(-2 * rho_h * kb / (1 + kb)); rho_cd = 0.036
 PAI = L + S; fleaf = L / PAI                       # leaves are this share of the plant area at every depth
@@ -126,4 +131,4 @@ print('\nbinned by incident PPFD (umol m-2 s-1):  ' + ' '.join(f'{b:>5d}' for b 
 for name, g in runs.items():
     s_ = (selt if name == 'tower' else sel) & np.isfinite(g)
     print(f'{name[:34]:<36} ' + ' '.join(f'{np.mean(g[s_ & (ib == b)]):5.1f}' if (s_ & (ib == b)).sum() >= 5 else '    -' for b in range(len(BINS) - 1)))
-np.savez(npz.replace('.npz', '_reference.npz'), ppfd=ppfd, hod=hod, fd=fd, **{k.split(' ')[0]: v for k, v in runs.items()})
+np.savez(npz.replace('.npz', '_reference_modellight.npz' if '--model-light' in sys.argv else '_reference.npz'), ppfd=ppfd, hod=hod, fd=fd, **{k.split(' ')[0]: v for k, v in runs.items()})

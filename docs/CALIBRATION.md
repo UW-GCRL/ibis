@@ -3977,3 +3977,39 @@ within TRY bounds and judge on the hourly light response. `cap_scale` and `scale
 `site_fit` options (`--lai`, `--co2`). Tower facts (US-Ha1 July 1992-2012, NEE QC 0, NT/DT mean; the two partitions
 agree within 5 %): alpha median 0.065 (0.050-0.082), Amax 40 (33-59), GPP above 1500 umol m-2 s-1 28.6 (23.7-37.5;
 2010 the highest); apparent yield at 100-400 umol m-2 s-1 0.050 per absorbed photon = IBIS's leaf-level 0.055.
+
+**Implemented (2026-09-27, Hangkai: "Yes, try that first!"): `stomata: sunshade_u / sunshade_l`.** The two-stream's
+absorbed-PAR profile per unit plant area, A e^-kx + B e^-hx + C e^hx (its integral over the plant area equals the flux
+the two-stream absorbs: `tests/test_sunshade_canopy.py`), is split into the unscattered beam, (1 - omega) k I_beam e^-kx
+(`radiation.RadiationResult.dbeamu/dbeaml`, new), taken by the sunlit plant area e^-kx, and the diffuse and scattered
+field taken by all leaves; capacity per unit leaf area falls as e^-Kn x (`cap_kn`); leaves are the share L/(L+S) of the
+plant area and the only assimilating surface; each big leaf is integrated in one leaf-model call on its totals (the
+leaf model is homogeneous of degree one), dark respiration follows the capacity profile, the Ball-Berry state relaxes
+on the canopy-mean rate, the canopy conductance is unchanged. Off = bit-identical (full suite). Parameter file
+`configs/params/default_seasonal_sunshade.yaml` (both canopies on, Kn 0.15). `site_diag_year.py` now also records the
+model's own hourly visible direct/diffuse radiation; `canopy_reference.py --model-light` integrates the reference under
+that light.
+
+**Harvard check (LAI 4.7, IBIS vmax, July 2010 / 2001; `diag_US-Ha1/sunshade_default_L47_{2010,2001}.npz`):**
+
+| July daily GPP, gC m-2 d-1 | 2010 | 2001 |
+|---|---|---|
+| tower | 13.8 | 12.4 |
+| IBIS as ported (F77 canopy) | 6.4 | 6.4 |
+| **sunlit/shaded canopy in the model** | **8.65** | **8.85** |
+| reference two-big-leaf, the model's own light, x (1 - fwet) | 9.30 | - |
+| reference two-big-leaf, the model's own light | 9.66 | - |
+| reference two-big-leaf, the tower's hourly light | 10.95 | 11.4 |
+
+- The wiring is exact: the canopy rate is reproduced to 4 decimals from the recorded sunlit/shaded partition with the
+  reference's leaf model. Bright hours in the model 22.5-23.3 against 24.5-25.4 in the reference.
+- Under identical light the model is 7 % below de Pury's light model (the two-stream with IBIS's leaf optics, omega
+  0.17, gives the shaded leaves less) and a further 4 % for wet leaves (fwet 0.07 in dim hours). Both are IBIS's own
+  physics, kept.
+- The largest piece, 13 %, is the light itself: the site harness feeds daily tower weather and the weather generator
+  spreads it into a smooth diurnal cycle with a PAR-weighted diffuse fraction of 0.36 (Spitters on the tower's hourly
+  clearness: 0.44). A sunlit/shaded canopy is sensitive to this; the F77 canopy was not. Hourly tower radiation into the
+  site harness is the next structural item to decide.
+- ET: June-August AET +5 % relative to the F77 canopy (2001: 75/90/100 mm against the tower's 81/92/78).
+- Monthly GPP 2010 May-Sep: 260/254/268/274/266 gC against the tower's 305/475/451/298/209: the summer plateau is
+  still 0.6 of the tower with IBIS's vmax and the generator's light; the shoulders are high (default phenology).

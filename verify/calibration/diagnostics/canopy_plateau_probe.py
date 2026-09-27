@@ -11,7 +11,7 @@ factor (1 - exp(-k (L+S))) / (k L), the extinction k, the wet fraction, the soil
 Prints, per tower, the daytime means and the share of daylight hours in which each limit binds, and the plateau
 arithmetic: canopy GPP = top-leaf rate x scale x (1 - fwet) x LAI x fu.
 """
-import sys, numpy as np, pandas as pd, jax, jax.numpy as jnp, warnings; warnings.filterwarnings('ignore')
+import sys, inspect, numpy as np, pandas as pd, jax, jax.numpy as jnp, warnings; warnings.filterwarnings('ignore')
 sys.path[:0] = ['python-port', 'verify/calibration']
 import site_fit
 import ibis.timestepping.loops as LP
@@ -28,12 +28,14 @@ def _host(*arrs):
     REC.append(np.stack([np.asarray(x, dtype=np.float64) for x in arrs]))
 
 
-def wrapped(tu, tl, t12, t34, q12, q34, su, sl, psurf, topparu, topparl, termu6, termu7, terml6, terml7, scalcoefu, scalcoefl,
-            ci_upper, gs_upper, cs_upper, ci_lower, gs_lower, cs_lower, fwetu, fwetl, lai, sai, exist, stresstu, stresstl,
-            a10scalparamu, a10daylightu, a10scalparaml, a10daylightl, co2conc, dtime, params, epsilon=1.0e-7, frac=None, vfac=None):
-    out = _orig(tu, tl, t12, t34, q12, q34, su, sl, psurf, topparu, topparl, termu6, termu7, terml6, terml7, scalcoefu, scalcoefl,
-                ci_upper, gs_upper, cs_upper, ci_lower, gs_lower, cs_lower, fwetu, fwetl, lai, sai, exist, stresstu, stresstl,
-                a10scalparamu, a10daylightu, a10scalparaml, a10daylightl, co2conc, dtime, params, epsilon, frac=frac, vfac=vfac)
+_SIG = inspect.signature(_orig)
+
+
+def wrapped(*a_, **kw_):
+    out = _orig(*a_, **kw_)
+    g = _SIG.bind(*a_, **kw_); g.apply_defaults(); g = g.arguments
+    tu, topparu, termu6, termu7, scalcoefu, ci_upper, lai, sai, exist, stresstu, fwetu, co2conc, params, epsilon, frac, vfac = (
+        g[n] for n in ('tu', 'topparu', 'termu6', 'termu7', 'scalcoefu', 'ci_upper', 'lai', 'sai', 'exist', 'stresstu', 'fwetu', 'co2conc', 'params', 'epsilon', 'frac', 'vfac'))
     kc, ko, _, gamstar, tempvm, _ = SM._temp_dep_params(tu, params)
     vp_eff = None if vfac is None else params.vmax_pft[jnp.newaxis, :] * vfac
     vnom = SM._select_vmax_upper(exist, params, frac, vp=vp_eff)[col]

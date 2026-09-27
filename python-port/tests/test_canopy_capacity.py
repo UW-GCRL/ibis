@@ -74,8 +74,9 @@ def test_switch_is_wired_into_both_canopies():
     src = (ROOT / "ibis" / "physics" / "stomata.py").read_text()
     for s in ("if params.cap_scale_u:", "if params.cap_scale_l:", "_capacity_integral(lai[:, 1], params.cap_kn", "_capacity_integral(lai[:, 0], params.cap_kn"):
         assert s in src, s
-    # the canopy rates must use the ci the leaf rates used (before ball_berry_step replaces it)
+    # the canopy rates must use the ci the leaf rates used (before ball_berry_step replaces it); the sunlit/shaded
+    # canopy (test_sunshade_canopy.py) uses the same pre-step ci
     for s in ("ci_ub0", "ci_uc0", "ci_ls0", "ci_l30", "ci_l40"):
-        assert src.count(s) == 2, s
+        assert src.count(s) >= 2, s
     rd = (ROOT / "ibis" / "io" / "physics_params.py").read_text()
     assert "cap_scale_u=bool(" in rd and "cap_scale_l=bool(" in rd and "cap_kn=float(" in rd

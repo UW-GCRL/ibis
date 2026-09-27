@@ -48,5 +48,11 @@ print('daily GPP July over hours with tower data: model %.2f, tower %.2f gC m-2 
 mid = day & (ppfd > 1500); dim = day & (ppfd < 500)
 print('bright hours (PPFD>1500): k %.2f, je_top %.1f jc_top %.1f js_top %.1f, agtop %.1f, canopy GPP %.1f, tower %.1f' % (k[mid].mean(), je[mid].mean() * 1e6, jc[mid].mean() * 1e6, js[mid].mean() * 1e6, agtop[mid].mean() * 1e6, gppc[mid].mean(), np.nanmean(gtow[mid & (qc == 0)])))
 print('dim hours (PPFD<500):    k %.2f, je_top %.1f jc_top %.1f js_top %.1f, agtop %.1f, canopy GPP %.1f, tower %.1f' % (k[dim].mean(), je[dim].mean() * 1e6, jc[dim].mean() * 1e6, js[dim].mean() * 1e6, agtop[dim].mean() * 1e6, gppc[dim].mean(), np.nanmean(gtow[dim & (qc == 0)])))
+extra = {}
+if 'rad_solad' in R and R['rad_solad'].shape[0] == len(L):           # the model's own hourly light (visible direct, diffuse W m-2)
+    extra = dict(solad=R['rad_solad'][:, 0][sel], solai=R['rad_solai'][:, 0][sel])
+    m_ppfd = (R['rad_solad'][:, 0] + R['rad_solai'][:, 0]) * 4.59
+    print('model incident PPFD vs tower PPFD, July daylight: mean %.0f vs %.0f umol m-2 s-1; hourly r %.3f; model diffuse fraction (PAR-weighted) %.2f' % (
+        m_ppfd[day].mean(), np.nanmean(ppfd[day]), np.corrcoef(m_ppfd[sel], ppfd[sel])[0, 1], (R['rad_solai'][:, 0][day].sum() / max((R['rad_solad'][:, 0] + R['rad_solai'][:, 0])[day].sum(), 1e-6))))
 np.savez(npz.replace('.npz', '_july_lr.npz'), ppfd=ppfd[sel], gppc=gppc[sel], hod=hod[sel], doy=doy[sel], fu=fu, k=k[sel], je=je[sel], jc=jc[sel], js=js[sel], par=par[sel], tu=tu[sel], ci=ci[sel],
-         vmax=vmax[sel], L=L[sel], S=S[sel], fl=fl[sel], fc=fc[sel], gtow=gtow[sel], qc=qc[sel])
+         vmax=vmax[sel], L=L[sel], S=S[sel], fl=fl[sel], fc=fc[sel], gtow=gtow[sel], qc=qc[sel], **extra)

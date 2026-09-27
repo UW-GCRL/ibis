@@ -174,6 +174,7 @@ class TwostrResult(NamedTuple):
     fbelid: Float[Array, "npoi"]   # below-layer diffuse (per unit direct)
     fbelii: Float[Array, "npoi"]   # below-layer diffuse (per unit diffuse)
     term: Float[Array, "npoi 7"]   # canopy scaling terms (VIS only)
+    omega: Float[Array, "npoi"]    # single-scattering albedo used (sunlit/shaded canopy: unscattered-beam absorption)
 
 
 def twostr(
@@ -304,7 +305,7 @@ def twostr(
         refld=refld, refli=refli,
         fbeldd=fbeldd, fbeldi=fbeldi,
         fbelid=fbelid, fbelii=fbelii,
-        term=term,
+        term=term, omega=omega,
     )
 
 
@@ -465,6 +466,8 @@ def solarf(
     solu, sols, soll, solg, soli : absorbed fluxes (W/m2)
     topparu, topparl : top-of-canopy PAR (W/m2), VIS band only
     scalcoefu, scalcoefl : PAR scaling coefficients [npoi, 4], VIS band only
+    dbeamu, dbeaml : unscattered beam PAR absorbed per unit plant area at the top of each canopy,
+        (1 - omega) k I_beam, VIS band only (stomata.sunshade_canopy)
     """
     npoi = solad_ib.shape[0]
 
@@ -497,6 +500,8 @@ def solarf(
     topparl_ib = jnp.zeros(npoi)
     scalcoefu_ib = jnp.zeros((npoi, 4))
     scalcoefl_ib = jnp.zeros((npoi, 4))
+    dbeamu_ib = jnp.zeros(npoi)
+    dbeaml_ib = jnp.zeros(npoi)
 
     if ib == 0:
         # Upper canopy
@@ -508,6 +513,7 @@ def solarf(
         sc3 = sc0 + sc1 + sc2
         scalcoefu_ib = jnp.stack([sc0, sc1, sc2, sc3], axis=-1)
         topparu_ib = sc3 * lai[:, 1] / xaiu
+        dbeamu_ib = (1.0 - ts_up.omega) * termu[:, 5] * solad_ib
 
         # Lower canopy
         xail = jnp.maximum(lai[:, 0] + sai[:, 0], epsilon)
@@ -518,6 +524,7 @@ def solarf(
         sc3l = sc0l + sc1l + sc2l
         scalcoefl_ib = jnp.stack([sc0l, sc1l, sc2l, sc3l], axis=-1)
         topparl_ib = sc3l * lai[:, 0] / xail
+        dbeaml_ib = (1.0 - ts_lo.omega) * terml[:, 5] * sol3d
 
     # Zero non-sunlit
     solu = jnp.where(sunlit, solu, 0.0)
@@ -526,7 +533,7 @@ def solarf(
     solg = jnp.where(sunlit, solg, 0.0)
     soli = jnp.where(sunlit, soli, 0.0)
 
-    return solu, sols, soll, solg, soli, topparu_ib, topparl_ib, scalcoefu_ib, scalcoefl_ib
+    return solu, sols, soll, solg, soli, topparu_ib, topparl_ib, scalcoefu_ib, scalcoefl_ib, dbeamu_ib, dbeaml_ib
 
 
 # ---------------------------------------------------------------------------
@@ -635,6 +642,8 @@ class RadiationResult(NamedTuple):
     topparl: Float[Array, "npoi"]
     scalcoefu: Float[Array, "npoi 4"]
     scalcoefl: Float[Array, "npoi 4"]
+    dbeamu: Float[Array, "npoi"]      # unscattered beam PAR absorbed per unit plant area at the top, upper canopy (VIS)
+    dbeaml: Float[Array, "npoi"]      # same, lower canopy (stomata.sunshade_canopy)
     # Two-stream k and h terms for stomata canopy scaling (VIS band only)
     termu6: Float[Array, "npoi"]      # Upper canopy extinction k
     termu7: Float[Array, "npoi"]      # Upper canopy extinction h
@@ -677,6 +686,8 @@ def compute_radiation(
     topparl_out = jnp.zeros(npoi)
     scalcoefu_out = jnp.zeros((npoi, 4))
     scalcoefl_out = jnp.zeros((npoi, 4))
+    dbeamu_out = jnp.zeros(npoi)
+    dbeaml_out = jnp.zeros(npoi)
     termu6_out = jnp.zeros(npoi)
     termu7_out = jnp.zeros(npoi)
     terml6_out = jnp.zeros(npoi)
@@ -700,7 +711,7 @@ def compute_radiation(
 
         # Absorbed solar fluxes
         (solu_ib, sols_ib, soll_ib, solg_ib, soli_ib,
-         topparu_ib, topparl_ib, scalcoefu_ib, scalcoefl_ib) = solarf(
+         topparu_ib, topparl_ib, scalcoefu_ib, scalcoefl_ib, dbeamu_ib, dbeaml_ib) = solarf(
             solad[:, ib], solai[:, ib],
             lai, sai, fu, fl, fi, epsilon,
             ts_lo, ts_up,
@@ -720,6 +731,8 @@ def compute_radiation(
         topparl_out += topparl_ib
         scalcoefu_out += scalcoefu_ib
         scalcoefl_out += scalcoefl_ib
+        dbeamu_out += dbeamu_ib
+        dbeaml_out += dbeaml_ib
 
         # Extract two-stream k, h terms (VIS band only, ib=0)
         if ib == 0:
@@ -742,6 +755,7 @@ def compute_radiation(
         asurd=asurd_out, asuri=asuri_out,
         topparu=topparu_out, topparl=topparl_out,
         scalcoefu=scalcoefu_out, scalcoefl=scalcoefl_out,
+        dbeamu=dbeamu_out, dbeaml=dbeaml_out,
         termu6=termu6_out, termu7=termu7_out,
         terml6=terml6_out, terml7=terml7_out,
     )

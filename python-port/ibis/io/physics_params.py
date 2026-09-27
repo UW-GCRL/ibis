@@ -154,6 +154,8 @@ def build_stomata_params(d: dict) -> StomataParams:
         cap_scale_u=bool(s.get('cap_scale_u', False)),         # CALIBRATION.md 26; off: bit-identical
         cap_scale_l=bool(s.get('cap_scale_l', False)),
         cap_kn=float(s.get('cap_kn', 0.15)),
+        sunshade_u=bool(s.get('sunshade_u', False)),           # CALIBRATION.md 27; off: bit-identical
+        sunshade_l=bool(s.get('sunshade_l', False)),
         gamma=gamma,
         coefm=coefm,
         coefb=coefb,

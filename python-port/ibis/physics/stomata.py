@@ -128,6 +128,14 @@ class StomataParams(eqx.Module):
     cap_scale_u: bool = eqx.field(static=True, default=False)
     cap_scale_l: bool = eqx.field(static=True, default=False)
     cap_kn: float = 0.15
+    # Sunlit/shaded two-big-leaf canopy (docs/CALIBRATION.md 27; de Pury & Farquhar 1997). The two-stream's absorbed-PAR
+    # profile is split into the unscattered beam, taken by the sunlit leaves (fraction e^-kx), and the diffuse and
+    # scattered field, taken by all leaves; capacity falls as e^-Kn x (`cap_kn`, Lloyd et al. 2010); each big leaf is
+    # integrated on its own totals (the leaf model is homogeneous of degree one) and the Ball-Berry state relaxes on
+    # the canopy-mean rate. Replaces both the F77 scaling and `cap_scale`; needs `dbeamu`/`dbeaml` from radiation.
+    # Static switches per canopy, off: bit-identical.
+    sunshade_u: bool = eqx.field(static=True, default=False)
+    sunshade_l: bool = eqx.field(static=True, default=False)
 
 
 # ---------------------------------------------------------------------------
@@ -347,6 +355,61 @@ def _capacity_integral(lai_canopy, kn, epsilon):
     x = kn * lai_canopy
     f = jnp.where(x > 1.0e-4, -jnp.expm1(-x) / jnp.maximum(x, 1.0e-4), 1.0 - 0.5 * x)     # float32-safe near 0
     return jnp.where(lai_canopy > 0.0, f, 0.0)
+
+
+def _e1(a, plai):
+    """Integral of e^-ax over 0..plai, (1 - e^-a plai)/a: safe as a -> 0 (-> plai), a may be negative."""
+    x = a * plai
+    small = jnp.abs(x) < 1.0e-5
+    a_safe = jnp.where(small, 1.0, a)
+    return jnp.where(small, plai * (1.0 - 0.5 * x), -jnp.expm1(-x) / a_safe)
+
+
+def sunshade_canopy(scalcoef, dbeam, k, h, lai_canopy, sai_canopy, kn, epsilon):
+    """Sunlit/shaded two-big-leaf partition of one canopy from the two-stream (StomataParams.sunshade_u/_l).
+
+    The two-stream gives the PAR absorbed per unit plant area at plant depth x (leaves and stems, cumulative from the
+    top) as A e^-kx + B e^-hx + C e^hx (radiation.solarf: scalcoef[:, 0:3]; k, h its beam and diffuse exponents), and
+    `dbeam` = (1 - omega) k I_beam is the unscattered beam absorbed per unit plant area at the top. Sunlit plant area
+    at depth x is e^-kx; sunlit leaves absorb the unscattered beam plus the diffuse and scattered field, shaded leaves
+    the latter only. Capacity per unit leaf area falls as e^-Kn x_leaf. Leaves are the share L/(L+S) of the plant area
+    at every depth and the only assimilating surface.
+
+    Returns, per unit ground area of the canopy: absorbed PAR of the sunlit and shaded leaves (W m-2), their leaf
+    areas, and their capacities in top-leaf units (m2 leaf: times the top leaf's vmax gives mol m-2 s-1).
+    """
+    A, B, C = scalcoef[:, 0], scalcoef[:, 1], scalcoef[:, 2]
+    plai = jnp.maximum(lai_canopy + sai_canopy, epsilon)
+    fl = jnp.where(lai_canopy > 0.0, lai_canopy / plai, 0.0)
+    e_k, e_2k = _e1(k, plai), _e1(2.0 * k, plai)
+    apar_tot = jnp.maximum(A * e_k + B * _e1(h, plai) + C * _e1(-h, plai), 0.0)
+    apar_sun = A * e_2k + B * _e1(k + h, plai) + C * _e1(k - h, plai) + dbeam * (e_k - e_2k)
+    apar_sun = jnp.clip(apar_sun, 0.0, apar_tot)
+    apar_sha = apar_tot - apar_sun
+    lai_sun = fl * e_k
+    lai_sha = jnp.maximum(lai_canopy - lai_sun, 0.0)
+    vcap_sun = fl * _e1(kn * fl + k, plai)
+    vcap_sha = jnp.maximum(fl * _e1(kn * fl, plai) - vcap_sun, 0.0)
+    return apar_sun * fl, apar_sha * fl, lai_sun, lai_sha, vcap_sun, vcap_sha
+
+
+def _sunshade_c3(ss, ci, vmax, gamstar, kc, ko, o2conc, rdark, lai_canopy, params):
+    """Canopy-mean gross and net C3 rates per unit leaf area from the two big leaves: each is integrated in one
+    farquhar_c3 call on its totals (the leaf model is homogeneous of degree one in absorbed PAR, capacity, respiration)."""
+    apar_sun, apar_sha, _, _, v_sun, v_sha = ss
+    ag_s, an_s = farquhar_c3(apar_sun, ci, vmax * v_sun, gamstar, kc, ko, o2conc, rdark * v_sun, params)
+    ag_h, an_h = farquhar_c3(apar_sha, ci, vmax * v_sha, gamstar, kc, ko, o2conc, rdark * v_sha, params)
+    inv = jnp.where(lai_canopy > 0.0, 1.0 / jnp.maximum(lai_canopy, 1.0e-6), 0.0)
+    return (ag_s + ag_h) * inv, (an_s + an_h) * inv
+
+
+def _sunshade_c4(ss, ci, vmax, rdark, lai_canopy, params):
+    """As _sunshade_c3 for the C4 leaf model."""
+    apar_sun, apar_sha, _, _, v_sun, v_sha = ss
+    ag_s, an_s = farquhar_c4(apar_sun, ci, vmax * v_sun, rdark * v_sun, params)
+    ag_h, an_h = farquhar_c4(apar_sha, ci, vmax * v_sha, rdark * v_sha, params)
+    inv = jnp.where(lai_canopy > 0.0, 1.0 / jnp.maximum(lai_canopy, 1.0e-6), 0.0)
+    return (ag_s + ag_h) * inv, (an_s + an_h) * inv
 
 
 def canopy_scaling(toppar, term6, term7, scalcoef, lai_canopy, sai_canopy,
@@ -621,7 +684,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
             stresstu, stresstl,
             a10scalparamu, a10daylightu,
             a10scalparaml, a10daylightl,
-            co2conc, dtime, params, epsilon=1.0e-7, frac=None, vfac=None):
+            co2conc, dtime, params, epsilon=1.0e-7, frac=None, vfac=None, dbeamu=None, dbeaml=None):
     """Full stomata calculation for all 5 PFT groups.
 
     Computes Farquhar photosynthesis + Ball-Berry stomatal conductance
@@ -713,9 +776,15 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     ag_ub, an_ub = farquhar_c3(
         topparu, ci_ub, vmax_ub, gamstar_u, kc_u, ko_u,
         params.o2conc, rdark_ub, params)
-    ci_ub0 = ci_ub                                   # the ci this step's rates used (cap_scale_u)
+    ci_ub0 = ci_ub                                   # the ci this step's rates used (cap_scale_u, sunshade_u)
+    if params.sunshade_u:
+        # two big leaves from the two-stream profile; the Ball-Berry state relaxes on the canopy-mean rate
+        if dbeamu is None:
+            raise ValueError("stomata: sunshade_u needs dbeamu (radiation.RadiationResult.dbeamu)")
+        ss_u = sunshade_canopy(scalcoefu, dbeamu, termu6, termu7, lai[:, 1], sai[:, 1], params.cap_kn, epsilon)
+        agc_ub, anc_ub = _sunshade_c3(ss_u, ci_ub0, vmax_ub, gamstar_u, kc_u, ko_u, params.o2conc, rdark_ub, lai[:, 1], params)
     cs_ub, gs_ub, ci_ub = ball_berry_step(
-        an_ub, cs_upper[:, 0], gs_upper[:, 0], ci_ub,
+        anc_ub if params.sunshade_u else an_ub, cs_upper[:, 0], gs_upper[:, 0], ci_ub,
         co2conc, gbco2u, rh12,
         params.coefm[0], params.coefb[0], stresstu,
         params.gsmin[0], gamstar_min_u, params.cimax)
@@ -727,8 +796,10 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
         topparu, ci_uc, vmax_uc, gamstar_u, kc_u, ko_u,
         params.o2conc, rdark_uc, params)
     ci_uc0 = ci_uc
+    if params.sunshade_u:
+        agc_uc, anc_uc = _sunshade_c3(ss_u, ci_uc0, vmax_uc, gamstar_u, kc_u, ko_u, params.o2conc, rdark_uc, lai[:, 1], params)
     cs_uc, gs_uc, ci_uc = ball_berry_step(
-        an_uc, cs_upper[:, 1], gs_upper[:, 1], ci_uc,
+        anc_uc if params.sunshade_u else an_uc, cs_upper[:, 1], gs_upper[:, 1], ci_uc,
         co2conc, gbco2u, rh12,
         params.coefm[1], params.coefb[1], stresstu,
         params.gsmin[1], gamstar_min_u, params.cimax)
@@ -741,7 +812,9 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
         leaf_only=params.scale_leaf_only)
 
     # Scale to canopy level
-    if params.cap_scale_u:
+    if params.sunshade_u:
+        pass                                          # canopy rates already set from the two big leaves
+    elif params.cap_scale_u:
         # capacity with its own profile, light with the light profile, co-limited at canopy level (CALIBRATION.md 26)
         fcap_u = _capacity_integral(lai[:, 1], params.cap_kn, epsilon)
         agc_ub, anc_ub = farquhar_c3(topparu, ci_ub0, vmax_ub, gamstar_u, kc_u, ko_u, params.o2conc, rdark_ub, params,
@@ -805,8 +878,13 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
         topparl, ci_ls, vmax_ls, gamstar_l, kc_l, ko_l,
         params.o2conc, rdark_ls, params)
     ci_ls0 = ci_ls
+    if params.sunshade_l:
+        if dbeaml is None:
+            raise ValueError("stomata: sunshade_l needs dbeaml (radiation.RadiationResult.dbeaml)")
+        ss_l = sunshade_canopy(scalcoefl, dbeaml, terml6, terml7, lai[:, 0], sai[:, 0], params.cap_kn, epsilon)
+        agc_ls, anc_ls = _sunshade_c3(ss_l, ci_ls0, vmax_ls, gamstar_l, kc_l, ko_l, params.o2conc, rdark_ls, lai[:, 0], params)
     cs_ls, gs_ls, ci_ls = ball_berry_step(
-        an_ls, cs_lower[:, 0], gs_lower[:, 0], ci_ls,
+        anc_ls if params.sunshade_l else an_ls, cs_lower[:, 0], gs_lower[:, 0], ci_ls,
         co2conc, gbco2l, rh34,
         params.coefm[2], params.coefb[2], stresstl,
         params.gsmin[2], gamstar_min_l, params.cimax)
@@ -819,8 +897,10 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
         topparl, ci_l3, vmax_l3, gamstar_l, kc_l, ko_l,
         params.o2conc, rdark_l3, params)
     ci_l30 = ci_l3
+    if params.sunshade_l:
+        agc_l3, anc_l3 = _sunshade_c3(ss_l, ci_l30, vmax_l3, gamstar_l, kc_l, ko_l, params.o2conc, rdark_l3, lai[:, 0], params)
     cs_l3, gs_l3, ci_l3 = ball_berry_step(
-        an_l3, cs_lower[:, 1], gs_lower[:, 1], ci_l3,
+        anc_l3 if params.sunshade_l else an_l3, cs_lower[:, 1], gs_lower[:, 1], ci_l3,
         co2conc, gbco2l, rh34,
         params.coefm[4], params.coefb[4], stresstl,
         params.gsmin[4], gamstar_min_l, params.cimax)
@@ -832,8 +912,10 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     ag_l4, an_l4 = farquhar_c4(
         topparl, ci_l4, vmax_l4, rdark_l4, params)
     ci_l40 = ci_l4
+    if params.sunshade_l:
+        agc_l4, anc_l4 = _sunshade_c4(ss_l, ci_l40, vmax_l4, rdark_l4, lai[:, 0], params)
     cs_l4, gs_l4, ci_l4 = ball_berry_step(
-        an_l4, cs_lower[:, 2], gs_lower[:, 2], ci_l4,
+        anc_l4 if params.sunshade_l else an_l4, cs_lower[:, 2], gs_lower[:, 2], ci_l4,
         co2conc, gbco2l, rh34,
         params.coefm[3], params.coefb[3], stresstl,
         params.gsmin[3], gamstar_min_l, params.cimax,
@@ -847,7 +929,9 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
         leaf_only=params.scale_leaf_only)
 
     # Scale to canopy level
-    if params.cap_scale_l:
+    if params.sunshade_l:
+        pass                                          # canopy rates already set from the two big leaves
+    elif params.cap_scale_l:
         fcap_l = _capacity_integral(lai[:, 0], params.cap_kn, epsilon)
         agc_ls, anc_ls = farquhar_c3(topparl, ci_ls0, vmax_ls, gamstar_l, kc_l, ko_l, params.o2conc, rdark_ls, params,
                                      f_light=scale_l, f_cap=fcap_l)
