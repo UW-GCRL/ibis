@@ -4044,3 +4044,51 @@ every cell in every run had the equator's solar geometry. Fixed at both calls (`
 - Every earlier site and global result was produced on the equator's insolation. The class-wide cold-season excess of
   section 20 and the mid-latitude amplitude of section 16 have to be re-read on the corrected model before anything
   else is concluded from them.
+
+## 28. The 62-tower baseline on the corrected solar geometry (2026-09-27)
+
+**Order (Hangkai).** "The 62-tower baseline rerun on the corrected model first, then continue the Harvard site."
+Runs: `site_runs/latfix_default_2008-2012_fixedlai` (the exact configuration of `default_2008-2012_fixedlai`,
+section 20: `default.yaml`, leaf area held at the site attributes, 2 spin cycles, generator daylight) and
+`site_runs/latfix_sunshade_2008-2012_fixedlai` (`default_seasonal_sunshade.yaml`: Stage A acclimation and photoperiod
+senescence, sunlit/shaded canopy, Kn 0.15, IBIS vmax); 62 towers, 2008-2012, GPU, 43 min each. Metrics
+`site_metrics.csv` (cold-season share, r, peak lag) and `diagnostics/magnitude_ab.py` (peak, June-August, annual, ET;
+LE_CORR where the tower has it). Class medians, model / tower:
+
+| class (n) | cold-season share: before / lat fixed / tower | r: before / lat fixed | JJA: before / lat fixed / **+ two-leaf** | peak: + two-leaf | annual: + two-leaf | ET: lat fixed / + two-leaf |
+|---|---|---|---|---|---|---|
+| ENF (17) | 0.16 / 0.06 / 0.05 | 0.92 / 0.99 | 0.54 / 0.63 / **0.96** | 0.97 | 0.97 | 0.82 / 0.86 |
+| DBF (12) | 0.12 / 0.04 / 0.01 | 0.81 / 0.90 | 0.49 / 0.58 / **0.84** | 0.84 | 1.05 | 0.93 / 0.97 |
+| MF (6) | 0.16 / 0.06 / 0.03 | 0.86 / 0.97 | 0.60 / 0.71 / **1.10** | 1.11 | 1.20 | 0.94 / 1.03 |
+| GRA (13) | 0.15 / 0.05 / 0.06 | 0.89 / 0.94 | 0.58 / 0.66 / **1.06** | 0.96 | 1.10 | 0.84 / 0.85 |
+| EBF (3) | 0.31 / 0.20 / 0.22 | 0.27 / 0.90 | 0.92 / 0.94 / **1.03** | 1.05 | 0.98 | 0.98 / 0.99 |
+| WSA (3) | 0.22 / 0.21 / 0.18 | 0.77 / 0.88 | 0.88 / 0.93 / **1.01** | 0.98 | 1.34 | 0.95 / 0.96 |
+| SAV (2) | 0.15 / 0.14 / 0.30 | 0.85 / 0.85 | 1.23 / 1.29 / **1.40** | 1.32 | 1.07 | 0.94 / 0.95 |
+| OSH (4) | 0.26 / 0.22 / 0.10 | 0.78 / 0.90 | 3.7 / 4.0 / **6.1** | 4.1 | 5.0 | 1.41 / 1.42 |
+| all (61) | median GPP ratio 0.85 / 0.80 / 1.10; within 0.8-1.25: 34 % / 25 % / 52 % | 0.86 / 0.95 / 0.93 | | | | |
+
+**Readings, verdict first.**
+1. **The class-wide cold-season excess was the latitude bug.** With the geometry right and nothing else changed, the
+   cold-season share of GPP falls to the towers' in every temperate class (ENF 0.06 vs 0.05, DBF 0.04 vs 0.01, GRA
+   0.05 vs 0.06, MF 0.06 vs 0.03), the monthly correlation rises from 0.86 to 0.95 and the conifer peak lag from +1
+   month to 0. Section 20's "one robust class-wide error" and the winter side of section 16 are closed by the fix,
+   not by a parameter.
+2. **The summer deficit is the canopy, as section 27 said.** Light alone lifts June-August from 0.5-0.6 to 0.6-0.7 of
+   the towers; the sunlit/shaded canopy at IBIS's default vmax puts ENF at 0.96, GRA at 1.06, EBF at 1.03, WSA at
+   1.01 and MF at 1.10. Deciduous broadleaf stays at 0.84, Harvard's 0.76 among them: the temperate deciduous vmax (46
+   at 25 C against TRY's 57.7) is the remaining lever there.
+3. **The dry classes are now the largest error and are not a light or canopy problem.** Open shrubland is 6x the
+   towers in summer, savanna 1.4x, with ET 1.4x at the shrublands: water stress and the lower canopy at semi-arid
+   sites (US-SRC/SRG/SRM/Whs/Wkg, AU-DaS/Dry/How) is the next class-wide item after the deciduous vmax.
+4. The annual ratios above 1 in the new baseline (DBF 1.05, MF 1.20, GRA 1.10, WSA 1.34) come with summer ratios at
+   or below 1: the default phenology's long season (section 25) is now the deciduous classes' visible error.
+5. ET moved from 0.95-1.12 to 0.82-0.93 with the latitude fix at the forests and grasslands and back to 0.85-1.03
+   with the two-leaf canopy; the earlier "forest ET 1.2-1.6x" (section 20) was also the equatorial light.
+
+**Consequence for the record.** Every result in sections 14-26 that depends on the daily loop's light was produced
+under the equator's insolation: the S1.3 baselines, both sensitivity sweeps, the Stage B ranking, the C1/C1b fits and the
+Harvard fits of section 27. The findings that survive are the ones diagnosed on hourly records against the tower's own
+light or by construction of the code (the phenology clock, the surface pressure, the prescription hold, the canopy
+capacity profile); the numbers do not. Stage A's acclimation and photoperiod senescence stay in as formulations; their
+fitted constants are to be re-read. The local record of 09-26 is superseded on its Harvard numbers by section 27's
+corrected table.
