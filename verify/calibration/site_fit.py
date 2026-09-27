@@ -94,6 +94,7 @@ def _args(argv=None):
     ap.add_argument('--hold-last', type=int, default=1, help='hold out the last K simulated years (scored, not fitted)')
     ap.add_argument('--lai', default='', help='SITE=value[,SITE=value]: leaf area to hold where the site attributes have none')
     ap.add_argument('--co2', default='fixed', choices=['fixed', 'series'], help="'fixed' 385 ppm (the batch fits) or the historical annual series")
+    ap.add_argument('--vmax-bounds', default='', help="LO,HI in umol m-2 s-1 at 25 C for every fitted vmax (e.g. the TRY mean +- SD of the PFT); converted to IBIS's 15 C basis with its own temperature function (CALIBRATION.md 29)")
     ap.add_argument('--hourly-sw', action='store_true', help="drive radiation with the tower's hourly shortwave (Spitters diffuse split) instead of the weather generator's cycle (CALIBRATION.md 27)")
     ap.add_argument('--sites', default='', help='comma list: only these towers of the class (probes, single-tower tests)')
     ap.add_argument('--start', default='', help="best.json of an earlier fit: start from its parameters (with --only-baseline: a replay)")
@@ -157,9 +158,16 @@ def setup(a, spin=True, verbose=True):
     for nm in names:                                                                  # fail before the spin-up, with the valid names
         if nm.startswith('vmax:') and nm[5:] not in PFT_NAMES: raise SystemExit(f"unknown PFT in {nm!r}; PFT names: {PFT_NAMES}")
         if not nm.startswith('vmax:') and nm not in EXTRAS: raise SystemExit(f"unknown parameter {nm!r}; EXTRAS: {sorted(EXTRAS)}")
+    vlo, vhi = VMAX_LO.copy(), VMAX_HI.copy()
+    if getattr(a, 'vmax_bounds', ''):
+        from ibis.physics.stomata import _temp_dep_params
+        tv = lambda t: float(_temp_dep_params(jnp.asarray([t + 273.16], jnp.float32), sp0.stomata_params)[4][0])
+        r25 = tv(25.0) / tv(15.0)                                                     # IBIS vmax_pft is at 15 C
+        b_lo, b_hi = (float(x) * 1e-6 / r25 for x in a.vmax_bounds.split(','))
+        vlo[:] = b_lo; vhi[:] = b_hi; say(f'vmax bounds {a.vmax_bounds} umol at 25 C = {b_lo * 1e6:.1f}-{b_hi * 1e6:.1f}e-6 at 15 C (ratio {r25:.4f})')
     def enc_bounds(nm):
         if nm.startswith('vmax:'):
-            k = PFT_NAMES.index(nm[5:]); return np.log(VMAX_LO[k]), np.log(VMAX_HI[k])
+            k = PFT_NAMES.index(nm[5:]); return np.log(vlo[k]), np.log(vhi[k])
         return _enc(nm, EXTRAS[nm][1]), _enc(nm, EXTRAS[nm][2])
     def start(nm):
         if nm.startswith('vmax:'): return np.log(vmax0[PFT_NAMES.index(nm[5:])])
@@ -260,7 +268,7 @@ def main():
         return Ls
     try:
         L0 = objective_batch([C.z0], local=True)[0]; print(f'baseline loss {L0:.4f}', flush=True)       # in the parent, while workers start
-        json.dump(dict(igbp=a.igbp, params=a.params, fit=names, train=train, hold=hold, lai=C.lai_src, w_et=a.w_et, years=YEARS, train_years=[YEARS[k] for k in TRAIN_Y], hold_years=[YEARS[k] for k in HOLD_Y], workers=a.workers, popsize=a.popsize, seed=a.seed, sigma=a.sigma, n_evals=a.n_evals, co2=a.co2, lai_given=a.lai, hourly_sw=getattr(a, 'hourly_sw', False)), open(f'{a.out}/setup.json', 'w'), indent=1)
+        json.dump(dict(igbp=a.igbp, params=a.params, fit=names, train=train, hold=hold, lai=C.lai_src, w_et=a.w_et, years=YEARS, train_years=[YEARS[k] for k in TRAIN_Y], hold_years=[YEARS[k] for k in HOLD_Y], workers=a.workers, popsize=a.popsize, seed=a.seed, sigma=a.sigma, n_evals=a.n_evals, co2=a.co2, lai_given=a.lai, hourly_sw=getattr(a, 'hourly_sw', False), vmax_bounds=getattr(a, 'vmax_bounds', '')), open(f'{a.out}/setup.json', 'w'), indent=1)
         if a.only_baseline: return
         es = cma.CMAEvolutionStrategy(C.z0, a.sigma, {'bounds': [0, 1], 'maxfevals': a.n_evals, 'seed': a.seed, 'verbose': -9, **({'popsize': a.popsize} if a.popsize else {})})
         while not es.stop():
