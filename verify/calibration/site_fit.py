@@ -242,7 +242,7 @@ def main():
     names, train, hold, sites, ns, obs = C.names, C.train, C.hold, C.sites, C.ns, C.obs
     ntr = len(train)
     et_sites = [x for x in getattr(a, 'et_sites', '').split(',') if x]; w_site = [a.w_et if (not et_sites or s in et_sites) else 0.0 for s in sites]
-    if et_sites: say(f'ET term at {[s for s in sites if w_site[sites.index(s)] > 0]} only')
+    if et_sites: print(f'ET term at {[s for s in sites if w_site[sites.index(s)] > 0]} only')
     def score(gm, em):
         tr = [misfit(gm, em, obs[n], n, TRAIN_Y, w_site[n]) for n in range(ntr)]
         ho = [misfit(gm, em, obs[n], n, TRAIN_Y, w_site[n]) for n in range(ntr, ns)]
