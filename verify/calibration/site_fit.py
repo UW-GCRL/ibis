@@ -90,6 +90,7 @@ def _args(argv=None):
     ap.add_argument('--n-evals', type=int, default=200); ap.add_argument('--sigma', type=float, default=0.2); ap.add_argument('--w-et', type=float, default=0.5)
     ap.add_argument('--holdout', type=float, default=1 / 3); ap.add_argument('--seed', type=int, default=1); ap.add_argument('--out', required=True)
     ap.add_argument('--only-baseline', action='store_true', help='score the starting parameters and stop (smoke test)')
+    ap.add_argument('--profile', type=int, default=0, help='with --start: one-at-a-time profile of the loss around the start, N points across each parameter\'s bounds (others held); writes profile.csv and stops')
     ap.add_argument('--years', default='2008-2012', help='simulated years A-B: the first is warm-up (default: the 2008-2012 batch)')
     ap.add_argument('--hold-last', type=int, default=1, help='hold out the last K simulated years (scored, not fitted)')
     ap.add_argument('--lai', default='', help='SITE=value[,SITE=value]: leaf area to hold where the site attributes have none')
@@ -283,6 +284,13 @@ def main():
         L0 = objective_batch([C.z0], local=True)[0]; print(f'baseline loss {L0:.4f}', flush=True)       # in the parent, while workers start
         json.dump(dict(igbp=a.igbp, params=a.params, fit=names, train=train, hold=hold, lai=C.lai_src, w_et=a.w_et, years=YEARS, train_years=[YEARS[k] for k in TRAIN_Y], hold_years=[YEARS[k] for k in HOLD_Y], workers=a.workers, popsize=a.popsize, seed=a.seed, sigma=a.sigma, n_evals=a.n_evals, co2=a.co2, lai_given=a.lai, hourly_sw=getattr(a, 'hourly_sw', False), vmax_bounds=getattr(a, 'vmax_bounds', ''), pft_override=getattr(a, 'pft', ''), et_sites=getattr(a, 'et_sites', '')), open(f'{a.out}/setup.json', 'w'), indent=1)
         if a.only_baseline: return
+        if a.profile:                                                                # one-at-a-time profile around the start (CALIBRATION.md 32)
+            fr = np.linspace(0.0, 1.0, a.profile); rows = []
+            for k, nm in enumerate(names):
+                Z = [np.where(np.arange(len(names)) == k, f, C.z0) for f in fr]
+                for f, L in zip(fr, objective_batch(Z)): rows.append(dict(param=nm, frac=float(f), value=float(C.decode(np.where(np.arange(len(names)) == k, f, C.z0))[1][nm]) if not nm.startswith('vmax:') else float(C.decode(np.where(np.arange(len(names)) == k, f, C.z0))[0][PFT_NAMES.index(nm[5:])]), loss=float(L)))
+                pd.DataFrame(rows).to_csv(f'{a.out}/profile.csv', index=False); print(f'profile {nm}: ' + ' '.join(f'{r["loss"]:.2f}' for r in rows[-a.profile:]), flush=True)
+            return
         es = cma.CMAEvolutionStrategy(C.z0, a.sigma, {'bounds': [0, 1], 'maxfevals': a.n_evals, 'seed': a.seed, 'verbose': -9, **({'popsize': a.popsize} if a.popsize else {})})
         while not es.stop():
             Z = es.ask(); es.tell(Z, objective_batch(Z))
