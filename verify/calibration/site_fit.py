@@ -94,6 +94,7 @@ def _args(argv=None):
     ap.add_argument('--hold-last', type=int, default=1, help='hold out the last K simulated years (scored, not fitted)')
     ap.add_argument('--lai', default='', help='SITE=value[,SITE=value]: leaf area to hold where the site attributes have none')
     ap.add_argument('--co2', default='fixed', choices=['fixed', 'series'], help="'fixed' 385 ppm (the batch fits) or the historical annual series")
+    ap.add_argument('--et-sites', default='', help='comma list: only these towers carry the ET term (towers without energy-balance-corrected LE get 0); default all')
     ap.add_argument('--pft', default='', help="composition overrides SITE=idx,idx;SITE=... (IBIS PFT indices) where the IGBP rule is wrong, e.g. ZM-Mon=1 (tropical deciduous), RU-Cok=9,11 (deciduous shrub tundra)")
     ap.add_argument('--vmax-bounds', default='', help="LO,HI in umol m-2 s-1 at 25 C for every fitted vmax (e.g. the TRY mean +- SD of the PFT); converted to IBIS's 15 C basis with its own temperature function (CALIBRATION.md 29)")
     ap.add_argument('--hourly-sw', action='store_true', help="drive radiation with the tower's hourly shortwave (Spitters diffuse split) instead of the weather generator's cycle (CALIBRATION.md 27)")
@@ -111,11 +112,11 @@ def setup(a, spin=True, verbose=True):
     say = (lambda m: print(m, flush=True)) if verbose else (lambda m: None)
     configure_years(a)
     b1 = open(f'{S}/site_batches.txt').readline().split()[1].split(',')
-    sites = [s for s in b1 if META.loc[s, 'IGBP'] == a.igbp]
+    sites = b1 if a.igbp == 'ALL' else [s for s in b1 if META.loc[s, 'IGBP'] == a.igbp]      # 'ALL': the joint fit across classes (CALIBRATION.md 32)
     if getattr(a, 'sites', ''):
         want = a.sites.split(','); bad = [s for s in want if s not in sites]
         if bad:                                                                        # towers outside the 2008-2012 batch: any tower of the class with a daily file
-            other = [b for b in bad if b in META.index and META.loc[b, 'IGBP'] == a.igbp]
+            other = [b for b in bad if b in META.index and (a.igbp == 'ALL' or META.loc[b, 'IGBP'] == a.igbp)]
             if len(other) < len(bad): raise SystemExit(f'{[b for b in bad if b not in other]} are not {a.igbp} towers')
             say(f'{other}: {a.igbp} towers outside the 2008-2012 batch, taken with their own years')
         sites = want
@@ -169,8 +170,12 @@ def setup(a, spin=True, verbose=True):
         from ibis.physics.stomata import _temp_dep_params
         tv = lambda t: float(_temp_dep_params(jnp.asarray([t + 273.16], jnp.float32), sp0.stomata_params)[4][0])
         r25 = tv(25.0) / tv(15.0)                                                     # IBIS vmax_pft is at 15 C
-        b_lo, b_hi = (float(x) * 1e-6 / r25 for x in a.vmax_bounds.split(','))
-        vlo[:] = b_lo; vhi[:] = b_hi; say(f'vmax bounds {a.vmax_bounds} umol at 25 C = {b_lo * 1e6:.1f}-{b_hi * 1e6:.1f}e-6 at 15 C (ratio {r25:.4f})')
+        for item in a.vmax_bounds.split(';'):                                        # 'lo,hi' for every vmax, or 'pft=lo,hi;pft=lo,hi'
+            key, _, rng = item.rpartition('=') if '=' in item else ('', '', item)
+            b_lo, b_hi = (float(x) * 1e-6 / r25 for x in rng.split(','))
+            idx = [PFT_NAMES.index(key)] if key else range(12)
+            for k in idx: vlo[k] = b_lo; vhi[k] = b_hi
+            say(f'vmax bounds {key or "all"}: {rng} umol at 25 C = {b_lo * 1e6:.1f}-{b_hi * 1e6:.1f}e-6 at 15 C (ratio {r25:.4f})')
     def enc_bounds(nm):
         if nm.startswith('vmax:'):
             k = PFT_NAMES.index(nm[5:]); return np.log(vlo[k]), np.log(vhi[k])
@@ -236,10 +241,12 @@ def main():
     C = setup(a, spin=True)      # with workers, this spin-up compiles and fills the persistent cache; theirs then load it
     names, train, hold, sites, ns, obs = C.names, C.train, C.hold, C.sites, C.ns, C.obs
     ntr = len(train)
+    et_sites = [x for x in getattr(a, 'et_sites', '').split(',') if x]; w_site = [a.w_et if (not et_sites or s in et_sites) else 0.0 for s in sites]
+    if et_sites: say(f'ET term at {[s for s in sites if w_site[sites.index(s)] > 0]} only')
     def score(gm, em):
-        tr = [misfit(gm, em, obs[n], n, TRAIN_Y, a.w_et) for n in range(ntr)]
-        ho = [misfit(gm, em, obs[n], n, TRAIN_Y, a.w_et) for n in range(ntr, ns)]
-        hy = [misfit(gm, em, obs[n], n, HOLD_Y, a.w_et) for n in range(ns)]
+        tr = [misfit(gm, em, obs[n], n, TRAIN_Y, w_site[n]) for n in range(ntr)]
+        ho = [misfit(gm, em, obs[n], n, TRAIN_Y, w_site[n]) for n in range(ntr, ns)]
+        hy = [misfit(gm, em, obs[n], n, HOLD_Y, w_site[n]) for n in range(ns)]
         f = lambda v: float(np.nanmean(v)) if np.isfinite(v).any() else np.nan
         return f(tr), f(ho), f(hy), tr, ho
     def nee_rmse(ne, towers):
@@ -274,7 +281,7 @@ def main():
         return Ls
     try:
         L0 = objective_batch([C.z0], local=True)[0]; print(f'baseline loss {L0:.4f}', flush=True)       # in the parent, while workers start
-        json.dump(dict(igbp=a.igbp, params=a.params, fit=names, train=train, hold=hold, lai=C.lai_src, w_et=a.w_et, years=YEARS, train_years=[YEARS[k] for k in TRAIN_Y], hold_years=[YEARS[k] for k in HOLD_Y], workers=a.workers, popsize=a.popsize, seed=a.seed, sigma=a.sigma, n_evals=a.n_evals, co2=a.co2, lai_given=a.lai, hourly_sw=getattr(a, 'hourly_sw', False), vmax_bounds=getattr(a, 'vmax_bounds', ''), pft_override=getattr(a, 'pft', '')), open(f'{a.out}/setup.json', 'w'), indent=1)
+        json.dump(dict(igbp=a.igbp, params=a.params, fit=names, train=train, hold=hold, lai=C.lai_src, w_et=a.w_et, years=YEARS, train_years=[YEARS[k] for k in TRAIN_Y], hold_years=[YEARS[k] for k in HOLD_Y], workers=a.workers, popsize=a.popsize, seed=a.seed, sigma=a.sigma, n_evals=a.n_evals, co2=a.co2, lai_given=a.lai, hourly_sw=getattr(a, 'hourly_sw', False), vmax_bounds=getattr(a, 'vmax_bounds', ''), pft_override=getattr(a, 'pft', ''), et_sites=getattr(a, 'et_sites', '')), open(f'{a.out}/setup.json', 'w'), indent=1)
         if a.only_baseline: return
         es = cma.CMAEvolutionStrategy(C.z0, a.sigma, {'bounds': [0, 1], 'maxfevals': a.n_evals, 'seed': a.seed, 'verbose': -9, **({'popsize': a.popsize} if a.popsize else {})})
         while not es.stop():
