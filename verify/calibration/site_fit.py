@@ -94,6 +94,7 @@ def _args(argv=None):
     ap.add_argument('--hold-last', type=int, default=1, help='hold out the last K simulated years (scored, not fitted)')
     ap.add_argument('--lai', default='', help='SITE=value[,SITE=value]: leaf area to hold where the site attributes have none')
     ap.add_argument('--co2', default='fixed', choices=['fixed', 'series'], help="'fixed' 385 ppm (the batch fits) or the historical annual series")
+    ap.add_argument('--pft', default='', help="composition overrides SITE=idx,idx;SITE=... (IBIS PFT indices) where the IGBP rule is wrong, e.g. ZM-Mon=1 (tropical deciduous), RU-Cok=9,11 (deciduous shrub tundra)")
     ap.add_argument('--vmax-bounds', default='', help="LO,HI in umol m-2 s-1 at 25 C for every fitted vmax (e.g. the TRY mean +- SD of the PFT); converted to IBIS's 15 C basis with its own temperature function (CALIBRATION.md 29)")
     ap.add_argument('--hourly-sw', action='store_true', help="drive radiation with the tower's hourly shortwave (Spitters diffuse split) instead of the weather generator's cycle (CALIBRATION.md 27)")
     ap.add_argument('--sites', default='', help='comma list: only these towers of the class (probes, single-tower tests)')
@@ -136,6 +137,8 @@ def setup(a, spin=True, verbose=True):
         mat = META.loc[s, 'MAT'] if 'MAT' in META else np.nan
         if not (isinstance(mat, (int, float)) and np.isfinite(mat)): mat = tower_mat(s)
         pfts, fu[n], flw[n], _ = prescribe(META.loc[s, 'IGBP'], float(META.loc[s, 'LOCATION_LAT']), float(mat) if pd.notna(mat) else None)
+        over = {kv.split('=')[0]: [int(x) for x in kv.split('=')[1].split(',')] for kv in getattr(a, 'pft', '').split(';') if kv}
+        if s in over: pfts = over[s]; say(f'{s}: composition overridden to PFTs {pfts}')
         for p in range(12):
             if p in pfts:
                 mask[n, p] = 1.0
@@ -268,7 +271,7 @@ def main():
         return Ls
     try:
         L0 = objective_batch([C.z0], local=True)[0]; print(f'baseline loss {L0:.4f}', flush=True)       # in the parent, while workers start
-        json.dump(dict(igbp=a.igbp, params=a.params, fit=names, train=train, hold=hold, lai=C.lai_src, w_et=a.w_et, years=YEARS, train_years=[YEARS[k] for k in TRAIN_Y], hold_years=[YEARS[k] for k in HOLD_Y], workers=a.workers, popsize=a.popsize, seed=a.seed, sigma=a.sigma, n_evals=a.n_evals, co2=a.co2, lai_given=a.lai, hourly_sw=getattr(a, 'hourly_sw', False), vmax_bounds=getattr(a, 'vmax_bounds', '')), open(f'{a.out}/setup.json', 'w'), indent=1)
+        json.dump(dict(igbp=a.igbp, params=a.params, fit=names, train=train, hold=hold, lai=C.lai_src, w_et=a.w_et, years=YEARS, train_years=[YEARS[k] for k in TRAIN_Y], hold_years=[YEARS[k] for k in HOLD_Y], workers=a.workers, popsize=a.popsize, seed=a.seed, sigma=a.sigma, n_evals=a.n_evals, co2=a.co2, lai_given=a.lai, hourly_sw=getattr(a, 'hourly_sw', False), vmax_bounds=getattr(a, 'vmax_bounds', ''), pft_override=getattr(a, 'pft', '')), open(f'{a.out}/setup.json', 'w'), indent=1)
         if a.only_baseline: return
         es = cma.CMAEvolutionStrategy(C.z0, a.sigma, {'bounds': [0, 1], 'maxfevals': a.n_evals, 'seed': a.seed, 'verbose': -9, **({'popsize': a.popsize} if a.popsize else {})})
         while not es.stop():
