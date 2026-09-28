@@ -121,7 +121,7 @@ def main():
     ap.add_argument('--out', required=True); ap.add_argument('--pft', default='', help='overrides: SITE=pft,pft;SITE=...'); ap.add_argument('--years', default='', help='SITE=y0-y1;... restrict tower years')
     ap.add_argument('--no-hh', action='store_true', help='ignore half-hourly files (diurnal range from GSWP3)')
     ap.add_argument('--hourly-sw', action='store_true', help="the tower's hourly shortwave instead of the weather generator's cycle (CALIBRATION.md 27)")
-    ap.add_argument('--fixed-lai', default='', choices=['', 'state', 'attrs'], help="hold leaf carbon: 'state' at the prescribed starting value, 'attrs' at the site-attribute maximum LAI (fixed-vegetation experiment)")
+    ap.add_argument('--fixed-lai', default='', choices=['', 'state', 'attrs', 'attrs-modis'], help="hold leaf carbon: 'state' at the prescribed starting value, 'attrs' at the site-attribute maximum LAI (fixed-vegetation experiment)")
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     sites = a.sites.split(','); over = {kv.split('=')[0]: [int(x) for x in kv.split('=')[1].split(',')] for kv in a.pft.split(';') if kv}
     yrs = {kv.split('=')[0]: tuple(int(x) for x in kv.split('=')[1].split('-')) for kv in a.years.split(';') if kv}
@@ -164,14 +164,18 @@ def main():
     fix = None
     if a.fixed_lai:
         fix = np.asarray(cbiol).copy()
-        if a.fixed_lai == 'attrs':
+        if a.fixed_lai in ('attrs', 'attrs-modis'):
             from site_attributes import prescribe_from_attributes
+            mod_max = np.asarray(modis_at(i, j)) if a.fixed_lai == 'attrs-modis' else None            # MODIS annual maximum LAI at the cell (per tower)
             for n, s in enumerate(sites):
-                at = prescribe_from_attributes(s)
-                if at is None or not np.isfinite(at['lai_max']) or at['lai_max'] <= 0: continue
+                at = prescribe_from_attributes(s); igbp = META.loc[s, 'IGBP']
+                if a.fixed_lai == 'attrs-modis' and igbp in ('OSH', 'CSH', 'SAV', 'WSA', 'GRA') and np.isfinite(mod_max[n]) and mod_max[n] > 0:
+                    lai_max, src = float(mod_max[n]), f'MODIS cell maximum ({mod_max[n]:.1f}; attribute maximum held only at forests, CALIBRATION.md 31)'
+                elif at is not None and np.isfinite(at['lai_max']) and at['lai_max'] > 0: lai_max, src = float(at['lai_max']), f"site attributes ({at['lai_max']:.1f})"
+                else: continue
                 share = mask[n] / max(mask[n].sum(), 1)                      # split the site's max LAI over its prescribed PFTs
-                fix[n] = share * at['lai_max'] / np.maximum(specla, 1e-6)
-                notes[s]['lai_max_source'] = f"site attributes ({at['lai_max']:.1f})"
+                fix[n] = share * lai_max / np.maximum(specla, 1e-6)
+                notes[s]['lai_max_source'] = src
         log_lai = (fix * specla[None, :]).sum(1)
         print('  fixed leaf area (m2/m2): ' + ', '.join(f'{s} {log_lai[n]:.1f}' for n, s in enumerate(sites)), flush=True)
     hold = lambda s_: enforce_prescription(s_, mask, specla, fix_cbiol=fix)
