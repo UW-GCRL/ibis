@@ -4143,3 +4143,27 @@ and 36.8 (2010, 0.67). 2003-2012 daily climatology: plateau (July-August) 10.5 a
 rising from about 0.3 at leaf emergence to 1 over ~30 days and declining after ~100 days of leaf age (Wilson et al. 2001
 shapes; ORCHIDEE's efficiency by age class), the phenology dates then re-fitted against the camera. F8 in the local
 figures folder (`figures/canopy/F8_harvard_fit_TRY.png`).
+
+## 30. Step 2: one calibration per PFT at its typical tower (2026-09-28, in progress)
+
+Configuration as at Harvard (section 29): `default_seasonal_sunshade.yaml`, hourly tower light, corrected latitude,
+CO2 series, vmax within the PFT's TRY range (Kattge et al. 2009 via Chen et al. 2022: ENF 62.5 +- 24.7, EBF 43.8 +- 16.8,
+DBF 57.7 +- 21.2, shrubs 57.9 +- 19.6, C3 grass 78.2 +- 31.1; C4 grass has no TRY value, 30-75 assumed), 120 evaluations,
+loss monthly GPP + 0.5 ET (0 where the tower has no LE_CORR). `site_fit --pft` overrides the IGBP rule at ZM-Mon
+(tropical deciduous) and RU-Cok (deciduous shrub); towers outside the 2008-2012 batch run on their own years. Runs
+`$V/site_fit/pft_<SITE>`, held-out replays `daily_{fitted,default}_<win>.npz`, `site_replay_report.py`.
+
+**Batch 1 (verdict on held-out years, model / tower):**
+
+| site, PFT | fit years; held out | loss | vmax at 25 C (range) | other fitted | JJA default -> fitted | peak | annual | ET | timing |
+|---|---|---|---|---|---|---|---|---|---|
+| DE-Tha, temperate conifer | 2004-12; 1997-2003 | 2.90 -> 2.53 | 58.1 (37.8-87.2) | acclim s0 -3.2, smax 21.3, slope 3.5 (bound 3) | 0.97 -> 0.95 | 0.92 | 0.97 | 1.12 -> 1.01 | at the tower's within days |
+| FI-Hyy, boreal conifer | 2004-12; 1997-2003 | 6.47 -> 5.47 | **37.9 (lower bound)** | s0 -9.1, **smax 30 (bound)**, slope 7.5 | 1.06 -> 1.02 | 0.99 | 1.04 | 0.63 -> 0.67 (LE_CORR) | at the tower's |
+| FR-Pue, holm oak | 2004-12; 2000-2003 | 133 -> 19.1 | **27.0 (lower bound)** | **slope 3.1 (bound), stressfac -3.3** | 1.51 -> 1.03 | 1.75 -> 0.75 | 1.75 -> 0.98 | 1.23 -> 0.85 | season shape wrong both ways |
+| DE-Gri, C3 grass | 2005-13; 2004-2005 | 53.9 -> 21.9 | **47.1 (lower bound)** | **slope 3.1 (bound)**, gdd_thresh_l 300 (bound), tthresh_l_c 4.1 | 1.35 -> 1.13 | 1.01 | 1.03 | 0.54 -> 0.40 (LE_CORR) | leaf-out at the tower's; senescence 50 % 276 vs 202 |
+
+Readings: the two conifers are already the towers' at default and the fit changes little (DE-Tha slope 3.5 at the
+bound buys ET 1.12 -> 1.01; FI-Hyy's ET at 0.65 of LE_CORR is the open item there). FR-Pue and DE-Gri are structural
+fits: capacity to the bottom of the range and the stomatal slope to its bound to hold summer GPP and ET down -- the
+Mediterranean drought response (a 1.5x summer with defaults) and the grassland's ET at 0.4-0.5 of the tower with a
+matching GPP are not parameter problems. Batch 2 (GF-Guy, IT-Noe, ZM-Mon, CA-Oas) and 3 (RU-Cok, AU-Stp) running.
