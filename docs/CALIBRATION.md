@@ -4205,3 +4205,27 @@ carbon per unit water the tower does:
   are too productive: LAI 1.15 with C4 vmax(T) 34 umol gives 305 gC/mo and 168 mm ET in March against the tower's 113
   gC and 107 mm. The fit put C4 vmax at the assumed floor (30 at 25 C; no TRY value) and the stomatal slope at its
   ceiling; the tower implies a leaf capacity of 15-20. The dry-season floor LAI 0.12 keeps 9-15 gC/mo alive against 1-7.
+
+## 31. Leaf area held at the MODIS value at non-forest towers (2026-09-28)
+
+**Order (Hangkai).** "Hold the leaf area at the MODIS site value for the non-forest classes (shrublands, savannas,
+grasslands) instead of the attribute maximum, and rerun that baseline." `site_run --fixed-lai attrs-modis`: OSH, CSH,
+SAV, WSA and GRA towers at the MODIS annual maximum of the cell (`fit_carbon.modis_at`), forests at the site-attribute
+maximum as before. `site_runs/latfix_sunshade_2008-2012_attrsmodis` against `latfix_sunshade_2008-2012_fixedlai`
+(section 28), class medians, model / tower:
+
+| class (n) | leaf area held | peak | June-August | annual | ET |
+|---|---|---|---|---|---|
+| OSH (4) | attribute 2.1-2.5 -> MODIS 0.1-0.8 | 4.15 -> 1.10 | 6.1 -> 1.8 | 5.0 -> 1.85 | 1.42 -> 1.32 |
+| CSH (1, IT-Noe) | 3.0 -> 1.3 | 1.24 -> 0.78 | 1.08 -> 0.79 | 1.41 -> 0.94 | 0.87 -> 0.84 |
+| SAV (2) | -> 1.3-1.6 | 1.32 -> 1.13 | 1.40 -> 1.21 | 1.07 -> 0.96 | 0.95 -> 0.91 |
+| WSA (3) | -> 0.8-1.8 | 0.98 -> 0.82 | 1.01 -> 0.95 | 1.34 -> 1.26 | 0.96 -> 0.92 |
+| GRA (13) | -> 0.6-3.1 | 0.96 -> 0.90 | 1.06 -> 1.03 | 1.10 -> 1.24 | 0.85 -> 0.86 |
+| forests | unchanged | | | | |
+| all 61 | | median GPP ratio 1.10 -> 1.07; within 0.8-1.25: 52 -> 51 %; r 0.93 -> 0.94 | | | |
+
+The dry-site excess of section 28 was the canopy the harness gave those towers: the open shrublands go from 5x to 1.85x
+the annual and the maquis to 0.94. What is left at OSH (1.8x, four semi-arid US and Spanish towers with MODIS LAI
+0.1-0.8) and at the grasslands' shoulders (annual 1.24 with the summer at 1.03) is the next thing to read at those
+towers. The MODIS cell maximum understates a few sites (ES-Amo 0.1, GL-ZaH 0.1); a site-level LAI would be better where
+one exists. This configuration is the site baseline for step 3.
