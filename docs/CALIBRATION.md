@@ -4187,3 +4187,21 @@ photosynthesising through drought (IT-Noe July-August, AU-Stp May-November, ZM-M
 lower capacity and conductance to their bounds. The soil-water stress and drought phenology are the next structural item
 before a joint fit (step 3), which would otherwise inherit these bounds. Secondary: ET at 0.4-0.65 of LE_CORR at the
 grassland (DE-Gri) and the boreal pine (FI-Hyy); leaf-out one month late in the tundra's held-out spring.
+
+**Why IT-Noe and AU-Stp are bad (Hangkai's question, 2026-09-28; diagnostic years `site_fit/diag_{IT-Noe_fitted_2013,
+AU-Stp_fitted_2012}.npz`, fitted parameters).** Not the drought response: at both towers the model's ET matches the
+tower month by month (IT-Noe 409 vs 468 mm yr-1, AU-Stp 598 vs 588) and the soil-water stress does act (IT-Noe stress
+0.2-0.3 in July-September with GPP 71-112 against the tower's 48-88; AU-Stp stress 0.1-0.4 and displayed LAI 0.12 from
+May to December). The excess is in the WET months, where the leaves are unstressed and the canopy makes about twice the
+carbon per unit water the tower does:
+- IT-Noe: leaf area held all year at the site-attribute maximum 3.08 (MODIS at the cell 1.3), stress 1.0 through May,
+  shrub vmax(T) 20-31 umol, top-leaf gross 8-10 umol -> 237-274 gC/mo in April-May against the tower's 137-170, and
+  111-183 in the mild winter against 56-95. The model treats the maquis as a dense, productive shrub canopy; the fit
+  ran the evergreen-shrub vmax to the bottom of the TRY range (38.9) and the stomatal slope to its bound and still has
+  1.75x the annual. Candidates: the leaf area (3.0 vs 1.3) and the sclerophyll leaves' capacity, which TRY's shrub
+  class (57.9 +- 19.6) does not represent; to be tested by holding LAI at the MODIS value.
+- AU-Stp: the phenology does drop the canopy (LAI 1.15 in March -> 0.12 dry season), but a month too early -- the model
+  peaks with the rain (January-March) while the tower's grass peaks in March-April, after it -- and the wet-season leaves
+  are too productive: LAI 1.15 with C4 vmax(T) 34 umol gives 305 gC/mo and 168 mm ET in March against the tower's 113
+  gC and 107 mm. The fit put C4 vmax at the assumed floor (30 at 25 C; no TRY value) and the stomatal slope at its
+  ceiling; the tower implies a leaf capacity of 15-20. The dry-season floor LAI 0.12 keeps 9-15 gC/mo alive against 1-7.
