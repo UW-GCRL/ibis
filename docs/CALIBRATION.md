@@ -4229,3 +4229,14 @@ the annual and the maquis to 0.94. What is left at OSH (1.8x, four semi-arid US 
 0.1-0.8) and at the grasslands' shoulders (annual 1.24 with the summer at 1.03) is the next thing to read at those
 towers. The MODIS cell maximum understates a few sites (ES-Amo 0.1, GL-ZaH 0.1); a site-level LAI would be better where
 one exists. This configuration is the site baseline for step 3.
+
+**Refits at the MODIS leaf area (`pft_{IT-Noe,AU-Stp}_modislai`, held-out / in-sample as before):**
+- IT-Noe (LAI 1.3): loss 15.1 -> 8.8; vmax 38.3 (bottom of the TRY range), slope 3.0 (bound), stressfac -2.9. Held out
+  2013-14: peak 0.89, June-August 1.12, annual 1.03, ET 0.88. Solved to the tower's uncertainty; the two bounds say the
+  sclerophyll leaves are still less productive than TRY's shrub class.
+- AU-Stp (LAI 0.8, C4 range opened to 10-75): loss 123 -> 20.5; vmax 10.0 at 25 C (the floor; IBIS default 23, CLM 52),
+  slope 12.2, stressfac -3.4, drop_stress 0.50. In-sample 2008-14: peak 0.82, wet season 1.20, annual 0.98, ET 1.04.
+  The timing is still a month early (model 76-86 gC in January-March, tower peaks in March-April at 108-113; April 39
+  vs 108), and the very low vmax is compensating it: with leaves in January when the tower has none, only a weak leaf
+  keeps the wet-season total right. The grass green-up lag (leaf growth after the rain, not with it) is the structural
+  item at the tropical grasslands; the C4 capacity should be re-fitted once it is in.
