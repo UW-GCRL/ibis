@@ -114,7 +114,10 @@ def setup(a, spin=True, verbose=True):
     sites = [s for s in b1 if META.loc[s, 'IGBP'] == a.igbp]
     if getattr(a, 'sites', ''):
         want = a.sites.split(','); bad = [s for s in want if s not in sites]
-        if bad: raise SystemExit(f'{bad} not {a.igbp} towers of the 2008-2012 batch: {sites}')
+        if bad:                                                                        # towers outside the 2008-2012 batch: any tower of the class with a daily file
+            other = [b for b in bad if b in META.index and META.loc[b, 'IGBP'] == a.igbp]
+            if len(other) < len(bad): raise SystemExit(f'{[b for b in bad if b not in other]} are not {a.igbp} towers')
+            say(f'{other}: {a.igbp} towers outside the 2008-2012 batch, taken with their own years')
         sites = want
     rng = np.random.default_rng(a.seed); order = rng.permutation(len(sites)); n_hold = int(round(a.holdout * len(sites)))
     hold = sorted(sites[k] for k in order[:n_hold]); train = sorted(s for s in sites if s not in hold); sites = train + hold
