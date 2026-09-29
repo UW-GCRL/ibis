@@ -344,9 +344,16 @@ COEFM_GROUPS = {"coefm_bl": 0, "coefm_con": 1, "coefm_shrub": 2, "coefm_c4": 3, 
 INTERCEPTION_FIELDS = ("wliqumax", "wliqsmax", "wliqlmax", "fmax")
 CANOPY_FIELDS = ("soil_beta_power",)
 STOMATA_FIELDS = ("acclim_tau", "acclim_s0", "acclim_smax", "cap_kn")
+PFT_ARRAYS = {"coefm": (lambda p: p.stomata_params.coefm_pft, 3.0, 16.0, True), "acclim_s0": (lambda p: p.stomata_params.acclim_s0_pft, -10.0, 5.0, False),
+              "acclim_smax": (lambda p: p.stomata_params.acclim_smax_pft, 5.0, 30.0, True)}          # per-PFT extras '<name>:<pft>' (CALIBRATION.md 32)
+for _k, _nm in enumerate(PFT_NAMES):
+    for _base, (_path, _lo, _hi, _log) in PFT_ARRAYS.items():
+        EXTRAS[f"{_base}:{_nm}"] = (_set_idx(_path, _k), _lo, _hi, _log)
 
 
 def _extra_value(sp, pft, n):
+    if ":" in n and n.split(":")[0] in PFT_ARRAYS:
+        base, pf = n.split(":"); return PFT_ARRAYS[base][0](sp)[PFT_NAMES.index(pf)]
     if n == "stressfac":
         return sp.stomata_params.stressfac
     if n in PFT_SCALARS:

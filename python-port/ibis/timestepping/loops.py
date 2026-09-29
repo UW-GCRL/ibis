@@ -248,9 +248,14 @@ def timestep_body(
     # f_S from the state of acclimation, applied to the PFTs in acclim_pfts. None keeps the F77 path.
     acclim_vfac = None
     if getattr(state, "seasonal", None) is not None and sp.acclim_on:
-        _fs = jnp.clip((state.seasonal.acclim_x - sp.acclim_s0) / sp.acclim_smax, 0.0, 1.0)
-        _mask = jnp.zeros((veg.plai.shape[1],), dtype=_fs.dtype).at[jnp.array(sp.acclim_pfts)].set(1.0)
-        acclim_vfac = 1.0 - _mask[jnp.newaxis, :] + _mask[jnp.newaxis, :] * _fs[:, jnp.newaxis]
+        if sp.acclim_per_pft:                                        # constants per PFT (CALIBRATION.md 32)
+            _fs = jnp.clip((state.seasonal.acclim_x[:, jnp.newaxis] - sp.acclim_s0_pft[jnp.newaxis, :]) / sp.acclim_smax_pft[jnp.newaxis, :], 0.0, 1.0)
+            _mask = jnp.zeros((veg.plai.shape[1],), dtype=_fs.dtype).at[jnp.array(sp.acclim_pfts)].set(1.0)
+            acclim_vfac = 1.0 - _mask[jnp.newaxis, :] + _mask[jnp.newaxis, :] * _fs
+        else:
+            _fs = jnp.clip((state.seasonal.acclim_x - sp.acclim_s0) / sp.acclim_smax, 0.0, 1.0)
+            _mask = jnp.zeros((veg.plai.shape[1],), dtype=_fs.dtype).at[jnp.array(sp.acclim_pfts)].set(1.0)
+            acclim_vfac = 1.0 - _mask[jnp.newaxis, :] + _mask[jnp.newaxis, :] * _fs[:, jnp.newaxis]
 
     npoi = soil.tg.shape[0]
     nsoilay = soil.tsoi.shape[1]

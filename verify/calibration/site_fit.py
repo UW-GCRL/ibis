@@ -22,7 +22,7 @@ and the held-out year's loss to history.csv.
 import sys, os, glob, json, time, types, argparse, numpy as np, pandas as pd, xarray as xr, warnings; warnings.filterwarnings('ignore')
 sys.path.insert(0, 'python-port'); sys.path.insert(0, 'verify/calibration')
 import jax, jax.numpy as jnp, equinox as eqx
-from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, PFT_NAMES, apply_params, trace_extras, enable_compile_cache, EXTRAS, _enc, _dec, _extra_value, VMAX_LO, VMAX_HI
+from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, PFT_NAMES, modis_at, apply_params, trace_extras, enable_compile_cache, EXTRAS, _enc, _dec, _extra_value, VMAX_LO, VMAX_HI
 import site_transient; from site_transient import one_year
 from site_run import prescribe, tower_mat, enforce_prescription, META, SEED_LAI, SEED_WOOD
 from site_attributes import prescribe_from_attributes
@@ -51,7 +51,7 @@ def configure_years(a):
 def tower_obs(site):
     """Monthly GPP target and sigma (gC m-2 mo-1), ET target and sigma (mm mo-1), NEE (gC m-2 mo-1), QC masks; (5, 12) each."""
     f = glob.glob(f'{FX}/FLX_{site}_FLUXNET2015_FULLSET_MM_*.csv')
-    out = {k: np.full((len(YEARS), 12), np.nan) for k in ('gpp', 'gpp_sig', 'et', 'et_sig', 'nee')}
+    out = {k: np.full((len(YEARS), 12), np.nan) for k in ('gpp', 'gpp_sig', 'et', 'et_sig', 'nee')}; out['et_src'] = 'LE_CORR'
     if not f: return out
     d = pd.read_csv(f[0]); t = pd.to_datetime(d['TIMESTAMP'].astype(str).str[:6], format='%Y%m'); d['y'] = t.dt.year; d['m'] = t.dt.month; nd = t.dt.days_in_month
     w = lambda c: d[c].where(d[c] > -9000) if c in d else pd.Series(np.nan, index=d.index)
@@ -62,7 +62,7 @@ def tower_obs(site):
     if le.notna().sum() == 0 and lef.notna().sum() > 0:
         # no energy-balance-corrected LE at this tower (e.g. US-Ha1): the gap-filled LE, with a wider sigma since the
         # closure correction is unknown; fill-value years drop out through LE_F_MDS_QC below
-        le = lef; es = np.maximum.reduce([0.15 * le.abs(), pd.Series(3.0, index=d.index)])
+        le = lef; es = np.maximum.reduce([0.15 * le.abs(), pd.Series(3.0, index=d.index)]); out['et_src'] = 'LE_F_MDS'
     qn = w('NEE_VUT_REF_QC'); ql = w('LE_F_MDS_QC'); nee = w('NEE_VUT_REF') * nd
     for yi, yr in enumerate(YEARS):
         for mo in range(12):
@@ -95,6 +95,8 @@ def _args(argv=None):
     ap.add_argument('--hold-last', type=int, default=1, help='hold out the last K simulated years (scored, not fitted)')
     ap.add_argument('--lai', default='', help='SITE=value[,SITE=value]: leaf area to hold where the site attributes have none')
     ap.add_argument('--co2', default='fixed', choices=['fixed', 'series'], help="'fixed' 385 ppm (the batch fits) or the historical annual series")
+    ap.add_argument('--lai-mode', default='', choices=['', 'attrs-modis'], help="'attrs-modis': non-forest towers (OSH, CSH, SAV, WSA, GRA) held at the MODIS cell maximum LAI, forests at the attribute maximum (CALIBRATION.md 31); --lai still overrides per tower")
+    ap.add_argument('--et-corr-only', action='store_true', help='ET term only at towers with energy-balance-corrected LE (LE_CORR)')
     ap.add_argument('--et-sites', default='', help='comma list: only these towers carry the ET term (towers without energy-balance-corrected LE get 0); default all')
     ap.add_argument('--pft', default='', help="composition overrides SITE=idx,idx;SITE=... (IBIS PFT indices) where the IGBP rule is wrong, e.g. ZM-Mon=1 (tropical deciduous), RU-Cok=9,11 (deciduous shrub tundra)")
     ap.add_argument('--vmax-bounds', default='', help="LO,HI in umol m-2 s-1 at 25 C for every fitted vmax (e.g. the TRY mean +- SD of the PFT); converted to IBIS's 15 C basis with its own temperature function (CALIBRATION.md 29)")
@@ -153,6 +155,9 @@ def setup(a, spin=True, verbose=True):
         if at is not None and np.isfinite(at['lai_max']) and at['lai_max'] > 0:
             cb[n] = mask[n] / max(mask[n].sum(), 1) * at['lai_max'] / np.maximum(specla, 1e-6); lai_src[s] = f"attributes {at['lai_max']:.1f}"
         else: lai_src[s] = f"state {float((cb[n] * specla).sum()):.1f}"
+        if getattr(a, 'lai_mode', '') == 'attrs-modis' and META.loc[s, 'IGBP'] in ('OSH', 'CSH', 'SAV', 'WSA', 'GRA'):
+            mm = float(np.asarray(modis_at(i, j))[n])
+            if np.isfinite(mm) and mm > 0: cb[n] = mask[n] / max(mask[n].sum(), 1) * mm / np.maximum(specla, 1e-6); lai_src[s] = f'MODIS cell maximum {mm:.1f}'
         given = dict(kv.split('=') for kv in getattr(a, 'lai', '').split(',') if kv)
         if s in given:
             cb[n] = mask[n] / max(mask[n].sum(), 1) * float(given[s]) / np.maximum(specla, 1e-6); lai_src[s] = f"given {float(given[s]):.1f}"
@@ -243,6 +248,7 @@ def main():
     names, train, hold, sites, ns, obs = C.names, C.train, C.hold, C.sites, C.ns, C.obs
     ntr = len(train)
     et_sites = [x for x in getattr(a, 'et_sites', '').split(',') if x]; w_site = [a.w_et if (not et_sites or s in et_sites) else 0.0 for s in sites]
+    if getattr(a, 'et_corr_only', False): w_site = [w if obs[n].get('et_src') == 'LE_CORR' else 0.0 for n, w in enumerate(w_site)]; print(f'ET term at {[s for n, s in enumerate(sites) if w_site[n] > 0]} (energy-balance-corrected LE)', flush=True)
     if et_sites: print(f'ET term at {[s for s in sites if w_site[sites.index(s)] > 0]} only')
     def score(gm, em):
         tr = [misfit(gm, em, obs[n], n, TRAIN_Y, w_site[n]) for n in range(ntr)]

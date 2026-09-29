@@ -136,6 +136,14 @@ class StomataParams(eqx.Module):
     # Static switches per canopy, off: bit-identical.
     sunshade_u: bool = eqx.field(static=True, default=False)
     sunshade_l: bool = eqx.field(static=True, default=False)
+    # Stomatal slope per PFT (CALIBRATION.md 32): with coefm_mix the big leaf's slope is the displayed-LAI-weighted mean of
+    # `coefm_pft` over its PFTs (as vmax_mix), the group value where no leaves. Off: the group values, bit-identical.
+    coefm_mix: bool = eqx.field(static=True, default=False)
+    coefm_pft: jnp.ndarray = eqx.field(default_factory=lambda: jnp.array([10.0, 10.0, 10.0, 6.0, 10.0, 6.0, 10.0, 6.0, 9.0, 9.0, 4.0, 9.0], dtype=jnp.float64))
+    # Acclimation constants per PFT (CALIBRATION.md 32); off: the scalars acclim_s0 / acclim_smax for every PFT in acclim_pfts.
+    acclim_per_pft: bool = eqx.field(static=True, default=False)
+    acclim_s0_pft: jnp.ndarray = eqx.field(default_factory=lambda: jnp.full((12,), -3.063, dtype=jnp.float64))
+    acclim_smax_pft: jnp.ndarray = eqx.field(default_factory=lambda: jnp.full((12,), 17.72, dtype=jnp.float64))
 
 
 # ---------------------------------------------------------------------------
@@ -598,6 +606,20 @@ def _select_vmax_shrub(params, frac=None, vp=None):
     return v8
 
 
+PFT_SLOPE_GROUP = (0, 0, 0, 1, 0, 1, 0, 1, 2, 2, 3, 4)     # PFT -> Ball-Berry group (broadleaf, conifer, shrub, C4, C3)
+
+
+def _slopes(params, frac):
+    """Ball-Berry slope of the five big leaves (ub, uc, ls, l3, l4): the group values (F77), or with coefm_mix the
+    displayed-LAI-weighted mean of coefm_pft over each big leaf's PFTs (CALIBRATION.md 32)."""
+    cm = params.coefm
+    if not params.coefm_mix or frac is None:
+        return cm[0], cm[1], cm[2], cm[4], cm[3]
+    cp = params.coefm_pft
+    return (_mix_vmax(frac, cp, BROADLEAF_PFTS, cm[0]), _mix_vmax(frac, cp, CONIFER_PFTS, cm[1]), _mix_vmax(frac, cp, SHRUB_PFTS, cm[2]),
+            jnp.broadcast_to(cp[11], frac.shape[:1]), jnp.broadcast_to(cp[10], frac.shape[:1]))
+
+
 # ---------------------------------------------------------------------------
 # Temperature-dependent kinetic parameters
 # ---------------------------------------------------------------------------
@@ -769,6 +791,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     # timestep_body from state.seasonal); None keeps the F77 path bit-identical.
     vp_eff = None if vfac is None else params.vmax_pft[jnp.newaxis, :] * vfac
     vmaxub_nom, vmaxuc_nom = _select_vmax_upper(exist, params, frac, vp=vp_eff)
+    cm_ub, cm_uc, cm_ls, cm_l3, cm_l4 = _slopes(params, frac)          # Ball-Berry slopes of the five big leaves
 
     # --- Broadleaf (ub) ---
     vmax_ub = vmaxub_nom * tempvm_c3_u * stresstu
@@ -786,7 +809,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     cs_ub, gs_ub, ci_ub = ball_berry_step(
         anc_ub if params.sunshade_u else an_ub, cs_upper[:, 0], gs_upper[:, 0], ci_ub,
         co2conc, gbco2u, rh12,
-        params.coefm[0], params.coefb[0], stresstu,
+        cm_ub, params.coefb[0], stresstu,
         params.gsmin[0], gamstar_min_u, params.cimax)
 
     # --- Conifer (uc) ---
@@ -801,7 +824,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     cs_uc, gs_uc, ci_uc = ball_berry_step(
         anc_uc if params.sunshade_u else an_uc, cs_upper[:, 1], gs_upper[:, 1], ci_uc,
         co2conc, gbco2u, rh12,
-        params.coefm[1], params.coefb[1], stresstu,
+        cm_uc, params.coefb[1], stresstu,
         params.gsmin[1], gamstar_min_u, params.cimax)
 
     # --- Upper canopy scaling ---
@@ -832,10 +855,10 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     csc_uc = jnp.maximum(gamstar_min_u, co2conc - anc_uc / gbco2u)
     gsc_ub = jnp.maximum(
         jnp.maximum(params.gsmin[0], params.coefb[0] * stresstu),
-        params.coefm[0] * anc_ub * rh12 / csc_ub + params.coefb[0] * stresstu)
+        cm_ub * anc_ub * rh12 / csc_ub + params.coefb[0] * stresstu)
     gsc_uc = jnp.maximum(
         jnp.maximum(params.gsmin[1], params.coefb[1] * stresstu),
-        params.coefm[1] * anc_uc * rh12 / csc_uc + params.coefb[1] * stresstu)
+        cm_uc * anc_uc * rh12 / csc_uc + params.coefb[1] * stresstu)
 
     # Total conductance for water vapour
     totcondub = _total_conductance(su, gsc_ub)
@@ -886,7 +909,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     cs_ls, gs_ls, ci_ls = ball_berry_step(
         anc_ls if params.sunshade_l else an_ls, cs_lower[:, 0], gs_lower[:, 0], ci_ls,
         co2conc, gbco2l, rh34,
-        params.coefm[2], params.coefb[2], stresstl,
+        cm_ls, params.coefb[2], stresstl,
         params.gsmin[2], gamstar_min_l, params.cimax)
 
     # --- C3 grass (l3) ---
@@ -902,7 +925,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     cs_l3, gs_l3, ci_l3 = ball_berry_step(
         anc_l3 if params.sunshade_l else an_l3, cs_lower[:, 1], gs_lower[:, 1], ci_l3,
         co2conc, gbco2l, rh34,
-        params.coefm[4], params.coefb[4], stresstl,
+        cm_l3, params.coefb[4], stresstl,
         params.gsmin[4], gamstar_min_l, params.cimax)
 
     # --- C4 grass (l4) ---
@@ -917,7 +940,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
     cs_l4, gs_l4, ci_l4 = ball_berry_step(
         anc_l4 if params.sunshade_l else an_l4, cs_lower[:, 2], gs_lower[:, 2], ci_l4,
         co2conc, gbco2l, rh34,
-        params.coefm[3], params.coefb[3], stresstl,
+        cm_l4, params.coefb[3], stresstl,
         params.gsmin[3], gamstar_min_l, params.cimax,
         is_c4=True)
 
@@ -953,13 +976,13 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
 
     gsc_ls = jnp.maximum(
         jnp.maximum(params.gsmin[2], params.coefb[2] * stresstl),
-        params.coefm[2] * anc_ls * rh34 / csc_ls + params.coefb[2] * stresstl)
+        cm_ls * anc_ls * rh34 / csc_ls + params.coefb[2] * stresstl)
     gsc_l3 = jnp.maximum(
         jnp.maximum(params.gsmin[4], params.coefb[4] * stresstl),
-        params.coefm[4] * anc_l3 * rh34 / csc_l3 + params.coefb[4] * stresstl)
+        cm_l3 * anc_l3 * rh34 / csc_l3 + params.coefb[4] * stresstl)
     gsc_l4 = jnp.maximum(
         jnp.maximum(params.gsmin[3], params.coefb[3] * stresstl),
-        params.coefm[3] * anc_l4 * rh34 / csc_l4 + params.coefb[3] * stresstl)
+        cm_l4 * anc_l4 * rh34 / csc_l4 + params.coefb[3] * stresstl)
 
     # Total conductance for water vapour
     totcondls = _total_conductance(sl, gsc_ls)

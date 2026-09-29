@@ -52,6 +52,7 @@ PFT_NAMES = [
 ]
 
 STOMATA_GROUPS = ['broadleaf', 'conifer', 'shrub', 'c4_grass', 'c3_grass']
+_PFT_SLOPE_GROUP = (0, 0, 0, 1, 0, 1, 0, 1, 2, 2, 3, 4)     # PFT -> Ball-Berry group (stomata.PFT_SLOPE_GROUP)
 
 BGC_POOL_NAMES = [
     'microbial_biomass',
@@ -155,6 +156,11 @@ def build_stomata_params(d: dict) -> StomataParams:
         cap_scale_l=bool(s.get('cap_scale_l', False)),
         cap_kn=float(s.get('cap_kn', 0.15)),
         sunshade_u=bool(s.get('sunshade_u', False)),           # CALIBRATION.md 27; off: bit-identical
+        coefm_mix=bool(s.get('coefm_mix', False)),             # CALIBRATION.md 32; off: bit-identical
+        coefm_pft=jnp.array([float((s.get('coefm_pft') or {}).get(name, float(coefm[_PFT_SLOPE_GROUP[i]]))) for i, name in enumerate(PFT_NAMES)]),
+        acclim_per_pft=bool(s.get('acclim_per_pft', False)),
+        acclim_s0_pft=jnp.array([float((s.get('acclim_s0_pft') or {}).get(name, float(s.get('acclim_s0', -3.063)))) for name in PFT_NAMES]),
+        acclim_smax_pft=jnp.array([float((s.get('acclim_smax_pft') or {}).get(name, float(s.get('acclim_smax', 17.72)))) for name in PFT_NAMES]),
         sunshade_l=bool(s.get('sunshade_l', False)),
         gamma=gamma,
         coefm=coefm,

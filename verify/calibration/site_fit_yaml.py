@@ -20,6 +20,7 @@ COEFM = {'coefm_bl': 'broadleaf', 'coefm_con': 'conifer', 'coefm_shrub': 'shrub'
 for k, v in P.items():
     v = float(v)
     if k.startswith('vmax:'): t['stomata']['vmax'][VKEYS[PFT_NAMES.index(k[5:])]] = v
+    elif ':' in k and k.split(':')[0] in ('coefm', 'acclim_s0', 'acclim_smax'): t['stomata'].setdefault(k.split(':')[0] + '_pft', {})[k.split(':')[1]] = v
     elif k == 'stressfac' or k in ('acclim_tau', 'acclim_s0', 'acclim_smax', 'cap_kn'): t['stomata'][k] = v
     elif k in COEFM: t['stomata']['ball_berry'][COEFM[k]]['coefm'] = v
     elif k in PFT_SCALARS: t.setdefault('pft', {})[k] = v
