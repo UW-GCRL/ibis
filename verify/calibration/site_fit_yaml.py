@@ -31,6 +31,7 @@ yaml.safe_dump(t, open(out, 'w'), sort_keys=False)
 sp, pft, _ = build_all_params(4, np.zeros(4, np.float32), load_physics_params(out))
 for k, v in P.items():
     if k.startswith('vmax:'): got = float(np.asarray(sp.stomata_params.vmax_pft)[PFT_NAMES.index(k[5:])])
+    elif ':' in k: got = float(np.asarray(getattr(sp.stomata_params, k.split(':')[0] + '_pft'))[PFT_NAMES.index(k.split(':')[1])])
     elif k == 'stressfac' or k.startswith('acclim_') or k == 'cap_kn': got = float(getattr(sp.stomata_params, k))
     elif k in COEFM: got = float(np.asarray(sp.stomata_params.coefm)[list(COEFM).index(k)])
     elif k in PFT_SCALARS: got = float(getattr(pft, k))
