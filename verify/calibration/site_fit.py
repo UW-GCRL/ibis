@@ -52,6 +52,7 @@ def tower_obs(site):
     """Monthly GPP target and sigma (gC m-2 mo-1), ET target and sigma (mm mo-1), NEE (gC m-2 mo-1), QC masks; (5, 12) each."""
     f = glob.glob(f'{FX}/FLX_{site}_FLUXNET2015_FULLSET_MM_*.csv')
     out = {k: np.full((len(YEARS), 12), np.nan) for k in ('gpp', 'gpp_sig', 'et', 'et_sig', 'nee')}; out['et_src'] = 'LE_CORR'
+    out['season'] = [5, 6, 7] if float(META.loc[site, 'LOCATION_LAT']) >= 0 else [11, 0, 1] if site in META.index else [5, 6, 7]   # summer months for the magnitude term
     if not f: return out
     d = pd.read_csv(f[0]); t = pd.to_datetime(d['TIMESTAMP'].astype(str).str[:6], format='%Y%m'); d['y'] = t.dt.year; d['m'] = t.dt.month; nd = t.dt.days_in_month
     w = lambda c: d[c].where(d[c] > -9000) if c in d else pd.Series(np.nan, index=d.index)
@@ -75,13 +76,30 @@ def tower_obs(site):
     return out
 
 
+ROBUST = None      # set by main() from --robust: dict(cap_month, cap_tower, w_mag, tol) (CALIBRATION.md 34)
+
+
 def misfit(gm, em, obs, n, years, w_et):
-    """Normalised squared monthly misfit of one tower over `years` (indices), GPP + w_et * ET; NaN if no usable month."""
+    """Normalised squared monthly misfit of one tower over `years` (indices), GPP + w_et * ET; NaN if no usable month.
+
+    With ROBUST set (site_fit --robust): every month's squared misfit is capped at cap_month, the tower's annual and
+    summer GPP ratios enter as (ln R / tol)^2 (each capped at cap_month) times w_mag, and the tower's total is capped
+    at cap_tower, so no month and no tower can dominate the mean over towers (section 33)."""
     rg = ((gm[years, :, n] - obs['gpp'][years]) / obs['gpp_sig'][years]) ** 2
     re = ((em[years, :, n] - obs['et'][years]) / obs['et_sig'][years]) ** 2
+    if ROBUST: rg = np.minimum(rg, ROBUST['cap_month']); re = np.minimum(re, ROBUST['cap_month'])
     lg = np.nanmean(rg) if np.isfinite(rg).any() else np.nan; le = np.nanmean(re) if np.isfinite(re).any() else np.nan
     if not np.isfinite(lg): return np.nan
-    return lg + (w_et * le if np.isfinite(le) else 0.0)
+    L = lg + (w_et * le if np.isfinite(le) else 0.0)
+    if ROBUST:
+        g, t = gm[years, :, n], obs['gpp'][years]; ok = np.isfinite(t); season = obs.get('season', [5, 6, 7])
+        mag = 0.0
+        for sel in (ok, ok & np.isin(np.arange(12)[None, :].repeat(len(years), 0), season)):
+            if sel.sum() >= 3 and np.nansum(t[sel]) > 0:
+                mag += min((np.log(max(g[sel].sum(), 1e-3) / np.nansum(t[sel])) / ROBUST['tol']) ** 2, ROBUST['cap_month'])
+        L = L + ROBUST['w_mag'] * mag
+        L = min(L, ROBUST['cap_tower'])
+    return L
 
 
 def _args(argv=None):
@@ -96,6 +114,7 @@ def _args(argv=None):
     ap.add_argument('--lai', default='', help='SITE=value[,SITE=value]: leaf area to hold where the site attributes have none')
     ap.add_argument('--co2', default='fixed', choices=['fixed', 'series'], help="'fixed' 385 ppm (the batch fits) or the historical annual series")
     ap.add_argument('--lai-mode', default='', choices=['', 'attrs-modis'], help="'attrs-modis': non-forest towers (OSH, CSH, SAV, WSA, GRA) held at the MODIS cell maximum LAI, forests at the attribute maximum (CALIBRATION.md 31); --lai still overrides per tower")
+    ap.add_argument('--robust', default='', help="bounded objective 'cap_month,cap_tower,w_mag,tol' e.g. 25,30,1,0.15: capped monthly misfits, annual and summer GPP ratio terms (ln R / tol)^2, capped per-tower total (CALIBRATION.md 34)")
     ap.add_argument('--et-corr-only', action='store_true', help='ET term only at towers with energy-balance-corrected LE (LE_CORR)')
     ap.add_argument('--et-sites', default='', help='comma list: only these towers carry the ET term (towers without energy-balance-corrected LE get 0); default all')
     ap.add_argument('--pft', default='', help="composition overrides SITE=idx,idx;SITE=... (IBIS PFT indices) where the IGBP rule is wrong, e.g. ZM-Mon=1 (tropical deciduous), RU-Cok=9,11 (deciduous shrub tundra)")
@@ -247,6 +266,9 @@ def main():
     C = setup(a, spin=True)      # with workers, this spin-up compiles and fills the persistent cache; theirs then load it
     names, train, hold, sites, ns, obs = C.names, C.train, C.hold, C.sites, C.ns, C.obs
     ntr = len(train)
+    global ROBUST
+    if getattr(a, 'robust', ''):
+        cm, ct, wm, tol = (float(x) for x in a.robust.split(',')); ROBUST = dict(cap_month=cm, cap_tower=ct, w_mag=wm, tol=tol); print(f'robust objective: month cap {cm}, tower cap {ct}, magnitude weight {wm}, tolerance {tol}', flush=True)
     et_sites = [x for x in getattr(a, 'et_sites', '').split(',') if x]; w_site = [a.w_et if (not et_sites or s in et_sites) else 0.0 for s in sites]
     if getattr(a, 'et_corr_only', False): w_site = [w if obs[n].get('et_src') == 'LE_CORR' else 0.0 for n, w in enumerate(w_site)]; print(f'ET term at {[s for n, s in enumerate(sites) if w_site[n] > 0]} (energy-balance-corrected LE)', flush=True)
     if et_sites: print(f'ET term at {[s for s in sites if w_site[sites.index(s)] > 0]} only')
@@ -288,7 +310,7 @@ def main():
         return Ls
     try:
         L0 = objective_batch([C.z0], local=True)[0]; print(f'baseline loss {L0:.4f}', flush=True)       # in the parent, while workers start
-        json.dump(dict(igbp=a.igbp, params=a.params, fit=names, train=train, hold=hold, lai=C.lai_src, w_et=a.w_et, years=YEARS, train_years=[YEARS[k] for k in TRAIN_Y], hold_years=[YEARS[k] for k in HOLD_Y], workers=a.workers, popsize=a.popsize, seed=a.seed, sigma=a.sigma, n_evals=a.n_evals, co2=a.co2, lai_given=a.lai, hourly_sw=getattr(a, 'hourly_sw', False), vmax_bounds=getattr(a, 'vmax_bounds', ''), pft_override=getattr(a, 'pft', ''), et_sites=getattr(a, 'et_sites', '')), open(f'{a.out}/setup.json', 'w'), indent=1)
+        json.dump(dict(igbp=a.igbp, params=a.params, fit=names, train=train, hold=hold, lai=C.lai_src, w_et=a.w_et, years=YEARS, train_years=[YEARS[k] for k in TRAIN_Y], hold_years=[YEARS[k] for k in HOLD_Y], workers=a.workers, popsize=a.popsize, seed=a.seed, sigma=a.sigma, n_evals=a.n_evals, co2=a.co2, lai_given=a.lai, hourly_sw=getattr(a, 'hourly_sw', False), vmax_bounds=getattr(a, 'vmax_bounds', ''), pft_override=getattr(a, 'pft', ''), et_sites=getattr(a, 'et_sites', ''), robust=getattr(a, 'robust', '')), open(f'{a.out}/setup.json', 'w'), indent=1)
         if a.only_baseline: return
         if a.profile:                                                                # one-at-a-time profile around the start (CALIBRATION.md 32)
             fr = np.linspace(0.0, 1.0, a.profile); rows = []
