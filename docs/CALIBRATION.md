@@ -4327,3 +4327,38 @@ few towers set a PFT's parameters against the majority of its own class.
 demands. The remedy is in the objective, not the model: a per-tower contribution bounded so that no tower can dominate
 (a Huber or capped misfit, or a median across towers), and the magnitude judged as the verdict does (annual and
 summer ratios). Then the per-site step (Supplementary 2) is where each tower's own deviation belongs.
+
+## 34. Supplementary 1 refitted with the bounded objective (2026-09-30; branch `calibration-s1`)
+
+**Order (Hangkai).** "Refit with a bounded per-tower contribution and the magnitude ratios in the objective, and save the
+results as a new branch." `site_fit --robust 25,30,1,0.15`: each month's normalised squared misfit capped at 25, the
+tower's annual and summer GPP ratios added as (ln R / 0.15)^2 (capped), each tower's total capped at 30 (section 33's
+US-PFa contributed 235 before). Same 62 towers, parameters and settings as section 33; seeds 1-3, stopped by Hangkai's
+NAS schedule after 225-239 of 400 evaluations (`$V/site_fit/s1_robust_seed{1,2,3}`); best seed 2, loss 14.39 from 16.73
+(seeds 14.6 / 14.4 / 14.7). Parameter file `configs/params/s1_robust_2026-09-30.yaml` (seed 2). No profile was run.
+
+**Class medians, 2009-2012, model / tower: defaults | plain S1 (section 33) | robust S1**
+
+| class (n) | summer | annual | ET | NSE |
+|---|---|---|---|---|
+| ENF (17) | 1.01 / 0.86 / **0.98** | 1.00 / 0.83 / **0.99** | 0.86 / 0.77 / 0.78 | 0.91 / 0.85 / 0.87 |
+| DBF (12) | 0.83 / 0.84 / **0.90** | 1.09 / 0.82 / **0.93** | 1.09 / 0.83 / 1.05 | 0.69 / 0.88 / 0.83 |
+| GRA (13) | 1.11 / 1.06 / 1.19 | 1.21 / 0.81 / **0.97** | 0.86 / 0.88 / 0.87 | 0.61 / 0.59 / 0.69 |
+| MF (5) | 1.06 / 0.94 / 1.06 | 1.18 / 0.93 / 1.18 | 1.10 / 0.90 / 0.97 | 0.84 / 0.80 / 0.84 |
+| EBF (3) | 1.03 / 0.76 / 0.91 | 0.96 / 0.72 / 0.91 | 0.96 / 0.96 / 0.92 | poor in all three |
+| OSH (5) | 1.82 / 0.80 / 1.15 | 1.69 / 0.65 / **0.97** | 0.95 / 0.93 / 0.94 | ~0 in all three |
+| SAV (2), WSA (3) | 1.59 / 1.12 / 1.53; 0.98 / 0.62 / 0.75 | 0.89 / 0.59 / 0.83; 1.23 / 0.67 / 0.87 | | |
+| all 61 | towers within 25 % of the annual: 59 / 52 / **72 %**; median NSE 0.64 / 0.74 / **0.77**; r 0.90 / 0.93 / 0.93 | | | |
+
+**Parameters (three seeds, vmax at 25 C).** The vmax agree across seeds within 17 % for every PFT but the boreal conifer
+(40-53): tropical evergreen 58, warm-temperate evergreen 55-59, temperate conifer 43-51, temperate deciduous 46-52,
+evergreen shrub 44, deciduous shrub 50-56, C4 13-16, C3 48-50 -- all inside their TRY ranges, none at a bound except C3
+near its floor. The slopes, the acclimation strengths, Harvard's phenology and the lower canopy's thresholds still
+differ between seeds by 50-200 %: not identified by these towers (the profile of section 33 said the same).
+
+**Reading.** With no tower able to dominate, the fit keeps the conifers at the towers (0.98-0.99), takes the deciduous
+summer from 0.83 to 0.90 and the annual from 1.09 to 0.93, the grasslands from 1.21 to 0.97, the open shrublands from
+1.69 to 0.97, and 72 % of the towers land within 25 % of their annual GPP. This is the PFT parameter set to carry to
+Supplementary 2 and the trend test; the unidentified parameters stay at their seed-2 values but should be read as
+defaults, not fitted values. Open as before: ET at the conifers (0.78) and grasslands (0.87), the deciduous and grass
+spring shape, the evergreen broadleaf seasonality (r 0.47).
