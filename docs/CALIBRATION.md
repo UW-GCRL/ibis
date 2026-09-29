@@ -4291,3 +4291,39 @@ PFT-specific parameters, with the shared parameters at the joint values that wer
 meaningful at Supplementary 1, where each PFT has several towers (17 conifers, 12 deciduous, 13 grasslands in the
 2008-2012 batch alone) and the PFT parameters are constrained by more than one site; it should carry per-PFT slopes and
 acclimation, three starts and the profile as here.
+
+## 33. Supplementary 1: the joint fit over the 62-tower batch (2026-09-29/30)
+
+**Setup (Hangkai: "do that as what we planned").** `default_seasonal_sunshade_pft.yaml` (new: stomatal slope and
+acclimation constants per PFT, `coefm_mix` / `acclim_per_pft`, bit-identical at the group values; full suite 722), the
+62 towers of 2008-2012, non-forest towers at the MODIS leaf area (`--lai-mode attrs-modis`), ET term only where LE_CORR
+exists (`--et-corr-only`), composition overrides for the eucalypt savannas (AU-How/DaS/Dry: tropical evergreen + C4)
+and RU-Cok; 29 parameters (vmax and slope of the nine PFTs present, acclimation of the two conifers, Harvard's
+phenology, stressfac, the lower canopy's thresholds); seeds 1-3, 400 evaluations, population 14, 4 workers; 114 s per
+evaluation for the 62 towers in one batch. Runs `$V/site_fit/s1_batch62_seed{1,2,3}`, profile `seed1/profile5`.
+
+**Convergence.** All three seeds reach the same loss, 19.8 / 19.9 / 20.1 from 47.1 (2012 held out: 22.1 / 22.0 /
+20.6), and agree within 10 % on the C4 (10, the floor) and C3 (48, the floor) vmax, the boreal conifer vmax (39-46),
+the conifer slope (3.3-3.6), stressfac (-2.5, the bound = least stress) and the grass cold threshold (6-8 C); they
+disagree by 30 % or more on the tropical, temperate-conifer and shrub vmax and most slopes, the acclimation and the
+phenology constants. The profile has the tropical, temperate conifer and both grass vmax preferring their LOWER bounds,
+both acclimation strengths at their maximum, and the shrub parameters flat.
+
+**Verdict, 2009-2012, class medians of model / tower (defaults | joint):** ENF annual 1.00 | 0.83, summer 1.01 | 0.86;
+DBF 1.09 | 0.82, 0.83 | 0.84, April 3.4x | 1.0; GRA 1.21 | 0.81, 1.11 | 1.06; EBF 0.96 | 0.72; MF 1.18 | 0.93; OSH 1.69 |
+0.65; SAV 0.89 | 0.59; WSA 1.23 | 0.67. Monthly r 0.90 -> 0.93 and NSE 0.64 -> 0.74 (towers above 0.5: 69 -> 72 %),
+but towers within 25 % of the annual: 59 -> 52 %. The fit improved the timing everywhere and lowered the magnitude at
+every class but the deciduous and grassland summers.
+
+**Why (`logs/s1_batch62_seed1_vs_defaults.csv`).** The objective is the mean over towers of a squared, sigma-normalised
+monthly misfit. Twelve towers carried 61 % of the default loss (US-PFa 235, US-WCr 197, AU-Stp 165, US-MMS 154, US-Oho
+144, IT-MBo 115, FR-Pue 110, ...): the deciduous April (a month early, 3.4x), the grassland shoulders and one mixed
+forest. The fit serves them: DBF mean loss 79 -> 18, GRA 54 -> 24, MF 61 -> 30. The conifers, already at the towers,
+got WORSE at 12 of 17 (12.2 -> 12.9) because the temperate-conifer PFT is also the conifer half of the mixed forests,
+whose largest tower (US-PFa) pulls its vmax down and its acclimation up. Squared loss plus a mean over towers lets a
+few towers set a PFT's parameters against the majority of its own class.
+
+**Reading.** The S1 set is better on shape and worse on magnitude; as PFT defaults it carries the outlier towers'
+demands. The remedy is in the objective, not the model: a per-tower contribution bounded so that no tower can dominate
+(a Huber or capped misfit, or a median across towers), and the magnitude judged as the verdict does (annual and
+summer ratios). Then the per-site step (Supplementary 2) is where each tower's own deviation belongs.
