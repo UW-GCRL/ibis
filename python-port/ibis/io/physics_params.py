@@ -51,6 +51,25 @@ PFT_NAMES = [
     'c3_grass',
 ]
 
+# Short PFT names used by the calibration harness (verify/calibration/fit_carbon.py PFT_NAMES); per-PFT yaml
+# tables (coefm_pft, acclim_s0_pft, acclim_smax_pft) may use either spelling.
+PFT_SHORT_NAMES = [
+    'trop_bl_ever', 'trop_bl_dec', 'warm_bl_ever', 'temp_con_ever', 'temp_bl_dec', 'boreal_con_ever',
+    'boreal_bl_dec', 'boreal_con_dec', 'ever_shrub', 'dec_shrub', 'c4_grass', 'c3_grass',
+]
+_PFT_INDEX = {**{n: i for i, n in enumerate(PFT_NAMES)}, **{n: i for i, n in enumerate(PFT_SHORT_NAMES)}}
+
+
+def _pft_vector(table, defaults):
+    """12-vector from a yaml table keyed by PFT name (long or short spelling); unknown names are an error."""
+    out = list(defaults)
+    for name, v in (table or {}).items():
+        if name not in _PFT_INDEX:
+            raise KeyError(f'unknown PFT name {name!r} in per-PFT table; use one of {PFT_NAMES} or {PFT_SHORT_NAMES}')
+        out[_PFT_INDEX[name]] = float(v)
+    return jnp.array(out)
+
+
 STOMATA_GROUPS = ['broadleaf', 'conifer', 'shrub', 'c4_grass', 'c3_grass']
 _PFT_SLOPE_GROUP = (0, 0, 0, 1, 0, 1, 0, 1, 2, 2, 3, 4)     # PFT -> Ball-Berry group (stomata.PFT_SLOPE_GROUP)
 
@@ -157,10 +176,10 @@ def build_stomata_params(d: dict) -> StomataParams:
         cap_kn=float(s.get('cap_kn', 0.15)),
         sunshade_u=bool(s.get('sunshade_u', False)),           # CALIBRATION.md 27; off: bit-identical
         coefm_mix=bool(s.get('coefm_mix', False)),             # CALIBRATION.md 32; off: bit-identical
-        coefm_pft=jnp.array([float((s.get('coefm_pft') or {}).get(name, float(coefm[_PFT_SLOPE_GROUP[i]]))) for i, name in enumerate(PFT_NAMES)]),
+        coefm_pft=_pft_vector(s.get('coefm_pft'), [float(coefm[_PFT_SLOPE_GROUP[i]]) for i in range(len(PFT_NAMES))]),
         acclim_per_pft=bool(s.get('acclim_per_pft', False)),
-        acclim_s0_pft=jnp.array([float((s.get('acclim_s0_pft') or {}).get(name, float(s.get('acclim_s0', -3.063)))) for name in PFT_NAMES]),
-        acclim_smax_pft=jnp.array([float((s.get('acclim_smax_pft') or {}).get(name, float(s.get('acclim_smax', 17.72)))) for name in PFT_NAMES]),
+        acclim_s0_pft=_pft_vector(s.get('acclim_s0_pft'), [float(s.get('acclim_s0', -3.063))] * len(PFT_NAMES)),
+        acclim_smax_pft=_pft_vector(s.get('acclim_smax_pft'), [float(s.get('acclim_smax', 17.72))] * len(PFT_NAMES)),
         sunshade_l=bool(s.get('sunshade_l', False)),
         gamma=gamma,
         coefm=coefm,

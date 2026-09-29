@@ -65,3 +65,17 @@ def test_parameter_file_round_trip_and_defaults():
 def test_acclimation_branch_is_wired_per_pft():
     src = (ROOT / "ibis" / "timestepping" / "loops.py").read_text()
     assert "if sp.acclim_per_pft:" in src and "sp.acclim_s0_pft[jnp.newaxis, :]" in src and "sp.acclim_smax_pft[jnp.newaxis, :]" in src
+
+
+def test_per_pft_tables_accept_short_and_long_names():
+    """Per-PFT yaml tables (coefm_pft, acclim_*_pft) may use the harness's short PFT names or the long ones;
+    the s1_robust yaml used short names and read back as defaults before this was handled (CALIBRATION.md 34)."""
+    import numpy as np
+    from ibis.io.physics_params import _pft_vector, PFT_NAMES, PFT_SHORT_NAMES
+    v = np.asarray(_pft_vector({'trop_bl_ever': 10.3, 'temperate_conifer_evergreen': 4.6, 'c3_grass': 10.5}, [9.0] * 12))
+    assert v[0] == 10.3 and v[3] == 4.6 and v[11] == 10.5 and v[1] == 9.0
+    assert len(PFT_SHORT_NAMES) == len(PFT_NAMES) == 12
+    try:
+        _pft_vector({'not_a_pft': 1.0}, [9.0] * 12); assert False, 'unknown name accepted'
+    except KeyError:
+        pass
