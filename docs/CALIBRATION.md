@@ -4240,3 +4240,54 @@ one exists. This configuration is the site baseline for step 3.
   vs 108), and the very low vmax is compensating it: with leaves in January when the tower has none, only a weak leaf
   keeps the wet-season total right. The grass green-up lag (leaf growth after the rain, not with it) is the structural
   item at the tropical grasslands; the C4 capacity should be re-fitted once it is in.
+
+## 32. Step 3: the joint fit across the typical towers (2026-09-28/29)
+
+**Setup (Hangkai: "do that then" -- three starts, 300 evaluations, a profile).** Nine typical towers that share 2008-2012
+(DE-Tha, FI-Hyy, FR-Pue, GF-Guy, IT-Noe, RU-Cok, AU-Stp, DE-Gri, US-Ha1; CA-Oas and ZM-Mon end before 2008), 2012 held
+out, leaf area and composition as in step 2, hourly tower light, ET term at the six towers with LE_CORR
+(`--et-sites`), 22 parameters: vmax of the nine PFTs present within their TRY ranges (`--vmax-bounds pft=lo,hi;...`),
+five stomatal slopes, the two acclimation constants, Harvard's three phenology dates, stressfac, the lower canopy's two
+thresholds. CMA-ES population 12, 300 evaluations, 4 workers, seeds 1-3 (`$V/site_fit/joint_typical_seed{1,2,3}`,
+131 s per evaluation for the nine towers in one batch); `--profile 5` around the best start (`seed3/profile5`).
+
+**Convergence and identifiability.** Losses 13.8 / 13.2 / 12.4 from the baseline 40.8 (held-out 2012: 16.2 / 21.1 /
+13.0); best evaluations 291 / 192 / 246 with the last generation still 40 % above the best: not converged at 300.
+The three starts agree (within 10 %) on the warm-temperate evergreen vmax (27-28, the lower bound), the conifer vmax
+(54-65), C4 (10-11, the floor) and C3 grass (48-49, the floor), the conifer and C3 slopes (3-5), the leaf-out ramp and
+stressfac; they disagree by a factor of 2 or more on the temperate deciduous, shrub vmax, the shrub slope, both
+acclimation constants, Harvard's leaf-out and senescence and the lower canopy's thresholds. The profile says the same:
+identified in the interior are the conifer slope, the acclimation pair, Harvard's leaf-out and senescence and the
+grass cold threshold; on a bound are the tropical evergreen (high), warm evergreen (low), both conifers (HIGH, 87 --
+against acclimation, see below), C4 and C3 (low), the broadleaf and C4 slopes (high), the C3 slope (low) and stressfac
+(-2.5, least stress); flat across their whole ranges are the temperate deciduous vmax, both shrub vmax, the shrub
+slope, the leaf-out ramp and the lower canopy's leaf-out threshold.
+
+**Per tower (seed 3, 2009-2012, model / tower) against the per-site fits of section 30:**
+
+| tower | joint: peak / season / annual / ET | per-site: season / annual |
+|---|---|---|
+| DE-Tha | 0.77 / 0.78 / 0.79 / 0.90 | 0.95 / 0.97 |
+| FI-Hyy | 0.83 / 0.91 / 0.84 / 0.74 | 1.02 / 1.04 |
+| GF-Guy | 0.85 / 0.84 / 0.79 / 0.92 | 1.00 / 1.03 |
+| FR-Pue | 1.26 / 1.26 / 1.38 / 1.26 | 1.03 / 0.98 |
+| RU-Cok | 0.80 / 0.66 / 0.62 / 0.61 | 0.86 / 0.86 |
+| US-Ha1 | 0.97 / 1.23 / 0.98 / 1.28 | 1.02 / 0.83 |
+| DE-Gri | 0.94 / 1.02 / 1.03 / 0.62 | 1.13 / 1.03 |
+| IT-Noe | 0.78 / 1.05 / 0.93 / 0.86 | 1.12 / 1.03 |
+| AU-Stp | 0.78 / 1.35 / 1.18 / 1.08 | 1.20 / 0.98 |
+
+**Reading.** With one tower per PFT, the PFT-specific parameters of a joint fit can only reproduce the per-site fits;
+what the joint fit adds is the parameters shared across PFTs, and those are where it loses: the broadleaf stomatal slope
+is shared by the holm oak, which wants 3, and Harvard, which wants 11-16 (FR-Pue 0.98 -> 1.38); the two acclimation
+constants are shared by the boreal and the temperate conifer, which want opposite things (DE-Tha 0.97 -> 0.79, FI-Hyy
+1.04 -> 0.84, with the conifer vmax pushed to the top of TRY to compensate the stronger acclimation); the shrub slope
+and tundra thresholds are flat. The step-3 result is therefore not a parameter set but a list of what may not be
+shared: stomatal slope per PFT rather than per leaf-form group, acclimation per conifer PFT. Stressfac and the grass
+cold threshold are the shared parameters that are identified (-2.5 to -4; about 4-5 C).
+
+**Consequence for the plan.** The PFT parameter set to carry forward is the per-site set of section 30-31 for the
+PFT-specific parameters, with the shared parameters at the joint values that were identified. A joint fit becomes
+meaningful at Supplementary 1, where each PFT has several towers (17 conifers, 12 deciduous, 13 grasslands in the
+2008-2012 batch alone) and the PFT parameters are constrained by more than one site; it should carry per-PFT slopes and
+acclimation, three starts and the profile as here.
