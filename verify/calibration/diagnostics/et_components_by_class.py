@@ -23,7 +23,7 @@ for a, c in zip(axs, CLS):
     tow = np.nanmean(tow, axis=0); mod = np.nanmean(mod, axis=0); mo = np.arange(1, 13)
     a.stackplot(mo, comp, labels=PARTS, colors=PC, alpha=0.85); a.plot(mo, tow, 'k-', lw=2.2, label='tower ET'); a.plot(mo, mod, color='0.3', lw=1, ls=':', label='model ET (sum)')
     ann = comp.sum(axis=1); tot = ann.sum(); ratio = tot / np.nansum(tow)
-    a.set_title(f'{NAME[c]} ({len(idx)}): model/tower {ratio:.2f}; shares T {ann[0] / tot:.0%} I {ann[1] / tot:.0%} S {ann[2] / tot:.0%} N {ann[3] / tot:.0%}', fontsize=8, loc='left')
+    a.set_title(f'{NAME[c]} ({len(idx)} towers): annual model/tower {ratio:.2f}\nshares: transpiration {ann[0] / tot:.0%}, interception {ann[1] / tot:.0%}, soil evap. {ann[2] / tot:.0%}, snow {ann[3] / tot:.0%}', fontsize=8, loc='left')
     a.set_xticks([1, 4, 7, 10]); a.set_xticklabels(['Jan', 'Apr', 'Jul', 'Oct']); a.set_ylim(bottom=0)
     rows.append(dict(cls=c, n=len(idx), ratio=ratio, tower_mm=float(np.nansum(tow)), model_mm=float(tot), **{p: float(v) for p, v in zip(['trans', 'interc', 'soilev', 'snowsub'], ann)},
                      spring_ratio=float(comp[:, 2:5].sum() / np.nansum(tow[2:5])), summer_ratio=float(comp[:, 5:8].sum() / np.nansum(tow[5:8])), spring_soilev_share=float(comp[2, 2:5].sum() / comp[:, 2:5].sum())))
