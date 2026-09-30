@@ -189,9 +189,9 @@ def main():
         for yr in YEARS:
             st, key, d = one_year(st, key, yr, ctx, 0); st = hold(st)
         print(f'  spin cycle {c + 1}/{a.cycles} done: annual GPP {np.round(d["aygpptot"], 2)} kgC/m2, LAI {np.round(np.asarray(st.vegetation.plai).sum(1), 2)}', flush=True)
-    REC.clear(); GM = []; EM = []; LL = []; LU = []; GD = []
+    REC.clear(); GM = []; EM = []; LL = []; LU = []; GD = []; NM = []; NEM = []; EP = []
     for yr in YEARS:
-        st, key, d = one_year(st, key, yr, ctx, 0); st = hold(st); GM.append(d['gpp_monthly'] * 1000); EM.append(d['aet_monthly'])
+        st, key, d = one_year(st, key, yr, ctx, 0); st = hold(st); GM.append(d['gpp_monthly'] * 1000); EM.append(d['aet_monthly']); NM.append(d['npp_monthly'] * 1000); NEM.append(d['nee_monthly'] * 1000); EP.append(d['et_parts_monthly'] if 'et_parts_monthly' in d else np.full((12, 4, len(sel)), np.nan))
         gd = np.full((366, len(sel)), np.nan, np.float32); gd[:d['gpp_daily'].shape[0]] = d['gpp_daily'] * 1000; GD.append(gd)       # gC m-2 d-1
         LL.append(np.array([r[0] for r in REC[-12:]])); LU.append(np.array([r[1] for r in REC[-12:]]))
     GM = np.array(GM); EM = np.array(EM); LL = np.array(LL); LU = np.array(LU)             # (nyr, 12, nsite)
@@ -202,7 +202,7 @@ def main():
         for yi, yr in enumerate(YEARS):
             for mo in range(12):
                 if (yr, mo + 1) in tm.index: obs_g[yi, mo, n] = tm.loc[(yr, mo + 1), 'gpp']; obs_e[yi, mo, n] = tm.loc[(yr, mo + 1), 'et']
-    np.savez(f'{a.out}/site_runs.npz', sites=np.array(sites), years=np.array(YEARS), gpp=GM, et=EM, lai_l=LL, lai_u=LU, obs_gpp=obs_g, obs_et=obs_e, i=i, j=j, gpp_daily=np.array(GD))
+    np.savez(f'{a.out}/site_runs.npz', sites=np.array(sites), years=np.array(YEARS), gpp=GM, et=EM, lai_l=LL, lai_u=LU, obs_gpp=obs_g, obs_et=obs_e, i=i, j=j, gpp_daily=np.array(GD), npp=np.array(NM), nee=np.array(NEM), et_parts=np.array(EP))   # et_parts (nyr, 12, 4, nsite): trans, interc, soilev, snowsub (mm)
     json.dump(dict(notes=notes, gaps={f'{k[0]}|{k[1]}': v for k, v in rd.gap_report().items()}, params=a.params, cycles=a.cycles), open(f'{a.out}/site_runs.json', 'w'), indent=1)
     df = compute_metrics(sites, YEARS, GM, EM, LL, LU, obs_g, obs_e, notes, i, modis); df.to_csv(f'{a.out}/site_metrics.csv', index=False)
     pd.set_option('display.width', 250); print(df.drop(columns=['note']).to_string(index=False, float_format=lambda x: f'{x:.2f}'))

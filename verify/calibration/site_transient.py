@@ -94,6 +94,7 @@ def one_year(state, key, year, ctx, isimveg=1):
     # NEE = -(NPP - Rh), the F77 annual definition (ayneetot below) resolved by month
     _nep = lambda s_: np.asarray(s_.summary.aynpptot) - np.asarray(s_.summary.ayco2mic)
     nep_prev = _nep(state); nee_m = []
+    _npp = lambda s_: np.asarray(s_.summary.aynpptot); npp_prev = _npp(state); npp_m = []
     for im in range(12):
         raw = c["reader"].read_month(year, im, c["i"], c["j"])
         tmean.append(np.nanmean(raw["tas"], axis=0) - 273.16)
@@ -109,6 +110,7 @@ def one_year(state, key, year, ctx, isimveg=1):
         if ep_prev is not None:
             ep_now = _parts(state); ep_m.append(ep_now - ep_prev); ep_prev = ep_now
         nep_now = _nep(state); nee_m.append(-(nep_now - nep_prev)); nep_prev = nep_now
+        npp_now = _npp(state); npp_m.append(npp_now - npp_prev); npp_prev = npp_now
 
     tct, twt, g0t, g5t = climate_stats_from_monthly(np.stack(tmean, axis=1), leap)
     state = eqx.tree_at(
@@ -141,6 +143,7 @@ def one_year(state, key, year, ctx, isimveg=1):
     diag["gpp_daily"] = np.concatenate(gpp_d, axis=0)      # (365|366, npoi), kgC m-2 day-1
     diag["aet_monthly"] = np.stack(aet_m, axis=0)          # (12, npoi), mm
     diag["nee_monthly"] = np.stack(nee_m, axis=0)          # (12, npoi), kgC m-2 month-1, + = source; sums to -ayneetot
+    diag["npp_monthly"] = np.stack(npp_m, axis=0)          # (12, npoi), kgC m-2 month-1; sums to aynpptot
     if ep_m:
         diag["et_parts_monthly"] = np.stack(ep_m, axis=0)  # (12, 4, npoi): trans, interc, soilev, snowsub (mm)
         diag["et_parts"] = ep_prev                          # (4, npoi) annual
