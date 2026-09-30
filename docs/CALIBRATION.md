@@ -4360,5 +4360,28 @@ differ between seeds by 50-200 %: not identified by these towers (the profile of
 summer from 0.83 to 0.90 and the annual from 1.09 to 0.93, the grasslands from 1.21 to 0.97, the open shrublands from
 1.69 to 0.97, and 72 % of the towers land within 25 % of their annual GPP. This is the PFT parameter set to carry to
 Supplementary 2 and the trend test; the unidentified parameters stay at their seed-2 values but should be read as
-defaults, not fitted values. Open as before: ET at the conifers (0.78) and grasslands (0.87), the deciduous and grass
+defaults, not fitted values.
+
+**Stage 2 (evening of 2026-09-29; `$V/site_fit/s1_robust_r{1,2,3}`, `s1_robust_profile`).** The NAS stayed up, so the
+three seeds were restarted from the seed-2 best (sigma 0.1, 200 evaluations each) and the one-at-a-time profile was
+run around it (7 points across each parameter's bounds, `--profile 7`). Losses 14.39 -> 14.13 / 14.19 / 14.16
+(seeds 1-3): 1.8 % more, and the parameter file `s1_robust_2026-09-30.yaml` now carries the seed-1 restart
+(`logs/s1_robust_r1_best.json`). The move between the two bests is the identifiability finding, not the loss: for that
+1.8 % the tropical evergreen slope went 10.3 -> 5.4, the evergreen shrub slope 15.5 -> 8.8, the upper-canopy GDD ramp
+150 -> 82, the drought-drop threshold 0.28 -> 0.10, the boreal acclimation ceiling 24.5 -> 30 (its bound), while the
+vmax values moved by 5-10 % (all inside their TRY ranges, tropical evergreen at its top 60.6). The profile
+(`logs/s1_robust_profile.csv`) says the same: the widest loss range along any single parameter's whole bound interval is
+2.8 (temperate-conifer acclimation s0), then C4 vmax 2.0, the drought-drop threshold 1.9, the upper GDD threshold 1.7;
+21 of the 29 parameters move the loss by less than 1.0 across their full range, and gdd_thresh_l, gdd_ramp_u,
+vmax:dec_shrub and the shrub slopes by less than 0.15. At a bound at the profile's minimum: C3 vmax (low), C4 slope
+(low), boreal conifer slope (low), boreal acclimation ceiling (high), tropical and warm-temperate evergreen vmax (high),
+stressfac (high, -2.5). Reading: with the capped objective the surface is flat, the 62 towers identify the conifer
+acclimation, the C4 capacity, the drought drop and the deciduous leaf-out threshold and little else; everything else
+in this file is a defensible default, and the per-tower stage (section 35) is where the rest is decided tower by tower.
+
+**Parameter-file defect found on the way.** The per-PFT tables in the yaml (`coefm_pft`, `acclim_s0_pft`,
+`acclim_smax_pft`) were written with the harness's short PFT names and read by the long names, so only the two grass
+slopes of the nine were applied when the file was read back; fixed in `physics_params.py` (both spellings accepted,
+unknown names raise; test `test_per_pft_tables_accept_short_and_long_names`). No run had used the file before the fix.
+ Open as before: ET at the conifers (0.78) and grasslands (0.87), the deciduous and grass
 spring shape, the evergreen broadleaf seasonality (r 0.47).

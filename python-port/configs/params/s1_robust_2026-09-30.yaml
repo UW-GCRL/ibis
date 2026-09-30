@@ -10,7 +10,7 @@ stomata:
   alpha4: 0.05
   theta4: 0.97
   beta4: 0.8
-  stressfac: -2.5406182726564186
+  stressfac: -2.8203471295809335
   ball_berry:
     broadleaf:
       gamma: 0.015
@@ -38,18 +38,18 @@ stomata:
       coefb: 0.01
       gsmin: 1.0e-05
   vmax:
-    tropical_broadleaf_evergreen: 3.822787766694091e-05
+    tropical_broadleaf_evergreen: 3.9609618397662416e-05
     tropical_broadleaf_deciduous: 6.5e-05
-    warm_temperate_broadleaf_evergreen: 3.5617784305941314e-05
-    temperate_conifer_evergreen: 3.336371810291894e-05
-    temperate_broadleaf_deciduous: 2.993404632434249e-05
-    boreal_conifer_evergreen: 3.4872307878686115e-05
+    warm_temperate_broadleaf_evergreen: 3.90352652175352e-05
+    temperate_conifer_evergreen: 3.1209983717417344e-05
+    temperate_broadleaf_deciduous: 3.36137309204787e-05
+    boreal_conifer_evergreen: 3.2778210879769176e-05
     boreal_broadleaf_deciduous: 3.0e-05
     boreal_conifer_deciduous: 3.0e-05
-    evergreen_shrub: 2.8529082555905916e-05
-    deciduous_shrub: 3.259543518652208e-05
-    c4_grass: 1.0168958397116512e-05
-    c3_grass: 3.288513471488841e-05
+    evergreen_shrub: 2.880409920180682e-05
+    deciduous_shrub: 2.8472546546254307e-05
+    c4_grass: 9.473714271734934e-06
+    c3_grass: 3.09751667373348e-05
   acclim_on: true
   acclim_pfts:
   - 3
@@ -64,21 +64,21 @@ stomata:
   coefm_mix: true
   acclim_per_pft: true
   coefm_pft:
-    trop_bl_ever: 10.298745133160661
-    warm_bl_ever: 9.070043116737736
-    temp_con_ever: 4.631625789865651
-    temp_bl_dec: 10.7885950479925
-    boreal_con_ever: 3.0011516880838354
-    ever_shrub: 15.529730910609073
-    dec_shrub: 14.844535390572418
-    c4_grass: 4.555746721975463
-    c3_grass: 10.51698369359437
+    trop_bl_ever: 5.421478391374927
+    warm_bl_ever: 6.872998890250465
+    temp_con_ever: 5.61161152999944
+    temp_bl_dec: 9.037303459614666
+    boreal_con_ever: 3.5156167907092035
+    ever_shrub: 8.809345531110615
+    dec_shrub: 15.961901752781937
+    c4_grass: 3.679747540536888
+    c3_grass: 8.678539261054658
   acclim_s0_pft:
-    temp_con_ever: -7.619543524690169
-    boreal_con_ever: -3.8564744590336684
+    temp_con_ever: -8.23958003991316
+    boreal_con_ever: -4.714614571569964
   acclim_smax_pft:
-    temp_con_ever: 21.06048890698187
-    boreal_con_ever: 24.475081532206733
+    temp_con_ever: 22.57799140463408
+    boreal_con_ever: 29.99959521012183
 pft:
   tropical_broadleaf_evergreen:
     TminL: 0.0
@@ -332,13 +332,13 @@ pheno:
   sen_photoperiod_u: true
   sen_pstart_u: 14.0
   sen_tb_u: 20.0
-  sen_ycrit_u: 195.74071624408282
+  sen_ycrit_u: 193.55804069970728
   sen_photoperiod_l: true
   sen_pstart_l: 14.0
   sen_tb_l: 20.0
   sen_ycrit_l: 300.0
-  gdd_thresh_u: 338.05784879358526
-  gdd_ramp_u: 149.80789516030072
-  gdd_thresh_l: 78.07785122062904
-  tthresh_l_c: 3.848713229954921
-  drop_stress_thresh: 0.27891485565088897
+  gdd_thresh_u: 404.196184751607
+  gdd_ramp_u: 82.06267905193542
+  gdd_thresh_l: 93.25836892910347
+  tthresh_l_c: 4.009286876466383
+  drop_stress_thresh: 0.10288063955036263
