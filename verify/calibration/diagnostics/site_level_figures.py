@@ -118,3 +118,29 @@ a.barh(y, R.rng, color=[C['s2'] if e else '0.6' for e in R.edge]); a.set_yticks(
 a.set_xlabel('loss range along the parameter across its whole bound interval (loss at the best: 14.39)'); a.set_title('Identifiability of the S1 parameters: one-at-a-time profile over 62 towers\n(purple: the minimum sits at a bound; dotted line: 1 unit of a 14.4 loss)', loc='left', fontsize=9)
 fig.tight_layout(); fig.savefig(f'{OUT}/F6_identifiability_profile.png', dpi=150); plt.close(fig)
 print(f'{len(T)} towers; per-tower fits finished: {len(s2)}; within 25 %: default {within(T.annual_def):.0%}, S1 {within(T.annual_s1):.0%}; figures in {OUT}')
+# ---- F7: pooled model vs tower monthly GPP (all tower-months 2009-2012), overall and per-class r
+CC = dict(zip(CLS, plt.cm.tab10(np.arange(len(CLS)))))
+def pooled(g, o):
+    ok = np.isfinite(o) & np.isfinite(g); g, o = g[ok], o[ok]
+    return dict(n=int(ok.sum()), r=np.corrcoef(g, o)[0, 1], nse=1 - ((g - o) ** 2).sum() / ((o - o.mean()) ** 2).sum(), rmse=np.sqrt(((g - o) ** 2).mean()), bias=(g - o).mean())
+fig, axs = plt.subplots(1, 3, figsize=(14, 4.8), gridspec_kw={'width_ratios': [1, 1, 1.1]})
+for a, tag, lab in ((axs[0], 'def', 'default parameters'), (axs[1], 's1', 'robust S1 set')):
+    G = runs[tag][0][K].reshape(-1, len(sites)); O = obs[K].reshape(-1, len(sites))
+    for c in CLS:
+        idx = [n for n, s in enumerate(sites) if igbp[s] == c]; a.scatter(O[:, idx].ravel(), G[:, idx].ravel(), s=7, color=CC[c], alpha=0.55, lw=0, label=c)
+    m = pooled(G.ravel(), O.ravel()); lim = 600; a.plot([0, lim], [0, lim], color='0.4', lw=0.8); a.set_xlim(0, lim); a.set_ylim(0, lim); a.set_aspect('equal')
+    a.set_xlabel('tower GPP (gC m-2 month-1)'); a.set_ylabel('model GPP (gC m-2 month-1)')
+    a.set_title(f'{lab}: r {m["r"]:.3f}, NSE {m["nse"]:.2f}, RMSE {m["rmse"]:.0f}, bias {m["bias"]:+.0f}\n({m["n"]} tower-months, 62 towers, 2009-2012)', loc='left', fontsize=9)
+axs[0].legend(fontsize=7, frameon=False, markerscale=2, loc='upper left', ncol=2)
+a = axs[2]; rows = []
+for c in CLS:
+    idx = [n for n, s in enumerate(sites) if igbp[s] == c]; O = obs[K][:, :, idx].ravel()
+    rows.append(dict(cls=c, n=len(idx), r_def=pooled(runs['def'][0][K][:, :, idx].ravel(), O)['r'], r_s1=pooled(runs['s1'][0][K][:, :, idx].ravel(), O)['r'],
+                     nse_def=pooled(runs['def'][0][K][:, :, idx].ravel(), O)['nse'], nse_s1=pooled(runs['s1'][0][K][:, :, idx].ravel(), O)['nse']))
+Rc = pd.DataFrame(rows); y = np.arange(len(Rc))
+a.barh(y - 0.2, Rc.r_def, 0.4, color='white', edgecolor=C['def'], lw=1.2, label='default'); a.barh(y + 0.2, Rc.r_s1, 0.4, color=C['s1'], label='robust S1')
+for i, r in Rc.iterrows(): a.text(1.01, i - 0.2, f'{r.r_def:.2f}', va='center', fontsize=7, color=C['def']); a.text(1.01, i + 0.2, f'{r.r_s1:.2f}', va='center', fontsize=7, color=C['s1'])
+a.set_yticks(y); a.set_yticklabels([f'{c} ({n})' for c, n in zip(Rc.cls, Rc.n)]); a.invert_yaxis(); a.set_xlim(0, 1.12); a.set_xticks([0, 0.25, 0.5, 0.75, 1]); a.set_xlabel('r of monthly GPP, pooled over the class\'s tower-months')
+a.legend(fontsize=8, frameon=False, loc='lower left'); a.set_title('correlation by class (pooled)', loc='left', fontsize=9)
+fig.suptitle('Monthly GPP, model vs tower, all tower-months: one parameter set for all towers (per-PFT values)', fontsize=10, x=0.01, ha='left'); fig.tight_layout(); fig.savefig(f'{OUT}/F7_pooled_scatter_and_r_by_class.png', dpi=150); plt.close(fig)
+Rc.to_csv(f'{OUT}/r_by_class_pooled.csv', index=False); print(Rc.round(3).to_string(index=False))
