@@ -300,6 +300,7 @@ EXTRAS["rgrowth"] = (_set(lambda p: p.bgc_params.rgrowth), 0.10, 0.50, False)
 #: Per-site disequilibrium factor on the three SOM pools (csoislon, csoislop, csoipas) at the start of every
 #: evaluation; a STATE scaling, applied by site_fit.run, not a parameter: the setter is a no-op. Log, [0.1, 3].
 EXTRAS["som_scale"] = ((lambda sp, pft, v: (sp, pft)), 0.1, 3.0, True)
+STATE_EXTRAS = ("som_scale",)       # extras that act on the STATE in site_fit.run, not on the parameter tree (no setter to test)
 
 #: Interception (CALIBRATION.md 15): the water-holding capacities of upper
 #: leaves / upper stems / lower canopy (kg m-2 per unit area index; F77 0.20,

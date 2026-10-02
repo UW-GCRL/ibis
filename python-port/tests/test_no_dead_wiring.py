@@ -561,6 +561,7 @@ def test_every_extra_has_a_readable_default_and_a_working_setter():
     from ibis.io.physics_params import build_all_params
     sp, pft, _ = build_all_params(4, np.zeros(4, np.float32), None)
     for name, (setter, lo, hi, _log) in fc.EXTRAS.items():
+        if name in getattr(fc, 'STATE_EXTRAS', ()): continue                      # state scalings (som_scale) are applied by site_fit.run, not by a setter
         d = fc.extras_defaults(sp, (name,), pft)[name]
         assert np.isfinite(d), name
         target = 0.5 * (lo + hi)
