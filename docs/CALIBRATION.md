@@ -4475,6 +4475,33 @@ disequilibrium factor). (4) `site_fit --target nee --nee-targets <npz> [--start-
 night-time + w_et x day-time normalised monthly misfit (sigma = max(15 %, 5 gC), robust caps and annual-ratio terms as
 in section 34). Smoke test at DE-Tha: baseline loss 24.2 with the per-tower GPP parameters. Full suite 752 passed.
 
+
+**Day/night baseline, 62 towers, S1 set (`site_runs/daynight_s1robust_2008-2012`, `diagnostics/nee_daynight_report.py`,
+`figures/site_level/NEE_night_day_by_class_s1robust.png`, `logs/nee_daynight_s1robust.csv`; class medians of annual
+sums, model / tower, r of the monthly series):**
+
+| class (n) | night-time release: tower / model / ratio / r | day-time uptake: tower / model / ratio / r |
+|---|---|---|
+| ENF (17) | 341 / 398 / 1.00 / 0.79 | -806 / -614 / 0.73 / 0.87 |
+| DBF (12) | 391 / 375 / 1.05 / 0.78 | -871 / -422 / 0.60 / 0.87 |
+| MF (6) | 424 / 474 / 0.83 / 0.79 | -712 / -551 / 1.17 / 0.94 |
+| GRA (13) | 411 / 416 / 0.85 / 0.81 | -391 / -383 / 0.70 / 0.80 |
+| EBF (3) | 823 / 407 / 0.50 / 0.29 | -1357 / -1076 / 1.09 / -0.02 |
+| OSH (5) | 50 / 103 / 1.74 / 0.60 | -66 / +2 / 0.01 / 0.71 |
+| SAV (2) | 454 / 404 / 0.95 / 0.47 | -661 / -322 / 0.49 / 0.58 |
+| WSA (3) | 335 / 337 / 1.01 / -0.31 | -462 / -379 / 0.48 / 0.67 |
+
+**Reading.** At the temperate and boreal forests and the grasslands the model's night-time NEE -- the respiration the
+tower measures directly -- is at the tower in size and in seasonal shape (ratios 0.85-1.05, r ~0.8). The missing sink
+is entirely in the day-time: summer day-time uptake 0.60-0.73 of the tower's with GPP within 10 %. So the model's
+respiration is too high during the day and right at night, which is not what the pools do (they respire the same per
+hour day and night in the model). The day-time excess is autotrophic: growth respiration charged in step with
+assimilation (0.30 of GPP - Rm, all during the day) and maintenance respiration at day-time temperatures. The per-tower
+fits therefore need rgrowth (and the maintenance constants) as much as som_scale; som_scale alone would break the
+night match. Evergreen broadleaf is the one class where night respiration is too LOW (0.50: pools too small, and the
+seasonality absent); open shrubland has no net day-time uptake at all (the model cannot photosynthesise against its
+respiration there); the savannas' day-time uptake is half the tower's.
+
 **Plan.** Per tower: pools from the spin-up (HWSD2 carbon as the check), then fit som_scale, bgc_e0, rgrowth
 (wfps_opt where the moisture signal exists) to night-time NEE with day-time NEE weighted, 2012 held out; verdict by
 model/tower night release and day uptake, r of both series, by class.
