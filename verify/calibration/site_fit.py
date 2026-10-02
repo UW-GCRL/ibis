@@ -268,8 +268,12 @@ def setup(a, spin=True, verbose=True):
     site_transient.apply_co2 = (lambda q, y, series=None: eqx.tree_at(lambda z: z.atm.co2conc, q, jnp.asarray(co2_molmol(y) if a.co2 == 'series' else 385.0e-6, jnp.float32)))
     ctx0 = dict(i=i, j=j, lat_rad=lat_rad, sp=sp0, pft=pft0, consts=consts, reader=rd); key0 = jax.random.PRNGKey(0); t0 = time.time()
     if getattr(a, 'start_state', ''):                                                                   # equilibrated pools (site_pool_spinup.py)
-        eq, meta = load_state(a.start_state, st); assert list(meta.get('sites', sites)) == list(sites), ('start-state towers differ', meta.get('sites'))
-        st = eqx.tree_at(lambda s: s.carbon, st, eq.carbon); say(f'carbon pools from {a.start_state}')
+        from ibis.state.model_state import create_ibis_state as _cis
+        _z = np.load(a.start_state, allow_pickle=True); ssites = [str(x) for x in _z['meta_sites']] if 'meta_sites' in _z.files else list(sites); nss = len(ssites)   # save_state stores metadata as meta_<key>
+        tmpl = st if nss == ns else _cast_tree_f32(jax.tree.map(lambda x: (jnp.repeat(x[:1], nss, axis=0) if isinstance(x, jnp.ndarray) and x.ndim >= 1 and x.shape[0] == ns else x), st))
+        eq, _ = load_state(a.start_state, tmpl); sel_s = np.array([ssites.index(s_) for s_ in sites])         # the fit's towers inside the spin-up set
+        pick = lambda x: (x[sel_s] if isinstance(x, jnp.ndarray) and x.ndim >= 1 and x.shape[0] == nss else x)
+        st = eqx.tree_at(lambda s: s.carbon, st, jax.tree.map(pick, eq.carbon)); say(f'carbon pools from {a.start_state} ({nss} towers, {ns} used)')
     for yr in YEARS: st, key0, _ = one_year(st, key0, yr, ctx0, 0); st = hold_fn(st)
     print(f'{"" if verbose else f"worker {os.getpid()}: "}spin-up cycle done in {time.time() - t0:.0f} s', flush=True)
     base_state, base_key = st, key0
