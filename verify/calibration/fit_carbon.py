@@ -291,6 +291,16 @@ for _k, _nm in enumerate(("coefm_bl", "coefm_con", "coefm_shrub", "coefm_c4", "c
 #: wetness beta in turvap; 1 = F77. Log-encoded, [1, 6].
 EXTRAS["soil_beta_power"] = (_set(lambda p: p.canopy.soil_beta_power), 1.0, 6.0, True)
 
+#: Respiration constants (NEE stage, CALIBRATION.md 36): Lloyd-Taylor E0 of heterotrophic decomposition (F77 344 K;
+#: Lloyd & Taylor 1994 308.56), the WFPS optimum of the moisture factor (F77 60 %), the growth-respiration fraction
+#: (F77 0.30). Linear, [150, 600], [35, 85], [0.10, 0.50].
+EXTRAS["bgc_e0"] = (_set(lambda p: p.bgc_params.lt_e0), 150.0, 600.0, False)
+EXTRAS["wfps_opt"] = (_set(lambda p: p.bgc_params.wfps_opt), 35.0, 85.0, False)
+EXTRAS["rgrowth"] = (_set(lambda p: p.bgc_params.rgrowth), 0.10, 0.50, False)
+#: Per-site disequilibrium factor on the three SOM pools (csoislon, csoislop, csoipas) at the start of every
+#: evaluation; a STATE scaling, applied by site_fit.run, not a parameter: the setter is a no-op. Log, [0.1, 3].
+EXTRAS["som_scale"] = ((lambda sp, pft, v: (sp, pft)), 0.1, 3.0, True)
+
 #: Interception (CALIBRATION.md 15): the water-holding capacities of upper
 #: leaves / upper stems / lower canopy (kg m-2 per unit area index; F77 0.20,
 #: 0.40, 0.20) and the maximum wetted fraction fmax (F77 0.25). Forest
@@ -343,6 +353,7 @@ PFT_SCALARS = ("cover_k", "fl_min", "fu_min", "fu_k", "tree_stress_min", "tree_s
 COEFM_GROUPS = {"coefm_bl": 0, "coefm_con": 1, "coefm_shrub": 2, "coefm_c4": 3, "coefm_c3": 4}
 INTERCEPTION_FIELDS = ("wliqumax", "wliqsmax", "wliqlmax", "fmax")
 CANOPY_FIELDS = ("soil_beta_power",)
+BGC_FIELDS = {"bgc_e0": "lt_e0", "wfps_opt": "wfps_opt", "rgrowth": "rgrowth"}
 STOMATA_FIELDS = ("acclim_tau", "acclim_s0", "acclim_smax", "cap_kn")
 PFT_ARRAYS = {"coefm": (lambda p: p.stomata_params.coefm_pft, 3.0, 16.0, True), "acclim_s0": (lambda p: p.stomata_params.acclim_s0_pft, -10.0, 5.0, False),
               "acclim_smax": (lambda p: p.stomata_params.acclim_smax_pft, 5.0, 30.0, True)}          # per-PFT extras '<name>:<pft>' (CALIBRATION.md 32)
@@ -356,6 +367,10 @@ def _extra_value(sp, pft, n):
         base, pf = n.split(":"); return PFT_ARRAYS[base][0](sp)[PFT_NAMES.index(pf)]
     if n == "stressfac":
         return sp.stomata_params.stressfac
+    if n in BGC_FIELDS:
+        return getattr(sp.bgc_params, BGC_FIELDS[n])
+    if n == "som_scale":
+        return 1.0
     if n in PFT_SCALARS:
         return getattr(pft, n)
     if n in COEFM_GROUPS:

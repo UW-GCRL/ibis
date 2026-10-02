@@ -53,6 +53,13 @@ def tower_obs(site):
     f = glob.glob(f'{FX}/FLX_{site}_FLUXNET2015_FULLSET_MM_*.csv')
     out = {k: np.full((len(YEARS), 12), np.nan) for k in ('gpp', 'gpp_sig', 'et', 'et_sig', 'nee')}; out['et_src'] = 'LE_CORR'
     out['season'] = [5, 6, 7] if float(META.loc[site, 'LOCATION_LAT']) >= 0 else [11, 0, 1] if site in META.index else [5, 6, 7]   # summer months for the magnitude term
+    if NEE_T is not None and site in list(NEE_T['sites']):                              # day/night NEE targets on the simulated years (gC m-2 month-1, + = release)
+        k = list(NEE_T['sites']).index(site); ty = [int(y) for y in NEE_T['years']]
+        for tag in ('night', 'day'):
+            arr = np.full((len(YEARS), 12), np.nan)
+            for yi, y in enumerate(YEARS):
+                if y in ty: arr[yi] = NEE_T[f'sum_{tag}'][ty.index(y), :, k]
+            out[f'nee_{tag}'] = arr; out[f'nee_{tag}_sig'] = np.maximum(0.15 * np.abs(arr), 5.0)             # 15 % or 5 gC m-2 month-1, whichever is larger
     if not f: return out
     d = pd.read_csv(f[0]); t = pd.to_datetime(d['TIMESTAMP'].astype(str).str[:6], format='%Y%m'); d['y'] = t.dt.year; d['m'] = t.dt.month; nd = t.dt.days_in_month
     w = lambda c: d[c].where(d[c] > -9000) if c in d else pd.Series(np.nan, index=d.index)
@@ -77,9 +84,32 @@ def tower_obs(site):
 
 
 ROBUST = None      # set by main() from --robust: dict(cap_month, cap_tower, w_mag, tol) (CALIBRATION.md 34)
+TARGET = 'gpp'     # 'gpp' (GPP + w_et ET) or 'nee' (night-time + w_day day-time NEE; CALIBRATION.md 36), set by main() from --target
+NEE_T = None       # the tower day/night NEE targets (tower_nee_daynight.py npz), loaded by main() from --nee-targets
 
 
-def misfit(gm, em, obs, n, years, w_et):
+def misfit_nee(dn, obs, n, years, w_day):
+    """NEE-stage objective (CALIBRATION.md 36): normalised squared monthly misfit of night-time NEE + w_day * day-time NEE over
+    `years`, the same caps and annual-magnitude terms as the robust GPP objective (ln of the ratio of annual sums, same sign)."""
+    rn = ((dn[years, :, 0, n] - obs['nee_night'][years]) / obs['nee_night_sig'][years]) ** 2
+    rd = ((dn[years, :, 1, n] - obs['nee_day'][years]) / obs['nee_day_sig'][years]) ** 2
+    if ROBUST: rn = np.minimum(rn, ROBUST['cap_month']); rd = np.minimum(rd, ROBUST['cap_month'])
+    ln = np.nanmean(rn) if np.isfinite(rn).any() else np.nan; ld = np.nanmean(rd) if np.isfinite(rd).any() else np.nan
+    if not np.isfinite(ln): return np.nan
+    L = ln + (w_day * ld if np.isfinite(ld) else 0.0)
+    if ROBUST:
+        mag = 0.0
+        for j, key in ((0, 'nee_night'), (1, 'nee_day')):
+            g, t = dn[years, :, j, n], obs[key][years]; ok = np.isfinite(t)
+            if ok.sum() >= 3 and np.nansum(t[ok]) * g[ok].sum() > 0:
+                mag += min((np.log(abs(g[ok].sum()) / abs(np.nansum(t[ok]))) / ROBUST['tol']) ** 2, ROBUST['cap_month'])
+            elif ok.sum() >= 3: mag += ROBUST['cap_month']                                              # opposite sign of the annual sum
+        L = L + ROBUST['w_mag'] * mag; L = min(L, ROBUST['cap_tower'])
+    return L
+
+
+def misfit(gm, em, obs, n, years, w_et, ne=None):
+    if TARGET == 'nee': return misfit_nee(ne, obs, n, years, w_et)
     """Normalised squared monthly misfit of one tower over `years` (indices), GPP + w_et * ET; NaN if no usable month.
 
     With ROBUST set (site_fit --robust): every month's squared misfit is capped at cap_month, the tower's annual and
@@ -122,6 +152,9 @@ def _args(argv=None):
     ap.add_argument('--hourly-sw', action='store_true', help="drive radiation with the tower's hourly shortwave (Spitters diffuse split) instead of the weather generator's cycle (CALIBRATION.md 27)")
     ap.add_argument('--sites', default='', help='comma list: only these towers of the class (probes, single-tower tests)')
     ap.add_argument('--start', default='', help="best.json of an earlier fit: start from its parameters (with --only-baseline: a replay)")
+    ap.add_argument('--target', default='gpp', choices=['gpp', 'nee'], help="'nee': fit night-time + w_et x day-time NEE (tower_nee_daynight.py targets via --nee-targets) instead of GPP + w_et x ET (CALIBRATION.md 36)")
+    ap.add_argument('--nee-targets', default='', help='npz from tower_nee_daynight.py (required with --target nee)')
+    ap.add_argument('--start-state', default='', help='state.npz from site_pool_spinup.py for the same towers: its carbon pools replace the grid pools before the warm-up cycle')
     ap.add_argument('--popsize', type=int, default=0, help='CMA-ES population (0: the default 4 + 3 ln n); a multiple of --workers wastes no round')
     ap.add_argument('--workers', type=int, default=1, help='evaluate each CMA-ES generation in this many spawned processes; '
                     'at a few towers the GPU is latency-bound, so concurrent evaluations cost little more than one')
@@ -133,6 +166,10 @@ def setup(a, spin=True, verbose=True):
     Deterministic in `a`, so the parent and every worker build the same towers, split and coding."""
     say = (lambda m: print(m, flush=True)) if verbose else (lambda m: None)
     configure_years(a)
+    global TARGET, NEE_T                                                                   # also in each spawned worker (setup is rebuilt there)
+    TARGET = getattr(a, 'target', 'gpp')
+    if getattr(a, 'nee_targets', ''): NEE_T = np.load(a.nee_targets)
+    if TARGET == 'nee' and NEE_T is None: raise SystemExit('--target nee needs --nee-targets')
     b1 = open(f'{S}/site_batches.txt').readline().split()[1].split(',')
     sites = b1 if a.igbp == 'ALL' else [s for s in b1 if META.loc[s, 'IGBP'] == a.igbp]      # 'ALL': the joint fit across classes (CALIBRATION.md 32)
     if getattr(a, 'sites', ''):
@@ -230,15 +267,21 @@ def setup(a, spin=True, verbose=True):
     from ibis.io.co2 import co2_molmol          # an ARRAY, not a Python float: a float is static under filter_jit and recompiles per value
     site_transient.apply_co2 = (lambda q, y, series=None: eqx.tree_at(lambda z: z.atm.co2conc, q, jnp.asarray(co2_molmol(y) if a.co2 == 'series' else 385.0e-6, jnp.float32)))
     ctx0 = dict(i=i, j=j, lat_rad=lat_rad, sp=sp0, pft=pft0, consts=consts, reader=rd); key0 = jax.random.PRNGKey(0); t0 = time.time()
+    if getattr(a, 'start_state', ''):                                                                   # equilibrated pools (site_pool_spinup.py)
+        eq, meta = load_state(a.start_state, st); assert list(meta.get('sites', sites)) == list(sites), ('start-state towers differ', meta.get('sites'))
+        st = eqx.tree_at(lambda s: s.carbon, st, eq.carbon); say(f'carbon pools from {a.start_state}')
     for yr in YEARS: st, key0, _ = one_year(st, key0, yr, ctx0, 0); st = hold_fn(st)
     print(f'{"" if verbose else f"worker {os.getpid()}: "}spin-up cycle done in {time.time() - t0:.0f} s', flush=True)
     base_state, base_key = st, key0
     def run(vm, ex):
         sp, pft = apply_params(sp0, pft0, vm, specla, ex); ctx = dict(i=i, j=j, lat_rad=lat_rad, sp=sp, pft=pft, consts=consts, reader=rd)
-        s_, k_ = base_state, base_key; GM = []; EM = []; NM = []
+        s_, k_ = base_state, base_key; GM = []; EM = []; NM = []; DN = []
+        if 'som_scale' in ex:                                                                            # per-site disequilibrium factor on the SOM pools (CALIBRATION.md 36)
+            f = jnp.float32(ex['som_scale']); s_ = eqx.tree_at(lambda s: (s.carbon.csoislon, s.carbon.csoislop, s.carbon.csoipas), s_, (s_.carbon.csoislon * f, s_.carbon.csoislop * f, s_.carbon.csoipas * f))
         for yr in YEARS:
             s_, k_, d = one_year(s_, k_, yr, ctx, 0); s_ = hold_fn(s_); GM.append(d['gpp_monthly'] * 1000); EM.append(d['aet_monthly']); NM.append(d['nee_monthly'] * 1000)
-        return np.array(GM), np.array(EM), np.array(NM)
+            if 'nee_daynight_monthly' in d: DN.append(d['nee_daynight_monthly'] * 1000)
+        return np.array(GM), np.array(EM), (np.array(DN) if (TARGET == 'nee' and DN) else np.array(NM))
     C.run = run; C.base_state, C.base_key, C.ctx0, C.hold_fn = base_state, base_key, ctx0, hold_fn   # for probes
     return C
 
@@ -273,14 +316,15 @@ def main():
     et_sites = [x for x in getattr(a, 'et_sites', '').split(',') if x]; w_site = [a.w_et if (not et_sites or s in et_sites) else 0.0 for s in sites]
     if getattr(a, 'et_corr_only', False): w_site = [w if obs[n].get('et_src') == 'LE_CORR' else 0.0 for n, w in enumerate(w_site)]; print(f'ET term at {[s for n, s in enumerate(sites) if w_site[n] > 0]} (energy-balance-corrected LE)', flush=True)
     if et_sites: print(f'ET term at {[s for s in sites if w_site[sites.index(s)] > 0]} only')
-    def score(gm, em):
-        tr = [misfit(gm, em, obs[n], n, TRAIN_Y, w_site[n]) for n in range(ntr)]
-        ho = [misfit(gm, em, obs[n], n, TRAIN_Y, w_site[n]) for n in range(ntr, ns)]
-        hy = [misfit(gm, em, obs[n], n, HOLD_Y, w_site[n]) for n in range(ns)]
+    def score(gm, em, ne=None):
+        tr = [misfit(gm, em, obs[n], n, TRAIN_Y, w_site[n], ne) for n in range(ntr)]
+        ho = [misfit(gm, em, obs[n], n, TRAIN_Y, w_site[n], ne) for n in range(ntr, ns)]
+        hy = [misfit(gm, em, obs[n], n, HOLD_Y, w_site[n], ne) for n in range(ns)]
         f = lambda v: float(np.nanmean(v)) if np.isfinite(v).any() else np.nan
         return f(tr), f(ho), f(hy), tr, ho
     def nee_rmse(ne, towers):
         # monthly NEE RMSE (gC m-2 mo-1) over the training years, mean over towers; tower NEE_VUT_REF, all months with a value
+        ne = ne.sum(axis=2) if ne.ndim == 4 else ne
         r = [np.sqrt(np.nanmean((ne[TRAIN_Y, :, n] - obs[n]['nee'][TRAIN_Y]) ** 2)) for n in towers if np.isfinite(obs[n]['nee'][TRAIN_Y]).any()]
         return float(np.mean(r)) if r else np.nan
     pool = None
@@ -299,7 +343,7 @@ def main():
     def objective_batch(Z, local=False):
         Ls = []
         for z, (gm, em, ne, secs) in zip(Z, evaluate(Z, local)):
-            vm, ex = C.decode(z); L, Lh, Ly, tr, ho = score(gm, em)
+            vm, ex = C.decode(z); L, Lh, Ly, tr, ho = score(gm, em, ne)
             ne_tr, ne_ho = nee_rmse(ne, range(ntr)), nee_rmse(ne, range(ntr, ns))            # reported, not in the loss
             rec = dict(eval=len(hist) + 1, loss=L, holdout_towers=Lh, holdout_year=Ly, nee_rmse_train=ne_tr, nee_rmse_hold=ne_ho, secs=round(secs, 1), **{nm: (float(vm[PFT_NAMES.index(nm[5:])]) if nm.startswith('vmax:') else float(ex[nm])) for nm in names})
             hist.append(rec); pd.DataFrame(hist).to_csv(f'{a.out}/history.csv', index=False)

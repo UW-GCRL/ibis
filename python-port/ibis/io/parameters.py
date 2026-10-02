@@ -202,6 +202,10 @@ class BGCParams(eqx.Module):
     ysb: float = 0.20
     ypb: float = 0.20
     ynb: float = 0.25
+    #: Respiration constants that F77 hard-codes (NEE stage, CALIBRATION.md 36); defaults = F77, bit-identical.
+    lt_e0: float = 344.0        # Lloyd-Taylor activation parameter (K) of the heterotrophic decomposition factor
+    wfps_opt: float = 60.0      # water-filled pore space (%) at the optimum of the moisture factor (shifts both branches)
+    rgrowth: float = 0.30       # growth respiration, fraction of (GPP - maintenance respiration)
 
 
 def default_bgc_params() -> BGCParams:

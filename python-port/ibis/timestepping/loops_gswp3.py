@@ -166,7 +166,7 @@ def _run_day_inner(
         # (Fortran stats.f sumnow: rwood, rroot, rgrowth)
         rwood   = 0.0125 / (ndaypy * 86400.0) * (1000.0 / 12.0)  # /s, mol C basis
         rroot   = 1.2500 / (ndaypy * 86400.0) * (1000.0 / 12.0)
-        rgrowth = 0.30
+        rgrowth = params.bgc_params.rgrowth          # F77 0.30 (CALIBRATION.md 36)
 
         # Temperature functions (Lloyd-Taylor, 15°C base)
         stemtemp = can.ts
@@ -444,7 +444,8 @@ def _run_month_scan(
         # These scale litter and SOM decomposition in soilbgc.
         # decompl: based on top soil layer
         # decomps: root-profile weighted average of layers 1-4
-        _tconst = jnp.float32(344.0)
+        _tconst = params.bgc_params.lt_e0               # F77 344.0 (CALIBRATION.md 36)
+        _wshift = params.bgc_params.wfps_opt - 60.0     # F77 optimum 60 %
         _btemp = jnp.float32(288.16)
         _tzero = jnp.float32(227.13)
 
@@ -455,7 +456,7 @@ def _run_month_scan(
             return jnp.minimum(ft, jnp.float32(10.0))
 
         def _fmoist(wsoi_val, wice_val):
-            wfps = (jnp.float32(1.0) - wice_val) * wsoi_val * jnp.float32(100.0)
+            wfps = (jnp.float32(1.0) - wice_val) * wsoi_val * jnp.float32(100.0) - _wshift
             fm_wet = (jnp.float32(0.000371) * wfps * wfps
                       - jnp.float32(0.0748) * wfps + jnp.float32(4.13))
             fm_dry = jnp.exp((wfps - jnp.float32(60.0)) ** 2 / jnp.float32(-800.0))

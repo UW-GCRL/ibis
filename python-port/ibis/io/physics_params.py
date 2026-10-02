@@ -296,6 +296,7 @@ def build_bgc_params(d: dict) -> BGCParams:
         return default_bgc_params()
 
     defaults = default_bgc_params()
+    resp = {k: float(s.get(k, getattr(defaults, k))) for k in ('lt_e0', 'wfps_opt', 'rgrowth')}   # CALIBRATION.md 36
 
     # C:N ratios for 8 pools
     cnr_dict = s.get('cnr', {})
@@ -306,6 +307,7 @@ def build_bgc_params(d: dict) -> BGCParams:
     ])
 
     return BGCParams(
+        **resp,
         lig_frac=s.get('lig_frac', defaults.lig_frac),
         fbsom=s.get('fbsom', defaults.fbsom),
         effac=s.get('effac', defaults.effac),
