@@ -20,6 +20,7 @@ from ibis.state.hydrology import HydrologyDiag, create_hydrology_diag
 from ibis.state.summary import SummaryState, create_summary_state
 from ibis.state.stress_accum import create_stress_accum
 from ibis.state.et_parts import create_et_parts
+from ibis.state.nee_parts import create_nee_parts
 from ibis.state.seasonal import create_seasonal
 from ibis.dimensions import GridConfig
 
@@ -57,6 +58,9 @@ class IBISState(eqx.Module):
     #: senescence. None unless a run enables either formulation; implies `stress` and `etparts`, so the
     #: optional trailing modules stay one nested chain for load_state (258 / 261 / 265 / 268 leaves).
     seasonal: Optional[eqx.Module] = None
+    #: Day-time / night-time NEE accumulators (CALIBRATION.md 36). None unless a run asks for them; implies
+    #: `stress`, `etparts` and `seasonal` (chain 258 / 261 / 265 / 268 / 270 leaves).
+    neeparts: Optional[eqx.Module] = None
 
 
 def create_ibis_state(grid: GridConfig,
@@ -64,7 +68,8 @@ def create_ibis_state(grid: GridConfig,
                       o2: float = 0.209,
                       with_stress: bool = False,
                       with_etparts: bool = False,
-                      with_seasonal: bool = False) -> IBISState:
+                      with_seasonal: bool = False,
+                      with_neeparts: bool = False) -> IBISState:
     """Create a cold-start IBISState with default initial values.
 
     Parameters
@@ -85,7 +90,8 @@ def create_ibis_state(grid: GridConfig,
         carbon=create_carbon_state(grid.npoi),
         hydrology=create_hydrology_diag(grid.npoi),
         summary=create_summary_state(grid.npoi, grid.npft),
-        stress=(create_stress_accum(grid.npoi) if (with_stress or with_etparts or with_seasonal) else None),
-        etparts=(create_et_parts(grid.npoi) if (with_etparts or with_seasonal) else None),
-        seasonal=(create_seasonal(grid.npoi) if with_seasonal else None),
+        stress=(create_stress_accum(grid.npoi) if (with_stress or with_etparts or with_seasonal or with_neeparts) else None),
+        etparts=(create_et_parts(grid.npoi) if (with_etparts or with_seasonal or with_neeparts) else None),
+        seasonal=(create_seasonal(grid.npoi) if (with_seasonal or with_neeparts) else None),
+        neeparts=(create_nee_parts(grid.npoi) if with_neeparts else None),
     )

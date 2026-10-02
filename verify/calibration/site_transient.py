@@ -69,6 +69,8 @@ def reset_annual(state, npoi):
     state = reset_stress_accum(state)
     from ibis.state.et_parts import reset_et_parts
     state = reset_et_parts(state)
+    from ibis.state.nee_parts import reset_nee_parts
+    state = reset_nee_parts(state)
     z = jnp.zeros((npoi,))
     return eqx.tree_at(
         lambda s: tuple(getattr(s.summary, n) for n in AY) + (s.summary.aynpp,),
@@ -95,6 +97,8 @@ def one_year(state, key, year, ctx, isimveg=1):
     _nep = lambda s_: np.asarray(s_.summary.aynpptot) - np.asarray(s_.summary.ayco2mic)
     nep_prev = _nep(state); nee_m = []
     _npp = lambda s_: np.asarray(s_.summary.aynpptot); npp_prev = _npp(state); npp_m = []
+    _dn = lambda s_: (np.stack([np.asarray(s_.neeparts.night), np.asarray(s_.neeparts.day)]) if getattr(s_, 'neeparts', None) is not None else None)
+    dn_prev = _dn(state); dn_m = []
     for im in range(12):
         raw = c["reader"].read_month(year, im, c["i"], c["j"])
         tmean.append(np.nanmean(raw["tas"], axis=0) - 273.16)
@@ -111,6 +115,8 @@ def one_year(state, key, year, ctx, isimveg=1):
             ep_now = _parts(state); ep_m.append(ep_now - ep_prev); ep_prev = ep_now
         nep_now = _nep(state); nee_m.append(-(nep_now - nep_prev)); nep_prev = nep_now
         npp_now = _npp(state); npp_m.append(npp_now - npp_prev); npp_prev = npp_now
+        if dn_prev is not None:
+            dn_now = _dn(state); dn_m.append(dn_now - dn_prev); dn_prev = dn_now
 
     tct, twt, g0t, g5t = climate_stats_from_monthly(np.stack(tmean, axis=1), leap)
     state = eqx.tree_at(
@@ -144,6 +150,8 @@ def one_year(state, key, year, ctx, isimveg=1):
     diag["aet_monthly"] = np.stack(aet_m, axis=0)          # (12, npoi), mm
     diag["nee_monthly"] = np.stack(nee_m, axis=0)          # (12, npoi), kgC m-2 month-1, + = source; sums to -ayneetot
     diag["npp_monthly"] = np.stack(npp_m, axis=0)          # (12, npoi), kgC m-2 month-1; sums to aynpptot
+    if dn_m:
+        diag["nee_daynight_monthly"] = np.stack(dn_m, axis=0)   # (12, 2, npoi): night, day NEE (kgC m-2 month-1, + = release)
     if ep_m:
         diag["et_parts_monthly"] = np.stack(ep_m, axis=0)  # (12, 4, npoi): trans, interc, soilev, snowsub (mm)
         diag["et_parts"] = ep_prev                          # (4, npoi) annual

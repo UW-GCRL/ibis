@@ -57,7 +57,7 @@ def save_state(state, path: str, metadata: Optional[dict] = None) -> None:
 
 #: Leaf counts of the optional trailing modules, in chain order (StressAccum, ETParts, SeasonalState).
 #: Guarded against the real modules by tests/test_seasonal_formulations.py.
-CHAIN_LEAVES = (3, 4, 3)
+CHAIN_LEAVES = (3, 4, 3, 2)      # StressAccum, ETParts, SeasonalState, NEEParts
 
 
 def load_state(path: str, template_state):
@@ -89,14 +89,16 @@ def load_state(path: str, template_state):
 
     n_fill = len(leaves_template) - num_leaves
     # The optional trailing modules form one nested chain: StressAccum (3 leaves), ETParts (4), SeasonalState (3),
-    # each implying the ones before it, so a state carries 0, 3, 7 or 10 trailing leaves (258 / 261 / 265 / 268).
+    # NEEParts (2), each implying the ones before it, so a state carries 0, 3, 7, 10 or 12 trailing leaves
+    # (258 / 261 / 265 / 268 / 270).
     # A checkpoint may load into a template anywhere on that chain; any other difference is a real mismatch.
     _chain = [0]
     for _n in CHAIN_LEAVES:
         _chain.append(_chain[-1] + _n)
     _off_t = sum(len(jax.tree.leaves(_m)) for _m in (getattr(template_state, "stress", None),
                                                      getattr(template_state, "etparts", None),
-                                                     getattr(template_state, "seasonal", None)) if _m is not None)
+                                                     getattr(template_state, "seasonal", None),
+                                                     getattr(template_state, "neeparts", None)) if _m is not None)
     _off_c = _off_t - n_fill
     if _off_t not in _chain or _off_c not in _chain:
         raise ValueError(

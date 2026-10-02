@@ -139,7 +139,9 @@ def main():
     full, _ = load_state(f'{V}/v11_transient/restart/ibis_restart_2010.npz', create_ibis_state(GridConfig(npoi=NPOI_FULL, nbedrock=3)))
     cut = lambda x: x[sel] if isinstance(x, jnp.ndarray) and x.ndim >= 1 and x.shape[0] == NPOI_FULL else x
     st = _cast_tree_f32(jax.tree.map(cut, full)); st = eqx.tree_at(lambda s: s.stress, st, create_stress_accum(len(sel)), is_leaf=lambda x: x is None); st = eqx.tree_at(lambda s: s.etparts, st, create_et_parts(len(sel)), is_leaf=lambda x: x is None)
-    st = eqx.tree_at(lambda s: s.seasonal, st, _cast_tree_f32(create_seasonal(len(sel), 5.0)), is_leaf=lambda x: x is None)   # inert unless a formulation is on (CALIBRATION.md 21-22)
+    st = eqx.tree_at(lambda s: s.seasonal, st, _cast_tree_f32(create_seasonal(len(sel), 5.0)), is_leaf=lambda x: x is None)   # inert unless a formulation is on
+    from ibis.state.nee_parts import create_nee_parts
+    st = eqx.tree_at(lambda s: s.neeparts, st, _cast_tree_f32(create_nee_parts(len(sel))), is_leaf=lambda x: x is None)   # day/night NEE (CALIBRATION.md 36) (CALIBRATION.md 21-22)
     sp, pft, _ = build_all_params(len(sel), lat_rad, load_physics_params(a.params)); specla = np.asarray(pft.specla)
     mask = np.zeros((len(sel), 12), np.float32); fu = np.zeros(len(sel), np.float32); fl_ = np.zeros(len(sel), np.float32); notes = {}
     cbiol = np.asarray(st.vegetation.cbiol).copy(); cbiow = np.asarray(st.vegetation.cbiow).copy(); cbior = np.asarray(st.vegetation.cbior).copy()
@@ -189,9 +191,9 @@ def main():
         for yr in YEARS:
             st, key, d = one_year(st, key, yr, ctx, 0); st = hold(st)
         print(f'  spin cycle {c + 1}/{a.cycles} done: annual GPP {np.round(d["aygpptot"], 2)} kgC/m2, LAI {np.round(np.asarray(st.vegetation.plai).sum(1), 2)}', flush=True)
-    REC.clear(); GM = []; EM = []; LL = []; LU = []; GD = []; NM = []; NEM = []; EP = []
+    REC.clear(); GM = []; EM = []; LL = []; LU = []; GD = []; NM = []; NEM = []; EP = []; DN = []
     for yr in YEARS:
-        st, key, d = one_year(st, key, yr, ctx, 0); st = hold(st); GM.append(d['gpp_monthly'] * 1000); EM.append(d['aet_monthly']); NM.append(d['npp_monthly'] * 1000); NEM.append(d['nee_monthly'] * 1000); EP.append(d['et_parts_monthly'] if 'et_parts_monthly' in d else np.full((12, 4, len(sel)), np.nan))
+        st, key, d = one_year(st, key, yr, ctx, 0); st = hold(st); GM.append(d['gpp_monthly'] * 1000); EM.append(d['aet_monthly']); NM.append(d['npp_monthly'] * 1000); NEM.append(d['nee_monthly'] * 1000); EP.append(d['et_parts_monthly'] if 'et_parts_monthly' in d else np.full((12, 4, len(sel)), np.nan)); DN.append(d['nee_daynight_monthly'] * 1000 if 'nee_daynight_monthly' in d else np.full((12, 2, len(sel)), np.nan))
         gd = np.full((366, len(sel)), np.nan, np.float32); gd[:d['gpp_daily'].shape[0]] = d['gpp_daily'] * 1000; GD.append(gd)       # gC m-2 d-1
         LL.append(np.array([r[0] for r in REC[-12:]])); LU.append(np.array([r[1] for r in REC[-12:]]))
     GM = np.array(GM); EM = np.array(EM); LL = np.array(LL); LU = np.array(LU)             # (nyr, 12, nsite)
@@ -202,7 +204,7 @@ def main():
         for yi, yr in enumerate(YEARS):
             for mo in range(12):
                 if (yr, mo + 1) in tm.index: obs_g[yi, mo, n] = tm.loc[(yr, mo + 1), 'gpp']; obs_e[yi, mo, n] = tm.loc[(yr, mo + 1), 'et']
-    np.savez(f'{a.out}/site_runs.npz', sites=np.array(sites), years=np.array(YEARS), gpp=GM, et=EM, lai_l=LL, lai_u=LU, obs_gpp=obs_g, obs_et=obs_e, i=i, j=j, gpp_daily=np.array(GD), npp=np.array(NM), nee=np.array(NEM), et_parts=np.array(EP))   # et_parts (nyr, 12, 4, nsite): trans, interc, soilev, snowsub (mm)
+    np.savez(f'{a.out}/site_runs.npz', sites=np.array(sites), years=np.array(YEARS), gpp=GM, et=EM, lai_l=LL, lai_u=LU, obs_gpp=obs_g, obs_et=obs_e, i=i, j=j, gpp_daily=np.array(GD), npp=np.array(NM), nee=np.array(NEM), et_parts=np.array(EP), nee_daynight=np.array(DN))   # et_parts (nyr, 12, 4, nsite): trans, interc, soilev, snowsub (mm); nee_daynight (nyr, 12, 2, nsite): night, day gC m-2 month-1, + = release
     json.dump(dict(notes=notes, gaps={f'{k[0]}|{k[1]}': v for k, v in rd.gap_report().items()}, params=a.params, cycles=a.cycles), open(f'{a.out}/site_runs.json', 'w'), indent=1)
     df = compute_metrics(sites, YEARS, GM, EM, LL, LU, obs_g, obs_e, notes, i, modis); df.to_csv(f'{a.out}/site_metrics.csv', index=False)
     pd.set_option('display.width', 250); print(df.drop(columns=['note']).to_string(index=False, float_format=lambda x: f'{x:.2f}'))

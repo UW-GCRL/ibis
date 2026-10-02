@@ -29,7 +29,7 @@ from site_attributes import prescribe_from_attributes
 from tower_forcing import TowerForcingReader
 from ibis.dimensions import GridConfig; from ibis.io.restart import load_state
 from ibis.state.model_state import create_ibis_state; from ibis.state.stress_accum import create_stress_accum
-from ibis.state.et_parts import create_et_parts; from ibis.state.seasonal import create_seasonal
+from ibis.state.et_parts import create_et_parts; from ibis.state.seasonal import create_seasonal; from ibis.state.nee_parts import create_nee_parts
 from ibis.io.physics_params import build_all_params, load_physics_params
 from ibis.io.gswp3_reader import GSWP3Reader; from ibis.constants import PhysicalConstants
 from ibis.timestepping.loops_gswp3 import _cast_tree_f32
@@ -155,6 +155,7 @@ def setup(a, spin=True, verbose=True):
     st = eqx.tree_at(lambda s: s.stress, st, create_stress_accum(ns), is_leaf=lambda x: x is None)
     st = eqx.tree_at(lambda s: s.etparts, st, create_et_parts(ns), is_leaf=lambda x: x is None)
     st = eqx.tree_at(lambda s: s.seasonal, st, _cast_tree_f32(create_seasonal(ns, 5.0)), is_leaf=lambda x: x is None)
+    st = eqx.tree_at(lambda s: s.neeparts, st, _cast_tree_f32(create_nee_parts(ns)), is_leaf=lambda x: x is None)
     sp0, pft0, _ = build_all_params(ns, lat_rad, load_physics_params(a.params)); sp0, pft0 = trace_extras(sp0, pft0)   # one compile for spin-up and every evaluation
     specla = np.asarray(pft0.specla); vmax0 = np.asarray(sp0.stomata_params.vmax_pft)
     mask = np.zeros((ns, 12), np.float32); fu = np.zeros(ns, np.float32); flw = np.zeros(ns, np.float32)

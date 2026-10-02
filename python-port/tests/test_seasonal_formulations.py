@@ -28,11 +28,18 @@ def test_state_chain_and_restart_migration(tmp_path):
     from ibis.io.restart import save_state, load_state
     from ibis.dimensions import GridConfig
     g = GridConfig(npoi=4, nbedrock=3)
-    n = [len(jax.tree.leaves(create_ibis_state(g, **kw))) for kw in ({}, {"with_stress": True}, {"with_etparts": True}, {"with_seasonal": True})]
+    n = [len(jax.tree.leaves(create_ibis_state(g, **kw))) for kw in ({}, {"with_stress": True}, {"with_etparts": True}, {"with_seasonal": True}, {"with_neeparts": True})]
     from ibis.io.restart import CHAIN_LEAVES
-    assert (n[1] - n[0], n[2] - n[1], n[3] - n[2]) == (3, 4, 3) == CHAIN_LEAVES      # one nested chain
+    assert (n[1] - n[0], n[2] - n[1], n[3] - n[2], n[4] - n[3]) == (3, 4, 3, 2) == CHAIN_LEAVES      # one nested chain
     s = create_ibis_state(g, with_seasonal=True)
     assert s.stress is not None and s.etparts is not None and s.seasonal is not None   # seasonal implies the others
+    s5 = create_ibis_state(g, with_neeparts=True)
+    assert s5.seasonal is not None and s5.neeparts is not None                        # neeparts implies all of them
+    save_state(s5, f"{tmp_path}/n.npz")
+    down, _ = load_state(f"{tmp_path}/n.npz", create_ibis_state(g, with_seasonal=True))   # 270 -> 268: drop 2
+    assert down.neeparts is None and down.seasonal is not None
+    upn, _ = load_state(f"{tmp_path}/n.npz", create_ibis_state(g, with_neeparts=True))    # 270 -> 270
+    assert upn.neeparts is not None and float(upn.neeparts.night.sum()) == 0.0
     fu = jnp.array([0.1, 0.2, 0.3, 0.4], dtype=s.vegetation.fu.dtype)
     s = eqx.tree_at(lambda z: (z.vegetation.fu, z.seasonal.acclim_x), s, (fu, jnp.full_like(s.seasonal.acclim_x, 7.0)))
     save_state(s, f"{tmp_path}/s.npz")

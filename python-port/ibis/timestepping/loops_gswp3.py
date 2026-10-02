@@ -247,6 +247,15 @@ def _run_day_inner(
                  st.etparts.soilev + st.hydrology.gsuvap * _dt - _snowsub,
                  st.etparts.snowsub + _snowsub))
 
+        # Day/night NEE (CALIBRATION.md 36): Rh is a daily rate (tco2mic, mol CO2 m-2 s-1) spread evenly over the
+        # steps; NPP is this step's. Night = sun below the horizon, as FLUXNET's NIGHT flag. Static branch when None.
+        if st.neeparts is not None:
+            _nee_step = st.vegetation.tco2mic * c_fac - npp_step
+            _night = st.atm.coszen <= jnp.float32(0.0)
+            st = eqx.tree_at(lambda s: (s.neeparts.night, s.neeparts.day), st,
+                             (st.neeparts.night + jnp.where(_night, _nee_step, 0.0),
+                              st.neeparts.day + jnp.where(_night, 0.0, _nee_step)))
+
         new_sm = eqx.tree_at(
             lambda s: (s.adrain, s.adsnow, s.adaet,
                        s.a10ancub, s.a10ancls, s.a10ancl3, s.a10ancl4,
@@ -1041,8 +1050,10 @@ def run_spinup_gswp3(
         )
         from ibis.state.stress_accum import reset_stress_accum
         from ibis.state.et_parts import reset_et_parts
+        from ibis.state.nee_parts import reset_nee_parts
         state = reset_stress_accum(state)
         state = reset_et_parts(state)
+        state = reset_nee_parts(state)
 
         if on_year_end is not None:
             try:
