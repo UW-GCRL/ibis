@@ -52,6 +52,24 @@ if ktab:                                                                        
     import pandas as pd; kt = pd.read_csv(ktab).set_index('site')['k_scale']; karr = jnp.asarray([float(kt.get(s_, 1.0)) for s_ in sites], dtype=jnp.float32)
     ctx = dict(ctx, sp=eqx.tree_at(lambda p: p.bgc_params.k_scale, ctx['sp'], karr)); print('k_scale per tower:', ' '.join(f'{s_} {float(v):.2f}' for s_, v in zip(sites, karr)))
 elif kscale != 1.0: ctx = dict(ctx, sp=eqx.tree_at(lambda p: p.bgc_params.k_scale, ctx['sp'], kscale)); print(f'k_scale {kscale}')
+# Litterfall closure (the decisive step): with fixed vegetation (isimveg = 0) dynaveg never runs, so carbon.falll/fallr/
+# fallw stay at the GRID restart's values and the soil equilibrates to the grid cell's litterfall, not to the tower's
+# NPP (BE-Bra: NEE -960 gC m-2 yr-1 at "equilibrium"). At the steady state of the vegetation pools litterfall equals the
+# allocated NPP (cbiol = aleaf NPP tauleaf -> falll = aleaf NPP, etc.), so after every cycle the three litterfall rates are
+# set to the cycle-mean per-PFT NPP times the PFT allocation fractions. The NEE fits inherit them with the state.
+hold = C.hold_fn
+AL = (np.asarray(ctx['pft'].aleaf), np.asarray(ctx['pft'].aroot), np.asarray(ctx['pft'].awood))
+def close_litterfall(st, npp_pft):
+    """npp_pft: (npoi, 12) cycle-mean annual NPP per PFT, kgC m-2 yr-1 -> falll, fallr, fallw (kgC m-2 yr-1)."""
+    f = [jnp.asarray((npp_pft * a[None, :]).sum(axis=1), dtype=st.carbon.falll.dtype) for a in AL]
+    return eqx.tree_at(lambda s: (s.carbon.falll, s.carbon.fallr, s.carbon.fallw), st, tuple(f))
+def cycle(st, key, ctx_, acc=None):
+    """one pass over the tower years; returns the state, key, cycle-mean NPP per PFT and the monthly NEE/NPP sums."""
+    npp_pft = np.zeros_like(np.asarray(st.summary.aynpp)); nee = np.zeros(ns); npp = np.zeros(ns)
+    for yr in site_fit.YEARS:
+        st, key, d = one_year(st, key, yr, ctx_, 0); npp_pft += np.asarray(st.summary.aynpp); st = hold(st)
+        nee += np.asarray(d['nee_monthly']).sum(0) * 1000; npp += np.asarray(d['npp_monthly']).sum(0) * 1000
+    ny = len(site_fit.YEARS); return close_litterfall(st, np.maximum(npp_pft / ny, 0.0)), key, nee / ny, npp / ny
 POOLS = ('clitlm', 'clitls', 'clitll', 'clitrm', 'clitrs', 'clitrl', 'clitwm', 'clitws', 'clitwl', 'totcmic', 'csoislon', 'csoislop', 'csoipas')
 SLOW = ('knb', 'kns', 'kpb', 'kps', 'ksb')
 # one factor per pool, applied to every outflow rate of that pool (so each pool's steady state is 1/factor of the
@@ -59,25 +77,26 @@ SLOW = ('knb', 'kns', 'kpb', 'kps', 'ksb')
 FAC = {'csoislon': accel, 'csoislop': accel * 10.0, 'csoipas': accel * 100.0}; KFAC = {'knb': FAC['csoislon'], 'kns': FAC['csoislon'], 'kpb': FAC['csoislop'], 'kps': FAC['csoislop'], 'ksb': FAC['csoipas']}
 def pools(s): return {p: np.asarray(getattr(s.carbon, p)).copy() for p in POOLS}
 def tot(s): return sum(pools(s)[p] for p in POOLS)
+st = close_litterfall(st, np.maximum(np.asarray(st.summary.aynpp), 0.0)); print('litterfall closed on the warm-up NPP (gC m-2 yr-1): ' + ' '.join(f'{s_} {float(st.carbon.falll[n] + st.carbon.fallr[n] + st.carbon.fallw[n]) * 1000:.0f}' for n, s_ in enumerate(sites)))
 p0 = pools(st); print('start pools (kgC m-2):', ' '.join(f'{s} {tot(st)[n]:.1f}' for n, s in enumerate(sites)))
 # accelerated cycles
 sp_fast = ctx['sp']
 for kname in SLOW: sp_fast = eqx.tree_at(lambda p, kname=kname: getattr(p.bgc_params, kname), sp_fast, float(getattr(ctx['sp'].bgc_params, kname)) * KFAC[kname])
-ctx_fast = dict(ctx, sp=sp_fast); hold = C.hold_fn
+ctx_fast = dict(ctx, sp=sp_fast)
 # scale the SOM pools DOWN by A first so the accelerated system starts near its own steady state
 st = eqx.tree_at(lambda s: (s.carbon.csoislon, s.carbon.csoislop, s.carbon.csoipas), st, tuple(getattr(st.carbon, p) / FAC[p] for p in ('csoislon', 'csoislop', 'csoipas')))
 true_tot = lambda s: tot(s) + sum((FAC[p] - 1) * pools(s)[p] for p in ('csoislon', 'csoislop', 'csoipas'))
 for cyc in range(cycles_fast):
     t_before = true_tot(st)
-    for yr in site_fit.YEARS: st, key, d = one_year(st, key, yr, ctx_fast, 0); st = hold(st)
+    st, key, nee_f, npp_f = cycle(st, key, ctx_fast)
     t_after = true_tot(st)
     print(f'accelerated cycle {cyc + 1}/{cycles_fast} (x{accel:.0f}/{accel * 10:.0f}/{accel * 100:.0f}): true-scale total C ' + ' '.join(f'{s} {t_after[n]:.2f} (d {t_after[n] - t_before[n]:+.3f})' for n, s in enumerate(sites)), flush=True)
 # scale back and settle
 st = eqx.tree_at(lambda s: (s.carbon.csoislon, s.carbon.csoislop, s.carbon.csoipas), st, tuple(getattr(st.carbon, p) * FAC[p] for p in ('csoislon', 'csoislop', 'csoipas')))
 for cyc in range(2):
-    t_before = tot(st); nee = np.zeros(ns); npp = np.zeros(ns)
-    for yr in site_fit.YEARS: st, key, d = one_year(st, key, yr, ctx, 0); st = hold(st); nee += np.asarray(d['nee_monthly']).sum(0) * 1000; npp += np.asarray(d['npp_monthly']).sum(0) * 1000
-    ny = len(site_fit.YEARS); print(f'normal cycle {cyc + 1}/2: total C drift ' + ' '.join(f'{s} {tot(st)[n] - t_before[n]:+.3f} kgC; NEE {nee[n] / ny:+.0f} NPP {npp[n] / ny:.0f} gC m-2 yr-1' for n, s in enumerate(sites)), flush=True)
+    t_before = tot(st)
+    st, key, nee, npp = cycle(st, key, ctx); ny = 1
+    print(f'normal cycle {cyc + 1}/2: total C drift ' + ' '.join(f'{s} {tot(st)[n] - t_before[n]:+.3f} kgC; NEE {nee[n]:+.0f} NPP {npp[n]:.0f} litterfall {float(st.carbon.falll[n] + st.carbon.fallr[n] + st.carbon.fallw[n]) * 1000:.0f} gC m-2 yr-1' for n, s in enumerate(sites)), flush=True)
 p1 = pools(st)
 np.savez(f'{out}/pools.npz', sites=np.array(sites), years=np.array(site_fit.YEARS), accel=accel, **{f'{p}_before': p0[p] for p in POOLS}, **{f'{p}_after': p1[p] for p in POOLS}, drift_kgC=tot(st) - t_before, nee_gC=nee / ny, npp_gC=npp / ny)
 save_state(st, f'{out}/state.npz', metadata=dict(sites=list(sites), years=list(site_fit.YEARS), accel=accel, params=a.params, start_dir=start_dir))

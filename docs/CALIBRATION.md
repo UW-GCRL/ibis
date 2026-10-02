@@ -4502,6 +4502,21 @@ night match. Evergreen broadleaf is the one class where night respiration is too
 seasonality absent); open shrubland has no net day-time uptake at all (the model cannot photosynthesise against its
 respiration there); the savannas' day-time uptake is half the tower's.
 
+
+**The litterfall artefact (10-02 evening).** The first joint spin-up (`pool_spinup_s1_62`, grid litterfall) reached
+"equilibrium" with NEE -960 gC m-2 yr-1 at BE-Bra and -900 at the evergreen broadleaf towers. The reason is the
+harness, not the soil: with fixed vegetation (isimveg = 0) `dynaveg` never runs, so `carbon.falll/fallr/fallw` keep the
+GRID restart's values in every site run made so far. The soil therefore equilibrates to the grid cell's litterfall
+while NPP is the tower's, and model NEE = NPP_site - litterfall_grid at equilibrium: the "model sink too small / pools
+near equilibrium" reading above and the EBF "sink" of -674 are that difference, not pool disequilibrium. The spin-up
+now closes the carbon balance (falll, fallr, fallw = cycle-mean per-PFT NPP x PFT allocation fractions, re-set after
+every cycle; the NEE fits inherit the closed litterfall with the state), and is being rerun (`pool_spinup_v2_*`). The
+day/night reading stands (both parts carry the same Rh); the disequilibrium factors and the rate multipliers of
+`tower_k_scale.csv` are to be redone on the closed spin-up. First NEE fit at DE-Tha on the unclosed state (loss 24.4 ->
+1.9; held-out 2012 night 1.10, day 0.89, NEE -509 vs -696; r 0.89 / 0.97) pressed som_scale (0.11) and rgrowth (0.10)
+against their bounds: the maintenance constants rwood/rroot are parameters now (extras), and the per-tower set is
+som_scale, bgc_e0, rgrowth, rroot with k_scale fixed per tower by the HWSD2 carbon.
+
 **Plan.** Per tower: pools from the spin-up (HWSD2 carbon as the check), then fit som_scale, bgc_e0, rgrowth
 (wfps_opt where the moisture signal exists) to night-time NEE with day-time NEE weighted, 2012 held out; verdict by
 model/tower night release and day uptake, r of both series, by class.
