@@ -4385,3 +4385,49 @@ slopes of the nine were applied when the file was read back; fixed in `physics_p
 unknown names raise; test `test_per_pft_tables_accept_short_and_long_names`). No run had used the file before the fix.
  Open as before: ET at the conifers (0.78) and grasslands (0.87), the deciduous and grass
 spring shape, the evergreen broadleaf seasonality (r 0.47).
+
+## 35. Supplementary 2: one fit per tower from the robust S1 set (2026-09-30 to 10-02; branch `calibration-s1`)
+
+**Setup.** Each of the 62 towers of the 2008-2012 batch fitted on its own (`verify/calibration/s2_commands.py` writes the
+command per tower): start = the robust S1 best (section 34, `s1_robust_r1/best.json`), fitted = vmax and stomatal slope
+of each prescribed PFT (TRY bounds), acclimation s0/smax of conifer PFTs, upper-canopy phenology (gdd_thresh_u,
+gdd_ramp_u, sen_ycrit_u) where a deciduous tree is present, lower-canopy thresholds (gdd_thresh_l, tthresh_l_c) where a
+lower canopy exists, drop_stress_thresh at tropical deciduous / C4 / shrub, stressfac everywhere (4-10 parameters per
+tower); 2009-2011 fitted, 2012 held out; CMA-ES 60-80 evaluations, popsize 6, 3 workers, sigma 0.15; the robust
+objective WITHOUT the per-tower cap (`--robust 25,1e9,1,0.15`). Runs `$V/site_fit/s2/<SITE>`; report
+`diagnostics/s2_report.py` -> `ibis_local_document/logs/s2_per_tower_report.{csv,txt}`; figures
+`figures/site_level/{GPP,ET,NEE}_2_example_towers.png` (purple) and `extra/F5_per_tower_fits_so_far.png`.
+
+**Two operational defects on the way (details in the memory notes).** (1) The per-tower cap of the robust objective
+makes the surface flat for a tower whose loss sits at the cap: AU-Stp returned 30.000 at every point, CMA-ES stopped
+after one generation on "flat fitness" and reported the start as the fit -- the cap is for joint fits only; seven towers
+of the S1 result sat at it. (2) Running two launchers at once put 16 fits x 16 GB against 188 GB and thrashed the box;
+one throttled launcher (max 8 alive, 4-core taskset slots) at ~1.3 h per tower was the working configuration. The NAS
+outage of 09-30 13:20-16:00 and the SHR expansion that followed (file opens 5-18 s for a day) interrupted the last
+towers; US-Syv has no tower data in 2008-2011 (FLUXNET2015 gap) and is refitted on 2002-2008 (`s2_ownyears/US-Syv`);
+DE-Obe lost its summary line to the outage but its best.json/best_series are intact.
+
+**Verdict (61 towers, model / tower, held-out year 2012; S1 set -> per-tower fit):**
+
+| | S1 set | per-tower fit |
+|---|---|---|
+| towers within 25 % of annual GPP, fit years 2009-2011 | 74 % | 97 % |
+| towers within 25 %, held-out 2012 | 64 % | 80 % |
+| median r / NSE of monthly GPP, held-out 2012 | 0.95 / 0.74 | 0.96 / 0.88 |
+| ENF (17) annual / NSE | 1.03 / 0.87 | 1.04 / 0.94 |
+| DBF (12) annual / NSE | 0.95 / 0.78 | 1.01 / 0.90 |
+| MF (5) annual / NSE | 1.11 / 0.92 | 1.04 / 0.91 |
+| GRA (13) annual / NSE | 1.12 / 0.78 | 1.07 / 0.84 |
+| EBF (3) annual / NSE | 0.94 / -6.5 | 0.99 / 0.47 |
+| OSH (5) summer / NSE | 2.23 / -0.54 | 1.97 / -0.15 |
+| SAV+WSA (5) annual / NSE | 0.81-0.90 / 0.45-0.54 | 0.92-0.95 / 0.65-0.73 |
+| ET, ENF / GRA / OSH | 0.84 / 0.83 / 1.18 | 0.86 / 0.81 / 1.26 |
+
+**Reading.** Per-tower parameters transfer to an unseen year at the forests and grasslands (80 % of towers within 25 %,
+NSE 0.88), and they rescue the evergreen broadleaf seasonality that the per-PFT set could not (FR-Pue NSE -6.5 -> 0.62,
+GF-Guy stays negative: the flat tropical year has no seasonal variance to explain). They do NOT fix: the open shrublands
+(summer 2.0x with any parameters; ES-LJu 2.8x), US-PFa (1.7x, tall-tower footprint), US-Var (2.0x), AU-Stp (the fit
+undershoots 0.50 in 2012 after overshooting in the fit years: the green-up timing, not capacity), and ET anywhere
+(conifers 0.86, grasslands 0.81, shrublands 1.26 -- parameters that fix GPP leave ET where it was). Those are the
+structural list for the ET and NEE stages (sections 36-). The per-tower parameter records (`s2/<SITE>/best.json`) are
+the input to the gap-filled spatial parameter map, not yet built.
