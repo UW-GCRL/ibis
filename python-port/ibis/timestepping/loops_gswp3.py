@@ -164,8 +164,8 @@ def _run_day_inner(
 
         # --- Issue 20: NPP with maintenance + growth respiration ---
         # (Fortran stats.f sumnow: rwood, rroot, rgrowth)
-        rwood   = 0.0125 / (ndaypy * 86400.0) * (1000.0 / 12.0)  # /s, mol C basis
-        rroot   = 1.2500 / (ndaypy * 86400.0) * (1000.0 / 12.0)
+        rwood   = params.bgc_params.rwood / (ndaypy * 86400.0) * (1000.0 / 12.0)  # /s, mol C basis; F77 0.0125 (CALIBRATION.md 36)
+        rroot   = params.bgc_params.rroot / (ndaypy * 86400.0) * (1000.0 / 12.0)  # F77 1.25
         rgrowth = params.bgc_params.rgrowth          # F77 0.30 (CALIBRATION.md 36)
 
         # Temperature functions (Lloyd-Taylor, 15°C base)

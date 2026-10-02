@@ -300,6 +300,9 @@ EXTRAS["rgrowth"] = (_set(lambda p: p.bgc_params.rgrowth), 0.10, 0.50, False)
 #: Multiplier on all decomposition rates (through both climate factors); pinned by the site soil carbon at equilibrium.
 #: Log, [0.25, 4].
 EXTRAS["k_scale"] = (_set(lambda p: p.bgc_params.k_scale), 0.25, 4.0, True)
+#: Maintenance respiration constants (F77 stats.f: sapwood 0.0125, fine roots 1.25 per year at 15 C). Log.
+EXTRAS["rwood"] = (_set(lambda p: p.bgc_params.rwood), 0.003, 0.05, True)
+EXTRAS["rroot"] = (_set(lambda p: p.bgc_params.rroot), 0.3, 5.0, True)
 #: Per-site disequilibrium factor on the three SOM pools (csoislon, csoislop, csoipas) at the start of every
 #: evaluation; a STATE scaling, applied by site_fit.run, not a parameter: the setter is a no-op. Log, [0.1, 3].
 EXTRAS["som_scale"] = ((lambda sp, pft, v: (sp, pft)), 0.1, 3.0, True)
@@ -357,7 +360,7 @@ PFT_SCALARS = ("cover_k", "fl_min", "fu_min", "fu_k", "tree_stress_min", "tree_s
 COEFM_GROUPS = {"coefm_bl": 0, "coefm_con": 1, "coefm_shrub": 2, "coefm_c4": 3, "coefm_c3": 4}
 INTERCEPTION_FIELDS = ("wliqumax", "wliqsmax", "wliqlmax", "fmax")
 CANOPY_FIELDS = ("soil_beta_power",)
-BGC_FIELDS = {"bgc_e0": "lt_e0", "wfps_opt": "wfps_opt", "rgrowth": "rgrowth", "k_scale": "k_scale"}
+BGC_FIELDS = {"bgc_e0": "lt_e0", "wfps_opt": "wfps_opt", "rgrowth": "rgrowth", "k_scale": "k_scale", "rwood": "rwood", "rroot": "rroot"}
 STOMATA_FIELDS = ("acclim_tau", "acclim_s0", "acclim_smax", "cap_kn")
 PFT_ARRAYS = {"coefm": (lambda p: p.stomata_params.coefm_pft, 3.0, 16.0, True), "acclim_s0": (lambda p: p.stomata_params.acclim_s0_pft, -10.0, 5.0, False),
               "acclim_smax": (lambda p: p.stomata_params.acclim_smax_pft, 5.0, 30.0, True)}          # per-PFT extras '<name>:<pft>' (CALIBRATION.md 32)
