@@ -4431,3 +4431,50 @@ undershoots 0.50 in 2012 after overshooting in the fit years: the green-up timin
 (conifers 0.86, grasslands 0.81, shrublands 1.26 -- parameters that fix GPP leave ET where it was). Those are the
 structural list for the ET and NEE stages (sections 36-). The per-tower parameter records (`s2/<SITE>/best.json`) are
 the input to the gap-filled spatial parameter map, not yet built.
+
+## 36. NEE stage: day-time and night-time NEE at the towers (2026-10-02, in progress; branch `calibration-s1`)
+
+**Order (Hangkai, 09-30).** Calibrate on the tower NEE with the day and night parts separated, so that both are
+captured; use Min's finer soil data to limit the scale effect. (His "FLUXCOM climate" item is still unanswered; the
+towers keep their own half-hourly meteorology.)
+
+**Targets.** `verify/calibration/tower_nee_daynight.py`: from the FLUXNET2015 half-hourly files, NEE_VUT_REF with
+QC <= 1 split by FLUXNET's NIGHT flag (SW_IN_POT = 0), monthly means and sums (gC m-2 month-1, + = release), the
+measured share per month; `ibis_local_document/data/tower_nee_daynight_2008-2012.npz`, 62 towers, 40 with all 48
+months. Only 20-35 % of the night half-hours are measured (u* filtering); night NEE therefore carries the gap-filler's
+temperature response, and the day-time term is the independent check.
+
+**Soil data.** HWSD2 at 1 km (`/shared/nas2/Min/HWSD`, `tower_soil_hwsd2.py`, `data/tower_hwsd2_*.csv`): every tower
+on a mapping unit, 44 of 62 in mixed 11-km neighbourhoods. The texture scale effect is small: the 1-km unit differs
+from the 0.5-degree cell by > 10 points of sand or clay at 7 towers only (AU-How, AU-Stp, DE-Hai, DE-Lnf, ES-LJu,
+FI-Hyy, RU-Cok), median 2 points, because the 0.5-degree file is aggregated from the same units. What the 1-km data
+adds is a site soil-carbon prior (organic carbon and bulk density per layer: mineral soils 5-27 kgC m-2 to 1 m, class
+medians 10-17); HWSD2 codes missing deep layers as -7 (masked) and 10 towers share their unit with a peat component
+that is not the tower's (flagged, dominant-component values alongside).
+
+**Diagnosis (S1 set, 2009-2012; `data/tower_model_carbon_balance_s1.csv`, `tower_model_soil_pools_2010.csv`).**
+Model annual NEE at the forests is a small sink (DBF -43, ENF -90 gC m-2 yr-1) where the towers are large ones (-416,
+-290): the grid pools are near equilibrium (Rh/NPP 0.89-0.93) while the towers are aggrading. To give the tower NEE at
+the model NPP, model Rh must be x0.55 (DBF) and x0.75 (ENF): a per-site disequilibrium factor (Carvalhais et al. 2008).
+Evergreen broadleaf is the opposite (model -674 vs -222; Rh/NPP 0.50), open shrubland has Rh/NPP 2.3 (grid pools far
+above what the site NPP sustains). The grid-cell soil carbon at the tower cells is 1.3x the HWSD2 site carbon at the
+median and > 2x at 17 temperate-forest towers. First day/night split at DE-Tha 2010 (S1 set): night-time release
++592 vs tower +528, day-time uptake -501 vs -1154 with GPP within 3 %: the night respiration is close, the excess is
+day-time respiration -- growth respiration charged in step with assimilation (0.30 of GPP - Rm) and a heterotrophic
+rate with no diurnal cycle.
+
+**Machinery (commits 7cbf0ee, 80cd5af, 5792efa).** (1) Optional state module `NEEParts` (chain 258/261/265/268/270):
+NEE per hourly step = Rh (daily rate, spread evenly) - NPP_step, accumulated for coszen <= 0 and the rest; the site
+harness carries it as monthly `nee_daynight`; night + day = monthly NEE within 2 gC m-2 month-1 (the one-day lag of
+the daily Rh). (2) `site_pool_spinup.py`: the tower's pools at the cyclic steady state under its own forcing and
+per-tower parameters, by accelerated decomposition (slow-pool rates x20 / x200 / x2000, pools scaled back; exact for
+the linear cascade). (3) Respiration constants that F77 hard-codes are now `BGCParams` fields with F77 defaults
+(bit-identical): `lt_e0` (Lloyd-Taylor E0, 344 K), `wfps_opt` (60 %), `rgrowth` (0.30); extras `bgc_e0`, `wfps_opt`,
+`rgrowth`, and `som_scale` (a state scaling of the three SOM pools at the start of every evaluation, the
+disequilibrium factor). (4) `site_fit --target nee --nee-targets <npz> [--start-state <spin-up state>]`: objective =
+night-time + w_et x day-time normalised monthly misfit (sigma = max(15 %, 5 gC), robust caps and annual-ratio terms as
+in section 34). Smoke test at DE-Tha: baseline loss 24.2 with the per-tower GPP parameters. Full suite 752 passed.
+
+**Plan.** Per tower: pools from the spin-up (HWSD2 carbon as the check), then fit som_scale, bgc_e0, rgrowth
+(wfps_opt where the moisture signal exists) to night-time NEE with day-time NEE weighted, 2012 held out; verdict by
+model/tower night release and day uptake, r of both series, by class.
