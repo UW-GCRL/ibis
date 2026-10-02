@@ -21,7 +21,7 @@ for k, v in P.items():
     v = float(v)
     if k.startswith('vmax:'): t['stomata']['vmax'][VKEYS[PFT_NAMES.index(k[5:])]] = v
     elif ':' in k and k.split(':')[0] in ('coefm', 'acclim_s0', 'acclim_smax'): t['stomata'].setdefault(k.split(':')[0] + '_pft', {})[k.split(':')[1]] = v
-    elif k in ('bgc_e0', 'wfps_opt', 'rgrowth'): t.setdefault('bgc', {})[{'bgc_e0': 'lt_e0', 'wfps_opt': 'wfps_opt', 'rgrowth': 'rgrowth'}[k]] = v   # CALIBRATION.md 36
+    elif k in ('bgc_e0', 'wfps_opt', 'rgrowth', 'k_scale'): t.setdefault('bgc', {})[{'bgc_e0': 'lt_e0', 'wfps_opt': 'wfps_opt', 'rgrowth': 'rgrowth', 'k_scale': 'k_scale'}[k]] = v   # CALIBRATION.md 36
     elif k == 'som_scale': continue                                                   # a state scaling, not a parameter (recorded in best.json only)
     elif k == 'stressfac' or k in ('acclim_tau', 'acclim_s0', 'acclim_smax', 'cap_kn'): t['stomata'][k] = v
     elif k in COEFM: t['stomata']['ball_berry'][COEFM[k]]['coefm'] = v
@@ -34,7 +34,7 @@ sp, pft, _ = build_all_params(4, np.zeros(4, np.float32), load_physics_params(ou
 for k, v in P.items():
     if k.startswith('vmax:'): got = float(np.asarray(sp.stomata_params.vmax_pft)[PFT_NAMES.index(k[5:])])
     elif ':' in k: got = float(np.asarray(getattr(sp.stomata_params, k.split(':')[0] + '_pft'))[PFT_NAMES.index(k.split(':')[1])])
-    elif k in ('bgc_e0', 'wfps_opt', 'rgrowth'): got = float(getattr(sp.bgc_params, {'bgc_e0': 'lt_e0', 'wfps_opt': 'wfps_opt', 'rgrowth': 'rgrowth'}[k]))
+    elif k in ('bgc_e0', 'wfps_opt', 'rgrowth', 'k_scale'): got = float(getattr(sp.bgc_params, {'bgc_e0': 'lt_e0', 'wfps_opt': 'wfps_opt', 'rgrowth': 'rgrowth', 'k_scale': 'k_scale'}[k]))
     elif k == 'som_scale': continue
     elif k == 'stressfac' or k.startswith('acclim_') or k == 'cap_kn': got = float(getattr(sp.stomata_params, k))
     elif k in COEFM: got = float(np.asarray(sp.stomata_params.coefm)[list(COEFM).index(k)])

@@ -29,6 +29,8 @@ if start_dir: k = rest.index('--start-dir'); rest = rest[:k] + rest[k + 2:]
 accel = float(rest[rest.index('--accel') + 1]) if '--accel' in rest else 20.0        # factor on the non-protected slow pool's rates; protected x10 that, passive x100 that
 if '--accel' in rest: k = rest.index('--accel'); rest = rest[:k] + rest[k + 2:]
 cycles_fast = int(rest[rest.index('--cycles') + 1]) if '--cycles' in rest else 6
+kscale = float(rest[rest.index('--k-scale') + 1]) if '--k-scale' in rest else 1.0
+if '--k-scale' in rest: k = rest.index('--k-scale'); rest = rest[:k] + rest[k + 2:]
 if '--cycles' in rest: k = rest.index('--cycles'); rest = rest[:k] + rest[k + 2:]
 a = site_fit._args(['--igbp', 'ALL', '--fit', 'vmax:temp_con_ever', '--out', out, '--hold-last', '0'] + rest)
 C = site_fit.setup(a, spin=True, verbose=True); sites = C.sites; ns = len(sites)          # spin=True: one warm-up cycle, and the state/ctx/hold_fn the replay needs
@@ -43,6 +45,7 @@ if start_dir and ns == 1 and os.path.exists(f'{start_dir}/{sites[0]}/best.json')
         if nm.startswith('vmax:'): vm[PFT_NAMES.index(nm[5:])] = v
         else: ex[nm] = v
     sp, pft = apply_params(ctx['sp'], ctx['pft'], vm, np.asarray(ctx['pft'].specla), ex); ctx = dict(ctx, sp=sp, pft=pft); print(f'{sites[0]}: per-tower parameters from {start_dir}')
+if kscale != 1.0: ctx = dict(ctx, sp=eqx.tree_at(lambda p: p.bgc_params.k_scale, ctx['sp'], kscale)); print(f'k_scale {kscale}')
 POOLS = ('clitlm', 'clitls', 'clitll', 'clitrm', 'clitrs', 'clitrl', 'clitwm', 'clitws', 'clitwl', 'totcmic', 'csoislon', 'csoislop', 'csoipas')
 SLOW = ('knb', 'kns', 'kpb', 'kps', 'ksb')
 # one factor per pool, applied to every outflow rate of that pool (so each pool's steady state is 1/factor of the

@@ -477,7 +477,7 @@ def _run_month_scan(
         # slow (docs/METHANE.md 5j).
         fl_top = _ftemp(st.soil.tsoi[:, 0]) * _fmoist(st.soil.wsoi[:, 0],
                                                       st.soil.wisoi[:, 0])
-        decompl_new = jnp.clip(fl_top, jnp.float32(0.001), jnp.float32(10.0))
+        decompl_new = jnp.clip(fl_top * params.bgc_params.k_scale, jnp.float32(0.001), jnp.float32(10.0))   # k_scale 1 = F77
 
         # decomps: weighted average of top 4 layers
         # hsoi is (nsoilay+1,) — same for all grid points, not per-point
@@ -490,7 +490,7 @@ def _run_month_scan(
         wice_avg = (st.soil.wisoi[:, 0] * hsoi[0] + st.soil.wisoi[:, 1] * hsoi[1] +
                     st.soil.wisoi[:, 2] * hsoi[2] + st.soil.wisoi[:, 3] * hsoi[3]) / h4
         fs_avg = _ftemp(tsoil_avg) * _fmoist(wsoi_avg, wice_avg)
-        decomps_new = jnp.clip(fs_avg, jnp.float32(0.001), jnp.float32(10.0))
+        decomps_new = jnp.clip(fs_avg * params.bgc_params.k_scale, jnp.float32(0.001), jnp.float32(10.0))
 
         # Update carbon state with new decomposition factors
         st = eqx.tree_at(
