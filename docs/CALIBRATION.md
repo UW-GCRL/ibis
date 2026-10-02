@@ -4404,7 +4404,7 @@ after one generation on "flat fitness" and reported the start as the fit -- the 
 of the S1 result sat at it. (2) Running two launchers at once put 16 fits x 16 GB against 188 GB and thrashed the box;
 one throttled launcher (max 8 alive, 4-core taskset slots) at ~1.3 h per tower was the working configuration. The NAS
 outage of 09-30 13:20-16:00 and the SHR expansion that followed (file opens 5-18 s for a day) interrupted the last
-towers; US-Syv has no tower data in 2008-2011 (FLUXNET2015 gap) and is refitted on 2002-2008 (`s2_ownyears/US-Syv`);
+towers; US-Syv has no tower data in 2008-2011 (FLUXNET2015 gap) and was refitted on 2002-2008 (`s2_ownyears/US-Syv`: loss 11.9 -> 3.25 on 2003-2007; 2008 held out carries no data, so it has no held-out verdict and is not in the 61-tower table);
 DE-Obe lost its summary line to the outage but its best.json/best_series are intact.
 
 **Verdict (61 towers, model / tower, held-out year 2012; S1 set -> per-tower fit):**
