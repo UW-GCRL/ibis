@@ -4525,7 +4525,18 @@ a year and litterfall falls with it (NL-Loo inputs 1005 -> 655 gC m-2 yr-1 while
 (`enforce_prescription`) therefore closes the stand's carbon every year: wood and root pools at their steady state for
 the year's NPP of the prescribed PFTs, litterfall = allocated NPP (one-year lag; cycle means close to zero NEE at
 equilibrium; `pool_spinup_v7_*`). The day/night reading stands (both parts carry the same Rh); the disequilibrium factors and the
-rate multipliers are to be redone on the vegetation-closed spin-up. First NEE fit at DE-Tha on the unclosed state (loss 24.4 ->
+rate multipliers are to be redone on the vegetation-closed spin-up.
+
+**Closed spin-up (`pool_spinup_v7_62`, 10-03 03:47; `data/tower_pool_equilibrium_v7.csv`).** With the stand closed every
+year the 62 towers are at equilibrium: class-median NEE -6 (DBF), -4 (ENF), -3 (MF), -18 (GRA), -28 (EBF) gC m-2 yr-1,
+median |NEE| 19, 41 of 62 within +-30; the exceptions are grasslands with large year-to-year NPP swings (the one-year
+litterfall lag: AU-DaP -69, AU-Stp +70, US-Var +65), DE-Lnf -114 and US-Oho +209 (still converging, drift -1 kgC per
+cycle). Equilibrium soil carbon against the HWSD2 site carbon gives the per-tower decomposition-rate multiplier: forests
+2.0-2.6 (DBF 42 vs 13 kgC m-2, ENF 39 vs 17, MF 48 vs 21), grasslands 1.8, evergreen broadleaf 2.2, and below 1 at the
+shrublands and savannas (OSH 0.25 at the bound: the model's NPP there, 77 gC m-2 yr-1, cannot sustain the site's 7 kgC
+of soil carbon at any rate -- a productivity problem, not a soil one). Nine towers sit at a multiplier bound. The
+eighth spin-up runs with these multipliers and the 61 per-tower NEE fits start from its state.
+ First NEE fit at DE-Tha on the unclosed state (loss 24.4 ->
 1.9; held-out 2012 night 1.10, day 0.89, NEE -509 vs -696; r 0.89 / 0.97) pressed som_scale (0.11) and rgrowth (0.10)
 against their bounds: the maintenance constants rwood/rroot are parameters now (extras), and the per-tower set is
 som_scale, bgc_e0, rgrowth, rroot with k_scale fixed per tower by the HWSD2 carbon.
