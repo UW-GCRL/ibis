@@ -58,11 +58,23 @@ elif kscale != 1.0: ctx = dict(ctx, sp=eqx.tree_at(lambda p: p.bgc_params.k_scal
 # allocated NPP (cbiol = aleaf NPP tauleaf -> falll = aleaf NPP, etc.), so after every cycle the three litterfall rates are
 # set to the cycle-mean per-PFT NPP times the PFT allocation fractions. The NEE fits inherit them with the state.
 hold = C.hold_fn
-AL = (np.asarray(ctx['pft'].aleaf), np.asarray(ctx['pft'].aroot), np.asarray(ctx['pft'].awood))
+# Vegetation closure. With isimveg = 0 `one_year` calls biomass_update every year: NPP is allocated into the leaf, wood
+# and root pools (exponential relaxation toward a tau NPP over tauleaf / tauwood0 / tauroot) and litterfall is
+# RECOMPUTED from the pools (cbiol/tauleaf + cbior/tauroot + cbiow/tauwood0). Setting the litterfall rates directly is
+# therefore overwritten, and the wood pool keeps growing toward awood tauwood NPP for decades (the -500..-900 gC "NEE"
+# of the first closed spin-up was that accumulation). The closure that holds: after every cycle set the wood and root
+# pools of the prescribed PFTs to their steady state for the cycle-mean NPP (cbiol is held by hold_fn), so the
+# litterfall biomass_update computes equals the allocated NPP and the vegetation is stationary in the NEE fits.
+PF = ctx['pft']; AW, AR, TW, TR = (np.asarray(PF.awood), np.asarray(PF.aroot), np.asarray(PF.tauwood0), np.asarray(PF.tauroot))
 def close_litterfall(st, npp_pft):
-    """npp_pft: (npoi, 12) cycle-mean annual NPP per PFT, kgC m-2 yr-1 -> falll, fallr, fallw (kgC m-2 yr-1)."""
-    f = [jnp.asarray((npp_pft * a[None, :]).sum(axis=1), dtype=st.carbon.falll.dtype) for a in AL]
-    return eqx.tree_at(lambda s: (s.carbon.falll, s.carbon.fallr, s.carbon.fallw), st, tuple(f))
+    """npp_pft: (npoi, 12) cycle-mean annual NPP per PFT (kgC m-2 yr-1) -> steady-state wood and root pools; the
+    litterfall fields are set consistently (biomass_update recomputes them the same way next year)."""
+    ex = np.asarray(st.vegetation.exist); npp = np.maximum(npp_pft, 0.0) * ex
+    cw = jnp.asarray(AW[None, :] * TW[None, :] * npp, dtype=st.vegetation.cbiow.dtype); cr = jnp.asarray(AR[None, :] * TR[None, :] * npp, dtype=st.vegetation.cbior.dtype)
+    cl = np.asarray(st.vegetation.cbiol)
+    falll = jnp.asarray((cl / np.asarray(PF.tauleaf)[None, :]).sum(axis=1), dtype=st.carbon.falll.dtype)
+    fallr = jnp.asarray((np.asarray(cr) / TR[None, :]).sum(axis=1), dtype=st.carbon.fallr.dtype); fallw = jnp.asarray((np.asarray(cw) / TW[None, :]).sum(axis=1), dtype=st.carbon.fallw.dtype)
+    return eqx.tree_at(lambda s: (s.vegetation.cbiow, s.vegetation.cbior, s.carbon.falll, s.carbon.fallr, s.carbon.fallw), st, (cw, cr, falll, fallr, fallw))
 def cycle(st, key, ctx_, acc=None):
     """one pass over the tower years; returns the state, key, cycle-mean NPP per PFT and the monthly NEE/NPP sums."""
     npp_pft = np.zeros_like(np.asarray(st.summary.aynpp)); nee = np.zeros(ns); npp = np.zeros(ns)
@@ -77,7 +89,7 @@ SLOW = ('knb', 'kns', 'kpb', 'kps', 'ksb')
 FAC = {'csoislon': accel, 'csoislop': accel * 10.0, 'csoipas': accel * 100.0}; KFAC = {'knb': FAC['csoislon'], 'kns': FAC['csoislon'], 'kpb': FAC['csoislop'], 'kps': FAC['csoislop'], 'ksb': FAC['csoipas']}
 def pools(s): return {p: np.asarray(getattr(s.carbon, p)).copy() for p in POOLS}
 def tot(s): return sum(pools(s)[p] for p in POOLS)
-st = close_litterfall(st, np.maximum(np.asarray(st.summary.aynpp), 0.0)); print('litterfall closed on the warm-up NPP (gC m-2 yr-1): ' + ' '.join(f'{s_} {float(st.carbon.falll[n] + st.carbon.fallr[n] + st.carbon.fallw[n]) * 1000:.0f}' for n, s_ in enumerate(sites)))
+st = close_litterfall(st, np.maximum(np.asarray(st.summary.aynpp), 0.0)); print('vegetation closed on the warm-up NPP; litterfall (gC m-2 yr-1): ' + ' '.join(f'{s_} {float(st.carbon.falll[n] + st.carbon.fallr[n] + st.carbon.fallw[n]) * 1000:.0f}' for n, s_ in enumerate(sites)))
 p0 = pools(st); print('start pools (kgC m-2):', ' '.join(f'{s} {tot(st)[n]:.1f}' for n, s in enumerate(sites)))
 # accelerated cycles
 sp_fast = ctx['sp']
