@@ -4535,7 +4535,7 @@ cycle). Equilibrium soil carbon against the HWSD2 site carbon gives the per-towe
 2.0-2.6 (DBF 42 vs 13 kgC m-2, ENF 39 vs 17, MF 48 vs 21), grasslands 1.8, evergreen broadleaf 2.2, and below 1 at the
 shrublands and savannas (OSH 0.25 at the bound: the model's NPP there, 77 gC m-2 yr-1, cannot sustain the site's 7 kgC
 of soil carbon at any rate -- a productivity problem, not a soil one). Nine towers sit at a multiplier bound. The
-eighth spin-up runs with these multipliers and the 61 per-tower NEE fits start from its state.
+eighth spin-up runs with these multipliers and the 61 per-tower NEE fits start from its state. With them (`pool_spinup_v8_62`, 05:04) the equilibrium soil carbon is at the site's (median ratio 1.01, class medians 0.88-1.01; seven towers off by more than 25 %, six of them at a multiplier bound) and the equilibrium NEE has median |14| gC m-2 yr-1. The 61 per-tower NEE fits (som_scale, bgc_e0, rgrowth, rroot; 48 evaluations; 2012 held out) launched from that state at 05:04 (`$V/site_fit/nee/<SITE>`).
  First NEE fit at DE-Tha on the unclosed state (loss 24.4 ->
 1.9; held-out 2012 night 1.10, day 0.89, NEE -509 vs -696; r 0.89 / 0.97) pressed som_scale (0.11) and rgrowth (0.10)
 against their bounds: the maintenance constants rwood/rroot are parameters now (extras), and the per-tower set is
