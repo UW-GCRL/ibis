@@ -4510,9 +4510,15 @@ GRID restart's values in every site run made so far. The soil therefore equilibr
 while NPP is the tower's, and model NEE = NPP_site - litterfall_grid at equilibrium: the "model sink too small / pools
 near equilibrium" reading above and the EBF "sink" of -674 are that difference, not pool disequilibrium. The spin-up
 now closes the carbon balance (falll, fallr, fallw = cycle-mean per-PFT NPP x PFT allocation fractions, re-set after
-every cycle; the NEE fits inherit the closed litterfall with the state), and is being rerun (`pool_spinup_v2_*`). The
-day/night reading stands (both parts carry the same Rh); the disequilibrium factors and the rate multipliers of
-`tower_k_scale.csv` are to be redone on the closed spin-up. First NEE fit at DE-Tha on the unclosed state (loss 24.4 ->
+every cycle; the NEE fits inherit the closed litterfall with the state), and is being rerun (`pool_spinup_v2_*`). Correction the same evening: with isimveg = 0 `one_year` calls `biomass_update` every year, which allocates NPP into the
+leaf, wood and root pools (relaxation toward a tau NPP over tauleaf / tauwood0 / tauroot) and RECOMPUTES litterfall from
+the pools, so the grid litterfall is not frozen but relaxes over the wood turnover time, and the -500 to -900 gC
+"equilibrium NEE" of the first closed spin-up (BE-Bra, FR-Fon, NL-Loo, AU-Tum, DK-Sor) is wood accumulation toward
+awood tauwood NPP; setting the litterfall rates directly is overwritten. The closure that holds sets the wood and root
+pools of the prescribed PFTs to their steady state for the cycle-mean NPP after every cycle (cbiol is held), so the
+litterfall biomass_update computes equals the allocated NPP and the vegetation is stationary in the NEE fits
+(`pool_spinup_v3_*`). The day/night reading stands (both parts carry the same Rh); the disequilibrium factors and the
+rate multipliers are to be redone on the vegetation-closed spin-up. First NEE fit at DE-Tha on the unclosed state (loss 24.4 ->
 1.9; held-out 2012 night 1.10, day 0.89, NEE -509 vs -696; r 0.89 / 0.97) pressed som_scale (0.11) and rgrowth (0.10)
 against their bounds: the maintenance constants rwood/rroot are parameters now (extras), and the per-tower set is
 som_scale, bgc_e0, rgrowth, rroot with k_scale fixed per tower by the HWSD2 carbon.
