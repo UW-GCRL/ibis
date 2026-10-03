@@ -221,7 +221,7 @@ def setup(a, spin=True, verbose=True):
     st = eqx.tree_at(lambda s: (s.vegetation.cbiol, s.vegetation.cbiow, s.vegetation.cbior, s.vegetation.plai, s.vegetation.exist, s.vegetation.fu, s.vegetation.fl),
                      st, tuple(jnp.asarray(x, dtype=jnp.float32) for x in (cb, cw, cr, cb * specla[None, :], mask, fu, flw)))
     say('leaf area: ' + ', '.join(f'{s} {lai_src[s]}' for s in sites))
-    fix = cb.copy(); hold_fn = lambda s_: enforce_prescription(s_, mask, specla, fix_cbiol=fix, aleaf=np.asarray(pft0.aleaf))
+    fix = cb.copy(); hold_fn = lambda s_: enforce_prescription(s_, mask, specla, fix_cbiol=fix, veg_params=pft0)
     obs = [tower_obs(s) for s in sites]
     # --- parameter vector: 'vmax:<pft>' or an EXTRAS name; bounds-normalised coordinates
     names = a.fit.split(',')

@@ -51,7 +51,7 @@ def prescribe(igbp, lat, mat):
     raise ValueError(f'{igbp}: not a natural-vegetation class handled here (WET -> methane stage, CRO not in IBIS)')
 
 
-def enforce_prescription(state, mask, specla, fix_cbiol=None, aleaf=None):
+def enforce_prescription(state, mask, specla, fix_cbiol=None, aleaf=None, veg_params=None):
     """Re-impose the prescribed composition after a year.
 
     With `fix_cbiol` the leaf carbon is held at a prescribed value as well, so the stand cannot decay: the fixed-vegetation
@@ -70,12 +70,18 @@ def enforce_prescription(state, mask, specla, fix_cbiol=None, aleaf=None):
     cbiol = v.cbiol * m if fix_cbiol is None else _jnp.asarray(fix_cbiol, dtype=v.cbiol.dtype)
     cbiow = v.cbiow * m; cbior = v.cbior * m
     plai = cbiol * _jnp.asarray(specla, dtype=cbiol.dtype)[None, :]
-    if fix_cbiol is not None and aleaf is not None:
-        # Carbon closure of the held leaf area (CALIBRATION.md 36): biomass_update allocates aleaf x NPP into cbiol and sets
-        # the leaf litterfall to cbiol / tauleaf; resetting cbiol to the prescribed value would let the surplus vanish, so the
-        # leaf litterfall is set to the allocated leaf NPP of the year (aynpp at year end), the steady-state value.
-        falll = _jnp.sum(m * _jnp.asarray(aleaf, dtype=cbiol.dtype)[None, :] * _jnp.maximum(state.summary.aynpp, 0.0), axis=1).astype(state.carbon.falll.dtype)
-        state = eqx.tree_at(lambda s: s.carbon.falll, state, falll)
+    if fix_cbiol is not None and veg_params is not None:
+        # Carbon closure of the prescribed stand (CALIBRATION.md 36). one_year recomputes `exist` from the climate BEFORE
+        # biomass_update, so where the climate rules out a prescribed PFT its NPP is dropped from the allocation, the root
+        # pool decays within a year and litterfall collapses (NL-Loo: inputs 1005 -> 655 while NPP rose to 1235); and the
+        # held leaf carbon lets the leaf allocation vanish. So every year the wood and root pools of the prescribed PFTs
+        # are set to their steady state for the year's NPP (a tau NPP) and the three litterfall rates to the allocated
+        # NPP (aleaf, aroot, awood x NPP): the vegetation is stationary and litterfall equals NPP, as at a steady state.
+        npp = m * _jnp.maximum(state.summary.aynpp, 0.0); pp = veg_params
+        f = lambda x: _jnp.asarray(x, dtype=cbiol.dtype)[None, :]
+        cbiow = (f(pp.awood) * f(pp.tauwood0) * npp).astype(v.cbiow.dtype); cbior = (f(pp.aroot) * f(pp.tauroot) * npp).astype(v.cbior.dtype)
+        falll = _jnp.sum(f(pp.aleaf) * npp, axis=1).astype(state.carbon.falll.dtype); fallr = _jnp.sum(f(pp.aroot) * npp, axis=1).astype(state.carbon.fallr.dtype); fallw = _jnp.sum(f(pp.awood) * npp, axis=1).astype(state.carbon.fallw.dtype)
+        state = eqx.tree_at(lambda s: (s.carbon.falll, s.carbon.fallr, s.carbon.fallw), state, (falll, fallr, fallw))
     return eqx.tree_at(lambda s: (s.vegetation.exist, s.vegetation.cbiol, s.vegetation.cbiow, s.vegetation.cbior, s.vegetation.plai),
                        state, (_jnp.asarray(mask, dtype=v.exist.dtype), cbiol, cbiow, cbior, plai))
 
@@ -186,7 +192,7 @@ def main():
                 notes[s]['lai_max_source'] = src
         log_lai = (fix * specla[None, :]).sum(1)
         print('  fixed leaf area (m2/m2): ' + ', '.join(f'{s} {log_lai[n]:.1f}' for n, s in enumerate(sites)), flush=True)
-    hold = lambda s_: enforce_prescription(s_, mask, specla, fix_cbiol=fix, aleaf=np.asarray(pft.aleaf) if fix is not None else None)
+    hold = lambda s_: enforce_prescription(s_, mask, specla, fix_cbiol=fix, veg_params=pft if fix is not None else None)
     key = jax.random.PRNGKey(0); REC = []
     def hook(fn):
         def rec(state, *aa, **kk):
