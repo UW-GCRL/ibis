@@ -4517,7 +4517,14 @@ the pools, so the grid litterfall is not frozen but relaxes over the wood turnov
 awood tauwood NPP; setting the litterfall rates directly is overwritten. The closure that holds sets the wood and root
 pools of the prescribed PFTs to their steady state for the cycle-mean NPP after every cycle (cbiol is held), so the
 litterfall biomass_update computes equals the allocated NPP and the vegetation is stationary in the NEE fits
-(`pool_spinup_v3_*`). The day/night reading stands (both parts carry the same Rh); the disequilibrium factors and the
+(`pool_spinup_v3_*`). That was not enough either: `diagnostics/pool_budget_cycle.py` showed the soil budget closing
+exactly (Rh is its residual) while the INPUTS collapsed within a cycle -- `one_year` recomputes `exist` from the
+climate before the biomass update, so where the climate rules out the prescribed PFT (NL-Loo's temperate conifer, the
+evergreen broadleaf towers, many high-NPP forests) its NPP is dropped from the allocation, the root pool decays within
+a year and litterfall falls with it (NL-Loo inputs 1005 -> 655 gC m-2 yr-1 while NPP rose to 1235). The hold
+(`enforce_prescription`) therefore closes the stand's carbon every year: wood and root pools at their steady state for
+the year's NPP of the prescribed PFTs, litterfall = allocated NPP (one-year lag; cycle means close to zero NEE at
+equilibrium; `pool_spinup_v7_*`). The day/night reading stands (both parts carry the same Rh); the disequilibrium factors and the
 rate multipliers are to be redone on the vegetation-closed spin-up. First NEE fit at DE-Tha on the unclosed state (loss 24.4 ->
 1.9; held-out 2012 night 1.10, day 0.89, NEE -509 vs -696; r 0.89 / 0.97) pressed som_scale (0.11) and rgrowth (0.10)
 against their bounds: the maintenance constants rwood/rroot are parameters now (extras), and the per-tower set is
