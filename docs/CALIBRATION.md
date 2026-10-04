@@ -4541,14 +4541,14 @@ eighth spin-up runs with these multipliers and the 61 per-tower NEE fits start f
 against their bounds: the maintenance constants rwood/rroot are parameters now (extras), and the per-tower set is
 som_scale, bgc_e0, rgrowth, rroot with k_scale fixed per tower by the HWSD2 carbon.
 
-**Per-tower NEE fits (10-03, 60 of 61 at 21:32; `$V/site_fit/nee/<SITE>`, `diagnostics/nee_fit_report.py` ->
+**Per-tower NEE fits (10-03, all 61 by 21:44; `$V/site_fit/nee/<SITE>`, `diagnostics/nee_fit_report.py` ->
 `logs/nee_fit_report.csv`). Start = the per-tower GPP/ET parameters (section 35) and the equilibrated pools of the
 eighth spin-up (per-tower rate multiplier from the HWSD2 carbon); fitted som_scale, bgc_e0, rgrowth, rroot (4
 parameters) to night-time + day-time monthly NEE on 2009-2011, 48 evaluations; 2012 held out. Memory on the shared
 box (the methane ANN queues of another session, 30-40 GB) forced the launcher to 6 fits at a time with a 40 GB guard and
 5 minutes between launches (two incidents at 0 GB free before that).**
 
-| held-out 2012, model / tower (60 towers) | S1 set | per-tower NEE fit |
+| held-out 2012, model / tower (61 towers) | S1 set | per-tower NEE fit |
 |---|---|---|
 | night-time release, median ratio / within 25 % | 1.01 / 47 % | 1.05 / 58 % |
 | day-time uptake, median ratio / within 25 % | 0.67 / 22 % | 0.95 / 60 % |
