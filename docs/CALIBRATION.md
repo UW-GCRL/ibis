@@ -4541,6 +4541,40 @@ eighth spin-up runs with these multipliers and the 61 per-tower NEE fits start f
 against their bounds: the maintenance constants rwood/rroot are parameters now (extras), and the per-tower set is
 som_scale, bgc_e0, rgrowth, rroot with k_scale fixed per tower by the HWSD2 carbon.
 
+**Per-tower NEE fits (10-03, 60 of 61 at 21:32; `$V/site_fit/nee/<SITE>`, `diagnostics/nee_fit_report.py` ->
+`logs/nee_fit_report.csv`). Start = the per-tower GPP/ET parameters (section 35) and the equilibrated pools of the
+eighth spin-up (per-tower rate multiplier from the HWSD2 carbon); fitted som_scale, bgc_e0, rgrowth, rroot (4
+parameters) to night-time + day-time monthly NEE on 2009-2011, 48 evaluations; 2012 held out. Memory on the shared
+box (the methane ANN queues of another session, 30-40 GB) forced the launcher to 6 fits at a time with a 40 GB guard and
+5 minutes between launches (two incidents at 0 GB free before that).**
+
+| held-out 2012, model / tower (60 towers) | S1 set | per-tower NEE fit |
+|---|---|---|
+| night-time release, median ratio / within 25 % | 1.01 / 47 % | 1.05 / 58 % |
+| day-time uptake, median ratio / within 25 % | 0.67 / 22 % | 0.95 / 60 % |
+| r of the monthly night / day series | 0.85 / 0.87 | 0.87 / 0.83 |
+| ENF (17) night / day / r_day | 1.08 / 0.73 / 0.87 | 1.05 / 0.94 / 0.95 |
+| DBF (11) night / day | 1.05 / 0.60 | 1.08 / 0.97 |
+| MF (5) night / day | 0.83 / 1.17 | 1.03 / 0.92 |
+| GRA (13) night / day | 0.85 / 0.70 | 0.91 / 1.03 |
+| EBF (3) night / day | 0.50 / 1.09 | 1.00 / 1.24 |
+| OSH (5) night / day | 1.74 / 0.01 | 1.64 / 0.66 |
+
+**Fitted values (class medians):** som_scale ENF 0.38, DBF 0.61, MF 1.5, GRA 1.3, OSH 0.16 (bound), CSH 0.10 (bound);
+rgrowth 0.17-0.38 (F77 0.30; 18 of 60 at a bound, mostly the floor 0.10); bgc_e0 200-350 K (F77 344; 9 at a bound);
+rroot 0.3-1.0 per year (F77 1.25; 4 at a bound). 14 of 60 press the som_scale bound.
+
+**Reading.** The day-time uptake, which the per-PFT set missed by a third, is brought to the tower on the unseen year
+(0.67 -> 0.95; within 25 %: 22 -> 60 %) at forests and grasslands, while the night-time release stays at the tower
+(1.05) and its shape improves slightly (r 0.85 -> 0.87); the day-time shape does not improve (r 0.87 -> 0.83). The
+levers that did it are the ones the baseline predicted: growth respiration down from 0.30 toward 0.10-0.20 and the
+soil pools scaled, with E0 and root maintenance secondary. That 18 towers want growth respiration at the 0.10 floor
+says the model charges too much autotrophic respiration in daylight for a structural reason -- growth respiration
+booked in step with assimilation, all by day -- rather than a mis-set constant; a growth-respiration term paid over the
+whole day (and night) from the day's assimilate is the structural fix to test next. The open shrublands (night 1.64,
+day 0.66), the one closed shrubland and the woody savannas remain the productivity problem of sections 33-35: no
+respiration parameter can create day-time uptake the canopy does not produce.
+
 **Plan.** Per tower: pools from the spin-up (HWSD2 carbon as the check), then fit som_scale, bgc_e0, rgrowth
 (wfps_opt where the moisture signal exists) to night-time NEE with day-time NEE weighted, 2012 held out; verdict by
 model/tower night release and day uptake, r of both series, by class.
