@@ -22,7 +22,7 @@ and the held-out year's loss to history.csv.
 import sys, os, glob, json, time, types, argparse, numpy as np, pandas as pd, xarray as xr, warnings; warnings.filterwarnings('ignore')
 sys.path.insert(0, 'python-port'); sys.path.insert(0, 'verify/calibration')
 import jax, jax.numpy as jnp, equinox as eqx
-from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, PFT_NAMES, modis_at, apply_params, trace_extras, enable_compile_cache, EXTRAS, _enc, _dec, _extra_value, VMAX_LO, VMAX_HI
+from fit_carbon import LATV, LONV, MASK, GSWP3, NPOI_FULL, PFT_NAMES, modis_at, apply_params, trace_extras, enable_compile_cache, EXTRAS, _enc, _dec, _extra_value, VMAX_LO, VMAX_HI, STATE_EXTRAS
 import site_transient; from site_transient import one_year
 from site_run import prescribe, tower_mat, enforce_prescription, META, SEED_LAI, SEED_WOOD
 from site_attributes import prescribe_from_attributes
@@ -193,7 +193,17 @@ def setup(a, spin=True, verbose=True):
     st = eqx.tree_at(lambda s: s.etparts, st, create_et_parts(ns), is_leaf=lambda x: x is None)
     st = eqx.tree_at(lambda s: s.seasonal, st, _cast_tree_f32(create_seasonal(ns, 5.0)), is_leaf=lambda x: x is None)
     st = eqx.tree_at(lambda s: s.neeparts, st, _cast_tree_f32(create_nee_parts(ns)), is_leaf=lambda x: x is None)
-    sp0, pft0, _ = build_all_params(ns, lat_rad, load_physics_params(a.params)); sp0, pft0 = trace_extras(sp0, pft0)   # one compile for spin-up and every evaluation
+    sp0, pft0, _ = build_all_params(ns, lat_rad, load_physics_params(a.params))
+    if getattr(a, 'start', ''):
+        # --start best.json: EVERY entry becomes part of the base parameter set (the fitted names are then re-decoded from
+        # it as the CMA-ES start). Until 2026-10-04 only the fitted names were taken from it, so a fit of respiration
+        # parameters started from a GPP/ET best.json ran on the yaml's (default) photosynthesis parameters.
+        _prev = json.load(open(a.start))['params']; _vm = np.asarray(sp0.stomata_params.vmax_pft).copy(); _ex = {}
+        for _nm, _v in _prev.items():
+            if _nm.startswith('vmax:'): _vm[PFT_NAMES.index(_nm[5:])] = _v
+            elif _nm in EXTRAS and _nm not in STATE_EXTRAS: _ex[_nm] = _v
+        sp0, pft0 = apply_params(sp0, pft0, _vm, np.asarray(pft0.specla), _ex); say(f'base parameters from {a.start}: {len(_prev)} entries applied')
+    sp0, pft0 = trace_extras(sp0, pft0)   # one compile for spin-up and every evaluation
     specla = np.asarray(pft0.specla); vmax0 = np.asarray(sp0.stomata_params.vmax_pft)
     mask = np.zeros((ns, 12), np.float32); fu = np.zeros(ns, np.float32); flw = np.zeros(ns, np.float32)
     cb = np.asarray(st.vegetation.cbiol).copy(); cw = np.asarray(st.vegetation.cbiow).copy(); cr = np.asarray(st.vegetation.cbior).copy(); lai_src = {}

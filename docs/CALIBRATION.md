@@ -4578,3 +4578,43 @@ respiration parameter can create day-time uptake the canopy does not produce.
 **Plan.** Per tower: pools from the spin-up (HWSD2 carbon as the check), then fit som_scale, bgc_e0, rgrowth
 (wfps_opt where the moisture signal exists) to night-time NEE with day-time NEE weighted, 2012 held out; verdict by
 model/tower night release and day uptake, r of both series, by class.
+
+### 36.1 Correction (10-04 to 10-05): the NEE fits reran on the per-tower GPP/ET base (`site_fit/nee_v2`)
+
+`site_fit.py --start best.json` used to take ONLY the fitted names from the start file; every other parameter came from
+`--params`. The 61 NEE fits above passed the section-35 best.json as `--start` with the default yaml as `--params`,
+so they ran on the DEFAULT photosynthesis and phenology (their GPP equals the default run: pooled r 0.863 vs 0.862),
+and the section-36 table compared respiration fitted on the wrong GPP. (The section-35 fits had the same defect
+against the section-34 start: the S1 names outside their fit list -- conifer acclimation, lower-canopy phenology,
+drought drop -- sat at the yaml values. Their series are self-consistent, so yaml + their best.json reproduces them.)
+
+Fix: `setup` applies every entry of the start file to the base parameters (vmax and EXTRAS setters), then re-decodes
+the fitted names as the CMA-ES start; verified on US-Ha1 (six entries, all equal). The 61 fits reran 10-04 20:22 to
+10-05 07:02 (`$S/nee_v2_chain.sh`, local venv on CPU because the NAS-hosted environment imported at minutes per
+package that night; identical jax 0.11.0 / equinox 0.13.8 / numpy 2.5.2). The rerun GPP sits on the section-35
+series to a median 1.1 % (5 towers above 5 %, AT-Neu 20 %: the pool spin-up's soil state, not parameters).
+Report `logs/nee_fit_report_v2.csv`, figures `figures/nee_fit_v2/`, three-run site figures
+`figures/site_level_3runs_v2/` (`diagnostics/site_level_figures_3runs.py <out> nee_v2`).
+
+| monthly, 62 towers, 2009-2012 (all months) | default | per-tower GPP/ET fit | per-tower NEE fit (wrong base) | per-tower NEE fit v2 |
+|---|---|---|---|---|
+| GPP r / NSE / RMSE / bias | 0.862 / 0.73 / 63 / +7 | 0.939 / 0.88 / 42 / +1 | 0.863 / 0.73 / 63 / +9 | 0.933 / 0.87 / 44 / -1 |
+| ET r / NSE / RMSE / bias | 0.802 / 0.57 / 23 / +2 | 0.831 / 0.65 / 21 / +1 | 0.812 / 0.60 / 23 / +2 | 0.831 / 0.65 / 21 / +1 |
+| NEE r / NSE / RMSE / bias | 0.469 / 0.12 / 61 / +11 | 0.580 / 0.24 / 57 / +18 | 0.638 / 0.38 / 52 / +6 | 0.725 / 0.49 / 47 / +8 |
+
+NEE r by class, default -> GPP/ET fit -> NEE fit v2: ENF 0.50 -> 0.60 -> 0.78 (17), DBF 0.49 -> 0.72 -> 0.84 (12),
+MF 0.39 -> 0.52 -> 0.89 (6), GRA 0.58 -> 0.55 -> 0.64 (13), OSH 0.44 -> 0.47 -> 0.72 (5), EBF 0.34 -> 0.33 -> 0.22 (3),
+SAV 0.25 -> 0.30 -> 0.28 (2), WSA 0.35 -> 0.35 -> 0.45 (3).
+
+Held-out 2012, model / tower, 61 towers (S1 set -> v2): night ratio median 1.02 -> 1.07, within 25 % 47 -> 70 %;
+day ratio median 0.68 -> 0.89, within 25 % 23 -> 69 %; r night 0.85 -> 0.84, r day 0.88 -> 0.89.
+
+Fitted values (median, bound-pressing of 61): som_scale 0.53 (0.1-3 log; 9 at a bound, no class pattern: it acts as
+a heterotrophic-respiration multiplier, since the pools leave the spun-up equilibrium the moment it is applied);
+rgrowth 0.17 (0.10-0.50; 11 at the floor, 3 at the ceiling; forests 0.15-0.17, i.e. half the F77 0.30);
+bgc_e0 309 K (150-600; ENF 370 with four at 550-600, DBF 220 with three at 150-160, WSA 156 at the floor);
+rroot 0.89 per yr (0.3-5 log; 6 at the floor). Reading: the night-time target is matched by any som_scale x E0
+combination (trade-off, hence the scatter), while the day-time target is reached by cutting growth respiration,
+which the model books in daylight (NPP_step = GPP - maintenance - rgrowth x (GPP - maintenance), hourly); the floor
+pressure and the 0.89 day ratio point at the structural test queued in section 36 (growth respiration over 24 h),
+not at wider bounds.
