@@ -4658,3 +4658,43 @@ class-median file is preferred because it carries the respiration values. The NE
 being out of equilibrium with the towers' NPP once som_scale is gone; it is not a property the global run inherits,
 because the spin-up equilibrates the pools (the per-tower NEE scores of 36.1 came with equilibrated pools and
 som_scale). Still open from section 36: growth respiration booked in daylight; soil-evaporation excess in ET.
+
+## 38. Methane at the flux towers: harness, pools, per-tower fits (2026-10-10, in progress)
+
+Hangkai (10-09): calibrate the methane module at the methane towers, one parameter set per tower class, on the carbon
+set of section 37; then the global run and the budget comparison (section 39).
+
+**Data.** Chenchen's gap-filled sets (AmeriFlux 66 sites, EuroFlux 44; random-forest gap-fill of FCH4 at the USTAR50
+threshold with FCH4_F_UNCERTAINTY; budgets in gC-CH4 m-2 yr-1; half-hourly FLUXNET-format meteorology with ERA fill;
+NEE/GPP/LE partitioning). `verify/calibration/ch4_tower_prep.py` writes them in the FLUXNET2015 file layout the site
+harness reads (`/shared/nas2/Hangkai/ibis/inputs/sites/methane_towers/{compact,halfhourly,monthly}`; selected with
+`IBIS_FLUX_DIR`, `IBIS_FLUX_HH_DIR`, `IBIS_FLUX_MM_DIR`) and `ch4_targets.npz`: monthly CH4 sums (nmol m-2 s-1 x 1800 s
+x 12.011e-9), the gap-fill sigma summed in quadrature, the measured share, months with >= 20 days. 107 sites with
+coordinates and a budget: 60 WET, 16 CRO (no crop PFT; not fitted), 15 GRA, 9 ENF, 3 OSH, 2 EBF, 1 WSA, 1 SNO.
+FLUXNET-CH4 itself is only metadata on the NAS.
+
+**Model and harness.** `SimParams.methane` carries `MethaneParams` (yaml `methane:`), `run_month_gswp3` uses it when no
+explicit set is passed, and fit_carbon has the extras `ch4_r` (r_ch4, 0.03-0.8 log), `ch4_q10` (q10p, 1.2-6 log),
+`ch4_ztau` (z_tau, 0.08-1.0 log), `ch4_tauox` (tau_oxid, 0.02-0.6 log), `ch4_tref`, `ch4_zwtmax`. site_fit
+`--target ch4 --ch4-targets`: the methane module runs with an inundated fraction of 1 at WET towers (the tower stands
+in the wetland) and the WAD2M climatology of the 0.5-degree cell elsewhere (`--f-inund` overrides); the monthly flux
+(`ch4_monthly`, kgC-CH4 m-2 month-1 from `MethaneState.flux` x days) is the series scored, with the robust objective of
+the other targets (sigma = max(gap-fill sigma, 15 %, 0.05 gC)). Vegetation at WET towers: C3 sedge (temperate), shrub +
+C3 sedge (lat >= 55 or MAT < 3), C4 grass (tropical, MAT > 18); leaf area from the MODIS cell maximum (WET added to the
+attrs-modis classes). Forested swamps are not identified (no site classification beyond IGBP) and keep the sedge
+prescription -- a known weakness.
+
+**Pools.** `site_pool_spinup.py` on the 85 fitted sites (section 37 yaml, 2016-2021 cycled, k_scale 1; GPU 75 min):
+median equilibrium NEE -13 gC m-2 yr-1 at WET, NPP 600; 16 sites keep |NEE| > 40 (tropical PE-QFR +211, US-ONA +201).
+Soil carbon after the spin-up is 32 kgC m-2 at the WET median (grid pools 21), still far below peat stocks; the methane
+production depends on Rh and its depth distribution, not on the stock, so this is acceptable for the fit and wrong for
+a peat-carbon comparison.
+
+**Fits.** Per tower, own years (the last <= 6 with CH4 months; first year warm-up, last held out), 4 parameters
+(ch4_r, ch4_q10, ch4_ztau, ch4_tauox), 48 evaluations, pools from the spin-up (`--start-state`), CPU (4 cores, 3
+workers, ~1.5 h per fit beside the ANN queue) plus a GPU launcher from the other end of the list. **Lesson (the AU-Stp
+cap again):** the per-month cap of 25 (5 sigma) makes the objective flat wherever the starting model is more than 5
+sigma from the tower every month -- near-zero grassland fluxes against a model that emits from the cell's WAD2M
+fraction, or US-Cms where the model gives a tenth of the tower -- and CMA-ES then never leaves the start (5 of the
+first 22 fits). Fits started after 11:34 use a cap of 400 (20 sigma); the first-batch flat fits are rerun with it.
+Results: section 38.1 (pending).
