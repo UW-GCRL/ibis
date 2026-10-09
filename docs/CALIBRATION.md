@@ -4618,3 +4618,43 @@ combination (trade-off, hence the scatter), while the day-time target is reached
 which the model books in daylight (NPP_step = GPP - maintenance - rgrowth x (GPP - maintenance), hourly); the floor
 pressure and the 0.89 day ratio point at the structural test queued in section 36 (growth respiration over 24 h),
 not at wider bounds.
+
+## 37. One set per PFT from the per-tower fits: the class-median parameter file (2026-10-10)
+
+Hangkai (10-09): calibrate methane at the flux towers per class on the latest parameters, then a 200-year spin-up and
+the historical transient, and compare carbon, fire and methane with the MIP products. The global model carries one
+value per PFT, so the first step is to turn the per-tower fits (sections 35, 36.1) into such a set and measure what is
+lost.
+
+**Model change.** `BGCParams.rgrowth / rroot / rwood / lt_e0` accept a (12,) per-PFT vector as well as a scalar (yaml
+tables keyed by PFT name); the canopy respiration uses the PFT's own value, and the Lloyd-Taylor E0 of the soil is the
+cell's leaf-area-weighted mean over its PFTs (the soil has one temperature function; a stand of several PFTs gets the
+blend). Scalars behave as before; the site fits still move scalars. 723 tests pass.
+
+**The file** (`verify/calibration/class_median_yaml.py` -> `python-port/configs/params/params_s3_classmedian.yaml`,
+table `logs/params_s3_classmedian_table.csv`, 67 entries, read back and checked): per-PFT photosynthesis entries
+(vmax, stomatal slope, conifer acclimation) are the median over every tower that fitted that PFT, whatever its class
+(mixed-forest towers inform both their PFTs); the scalar phenology and stress entries are medians over the towers that
+fitted them (gdd_thresh_u 413 over 19 DBF/MF/WSA towers, gdd_thresh_l 74 over 24 towers, stressfac -3.34 over 61);
+the respiration values of section 36.1 are class medians mapped to PFTs (ENF -> the three conifers, DBF -> the two
+deciduous broadleaf, EBF -> the tropical/warm evergreens and the tropical deciduous, GRA -> both grasses, OSH+CSH ->
+both shrubs): rgrowth 0.15-0.21 in forests and grass, 0.37 shrubs; rroot 0.78 ENF, 1.06 DBF, 1.64 EBF, 1.69 GRA,
+0.67 shrubs; E0 369 ENF, 222 DBF, 312 EBF, 309 GRA, 306 shrubs. som_scale has no yaml form (a multiplier on a tower's
+starting pools) and is dropped; k_scale stays 1 (the HWSD2 pinning was a site device; the global spin-up finds its own
+soil carbon).
+
+**Verdict at the 62 towers** (site run, same settings as the default run, grid pools; `diagnostics/s3_check_report.py`):
+
+| monthly, 62 towers, 2009-2012 | default | robust S1 (section 34, one set) | class medians (one set) | per-tower fits |
+|---|---|---|---|---|
+| GPP r / NSE / bias | 0.862 / 0.73 / +7 | 0.894 / 0.79 / +2 | 0.883 / 0.78 / -5 | 0.939 / 0.88 / +1 |
+| ET r / NSE / bias | 0.802 / 0.57 / +2 | 0.806 / 0.61 / 0 | 0.807 / 0.62 / 0 | 0.831 / 0.65 / +1 |
+| NEE r / NSE / bias | 0.469 / 0.12 / +11 | 0.557 / 0.22 / +18 | 0.587 / 0.18 / +24 | 0.725 / 0.49 / +8 |
+| annual GPP within 25 % of the tower | 58 % | - | 66 % | 90 % |
+
+Reading: a single set per PFT recovers about a quarter of the per-tower GPP gain, whichever way it is built (the joint
+S1 fit and the class medians land in the same place); the rest is tower-specific (leaf area, site vmax). The
+class-median file is preferred because it carries the respiration values. The NEE bias here (+24) is the grid pools
+being out of equilibrium with the towers' NPP once som_scale is gone; it is not a property the global run inherits,
+because the spin-up equilibrates the pools (the per-tower NEE scores of 36.1 came with equilibrated pools and
+som_scale). Still open from section 36: growth respiration booked in daylight; soil-evaporation excess in ET.
