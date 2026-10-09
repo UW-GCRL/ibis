@@ -1,7 +1,7 @@
 """Per-tower soil profiles from HWSD2 at 1 km (Min's /shared/nas2/Min/HWSD; NEE stage, Hangkai 2026-09-30: finer soil
 data to limit the 0.5-degree scale effect at the towers).
 
-    python verify/calibration/tower_soil_hwsd2.py <out dir> [--mdb-copy /local/HWSD2.mdb]
+    python verify/calibration/tower_soil_hwsd2.py <out dir> [--mdb-copy /local/HWSD2.mdb] [--siteinfo FLUXNET_siteinfo.csv]
 
 Steps: (1) sample the soil-mapping-unit raster HWSD2.bil (30 arc-second) at each tower of the 62-tower batch; (2) read
 HWSD2_LAYERS from HWSD2.mdb with the pure-Python `access_parser` (copy the 92 MB file to local disk first: the parser
@@ -13,7 +13,10 @@ tower_hwsd2_profile.csv. Local python3 with pandas, h5py and access_parser (pip 
 import sys, os, shutil, numpy as np, pandas as pd
 out = sys.argv[1]; os.makedirs(out, exist_ok=True); H = '/shared/nas2/Min/HWSD'
 mdb = sys.argv[sys.argv.index('--mdb-copy') + 1] if '--mdb-copy' in sys.argv else f'{out}/HWSD2.mdb'
-inv = pd.read_csv('verify/calibration/site_data/site_inventory.csv').set_index('site'); sites = open('verify/calibration/site_data/site_batches.txt').readline().split()[1].split(',')
+if '--siteinfo' in sys.argv:                                                      # any FLUXNET_siteinfo.csv (methane towers, CALIBRATION.md 38)
+    _si = pd.read_csv(sys.argv[sys.argv.index('--siteinfo') + 1]); inv = pd.DataFrame({'lat': _si.LOCATION_LAT.values, 'lon': _si.LOCATION_LONG.values}, index=_si.SITE_ID.values); sites = list(inv.index)
+else:
+    inv = pd.read_csv('verify/calibration/site_data/site_inventory.csv').set_index('site'); sites = open('verify/calibration/site_data/site_batches.txt').readline().split()[1].split(',')
 # 1. soil mapping units at the towers
 bil = np.memmap(f'{H}/HWSD2.bil', dtype='<u2', mode='r', shape=(21600, 43200)); rows = []
 for s in sites:

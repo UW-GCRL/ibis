@@ -361,6 +361,11 @@ COEFM_GROUPS = {"coefm_bl": 0, "coefm_con": 1, "coefm_shrub": 2, "coefm_c4": 3, 
 INTERCEPTION_FIELDS = ("wliqumax", "wliqsmax", "wliqlmax", "fmax")
 CANOPY_FIELDS = ("soil_beta_power",)
 BGC_FIELDS = {"bgc_e0": "lt_e0", "wfps_opt": "wfps_opt", "rgrowth": "rgrowth", "k_scale": "k_scale", "rwood": "rwood", "rroot": "rroot"}
+#: Wetland methane parameters (ibis.bgc.methane.MethaneParams; CALIBRATION.md 38): name -> (field, lo, hi, log)
+CH4_FIELDS = {"ch4_r": ("r_ch4", 0.03, 0.8, True), "ch4_q10": ("q10p", 1.2, 6.0, True), "ch4_tref": ("t_ref", 270.0, 305.0, False),
+              "ch4_ztau": ("z_tau", 0.08, 1.0, True), "ch4_tauox": ("tau_oxid", 0.02, 0.6, True), "ch4_zwtmax": ("z_wt_max", 0.05, 1.5, True)}
+for _n, (_f, _lo, _hi, _log) in CH4_FIELDS.items():
+    EXTRAS[_n] = (_set((lambda f: (lambda p: getattr(p.methane, f)))(_f)), _lo, _hi, _log)
 STOMATA_FIELDS = ("acclim_tau", "acclim_s0", "acclim_smax", "cap_kn")
 PFT_ARRAYS = {"coefm": (lambda p: p.stomata_params.coefm_pft, 3.0, 16.0, True), "acclim_s0": (lambda p: p.stomata_params.acclim_s0_pft, -10.0, 5.0, False),
               "acclim_smax": (lambda p: p.stomata_params.acclim_smax_pft, 5.0, 30.0, True)}          # per-PFT extras '<name>:<pft>' (CALIBRATION.md 32)
@@ -376,6 +381,8 @@ def _extra_value(sp, pft, n):
         return sp.stomata_params.stressfac
     if n in BGC_FIELDS:
         return getattr(sp.bgc_params, BGC_FIELDS[n])
+    if n in CH4_FIELDS:
+        return getattr(sp.methane, CH4_FIELDS[n][0])
     if n == "som_scale":
         return 1.0
     if n in PFT_SCALARS:
@@ -444,7 +451,7 @@ def trace_extras(sp, pft):
     by fitted evaluations compiled twice, and a sweep compiled once per perturbed extra. Converting all of them
     once gives every run the same pytree. Values are unchanged (float32 rounding of the same numbers)."""
     return apply_params(sp, pft, np.asarray(sp.stomata_params.vmax_pft), np.asarray(pft.specla),
-                        {n: float(_extra_value(sp, pft, n)) for n in EXTRAS})
+                        {n: (lambda v: v if np.ndim(v) else float(v))(_extra_value(sp, pft, n)) for n in EXTRAS})   # (12,) per-PFT respiration vectors pass through
 
 
 def bounds_penalty(vmax, specla):

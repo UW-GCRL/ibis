@@ -16,11 +16,11 @@ tower data.  Tower years after 2010 use GSWP3's 2010 as the fallback year (gaps 
 site run covers tower years (spin-up cycles them).
 """
 from __future__ import annotations
-import glob, re
+import glob, re, os
 import numpy as np, pandas as pd
 
-F = '/shared/nas2/Min/FLUXNET2015/fluxnet_compact'
-FX = '/shared/nas2/Hangkai/ibis/inputs/sites/FLUXNET2015_FULLSET/halfhourly'        # full HH/HR files of the candidate towers
+F = os.environ.get('IBIS_FLUX_DIR', '/shared/nas2/Min/FLUXNET2015/fluxnet_compact')                       # daily/compact files + FLUXNET_siteinfo.csv; IBIS_FLUX_DIR overrides (methane towers, CALIBRATION.md 38)
+FX = os.environ.get('IBIS_FLUX_HH_DIR', '/shared/nas2/Hangkai/ibis/inputs/sites/FLUXNET2015_FULLSET/halfhourly')        # full HH/HR files of the candidate towers
 _MISSING = -9000.0
 
 

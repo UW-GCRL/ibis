@@ -24,6 +24,7 @@ import jax
 import jax.numpy as jnp
 import equinox as eqx
 from ibis.physics.phenology import PhenoParams
+from ibis.bgc.methane import MethaneParams
 from jaxtyping import Float, Array
 
 from ibis.constants import PhysicalConstants
@@ -100,6 +101,10 @@ class SimParams(eqx.Module):
 
     # BGC decomposition parameters (needed by soilbgc, called daily)
     bgc_params: BGCParams = eqx.field(default_factory=default_bgc_params)
+
+    # Wetland methane parameters (docs/METHANE.md; CALIBRATION.md 38). `run_month_gswp3` uses them when its own
+    # `methane_params` argument is None, so a site fit can move them through the parameter tree like any other extra.
+    methane: MethaneParams = eqx.field(default_factory=MethaneParams)
 
     # Thermal-only bedrock below the soil column (docs/BEDROCK.md). Only used
     # when the state carries `soil.tsoi_deep`; None keeps the Fortran column.

@@ -48,6 +48,10 @@ def prescribe(igbp, lat, mat):
         return ([1, 10] if tropical else [4, 10]), (0.3 if igbp == 'SAV' else 0.55), 0.8, 'tree + C4 grass'
     if igbp == 'OSH': return ([8, 11] if (mat is not None and np.isfinite(mat) and mat < 10) else [9, 10]), 0.0, 0.6, 'shrub + grass -- UNCERTAIN'
     if igbp == 'CSH': return [8, 11], 0.0, 0.9, 'shrub + grass -- UNCERTAIN'
+    if igbp == 'WET':                                                                    # methane towers (CALIBRATION.md 38): sedge/moss wetlands as grass, wet tundra with shrubs
+        if boreal: return [9, 11], 0.0, 0.9, 'wet tundra / bog: deciduous shrub + C3 sedge -- UNCERTAIN'
+        if tropical and (mat is not None and np.isfinite(mat) and mat > 18.0): return [10], 0.0, 1.0, 'tropical marsh: C4 grass -- UNCERTAIN'
+        return [11], 0.0, 1.0, 'fen / marsh: C3 sedge -- UNCERTAIN (forested swamps need --pft)'
     raise ValueError(f'{igbp}: not a natural-vegetation class handled here (WET -> methane stage, CRO not in IBIS)')
 
 

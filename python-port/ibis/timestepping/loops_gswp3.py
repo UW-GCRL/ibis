@@ -164,9 +164,11 @@ def _run_day_inner(
 
         # --- Issue 20: NPP with maintenance + growth respiration ---
         # (Fortran stats.f sumnow: rwood, rroot, rgrowth)
-        rwood   = params.bgc_params.rwood / (ndaypy * 86400.0) * (1000.0 / 12.0)  # /s, mol C basis; F77 0.0125 (CALIBRATION.md 36)
-        rroot   = params.bgc_params.rroot / (ndaypy * 86400.0) * (1000.0 / 12.0)  # F77 1.25
-        rgrowth = params.bgc_params.rgrowth          # F77 0.30 (CALIBRATION.md 36)
+        # scalars or (12,) per-PFT vectors (CALIBRATION.md 37); indexed by PFT below
+        _pv = lambda x: jnp.broadcast_to(jnp.asarray(x, dtype=jnp.float32), (12,))
+        rwood   = _pv(params.bgc_params.rwood) / (ndaypy * 86400.0) * (1000.0 / 12.0)  # /s, mol C basis; F77 0.0125 (CALIBRATION.md 36)
+        rroot   = _pv(params.bgc_params.rroot) / (ndaypy * 86400.0) * (1000.0 / 12.0)  # F77 1.25
+        rgrowth = _pv(params.bgc_params.rgrowth)     # F77 0.30 (CALIBRATION.md 36)
 
         # Temperature functions (Lloyd-Taylor, 15°C base)
         stemtemp = can.ts
@@ -183,30 +185,30 @@ def _run_day_inner(
         # Upper canopy: broadleaf
         for j in (0, 1, 2, 4, 6):
             gpp_j = an_ub * frac[:, j] * lai_u * veg.fu
-            resp_j = rwood * veg.cbiow[:, j] * veg.sapfrac * funca + rroot * veg.cbior[:, j] * funcb
-            npp_j = (1.0 - rgrowth) * (gpp_j - resp_j)
+            resp_j = rwood[j] * veg.cbiow[:, j] * veg.sapfrac * funca + rroot[j] * veg.cbior[:, j] * funcb
+            npp_j = (1.0 - rgrowth[j]) * (gpp_j - resp_j)
             aynpp = aynpp.at[:, j].add(npp_j * c_fac)
         # Upper canopy: conifer
         for j in (3, 5, 7):
             gpp_j = an_uc * frac[:, j] * lai_u * veg.fu
-            resp_j = rwood * veg.cbiow[:, j] * veg.sapfrac * funca + rroot * veg.cbior[:, j] * funcb
-            npp_j = (1.0 - rgrowth) * (gpp_j - resp_j)
+            resp_j = rwood[j] * veg.cbiow[:, j] * veg.sapfrac * funca + rroot[j] * veg.cbior[:, j] * funcb
+            npp_j = (1.0 - rgrowth[j]) * (gpp_j - resp_j)
             aynpp = aynpp.at[:, j].add(npp_j * c_fac)
         # Lower canopy: shrubs (no sapwood for PFTs 8,9 — but cbiow may be nonzero)
         for j in (8, 9):
             gpp_j = an_ls * frac[:, j] * lai_l * veg.fl * smask
-            resp_j = rwood * veg.cbiow[:, j] * funca + rroot * veg.cbior[:, j] * funcb
-            npp_j = (1.0 - rgrowth) * (gpp_j - resp_j)
+            resp_j = rwood[j] * veg.cbiow[:, j] * funca + rroot[j] * veg.cbior[:, j] * funcb
+            npp_j = (1.0 - rgrowth[j]) * (gpp_j - resp_j)
             aynpp = aynpp.at[:, j].add(npp_j * c_fac)
         # C4 grass
         gpp_c4 = an_l4 * frac[:, 10] * lai_l * veg.fl * smask
-        resp_c4 = rroot * veg.cbior[:, 10] * funcb
-        npp_c4 = (1.0 - rgrowth) * (gpp_c4 - resp_c4)
+        resp_c4 = rroot[10] * veg.cbior[:, 10] * funcb
+        npp_c4 = (1.0 - rgrowth[10]) * (gpp_c4 - resp_c4)
         aynpp = aynpp.at[:, 10].add(npp_c4 * c_fac)
         # C3 grass
         gpp_c3 = an_l3 * frac[:, 11] * lai_l * veg.fl * smask
-        resp_c3 = rroot * veg.cbior[:, 11] * funcb
-        npp_c3 = (1.0 - rgrowth) * (gpp_c3 - resp_c3)
+        resp_c3 = rroot[11] * veg.cbior[:, 11] * funcb
+        npp_c3 = (1.0 - rgrowth[11]) * (gpp_c3 - resp_c3)
         aynpp = aynpp.at[:, 11].add(npp_c3 * c_fac)
 
         # Total canopy NPP this timestep (kgC/m2)
@@ -444,7 +446,10 @@ def _run_month_scan(
         # These scale litter and SOM decomposition in soilbgc.
         # decompl: based on top soil layer
         # decomps: root-profile weighted average of layers 1-4
-        _tconst = params.bgc_params.lt_e0               # F77 344.0 (CALIBRATION.md 36)
+        _tconst = jnp.asarray(params.bgc_params.lt_e0, dtype=jnp.float32)   # F77 344.0 (CALIBRATION.md 36)
+        if _tconst.ndim == 1:                            # (12,) per PFT: the cell's leaf-area-weighted value (CALIBRATION.md 37)
+            _w = jnp.maximum(st.vegetation.plai, 0.0); _ws = _w.sum(axis=1)
+            _tconst = jnp.where(_ws > 0.0, (_w * _tconst[None, :]).sum(axis=1) / jnp.maximum(_ws, 1e-6), _tconst.mean())
         _wshift = params.bgc_params.wfps_opt - 60.0     # F77 optimum 60 %
         _btemp = jnp.float32(288.16)
         _tzero = jnp.float32(227.13)
@@ -661,6 +666,7 @@ def run_month_gswp3(
 
     if f_inund is not None:
         from ibis.bgc.methane import create_methane_state, methane_step
+        if methane_params is None: methane_params = getattr(params, 'methane', None)      # the parameter tree's set (site fits, CALIBRATION.md 38)
         so, veg = state_out.soil, state_out.vegetation
         rh_kgc_day = veg.tco2mic * jnp.float32(12.0e-3 * 86400.0)
         mstate = state_out.wetland

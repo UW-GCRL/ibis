@@ -203,12 +203,12 @@ class BGCParams(eqx.Module):
     ypb: float = 0.20
     ynb: float = 0.25
     #: Respiration constants that F77 hard-codes (NEE stage, CALIBRATION.md 36); defaults = F77, bit-identical.
-    lt_e0: float = 344.0        # Lloyd-Taylor activation parameter (K) of the heterotrophic decomposition factor
+    lt_e0: float = 344.0        # Lloyd-Taylor activation parameter (K) of the heterotrophic decomposition factor; a scalar or a (12,) per-PFT vector (LAI-weighted per cell, CALIBRATION.md 37)
     wfps_opt: float = 60.0      # water-filled pore space (%) at the optimum of the moisture factor (shifts both branches)
-    rgrowth: float = 0.30       # growth respiration, fraction of (GPP - maintenance respiration)
+    rgrowth: float = 0.30       # growth respiration, fraction of (GPP - maintenance respiration); scalar or (12,) per PFT (CALIBRATION.md 37)
     k_scale: float = 1.0        # multiplier on both decomposition climate factors (= on every litter and SOM rate); 1 = F77; may be an (npoi,) array
-    rwood: float = 0.0125       # maintenance respiration of sapwood, fraction of sapwood carbon per year at 15 C (F77 stats.f)
-    rroot: float = 1.25         # maintenance respiration of fine roots, fraction of root carbon per year at 15 C (F77)
+    rwood: float = 0.0125       # maintenance respiration of sapwood, fraction of sapwood carbon per year at 15 C (F77 stats.f); scalar or (12,) per PFT (CALIBRATION.md 37)
+    rroot: float = 1.25         # maintenance respiration of fine roots, fraction of root carbon per year at 15 C (F77); scalar or (12,) per PFT (CALIBRATION.md 37)
 
 
 def default_bgc_params() -> BGCParams:

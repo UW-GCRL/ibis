@@ -289,6 +289,15 @@ def build_pft_params(d: dict) -> PFTParams:
     )
 
 
+def build_methane_params(d: dict):
+    """MethaneParams from the optional 'methane' section (field: value); unknown fields are an error (CALIBRATION.md 38)."""
+    from ibis.bgc.methane import MethaneParams
+    s = d.get('methane', {}) or {}
+    bad = [k for k in s if k not in MethaneParams.__dataclass_fields__]
+    if bad: raise KeyError(f'unknown methane parameters {bad}; fields: {list(MethaneParams.__dataclass_fields__)}')
+    return MethaneParams(**{k: float(v) for k, v in s.items()})
+
+
 def build_bgc_params(d: dict) -> BGCParams:
     """Build BGCParams from the 'bgc' section of a params dict."""
     s = d.get('bgc', {})
@@ -296,7 +305,12 @@ def build_bgc_params(d: dict) -> BGCParams:
         return default_bgc_params()
 
     defaults = default_bgc_params()
-    resp = {k: float(s.get(k, getattr(defaults, k))) for k in ('lt_e0', 'wfps_opt', 'rgrowth', 'k_scale', 'rwood', 'rroot')}   # CALIBRATION.md 36
+    resp = {}
+    for k in ('lt_e0', 'wfps_opt', 'rgrowth', 'k_scale', 'rwood', 'rroot'):                 # CALIBRATION.md 36
+        v = s.get(k, getattr(defaults, k))
+        # lt_e0 / rgrowth / rwood / rroot may be a per-PFT table (CALIBRATION.md 37: class medians of the per-tower
+        # fits); unknown PFT names are an error, missing ones keep the default
+        resp[k] = _pft_vector(v, [float(getattr(defaults, k))] * 12) if isinstance(v, dict) and k in ('lt_e0', 'rgrowth', 'rwood', 'rroot') else float(v)
 
     # C:N ratios for 8 pools
     cnr_dict = s.get('cnr', {})
@@ -414,6 +428,7 @@ def build_sim_params(
         rhosoi_val=ss.get('rhosoi_val', RHOSOI_VAL),
         csoi_mineral_val=ss.get('csoi_mineral_val', CSOI_VAL),
         bgc_params=build_bgc_params(d),
+        methane=build_methane_params(d),
     )
 
 

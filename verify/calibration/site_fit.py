@@ -34,7 +34,7 @@ from ibis.io.physics_params import build_all_params, load_physics_params
 from ibis.io.gswp3_reader import GSWP3Reader; from ibis.constants import PhysicalConstants
 from ibis.timestepping.loops_gswp3 import _cast_tree_f32
 V = '/shared/nas2/Hangkai/ibis/verify_outputs'; S = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'site_data')   # tower batches and inventory
-FX = '/shared/nas2/Hangkai/ibis/inputs/sites/FLUXNET2015_FULLSET/daily_monthly_yearly'
+FX = os.environ.get('IBIS_FLUX_MM_DIR', '/shared/nas2/Hangkai/ibis/inputs/sites/FLUXNET2015_FULLSET/daily_monthly_yearly')   # monthly tower files; override for the methane towers (CALIBRATION.md 38)
 YEARS = [2008, 2009, 2010, 2011, 2012]; TRAIN_Y = [1, 2, 3]; HOLD_Y = [4]         # indices into YEARS; 2008 is warm-up (--years, --hold-last)
 
 
@@ -60,6 +60,11 @@ def tower_obs(site):
             for yi, y in enumerate(YEARS):
                 if y in ty: arr[yi] = NEE_T[f'sum_{tag}'][ty.index(y), :, k]
             out[f'nee_{tag}'] = arr; out[f'nee_{tag}_sig'] = np.maximum(0.15 * np.abs(arr), 5.0)             # 15 % or 5 gC m-2 month-1, whichever is larger
+    if CH4_T is not None and site in list(CH4_T['sites']):                              # monthly CH4 emission targets, gC-CH4 m-2 month-1 (CALIBRATION.md 38)
+        k = list(CH4_T['sites']).index(site); ty = [int(y) for y in CH4_T['years']]; arr = np.full((len(YEARS), 12), np.nan); sg = arr.copy()
+        for yi, y in enumerate(YEARS):
+            if y in ty: arr[yi] = CH4_T['sum_ch4'][ty.index(y), :, k]; sg[yi] = CH4_T['sig_ch4'][ty.index(y), :, k]
+        out['ch4'] = arr; out['ch4_sig'] = np.maximum.reduce([np.nan_to_num(sg), 0.15 * np.abs(arr), np.full(arr.shape, 0.05)])   # gap-fill sigma, 15 % or 0.05 gC
     if not f: return out
     d = pd.read_csv(f[0]); t = pd.to_datetime(d['TIMESTAMP'].astype(str).str[:6], format='%Y%m'); d['y'] = t.dt.year; d['m'] = t.dt.month; nd = t.dt.days_in_month
     w = lambda c: d[c].where(d[c] > -9000) if c in d else pd.Series(np.nan, index=d.index)
@@ -86,6 +91,8 @@ def tower_obs(site):
 ROBUST = None      # set by main() from --robust: dict(cap_month, cap_tower, w_mag, tol) (CALIBRATION.md 34)
 TARGET = 'gpp'     # 'gpp' (GPP + w_et ET) or 'nee' (night-time + w_day day-time NEE; CALIBRATION.md 36), set by main() from --target
 NEE_T = None       # the tower day/night NEE targets (tower_nee_daynight.py npz), loaded by main() from --nee-targets
+CH4_T = None       # the tower monthly CH4 targets (ch4_tower_prep.py npz), loaded by setup() from --ch4-targets (CALIBRATION.md 38)
+WAD2M = '/shared/nas2/Hangkai/ibis/inputs/methane/wad2m/WAD2M_wetlands_2000-2020_05deg_Ver2.0.nc'
 
 
 def misfit_nee(dn, obs, n, years, w_day):
@@ -108,8 +115,25 @@ def misfit_nee(dn, obs, n, years, w_day):
     return L
 
 
+def misfit_ch4(cm, obs, n, years):
+    """Methane objective (CALIBRATION.md 38): normalised squared monthly misfit of the wetland CH4 emission over `years`, with
+    the robust caps and the annual-magnitude term (ln of the ratio of annual sums) of the other targets."""
+    if 'ch4' not in obs: return np.nan
+    r = ((cm[years, :, n] - obs['ch4'][years]) / obs['ch4_sig'][years]) ** 2
+    if ROBUST: r = np.minimum(r, ROBUST['cap_month'])
+    if not np.isfinite(r).any(): return np.nan
+    L = np.nanmean(r)
+    if ROBUST:
+        g, t = cm[years, :, n], obs['ch4'][years]; ok = np.isfinite(t); mag = 0.0
+        if ok.sum() >= 3 and np.nansum(t[ok]) * g[ok].sum() > 0: mag = min((np.log(abs(g[ok].sum()) / abs(np.nansum(t[ok]))) / ROBUST['tol']) ** 2, ROBUST['cap_month'])
+        elif ok.sum() >= 3: mag = ROBUST['cap_month']
+        L = min(L + ROBUST['w_mag'] * mag, ROBUST['cap_tower'])
+    return L
+
+
 def misfit(gm, em, obs, n, years, w_et, ne=None):
     if TARGET == 'nee': return misfit_nee(ne, obs, n, years, w_et)
+    if TARGET == 'ch4': return misfit_ch4(ne, obs, n, years)
     """Normalised squared monthly misfit of one tower over `years` (indices), GPP + w_et * ET; NaN if no usable month.
 
     With ROBUST set (site_fit --robust): every month's squared misfit is capped at cap_month, the tower's annual and
@@ -152,8 +176,10 @@ def _args(argv=None):
     ap.add_argument('--hourly-sw', action='store_true', help="drive radiation with the tower's hourly shortwave (Spitters diffuse split) instead of the weather generator's cycle (CALIBRATION.md 27)")
     ap.add_argument('--sites', default='', help='comma list: only these towers of the class (probes, single-tower tests)')
     ap.add_argument('--start', default='', help="best.json of an earlier fit: start from its parameters (with --only-baseline: a replay)")
-    ap.add_argument('--target', default='gpp', choices=['gpp', 'nee'], help="'nee': fit night-time + w_et x day-time NEE (tower_nee_daynight.py targets via --nee-targets) instead of GPP + w_et x ET (CALIBRATION.md 36)")
+    ap.add_argument('--target', default='gpp', choices=['gpp', 'nee', 'ch4'], help="'nee': fit night-time + w_et x day-time NEE (tower_nee_daynight.py targets via --nee-targets) instead of GPP + w_et x ET (CALIBRATION.md 36)")
     ap.add_argument('--nee-targets', default='', help='npz from tower_nee_daynight.py (required with --target nee)')
+    ap.add_argument('--ch4-targets', default='', help='ch4_targets.npz from ch4_tower_prep.py (required with --target ch4); the methane module then runs with an inundated fraction of 1 at WET towers and the WAD2M climatology of the cell elsewhere (CALIBRATION.md 38)')
+    ap.add_argument('--f-inund', default='', help='SITE=fraction[;SITE=fraction]: inundated fraction overrides (0-1)')
     ap.add_argument('--start-state', default='', help='state.npz from site_pool_spinup.py for the same towers: its carbon pools replace the grid pools before the warm-up cycle')
     ap.add_argument('--popsize', type=int, default=0, help='CMA-ES population (0: the default 4 + 3 ln n); a multiple of --workers wastes no round')
     ap.add_argument('--workers', type=int, default=1, help='evaluate each CMA-ES generation in this many spawned processes; '
@@ -166,10 +192,12 @@ def setup(a, spin=True, verbose=True):
     Deterministic in `a`, so the parent and every worker build the same towers, split and coding."""
     say = (lambda m: print(m, flush=True)) if verbose else (lambda m: None)
     configure_years(a)
-    global TARGET, NEE_T                                                                   # also in each spawned worker (setup is rebuilt there)
+    global TARGET, NEE_T, CH4_T                                                            # also in each spawned worker (setup is rebuilt there)
     TARGET = getattr(a, 'target', 'gpp')
     if getattr(a, 'nee_targets', ''): NEE_T = np.load(a.nee_targets)
     if TARGET == 'nee' and NEE_T is None: raise SystemExit('--target nee needs --nee-targets')
+    if getattr(a, 'ch4_targets', ''): CH4_T = np.load(a.ch4_targets)
+    if TARGET == 'ch4' and CH4_T is None: raise SystemExit('--target ch4 needs --ch4-targets')
     b1 = open(f'{S}/site_batches.txt').readline().split()[1].split(',')
     sites = b1 if a.igbp == 'ALL' else [s for s in b1 if META.loc[s, 'IGBP'] == a.igbp]      # 'ALL': the joint fit across classes (CALIBRATION.md 32)
     if getattr(a, 'sites', ''):
@@ -222,7 +250,7 @@ def setup(a, spin=True, verbose=True):
         if at is not None and np.isfinite(at['lai_max']) and at['lai_max'] > 0:
             cb[n] = mask[n] / max(mask[n].sum(), 1) * at['lai_max'] / np.maximum(specla, 1e-6); lai_src[s] = f"attributes {at['lai_max']:.1f}"
         else: lai_src[s] = f"state {float((cb[n] * specla).sum()):.1f}"
-        if getattr(a, 'lai_mode', '') == 'attrs-modis' and META.loc[s, 'IGBP'] in ('OSH', 'CSH', 'SAV', 'WSA', 'GRA'):
+        if getattr(a, 'lai_mode', '') == 'attrs-modis' and META.loc[s, 'IGBP'] in ('OSH', 'CSH', 'SAV', 'WSA', 'GRA', 'WET'):     # WET: methane towers (CALIBRATION.md 38)
             mm = float(np.asarray(modis_at(i, j))[n])
             if np.isfinite(mm) and mm > 0: cb[n] = mask[n] / max(mask[n].sum(), 1) * mm / np.maximum(specla, 1e-6); lai_src[s] = f'MODIS cell maximum {mm:.1f}'
         given = dict(kv.split('=') for kv in getattr(a, 'lai', '').split(',') if kv)
@@ -276,7 +304,19 @@ def setup(a, spin=True, verbose=True):
     rd = TowerForcingReader(sites, GSWP3Reader(GSWP3), use_hourly_sw=getattr(a, 'hourly_sw', False)); consts = PhysicalConstants()
     from ibis.io.co2 import co2_molmol          # an ARRAY, not a Python float: a float is static under filter_jit and recompiles per value
     site_transient.apply_co2 = (lambda q, y, series=None: eqx.tree_at(lambda z: z.atm.co2conc, q, jnp.asarray(co2_molmol(y) if a.co2 == 'series' else 385.0e-6, jnp.float32)))
-    ctx0 = dict(i=i, j=j, lat_rad=lat_rad, sp=sp0, pft=pft0, consts=consts, reader=rd); key0 = jax.random.PRNGKey(0); t0 = time.time()
+    FIN = None                                                                                          # inundated fraction per site (CALIBRATION.md 38)
+    if CH4_T is not None or getattr(a, 'f_inund', ''):
+        from ibis.io.wad2m import read_wad2m_climatology
+        _mlat = np.arange(-90.0, 90.0, 0.5); _mlon = np.arange(-180.0, 180.0, 0.5)                                 # WAD2M's south-to-north cell grid (verify/methane/evaluate_global.py)
+        _la = np.array([float(META.loc[s_, 'LOCATION_LAT']) for s_ in sites]); _lo = np.array([float(META.loc[s_, 'LOCATION_LONG']) for s_ in sites])
+        _wi = np.rint((_la - _mlat[0]) / 0.5).astype(int).clip(0, 359); _wj = np.rint((_lo - _mlon[0]) / 0.5).astype(int).clip(0, 719)
+        try: FIN = np.asarray(read_wad2m_climatology(WAD2M, _wi, _wj, _mlat, _mlon), np.float32).copy()             # (12, ns) WAD2M climatology at the cells
+        except Exception as e: say(f'WAD2M climatology unavailable ({e}); non-wetland towers get 0'); FIN = np.zeros((12, ns), np.float32)
+        for n_, s_ in enumerate(sites):
+            if META.loc[s_, 'IGBP'] == 'WET': FIN[:, n_] = 1.0
+        for item in [x for x in getattr(a, 'f_inund', '').split(';') if x]: s_, v_ = item.split('='); FIN[:, sites.index(s_)] = float(v_)
+        say('inundated fraction (annual mean): ' + ', '.join(f'{s_} {float(FIN[:, n_].mean()):.2f}' for n_, s_ in enumerate(sites)))
+    ctx0 = dict(i=i, j=j, lat_rad=lat_rad, sp=sp0, pft=pft0, consts=consts, reader=rd, f_inund=FIN); key0 = jax.random.PRNGKey(0); t0 = time.time()
     if getattr(a, 'start_state', ''):                                                                   # equilibrated pools (site_pool_spinup.py)
         from ibis.state.model_state import create_ibis_state as _cis
         _z = np.load(a.start_state, allow_pickle=True); ssites = [str(x) for x in _z['meta_sites']] if 'meta_sites' in _z.files else list(sites); nss = len(ssites)   # save_state stores metadata as meta_<key>
@@ -288,14 +328,15 @@ def setup(a, spin=True, verbose=True):
     print(f'{"" if verbose else f"worker {os.getpid()}: "}spin-up cycle done in {time.time() - t0:.0f} s', flush=True)
     base_state, base_key = st, key0
     def run(vm, ex):
-        sp, pft = apply_params(sp0, pft0, vm, specla, ex); ctx = dict(i=i, j=j, lat_rad=lat_rad, sp=sp, pft=pft, consts=consts, reader=rd)
-        s_, k_ = base_state, base_key; GM = []; EM = []; NM = []; DN = []
+        sp, pft = apply_params(sp0, pft0, vm, specla, ex); ctx = dict(i=i, j=j, lat_rad=lat_rad, sp=sp, pft=pft, consts=consts, reader=rd, f_inund=FIN)
+        s_, k_ = base_state, base_key; GM = []; EM = []; NM = []; DN = []; CM = []
         if 'som_scale' in ex:                                                                            # per-site disequilibrium factor on the SOM pools (CALIBRATION.md 36)
             f = jnp.float32(ex['som_scale']); s_ = eqx.tree_at(lambda s: (s.carbon.csoislon, s.carbon.csoislop, s.carbon.csoipas), s_, (s_.carbon.csoislon * f, s_.carbon.csoislop * f, s_.carbon.csoipas * f))
         for yr in YEARS:
             s_, k_, d = one_year(s_, k_, yr, ctx, 0); s_ = hold_fn(s_); GM.append(d['gpp_monthly'] * 1000); EM.append(d['aet_monthly']); NM.append(d['nee_monthly'] * 1000)
             if 'nee_daynight_monthly' in d: DN.append(d['nee_daynight_monthly'] * 1000)
-        return np.array(GM), np.array(EM), (np.array(DN) if (TARGET == 'nee' and DN) else np.array(NM))
+            if 'ch4_monthly' in d: CM.append(d['ch4_monthly'] * 1000)                                  # gC-CH4 m-2 month-1
+        return np.array(GM), np.array(EM), (np.array(DN) if (TARGET == 'nee' and DN) else np.array(CM) if (TARGET == 'ch4' and CM) else np.array(NM))
     C.run = run; C.base_state, C.base_key, C.ctx0, C.hold_fn = base_state, base_key, ctx0, hold_fn   # for probes
     return C
 
@@ -337,6 +378,7 @@ def main():
         f = lambda v: float(np.nanmean(v)) if np.isfinite(v).any() else np.nan
         return f(tr), f(ho), f(hy), tr, ho
     def nee_rmse(ne, towers):
+        if TARGET == 'ch4': return np.nan                                                            # `ne` is then the CH4 series
         # monthly NEE RMSE (gC m-2 mo-1) over the training years, mean over towers; tower NEE_VUT_REF, all months with a value
         ne = ne.sum(axis=2) if ne.ndim == 4 else ne
         r = [np.sqrt(np.nanmean((ne[TRAIN_Y, :, n] - obs[n]['nee'][TRAIN_Y]) ** 2)) for n in towers if np.isfinite(obs[n]['nee'][TRAIN_Y]).any()]
@@ -363,7 +405,7 @@ def main():
             hist.append(rec); pd.DataFrame(hist).to_csv(f'{a.out}/history.csv', index=False)
             if np.isfinite(L) and L < best['loss']:
                 best.update(loss=L, holdout_towers=Lh, holdout_year=Ly, eval=rec['eval'], params={k: rec[k] for k in names}, per_tower_train=dict(zip(train, map(float, tr))), per_tower_hold=dict(zip(hold, map(float, ho))))
-                json.dump(best, open(f'{a.out}/best.json', 'w'), indent=1); np.savez(f'{a.out}/best_series.npz', sites=np.array(sites), gpp=gm, et=em, nee=ne, years=np.array(YEARS))
+                json.dump(best, open(f'{a.out}/best.json', 'w'), indent=1); np.savez(f'{a.out}/best_series.npz', sites=np.array(sites), gpp=gm, et=em, years=np.array(YEARS), **({'ch4': ne} if TARGET == 'ch4' else {'nee': ne}))
             print(f"eval {rec['eval']:4d}  loss {L:9.3f}  hold-out towers {Lh:9.3f}  hold-out year {Ly:9.3f}  ({rec['secs']:.0f} s)  " + ' '.join(f'{k}={rec[k]:.4g}' for k in names), flush=True)
             Ls.append(L if np.isfinite(L) else 1e6)
         return Ls
