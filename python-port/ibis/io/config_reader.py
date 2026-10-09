@@ -64,6 +64,9 @@ class PhysicsSection:
     #: Route fire-killed carbon to emissions rather than litter. Requires
     #: isimfire == 1.
     enable_fire_emissions: bool = False
+    #: Wetland CH4 diagnostics (docs/METHANE.md; CALIBRATION.md 38): the runner loads the WAD2M climatology
+    #: (`forcing.wad2m_file`) and runs the methane module; written as aych4 / amch4.
+    enable_methane: bool = False
     #: Prescribe leaf area index from MODIS instead of growing it. This is the
     #: configuration behind the published IBIS GPP of 107.5 PgC/yr (Liu et al.
     #: 2014). Carbon totals from such a run are diagnostic, not a closed

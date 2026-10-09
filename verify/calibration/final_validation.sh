@@ -22,13 +22,15 @@ mkcfg() {  # mkcfg <template cfg> <out cfg> <stage dir> ; then per-stage sed on 
   grep -q '^params_file' $2 && sed -i "s|^params_file:.*|params_file: $PAR|" $2 || echo "params_file: $PAR" >> $2
 }
 mkdir -p $F/spinup/{out,restart} $F/transient/{out,restart} $F/hindcast/{out,restart}
-# 1. spin-up
+# 1. spin-up (SKIP_SPINUP=1: resume from an existing 1900 restart of this TAG)
+if [ "${SKIP_SPINUP:-0}" = 1 ] && [ -f $F/spinup/restart/ibis_restart_1900.npz ]; then echo "=== [$TAG] SPIN-UP skipped (restart present) ==="; else
 mkcfg $V/v11_spinup/cfg.yaml $F/spinup/cfg.yaml $F/spinup
 sed -i -e "s|^  iyear0: 1601|  iyear0: $((1901 - SPINUP_YEARS))|" -e "s|^  nrun: 300|  nrun: $SPINUP_YEARS|" $F/spinup/cfg.yaml
 echo "=== [$TAG] SPIN-UP 1601-1900 start $(date +%H:%M) ==="; grep -E "iyear0|nrun|irestart|co2init|spinup_year|params_file" $F/spinup/cfg.yaml | tr -s ' ' | tr '\n' ';'; echo
 $PY -u python-port/scripts/run_global.py $F/spinup/cfg.yaml > $F/spinup/run.log 2>&1 || { echo "SPIN-UP FAILED"; tail -5 $F/spinup/run.log; exit 1; }
 [ -f $F/spinup/restart/ibis_restart_1900.npz ] || { echo "no 1900 restart"; ls $F/spinup/restart | tail -2; exit 1; }
 grep -E "gate ACTIVE|gate inactive|Physics parameters" $F/spinup/run.log | head -2
+fi
 # 2. transient 1901-2000
 mkcfg $V/v11_transient/cfg.yaml $F/transient/cfg.yaml $F/transient
 sed -i -e 's|^  nrun: 110|  nrun: 100|' $F/transient/cfg.yaml; cp $F/spinup/restart/ibis_restart_1900.npz $F/transient/restart/
