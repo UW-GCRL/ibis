@@ -372,6 +372,9 @@ def run_global_simulation(config: IBISConfig) -> None:
         template = create_ibis_state(grid, p.co2init, p.o2init, with_stress=gate_on, with_etparts=et_on, with_seasonal=seas_on)
         state, meta = load_state(rpath, template)
         logger.info("Restart metadata: %s", meta)
+        if state.wetland is not None:        # a methane-enabled restart: its annual sum belongs to the year it was written in
+            from ibis.bgc.methane import reset_annual as _reset_ch4
+            state = eqx.tree_at(lambda s: s.wetland, state, _reset_ch4(state.wetland))
     else:
         logger.info("Cold start ...")
         state = create_ibis_state(grid, p.co2init, p.o2init, with_stress=gate_on, with_etparts=et_on, with_seasonal=seas_on)
@@ -828,6 +831,9 @@ def run_global_simulation(config: IBISConfig) -> None:
         )
         state = reset_stress_accum(state)   # after dynaveg consumed this year's mean stress
         state = reset_et_parts(state)
+        if state.wetland is not None:        # the annual CH4 sum was written above; it accumulated across years until 2026-10-09 (CALIBRATION.md 39)
+            from ibis.bgc.methane import reset_annual as _reset_ch4
+            state = eqx.tree_at(lambda s: s.wetland, state, _reset_ch4(state.wetland))
 
         # Save restart
         rpath = restart_path(out.restart_dir, year)

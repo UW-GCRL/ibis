@@ -11,6 +11,8 @@ land-use change, so it is compared with GCB's S_LAND (the TRENDY S2 sink), not w
 import sys, re, glob, os, numpy as np, pandas as pd, xarray as xr
 out = sys.argv[1]; args = sys.argv[2:]; yrs = (1991, 2010)
 if '--years' in args: k = args.index('--years'); yrs = tuple(int(v) for v in args[k + 1].split('-')); args = args[:k] + args[k + 2:]
+CUM = '--ch4-cumulative' in args                                                            # runs before the aych4 reset fix: difference successive years
+if CUM: args.remove('--ch4-cumulative')
 dirs = args; MIP = '/shared/nas2/Hangkai/ibis/inputs/eval/mip'
 sys.path.insert(0, 'verify/calibration'); from landmask import true_landfrac
 LAT = np.arange(89.75, -90, -0.5); R = 6371.0
@@ -19,9 +21,9 @@ bands = {'90S-30N': LAT < 30, '30N-60N': (LAT >= 30) & (LAT < 60), '60N-90N': LA
 files = {}
 for d in dirs:
     for f in glob.glob(f'{d}/ibis_yearly_*.nc'): files[int(re.search(r'(\d+)\.nc$', f).group(1))] = f
-rows = []
+rows = []; prev_ch4 = None
 for y in sorted(files):
-    if y < yrs[0] or y > yrs[1]: continue
+    if y < yrs[0] - (1 if CUM else 0) or y > yrs[1]: continue
     with xr.open_dataset(files[y]) as d:
         if not np.allclose(d['lat'].values[:3], LAT[:3]): raise SystemExit(f'{files[y]}: latitude runs {d["lat"].values[:2]}, expected north to south')
         g = lambda v: np.nan_to_num(np.asarray(d[v].values, float)) if v in d else None
@@ -29,9 +31,12 @@ for y in sorted(files):
         r = dict(year=y, gpp=tot(g('aygpptot')), npp=tot(g('aynpptot')), rh=tot(g('ayco2mic')), nee=tot(g('aynpptot') - g('ayco2mic')),
                  cveg=tot(g('cveg')), csoil=tot(g('totcsoi')), clit=tot(g('totlit')) if g('totlit') is not None else np.nan)
         if g('aych4') is not None:
-            ch4 = g('aych4') * area * 1e-9 * (16.043 / 12.011)                                # kgC m-2 yr-1 -> Tg CH4 yr-1 per cell
-            r['ch4'] = float(ch4.sum()); r.update({f'ch4_{b}': float(ch4[mask].sum()) for b, mask in bands.items()})
-        rows.append(r)
+            a = g('aych4')
+            if CUM: a, prev_ch4 = (a - prev_ch4 if prev_ch4 is not None else None), a
+            if a is not None:
+                ch4 = a * area * 1e-9 * (16.043 / 12.011)                                  # kgC m-2 yr-1 -> Tg CH4 yr-1 per cell
+                r['ch4'] = float(ch4.sum()); r.update({f'ch4_{b}': float(ch4[mask].sum()) for b, mask in bands.items()})
+        if y >= yrs[0]: rows.append(r)
 D = pd.DataFrame(rows)
 if D.empty: raise SystemExit('no yearly files in the range')
 # net land flux as the change of the stored carbon (wood + litter + soil; leaves and fine roots are not in the yearly files),

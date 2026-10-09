@@ -100,6 +100,16 @@ def load_state(path: str, template_state):
                                                      getattr(template_state, "seasonal", None),
                                                      getattr(template_state, "neeparts", None)) if _m is not None)
     _off_c = _off_t - n_fill
+    if _off_c not in _chain and (_off_c - 3) in _chain and getattr(template_state, "wetland", None) is None:
+        # The checkpoint carries the wetland MethaneState (3 leaves: flux, annual, zwt; declared before the trailing
+        # chain, so it is not a trailing module). Attach one to the template so every leaf aligns, and load it: a
+        # restart of a methane-enabled run keeps its water table and annual sums (CALIBRATION.md 38).
+        import equinox as eqx, logging
+        from ibis.bgc.methane import create_methane_state
+        _npoi = int(jnp.asarray(template_state.soil.tg).shape[0])
+        template_state = eqx.tree_at(lambda s: s.wetland, template_state, create_methane_state(_npoi), is_leaf=lambda x: x is None)
+        leaves_template, treedef = jax.tree.flatten(template_state); n_fill = len(leaves_template) - num_leaves; _off_c = _off_t - n_fill
+        logging.getLogger(__name__).warning("Checkpoint carries the wetland CH4 state (3 leaves): attached to the template and loaded.")
     if _off_t not in _chain or _off_c not in _chain:
         raise ValueError(
             f"Checkpoint has {num_leaves} leaves but template has {len(leaves_template)} "
