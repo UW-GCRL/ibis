@@ -9,8 +9,8 @@ ratio from history.csv's first evaluation where the series exist. Then medians b
 import sys, os, glob, json, numpy as np, pandas as pd
 root, M, out = sys.argv[1:4]
 I = pd.read_csv(f'{M}/ch4_sites.csv').set_index('SITE_ID'); T = np.load(f'{M}/ch4_targets.npz'); ts = list(T['sites']); ty = [int(y) for y in T['years']]
-def band(lat, mat):
-    if lat >= 55 or (np.isfinite(mat) and mat < 3): return 'boreal'
+def band(lat, mat):                                                      # the module's latitude bands (ibis.bgc.methane.biome_methane_params)
+    if lat >= 60: return 'boreal'
     return 'tropical' if abs(lat) < 30 else 'temperate'
 rows = []
 for d in sorted(glob.glob(f'{root}/*/')):

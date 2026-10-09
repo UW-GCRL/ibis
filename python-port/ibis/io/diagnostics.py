@@ -147,6 +147,9 @@ class DiagnosticWriter:
 
         # State variables (end-of-month snapshot)
         self._add_2d(ds, "tg", state.soil.tg, "K", "Soil surface temperature")
+        if getattr(state, "wetland", None) is not None:
+            self._add_2d(ds, "amch4", state.wetland.flux, "kgC/m2/d",
+                         "Monthly-mean wetland CH4 emission rate (carbon mass, grid-cell mean)")
 
         layer_coords = np.arange(state.soil.tsoi.shape[1])
         self._add_3d(ds, "tsoi", state.soil.tsoi, "soilay", layer_coords,
@@ -221,6 +224,10 @@ class DiagnosticWriter:
                      "Annual surface runoff")
         self._add_2d(ds, "aytdrain", state.summary.aytdrain, "mm/yr",
                      "Annual drainage")
+        if getattr(state, "wetland", None) is not None:                      # wetland CH4 (docs/METHANE.md; CALIBRATION.md 38)
+            self._add_2d(ds, "aych4", state.wetland.annual, "kgC/m2/yr",
+                         "Annual wetland CH4 emission (carbon mass, grid-cell mean over the inundated fraction)")
+            self._add_2d(ds, "zwt", state.wetland.zwt, "m", "Wetland water table depth of the last month")
 
         # Vegetation structure
         self._add_2d(ds, "fu", state.vegetation.fu, "fraction",

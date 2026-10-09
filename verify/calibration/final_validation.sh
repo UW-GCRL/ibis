@@ -12,6 +12,7 @@
 # and re-equilibrated 25-50 years on cycled 2001-2010 weather; this is the self-consistent form.
 set -u -o pipefail
 TAG=$1; PAR=$(readlink -f "$2"); V=/shared/nas2/Hangkai/ibis/verify_outputs; R=/shared/nas2/Hangkai/ibis-port
+SPINUP_YEARS=${SPINUP_YEARS:-300}; METHANE=${METHANE:-0}      # CALIBRATION.md 38: SPINUP_YEARS=200 METHANE=1 -> 1701-1900 spin-up, wetland CH4 written in the transient and hindcast
 PY=/home/hangkai/.venvs/ibis-gpu/bin/python; CPY=/shared/nas2/Hangkai/ibis-env/ibis-python
 F=$V/final_$TAG; cd $R; export PYTHONPATH=python-port:. XLA_PYTHON_CLIENT_PREALLOCATE=false XLA_PYTHON_CLIENT_MEM_FRACTION=.3
 [ -f "$PAR" ] || { echo "no params yaml $PAR"; exit 1; }
@@ -23,6 +24,7 @@ mkcfg() {  # mkcfg <template cfg> <out cfg> <stage dir> ; then per-stage sed on 
 mkdir -p $F/spinup/{out,restart} $F/transient/{out,restart} $F/hindcast/{out,restart}
 # 1. spin-up
 mkcfg $V/v11_spinup/cfg.yaml $F/spinup/cfg.yaml $F/spinup
+sed -i -e "s|^  iyear0: 1601|  iyear0: $((1901 - SPINUP_YEARS))|" -e "s|^  nrun: 300|  nrun: $SPINUP_YEARS|" $F/spinup/cfg.yaml
 echo "=== [$TAG] SPIN-UP 1601-1900 start $(date +%H:%M) ==="; grep -E "iyear0|nrun|irestart|co2init|spinup_year|params_file" $F/spinup/cfg.yaml | tr -s ' ' | tr '\n' ';'; echo
 $PY -u python-port/scripts/run_global.py $F/spinup/cfg.yaml > $F/spinup/run.log 2>&1 || { echo "SPIN-UP FAILED"; tail -5 $F/spinup/run.log; exit 1; }
 [ -f $F/spinup/restart/ibis_restart_1900.npz ] || { echo "no 1900 restart"; ls $F/spinup/restart | tail -2; exit 1; }
@@ -30,6 +32,7 @@ grep -E "gate ACTIVE|gate inactive|Physics parameters" $F/spinup/run.log | head 
 # 2. transient 1901-2000
 mkcfg $V/v11_transient/cfg.yaml $F/transient/cfg.yaml $F/transient
 sed -i -e 's|^  nrun: 110|  nrun: 100|' $F/transient/cfg.yaml; cp $F/spinup/restart/ibis_restart_1900.npz $F/transient/restart/
+[ "$METHANE" = 1 ] && sed -i -e 's|^  enable_fire_emissions: true|  enable_fire_emissions: true\n  enable_methane: true|' $F/transient/cfg.yaml
 echo "=== [$TAG] TRANSIENT 1901-2000 start $(date +%H:%M) ==="
 $PY -u python-port/scripts/run_global.py $F/transient/cfg.yaml > $F/transient/run.log 2>&1 || { echo "TRANSIENT FAILED"; tail -5 $F/transient/run.log; exit 1; }
 [ -f $F/transient/restart/ibis_restart_2000.npz ] || { echo "no 2000 restart"; exit 1; }
@@ -37,6 +40,7 @@ $PY -u python-port/scripts/run_global.py $F/transient/cfg.yaml > $F/transient/ru
 mkcfg $V/v11_transient/cfg.yaml $F/hindcast/cfg.yaml $F/hindcast
 sed -i -e 's|^  iyear0: 1901|  iyear0: 2001|' -e 's|^  nrun: 110|  nrun: 10|' -e 's|^  irestart: 1900|  irestart: 2000|' -e 's|^  imonthout: 0|  imonthout: 1|' \
        -e 's|^  transient_co2: true|  transient_co2: true\n  et_components: true|' $F/hindcast/cfg.yaml    # ET components in the yearly files (CALIBRATION.md 15)
+[ "$METHANE" = 1 ] && sed -i -e 's|^  enable_fire_emissions: true|  enable_fire_emissions: true\n  enable_methane: true|' $F/hindcast/cfg.yaml
 cp $F/transient/restart/ibis_restart_2000.npz $F/hindcast/restart/
 echo "=== [$TAG] HINDCAST 2001-2010 (monthly) start $(date +%H:%M) ==="; grep -E "iyear0|nrun|irestart|imonthout" $F/hindcast/cfg.yaml | tr -s ' ' | tr '\n' ';'; echo
 $PY -u python-port/scripts/run_global.py $F/hindcast/cfg.yaml > $F/hindcast/run.log 2>&1 || { echo "HINDCAST FAILED"; tail -5 $F/hindcast/run.log; exit 1; }

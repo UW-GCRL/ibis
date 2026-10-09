@@ -477,7 +477,7 @@ _R_CH4_BIOME = (0.15, 0.32, 0.18)          # tropical, temperate, boreal
 _T_REF_BIOME = (299.6, 283.0, 277.9)       # tropical, temperate, boreal
 
 
-def biome_methane_params(lat_deg, base: MethaneParams | None = None
+def biome_methane_params(lat_deg, base: MethaneParams | None = None, bands: dict | None = None
                          ) -> MethaneParams:
     """MethaneParams with per-biome `r_ch4` and `t_ref`, keyed on latitude.
 
@@ -500,6 +500,16 @@ def biome_methane_params(lat_deg, base: MethaneParams | None = None
     def band(vals):
         t, m, b = vals
         return jnp.where(trop, t, jnp.where(boreal, b, m))
+
+    if bands is not None:
+        # Per-band overrides of any field from a parameter file's `methane_bands` section
+        # ({tropical|temperate|boreal: {field: value}}; CALIBRATION.md 38: the tower-class medians by band). A band
+        # without an entry keeps `base`'s value; nothing else is changed, in particular t_ref stays at `base`'s value
+        # unless given, because the tower fits held it fixed and their r_ch4 / Q10 absorb the band's temperature.
+        fields = sorted({k for v in bands.values() for k in v}); bad = [k for k in fields if k not in MethaneParams.__dataclass_fields__]
+        if bad: raise KeyError(f'unknown methane fields in methane_bands: {bad}')
+        vals = [band(tuple(float(bands.get(b, {}).get(k, getattr(p, k))) for b in ('tropical', 'temperate', 'boreal'))) for k in fields]
+        return eqx.tree_at(lambda q: tuple(getattr(q, k) for k in fields), p, tuple(vals))
 
     return eqx.tree_at(
         lambda q: (q.r_ch4, q.t_ref), p,

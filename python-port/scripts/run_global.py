@@ -545,11 +545,15 @@ def run_global_simulation(config: IBISConfig) -> None:
         # alone is the "global" configuration, which gives 458 Tg on the same
         # state -- and was silently what production used until 2026-09-04,
         # because methane_params was never passed to run_month_gswp3.
-        ch4_params = biome_methane_params(lat_land_deg)
+        # Base: the parameter file's `methane:` section (MethaneParams defaults without one); per-band overrides from its
+        # `methane_bands:` section (CALIBRATION.md 38, the tower-class medians by band). Without either, the legacy
+        # per-biome r_ch4 and t_ref tables apply, as before.
+        _mb = (_pdict or {}).get('methane_bands') if _pdict else None
+        _has_fit = bool(_pdict and (_pdict.get('methane') or _mb))
+        ch4_params = biome_methane_params(lat_land_deg, base=params.methane, bands=_mb) if _has_fit else biome_methane_params(lat_land_deg)
         logger.info("  wetland CH4 enabled: WAD2M climatology loaded, "
                     "mean inundated fraction %.4f", float(ch4_clim.mean()))
-        logger.info("  CH4 params: per-biome r_ch4 and t_ref "
-                    "(docs/METHANE.md 5q)")
+        logger.info("  CH4 params: %s", (f"parameter file ({'with' if _mb else 'without'} band overrides)" if _has_fit else "per-biome r_ch4 and t_ref (docs/METHANE.md 5q)"))
 
     for iyear_offset in range(t.nrun):
         year = t.iyear0 + iyear_offset
