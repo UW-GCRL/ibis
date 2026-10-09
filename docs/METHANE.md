@@ -2208,3 +2208,18 @@ FLUXNET-CH4 sites, not on another global re-rank.
 
 The general caution from 5q applies to 5q itself: a structural diagnosis
 made on a biased carbon state can be wrong for the state's faults.
+
+## 5s. The global driver read a latitude-mirrored wetland map (found 2026-10-09)
+
+`python-port/scripts/run_global.py` passed its GSWP3 row indices (north-to-south: GSWP3's latitude runs 89.75 to
+-89.75) into `read_wad2m_climatology`, whose array runs south-to-north (`_check_grid` compares the file to the
+south-to-north `mlat` the caller supplies and passes). Every land point therefore read the inundated fraction of its
+mirror latitude: 0.00 Mkm2 north of 60 N (the Antarctic rows), 0.04 in 30-60 N, 1.14 in the tropics, against the map's
+0.43 / 1.04 / 2.20. In the section-37 transient the wetland CH4 came out 64 / 3 / 0 Tg by band. `verify/methane/
+evaluate_global.py` was never affected (it builds `wli` from the land latitudes), so the 5i-5r evaluations on states
+stand; any methane number taken from a run_global log or output before this date is not usable. The symptom was seen
+once before and attributed to the water-table diagnostic (`wetland_water_table`'s docstring: "exactly zero north of
+60 degrees"); that fix was real but was not the cause of the zero. Fixed by indexing the climatology from the land
+points' own coordinates (commit 80c48d9); the mean inundated fraction of the land points went from 0.0046 to 0.0168.
+The yearly `aych4` written by the driver also accumulated across years until the same day (no `reset_annual` call);
+both fixes precede the section-39 hindcast.
