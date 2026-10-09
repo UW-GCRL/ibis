@@ -539,10 +539,15 @@ def run_global_simulation(config: IBISConfig) -> None:
     if getattr(p, "enable_methane", False):
         from ibis.io.wad2m import read_wad2m_climatology
         from ibis.bgc.methane import biome_methane_params
+        # WAD2M runs south-to-north; the GSWP3 row indices run north-to-south. Until 2026-10-09 the GSWP3 indices were
+        # used directly, which mirrored the wetland map in latitude (zero inundation north of 60 N, the Antarctic
+        # rows). Index the climatology from the land points' own coordinates, as verify/methane/evaluate_global.py does.
         mlat = np.arange(-90.0, 90.0, 0.5)
         mlon = np.arange(-180.0, 180.0, 0.5)
-        ch4_clim = read_wad2m_climatology(
-            f.wad2m_file, gswp3_latindex, gswp3_lonindex, mlat, mlon)
+        _lon_land_deg = lon_sub[lonindex_sub].astype(np.float32)
+        _wli = np.rint((lat_land_deg - mlat[0]) / 0.5).astype(int).clip(0, 359)
+        _wlo = np.rint((_lon_land_deg - mlon[0]) / 0.5).astype(int).clip(0, 719)
+        ch4_clim = read_wad2m_climatology(f.wad2m_file, _wli, _wlo, mlat, mlon)
         # The VALIDATED configuration: per-biome r_ch4 and t_ref
         # (docs/METHANE.md 5q, 182 Tg/yr inside the GMB range). MethaneParams()
         # alone is the "global" configuration, which gives 458 Tg on the same
