@@ -4698,3 +4698,49 @@ sigma from the tower every month -- near-zero grassland fluxes against a model t
 fraction, or US-Cms where the model gives a tenth of the tower -- and CMA-ES then never leaves the start (5 of the
 first 22 fits). Fits started after 11:34 use a cap of 400 (20 sigma); the first-batch flat fits are rerun with it.
 Results: section 38.1 (pending).
+
+### 38.1 Per-tower methane fits: verdict (2026-10-10)
+
+Run history, for the record: the first pass (10-09 05:05 to 10-10 03:16) on CPU and GPU, then a wide-cap rerun of the
+four flat fits, an inundated rerun of the eight strongly emitting non-wetland towers, and a repaired-forcing rerun of two
+towers; the first versions of those reruns had lost `--start-state` through a generator slip and were discarded (the
+valid batch is `site_fit/ch4_r5`). Two towers (US-HB4, US-Sne) had NaN pool states because their meteorology carried
+sensor faults (a 25,640 mm half-hour of rain; longwave of -23,729 to 68,394 W m-2); `ch4_tower_prep.py` now turns
+out-of-range meteorology into gaps and the two were re-spun. 19 towers with |budget| < 0.5 gC m-2 yr-1 were not fitted:
+they cannot constrain a production ratio, and several are known wetlands with a budget of exactly zero in the EuroFlux
+set (Ballynahone Bog, CZ-wet, AT-Nsd, AT-PsM, NO-Ikr, the four UK sites) -- a unit or scaling fault in that branch of
+the gap-fill pipeline, reported to Chenchen. Four towers had only two usable years and were skipped. Report
+`logs/ch4_fit_report.csv`, figures `figures/ch4_fit/` (`diagnostics/ch4_fit_report.py`, `ch4_fit_figures.py`).
+
+**Wetland towers (45 informative, fitted ch4_r, ch4_q10, ch4_ztau, ch4_tauox; held-out = the last year):**
+
+| band | n | r_ch4 median (IQR) | Q10 | z_tau | tau_oxid | held-out model/tower median | within 25 % | held-out monthly r |
+|---|---|---|---|---|---|---|---|---|
+| boreal (lat >= 60) | 13 | 0.17 (0.10-0.22) | 1.6 | 0.76 | 0.16 | 0.84 | 54 % | 0.66 |
+| temperate | 25 | 0.11 (0.07-0.18) | 2.5 | 0.63 | 0.18 | 0.82 | 40 % | 0.83 |
+| tropical (|lat| < 30) | 7 | 0.15 (0.11-0.17) | 1.4 | 0.66 | 0.09 | 0.95 | 29 % | 0.03 |
+
+The gross production ratio comes out at 0.11-0.17, below the module's 0.23 and the legacy band table (0.15 / 0.32 /
+0.18): the model emits too much per unit of heterotrophic respiration once its water table and oxidation are what they
+are. The oxic-zone depth is unchanged at the median (0.16-0.18 against 0.10) and the decomposition depth deepens to
+0.63-0.76 m (11 of 45 at the 1 m bound: the fits want more of Rh below the water table). Seasonality is where the
+structure shows (figures/ch4_fit/CH4_1): boreal towers match the summer peak but the model emits nothing from November
+to April where the towers keep 0.4 gC m-2 month-1 (frozen soil carries no methanogenesis in the module; shoulder-season
+and under-ice emission are missing); temperate towers get a flatter peak than measured (2.0 against 3.2 gC m-2 month-1)
+with Q10 pushed to 2.5 and two at the bound, i.e. temperature alone cannot produce the observed amplitude -- the
+water-table seasonality of a real marsh is held at a constant inundated fraction of 1; tropical towers have no fitted
+seasonality at all (r 0.03) for the same reason: their cycle is hydrological (flood pulse), and the harness holds the
+tower inundated all year. Magnitude is right to within 25 % at only 43 % of the towers on the held-out year, median
+0.84, so the per-class set is a scale correction, not a seasonal one.
+
+**Non-wetland methane towers.** Grassland and forest towers that emit strongly (US-Snf 25, US-Sne 41, US-NGC 3, CA-SCC
+6, BR-Npw 14, CH-Cha 2, RU-Fy2 2 gC m-2 yr-1) are wet sites classed by their vegetation; with the cell's WAD2M fraction
+the model cannot emit there and the fit pushes r_ch4 to its ceiling, so they were refitted fully inundated. The class
+medians (GRA 0.23, ENF 0.07, OSH 0.50, 9 / 5 / 2 towers) are not used for the global run: the inundated fraction of a
+grid cell emits with the wetland set, and the upland sink the model lacks is what those towers mostly show (US-Ho1,
+US-ICh, FI-Hyy, DE-Msr budgets of -0.2 to 0.04).
+
+**Global translation.** `ch4_class_yaml.py` writes `methane:` (the 47-tower WET medians: r_ch4 0.142, Q10 2.06, z_tau
+0.71, tau_oxid 0.158) and `methane_bands:` (the medians by band above) into
+`python-port/configs/params/params_s4_classmedian_ch4.yaml`; run_global applies the band values by latitude with t_ref
+unchanged (295.15 K, as the tower fits held it). The 1991-2010 methane rerun on that file is section 39.
