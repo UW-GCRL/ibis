@@ -4744,3 +4744,61 @@ US-ICh, FI-Hyy, DE-Msr budgets of -0.2 to 0.04).
 0.71, tau_oxid 0.158) and `methane_bands:` (the medians by band above) into
 `python-port/configs/params/params_s4_classmedian_ch4.yaml`; run_global applies the band values by latitude with t_ref
 unchanged (295.15 K, as the tower fits held it). The 1991-2010 methane rerun on that file is section 39.
+
+## 39. The global run on the calibrated set, against the budgets and the gridded products (2026-10-10)
+
+Protocol (`verify/calibration/final_validation.sh`, `SPINUP_YEARS=200 METHANE=1`): cold start 1701-1900 on
+`params_s3_classmedian.yaml` with 1901-1930 GSWP3 cycled at 296 ppm (5 h on the GPU), transient 1901-2000 with real
+years and rising CO2 (7 h beside the methane fits), then 1991-2000 and 2001-2010 again with monthly output and the
+fitted methane sections of `params_s4_classmedian_ch4.yaml` (`$S/hindcast_rerun.sh`). Outputs under
+`$V/final_s4_classmedian/{spinup,transient,hindcast_ch4_1991,hindcast_ch4}`. Two driver defects were found and fixed
+on the way (METHANE.md 5s): the wetland map had been read mirrored in latitude, and the yearly CH4 field accumulated
+across years. Comparison: `diagnostics/mip_compare.py` (`logs/mip_compare_s4_ch4_1991-2010.csv`),
+`global_spatial.py` and `global_figures.py` (`figures/global_s4/`, `figures/global_s4_ch4/`). Forcing on the NAS ends in
+2010, so "the latest decades" are 1991-2010.
+
+**Carbon.** Land sink as the change of stored carbon (wood + litter + soil; NPP - Rh also carries the fire and
+disturbance loss): +1.9 PgC yr-1 in the 1990s and +1.9 in the 2000s against GCB 2024's 2.50 and 2.83 (+-0.5) and the
+TRENDY-v13 multi-model mean of 2.83 (range 1.4-4.4; the TRENDY IBIS gives 1.99). GPP 183-189 PgC yr-1 on true land:
+1.70 x FLUXCOM (109 PgC on the land it covers) and 1.4-1.6 x the TRENDY models (115-135). The excess is regional
+(figures/global_s4/S_GPP_spatial): 1.47 x in the tropics and south, 2.2 x in 30-60 N and 3.6 x north of 60; the
+difference map puts it on the US Midwest, Europe, eastern China and India -- cropland that this run grows as natural
+forest and grass (no land use) -- and on the boreal belt, where the class-median set raised GPP north of 60 from 6.6 to
+11.9 PgC yr-1 (LAI 0.5 to 1.3). At the 62 towers the same set is within 25 % of the measured GPP at two thirds of the
+sites, so the global excess is land cover and the boreal zone, not the photosynthesis of the calibrated classes. Wood
+carbon 434 PgC (above-ground; the default run had 591), soil carbon 2445 PgC (default 1873; the respiration set slowed
+the soil). NPP - Rh exceeds the stored-carbon change by 7-9 PgC yr-1: that is what the model loses to fire and
+disturbance, four times the fire products -- a finding for the fire stage.
+
+**ET** (2001-2010 against the five-product ensemble, figures/global_s4/S_ET_spatial): land mean 525 against 508 mm yr-1
+(1.03 x), cell-wise r 0.93, 54 % of cells inside the product spread; 1.08 x in the tropics and south with the excess in
+the semi-arid belts (Sahel, India, Australia, Chaco, Cerrado: the soil-evaporation excess of the ET stage), 0.99 x in
+30-60 N, 0.75 x north of 60.
+
+**Wetland methane** (Tg CH4 yr-1, 2001-2010; GMB 2025 bottom-up wetlands 2000-2009 with the model range):
+
+| | global | 90S-30N | 30N-60N | 60N-90N |
+|---|---|---|---|---|
+| GMB 2025 | 153 (116-189) | 109 (66-146) | 32 (16-60) | 12 (4-28) |
+| mirrored map, legacy bands (the transient) | 71 | 68 | 3 | 0 |
+| corrected map, legacy bands (first hindcast) | 201 | 121 | 60 | 20 |
+| corrected map, tower-fitted bands (final) | 151 | 126 | 11 | 13 |
+
+The fitted set puts the global total and the tropical and boreal bands inside the budget's range; the temperate band
+drops from twice the budget to a third of it, because the 25 temperate towers (Sacramento Delta marshes, European fens
+and bogs, the Great Lakes) fit a production ratio of 0.11 against the legacy 0.32, and the band also holds the West
+Siberian lowland south of 60 N where the map's emission is highest. The split is therefore 84 / 7 / 9 % against the
+budget's 71 / 21 / 8 %. The seasonal structure of 38.1 (no winter emission in the boreal, constant inundation at the
+towers) is carried into these numbers unchanged. 1991-2000 gives 139 Tg (117 / 11 / 12).
+
+**Fire.** Burned area is scored by `verify/fire/evaluate_gfed5.py` on the 2010 state as in the v11 protocol; not rerun
+here (the fire parameters are unchanged since section 12).
+
+**What this run settles and what it leaves.** Settled: the calibrated carbon set gives the budget's land sink and the
+products' ET pattern on a global grid, the methane module reproduces the budget's total once the map and the production
+ratio are right, and the harness can carry a tower-calibrated set through a 300-year run in a day. Left, in the order
+the evidence suggests: (1) seasonal inundation at the methane towers and in the global map's use (the temperate and
+tropical seasonality, and the temperate band's magnitude); (2) a cropland or managed-land treatment for GPP; (3) the
+boreal productivity under the class-median set; (4) the fire and disturbance carbon loss; (5) from section 36, growth
+respiration over 24 h and the soil-evaporation excess. Open with Hangkai: TRENDY per-model fields (data policy), and
+extending the forcing past 2010.
