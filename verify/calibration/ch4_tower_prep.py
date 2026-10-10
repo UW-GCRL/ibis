@@ -39,11 +39,17 @@ for net, root in ROOTS.items():
         r = r.join(g[['FCH4_F', 'FCH4_F_UNCERTAINTY']], how='left')
         for c in COLS:
             if c not in r: r[c] = np.nan                                                        # a few sites lack a partitioning column
+        # physical ranges: out-of-range values become gaps (the reader fills them from GSWP3). Found 2026-10-10: US-HB4 has a
+        # 25,640 mm half-hour in P_F and US-Sne longwave of -23,729..68,394 W m-2, both of which gave a NaN model state.
+        for c, lo, hi in (('TA_F', -70, 60), ('SW_IN_F', 0, 1500), ('LW_IN_F', 50, 650), ('VPD_F', 0, 120), ('PA_F', 50, 110), ('P_F', 0, 150), ('WS_F', 0, 60)):
+            bad = (r[c] < lo) | (r[c] > hi)
+            if bad.any(): print(f'  {s}: {int(bad.sum())} {c} values outside [{lo}, {hi}] set to gaps', flush=True); r.loc[bad, c] = np.nan
         y0, y1 = int(t.year.min()), int(t.year.max()); tag = f'{y0}-{y1}'
         # --- daily meteorology (compact DD) ---
         day = r.index.floor('D')
         dd = pd.DataFrame({'TA_F_MDS': r.TA_F.groupby(day).mean(), 'P_F': r.P_F.groupby(day).sum(min_count=1), 'SW_IN_F_MDS': r.SW_IN_F.groupby(day).mean(),
                            'LW_IN_F_MDS': r.LW_IN_F.groupby(day).mean(), 'VPD_F_MDS': r.VPD_F.groupby(day).mean(), 'PA_F': r.PA_F.groupby(day).mean(), 'WS_F': r.WS_F.groupby(day).mean()})
+        dd['P_F'] = dd['P_F'].where(dd['P_F'] <= 500.0)                                          # a day above 500 mm is a sensor fault (US-HB4), left as a gap
         dd.insert(0, 'TIMESTAMP', dd.index.strftime('%Y%m%d')); dd.fillna(-9999.0).to_csv(f'{out}/compact/FLX_{s}_FLUXNET2015_FULLSET_DD_{tag}.csv', index=False, float_format='%.4f')
         # --- compact half-hourly: TA and SW (diurnal range, hourly light) ---
         hh = pd.DataFrame({'TIMESTAMP': r.index.strftime('%Y-%m-%d %H:%M:%S'), 'TA_F_MDS': r.TA_F.values, 'SW_IN_F_MDS': r.SW_IN_F.values})
@@ -73,7 +79,12 @@ for net, root in ROOTS.items():
                          IGBP=igbp, MAT=round(float(r.TA_F.mean()), 2), MAP=round(float(yy.P_F[yy.P_F > 0].mean()), 0) if (yy.P_F > 0).any() else np.nan,
                          years=tag, nyr_ch4=len(bud), budget_gC=round(float(bud.budget_mean.mean()), 2), step_s=int(step), ch4_months=len(ch4), meas_share=round(float(ch4.meas.mean()), 2)))
         print(f'{s:7s} {net:9s} {igbp:4s} {lat:7.2f} {lon:8.2f} {tag} step {int(step)} s  CH4 months {len(ch4):3d} measured {ch4.meas.mean():.2f}  budget {bud.budget_mean.mean():6.2f} gC m-2 yr-1', flush=True)
-I = pd.DataFrame(info); I.to_csv(f'{out}/compact/FLUXNET_siteinfo.csv', index=False); I.to_csv(f'{out}/ch4_sites.csv', index=False)
+I = pd.DataFrame(info)
+if want:                                                                                       # a partial run: update the rows of these sites only, keep the targets file
+    for fn in (f'{out}/compact/FLUXNET_siteinfo.csv', f'{out}/ch4_sites.csv'):
+        old_ = pd.read_csv(fn); old_ = old_[~old_.SITE_ID.isin(I.SITE_ID)]; pd.concat([old_, I]).sort_values('SITE_ID').to_csv(fn, index=False)
+    print(f'{len(I)} sites rewritten; ch4_targets.npz left as is'); raise SystemExit(0)
+I.to_csv(f'{out}/compact/FLUXNET_siteinfo.csv', index=False); I.to_csv(f'{out}/ch4_sites.csv', index=False)
 sites = list(T); years = list(range(min(int(T[s].index.min().year) for s in sites), max(int(T[s].index.max().year) for s in sites) + 1))
 A = {k: np.full((len(years), 12, len(sites)), np.nan) for k in ('sum', 'sig', 'n', 'meas', 'ndays')}
 for n, s in enumerate(sites):
