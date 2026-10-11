@@ -150,6 +150,9 @@ class ForcingSection:
     #: is set. See docs/METHANE.md.
     wad2m_file: str = ("/shared/nas2/Hangkai/ibis/inputs/methane/wad2m/"
                        "WAD2M_wetlands_2000-2020_05deg_Ver2.0.nc")
+    #: Cropland fraction per 0.5-degree cell (npz with "cropfrac" (360, 720), north to south; CALIBRATION.md 41).
+    #: Empty string = no cropland treatment.
+    cropfrac_file: str = ""
     soil_file: str = ""
     land_mask_file: str = ""
     # Spinup: repeat [spinup_year_start, spinup_year_end] cyclically for nrun years.

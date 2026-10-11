@@ -221,7 +221,8 @@ def setup(a, spin=True, verbose=True):
     st = eqx.tree_at(lambda s: s.etparts, st, create_et_parts(ns), is_leaf=lambda x: x is None)
     st = eqx.tree_at(lambda s: s.seasonal, st, _cast_tree_f32(create_seasonal(ns, 5.0)), is_leaf=lambda x: x is None)
     st = eqx.tree_at(lambda s: s.neeparts, st, _cast_tree_f32(create_nee_parts(ns)), is_leaf=lambda x: x is None)
-    sp0, pft0, _ = build_all_params(ns, lat_rad, load_physics_params(a.params))
+    _cf = np.array([1.0 if META.loc[s_, 'IGBP'] == 'CRO' else 0.0 for s_ in sites], np.float32)                       # cropland towers: the whole cell is cropland (CALIBRATION.md 41)
+    sp0, pft0, _ = build_all_params(ns, lat_rad, load_physics_params(a.params), cropfrac=_cf if _cf.any() else None)
     if getattr(a, 'start', ''):
         # --start best.json: EVERY entry becomes part of the base parameter set (the fitted names are then re-decoded from
         # it as the CMA-ES start). Until 2026-10-04 only the fitted names were taken from it, so a fit of respiration
@@ -250,7 +251,7 @@ def setup(a, spin=True, verbose=True):
         if at is not None and np.isfinite(at['lai_max']) and at['lai_max'] > 0:
             cb[n] = mask[n] / max(mask[n].sum(), 1) * at['lai_max'] / np.maximum(specla, 1e-6); lai_src[s] = f"attributes {at['lai_max']:.1f}"
         else: lai_src[s] = f"state {float((cb[n] * specla).sum()):.1f}"
-        if getattr(a, 'lai_mode', '') == 'attrs-modis' and META.loc[s, 'IGBP'] in ('OSH', 'CSH', 'SAV', 'WSA', 'GRA', 'WET'):     # WET: methane towers (CALIBRATION.md 38)
+        if getattr(a, 'lai_mode', '') == 'attrs-modis' and META.loc[s, 'IGBP'] in ('OSH', 'CSH', 'SAV', 'WSA', 'GRA', 'WET', 'CRO'):     # WET: methane towers (38); CRO: cropland (41)
             mm = float(np.asarray(modis_at(i, j))[n])
             if np.isfinite(mm) and mm > 0: cb[n] = mask[n] / max(mask[n].sum(), 1) * mm / np.maximum(specla, 1e-6); lai_src[s] = f'MODIS cell maximum {mm:.1f}'
         given = dict(kv.split('=') for kv in getattr(a, 'lai', '').split(',') if kv)

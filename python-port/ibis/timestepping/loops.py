@@ -25,6 +25,8 @@ import jax.numpy as jnp
 import equinox as eqx
 from ibis.physics.phenology import PhenoParams
 from ibis.bgc.methane import MethaneParams
+from ibis.io.parameters import CropParams, default_crop_params
+from typing import Optional
 from jaxtyping import Float, Array
 
 from ibis.constants import PhysicalConstants
@@ -105,6 +107,12 @@ class SimParams(eqx.Module):
     # Wetland methane parameters (docs/METHANE.md; CALIBRATION.md 38). `run_month_gswp3` uses them when its own
     # `methane_params` argument is None, so a site fit can move them through the parameter tree like any other extra.
     methane: MethaneParams = eqx.field(default_factory=MethaneParams)
+
+    # Cropland as managed grass (docs/CALIBRATION.md 41): the cropland share of each land point (None = no cropland
+    # treatment) and its parameters. Read by the daily step (grass vmax on the cropland share) and by dynaveg (tree cap,
+    # harvest).
+    cropfrac: Optional[Float[Array, "npoi"]] = None
+    crop: CropParams = eqx.field(default_factory=default_crop_params)
 
     # Thermal-only bedrock below the soil column (docs/BEDROCK.md). Only used
     # when the state carries `soil.tsoi_deep`; None keeps the Fortran column.
@@ -192,6 +200,18 @@ def _solid_phase(soil, params):
     return csoi, rho
 
 
+def crop_vfac(params, vfac, npft):
+    """Per-cell factor on the photosynthetic capacity of the grasses (PFTs 10, 11): 1 + cropfrac x (vmax_scale - 1), i.e.
+    the cropland share of a cell carries crops whose capacity is `crop.vmax_scale` times the natural grass's (docs/
+    CALIBRATION.md 41). Composed with the acclimation factor when there is one; None in, None out when there is no
+    cropland (the F77 path is untouched)."""
+    if getattr(params, "cropfrac", None) is None:
+        return vfac
+    mask = jnp.zeros((npft,), dtype=jnp.float32).at[jnp.array([10, 11])].set(1.0)
+    g = 1.0 + params.cropfrac[:, jnp.newaxis] * (params.crop.vmax_scale - 1.0) * mask[jnp.newaxis, :]
+    return g if vfac is None else vfac * g
+
+
 def timestep_body(
     state: IBISState,
     consts: PhysicalConstants,
@@ -261,6 +281,8 @@ def timestep_body(
             _fs = jnp.clip((state.seasonal.acclim_x - sp.acclim_s0) / sp.acclim_smax, 0.0, 1.0)
             _mask = jnp.zeros((veg.plai.shape[1],), dtype=_fs.dtype).at[jnp.array(sp.acclim_pfts)].set(1.0)
             acclim_vfac = 1.0 - _mask[jnp.newaxis, :] + _mask[jnp.newaxis, :] * _fs[:, jnp.newaxis]
+
+    acclim_vfac = crop_vfac(params, acclim_vfac, veg.plai.shape[1])
 
     npoi = soil.tg.shape[0]
     nsoilay = soil.tsoi.shape[1]

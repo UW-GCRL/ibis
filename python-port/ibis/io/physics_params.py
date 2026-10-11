@@ -289,6 +289,15 @@ def build_pft_params(d: dict) -> PFTParams:
     )
 
 
+def build_crop_params(d: dict):
+    """CropParams from the optional 'crop' section (harvest_index, vmax_scale); unknown keys are an error (CALIBRATION.md 41)."""
+    from ibis.io.parameters import CropParams
+    s = d.get('crop', {}) or {}
+    bad = [k for k in s if k not in CropParams.__dataclass_fields__]
+    if bad: raise KeyError(f'unknown crop parameters {bad}; fields: {list(CropParams.__dataclass_fields__)}')
+    return CropParams(**{k: float(v) for k, v in s.items()})
+
+
 def build_methane_params(d: dict):
     """MethaneParams from the optional 'methane' section (field: value); unknown fields are an error (CALIBRATION.md 38)."""
     from ibis.bgc.methane import MethaneParams
@@ -389,6 +398,7 @@ def build_sim_params(
     npoi: int,
     lat_rad,
     params_dict: Optional[dict] = None,
+    cropfrac=None,
 ):
     """Build SimParams from an optional params dict.
 
@@ -429,6 +439,8 @@ def build_sim_params(
         csoi_mineral_val=ss.get('csoi_mineral_val', CSOI_VAL),
         bgc_params=build_bgc_params(d),
         methane=build_methane_params(d),
+        cropfrac=None if cropfrac is None else jnp.asarray(cropfrac, dtype=jnp.float32),
+        crop=build_crop_params(d),
     )
 
 
@@ -436,6 +448,7 @@ def build_all_params(
     npoi: int,
     lat_rad,
     params_dict: Optional[dict] = None,
+    cropfrac=None,
 ):
     """Build all parameter objects from an optional params dict.
 
@@ -454,7 +467,7 @@ def build_all_params(
     """
     d = params_dict or {}
     return (
-        build_sim_params(npoi, lat_rad, d),
+        build_sim_params(npoi, lat_rad, d, cropfrac=cropfrac),
         build_pft_params(d),
         build_bgc_params(d),
     )

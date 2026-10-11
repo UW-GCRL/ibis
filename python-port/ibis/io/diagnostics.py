@@ -186,7 +186,7 @@ class DiagnosticWriter:
         ds.close()
         return path
 
-    def write_yearly(self, state, year: int) -> str:
+    def write_yearly(self, state, year: int, extra: dict | None = None) -> str:
         """Write yearly diagnostic output.
 
         Parameters
@@ -224,6 +224,8 @@ class DiagnosticWriter:
                      "Annual surface runoff")
         self._add_2d(ds, "aytdrain", state.summary.aytdrain, "mm/yr",
                      "Annual drainage")
+        for _name, (_vec, _unit, _long) in (extra or {}).items():               # per-run extras (cropland harvest and clearing, CALIBRATION.md 41)
+            self._add_2d(ds, _name, _vec, _unit, _long)
         if getattr(state, "wetland", None) is not None:                      # wetland CH4 (docs/METHANE.md; CALIBRATION.md 38)
             self._add_2d(ds, "aych4", state.wetland.annual, "kgC/m2/yr",
                          "Annual wetland CH4 emission (carbon mass, grid-cell mean over the inundated fraction)")

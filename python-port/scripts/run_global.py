@@ -461,7 +461,12 @@ def run_global_simulation(config: IBISConfig) -> None:
         logger.info("Physics parameters: %s", config.params_file)
     else:
         logger.info("Physics parameters: IBIS DEFAULTS (no params_file)")
-    params, pft_params, bgc_params = build_all_params(npoi, lat_rad, _pdict)
+    _cropfrac = None
+    if getattr(f, "cropfrac_file", ""):
+        # the cropland map is on the IBIS north-to-south grid, the same as GSWP3's, so the GSWP3 row indices apply
+        _cg = np.load(f.cropfrac_file)["cropfrac"]; _cropfrac = np.asarray(_cg[gswp3_latindex, gswp3_lonindex], np.float32)
+        logger.info("Cropland as managed grass: %s, mean cropland fraction of the land points %.4f", f.cropfrac_file, float(_cropfrac.mean()))
+    params, pft_params, bgc_params = build_all_params(npoi, lat_rad, _pdict, cropfrac=_cropfrac)
 
     # Seed thermal-only bedrock on a cold start. Downward continuation along a
     # geothermal gradient puts the new layers near equilibrium immediately;
@@ -733,11 +738,13 @@ def run_global_simulation(config: IBISConfig) -> None:
         from ibis.state.stress_accum import tree_survival, reset_stress_accum
         from ibis.state.et_parts import reset_et_parts
         if p.isimveg > 0:
+            _veg_diag = {}
             new_veg, new_carbon, new_summary = dynaveg(
                 state.vegetation, state.carbon, state.summary,
                 pft_params, p.isimfire, consts.epsilon,
                 fire_scheme=p.fire_scheme,
                 tree_surv=tree_survival(state, pft_params),
+                cropfrac=params.cropfrac, crop_params=params.crop, diag=_veg_diag,
             )
         else:
             new_veg, new_carbon, new_summary = biomass_update(
@@ -809,7 +816,12 @@ def run_global_simulation(config: IBISConfig) -> None:
                     float(jnp.max(state.summary.aynpptot)),
                     float(jnp.max(state.summary.ayneetot)))
         if out.iyearout > 0 and (iyear_offset + 1) % out.iyearout == 0:
-            path = writer.write_yearly(state, year)
+            _extra = {}
+            if p.isimveg > 0 and params.cropfrac is not None and _veg_diag:
+                _extra = {"ayharvest": (_veg_diag["harvest"], "kgC/m2/yr", "Crop harvest removed from the cropland share"),
+                          "ayclearing": (_veg_diag["clearing"], "kgC/m2/yr", "Tree carbon cleared to keep trees off the cropland share")}
+                logger.info("  cropland: harvest %.4f, clearing %.4f kgC/m2 (land-point means)", float(jnp.mean(_veg_diag["harvest"])), float(jnp.mean(_veg_diag["clearing"])))
+            path = writer.write_yearly(state, year, extra=_extra)
             logger.info("Wrote yearly output: %s", path)
 
         # Reset annual accumulators for the next year

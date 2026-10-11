@@ -211,6 +211,20 @@ class BGCParams(eqx.Module):
     rroot: float = 1.25         # maintenance respiration of fine roots, fraction of root carbon per year at 15 C (F77); scalar or (12,) per PFT (CALIBRATION.md 37)
 
 
+class CropParams(eqx.Module):
+    """Cropland as managed grass (docs/CALIBRATION.md 41). The cropland share of a cell (`SimParams.cropfrac`, from the
+    ESA CCI map) is land that trees may not occupy and whose grass is harvested: each year the tree pools are scaled so the
+    upper-canopy cover stays within the non-cropland share (the removed carbon is a clearing flux), and the cropland share
+    of the grass leaf turnover leaves the field as harvest instead of becoming litter. The grasses on that share
+    photosynthesise with their vmax times `vmax_scale`, the one parameter fitted at the cropland towers."""
+    harvest_index: float = 0.45      # share of the cropland grass leaf turnover removed as harvest (grain + residue export)
+    vmax_scale: float = 1.0          # crop / natural-grass ratio of photosynthetic capacity on the cropland share
+
+
+def default_crop_params() -> CropParams:
+    return CropParams()
+
+
 def default_bgc_params() -> BGCParams:
     """Create BGCParams with default values."""
     return BGCParams()

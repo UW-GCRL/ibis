@@ -361,6 +361,7 @@ COEFM_GROUPS = {"coefm_bl": 0, "coefm_con": 1, "coefm_shrub": 2, "coefm_c4": 3, 
 INTERCEPTION_FIELDS = ("wliqumax", "wliqsmax", "wliqlmax", "fmax")
 CANOPY_FIELDS = ("soil_beta_power",)
 BGC_FIELDS = {"bgc_e0": "lt_e0", "wfps_opt": "wfps_opt", "rgrowth": "rgrowth", "k_scale": "k_scale", "rwood": "rwood", "rroot": "rroot"}
+EXTRAS["crop_vmax_scale"] = (_set(lambda p: p.crop.vmax_scale), 0.3, 3.0, True)        # crop / grass photosynthetic capacity on the cropland share (CALIBRATION.md 41)
 #: Wetland methane parameters (ibis.bgc.methane.MethaneParams; CALIBRATION.md 38): name -> (field, lo, hi, log)
 CH4_FIELDS = {"ch4_r": ("r_ch4", 0.03, 0.8, True), "ch4_q10": ("q10p", 1.2, 6.0, True), "ch4_tref": ("t_ref", 270.0, 305.0, False),
               "ch4_ztau": ("z_tau", 0.08, 1.0, True), "ch4_tauox": ("tau_oxid", 0.02, 0.6, True), "ch4_zwtmax": ("z_wt_max", 0.05, 1.5, True)}
@@ -383,6 +384,8 @@ def _extra_value(sp, pft, n):
         return getattr(sp.bgc_params, BGC_FIELDS[n])
     if n in CH4_FIELDS:
         return getattr(sp.methane, CH4_FIELDS[n][0])
+    if n == "crop_vmax_scale":
+        return sp.crop.vmax_scale
     if n == "som_scale":
         return 1.0
     if n in PFT_SCALARS:

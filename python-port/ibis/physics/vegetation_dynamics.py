@@ -319,6 +319,9 @@ def dynaveg(
     fire_params: FireParams | None = None,
     popd: Float[Array, "npoi"] | None = None,
     tree_surv=None,
+    cropfrac=None,
+    crop_params=None,
+    diag=None,
 ) -> tuple[VegetationState, CarbonState, SummaryState]:
     """Annual dynamic vegetation update.
 
@@ -521,6 +524,34 @@ def dynaveg(
         cbior = cbior.at[:, j].set(jnp.maximum(0.0, cbior[:, j] * (1.0 - disturb_total)))
 
     # --- Maintain minimum biomass and update plai / biomass ---
+    # --- Cropland as managed grass (docs/CALIBRATION.md 41) ---
+    # (1) trees may cover at most the non-cropland share of the cell: where the cover the wood would give exceeds it,
+    #     the tree pools are scaled to the wood that gives exactly that cover (the inverse of the fu formula below)
+    #     and the removed carbon is a clearing flux, booked like a disturbance (to the atmosphere, out of NEE);
+    # (2) the cropland share of the grass leaf turnover leaves the field as harvest instead of becoming litter.
+    if cropfrac is not None:
+        from ibis.io.parameters import default_crop_params as _dcp
+        _cp = crop_params if crop_params is not None else _dcp()
+        _c = jnp.clip(cropfrac, 0.0, 1.0)
+        _den = 1.0 - jnp.exp(-woodnorm / pft_params.fu_k)
+        _fu_raw = (1.0 - jnp.exp(-wood / pft_params.fu_k)) / _den
+        _fu_cap = 1.0 - _c
+        _wood_cap = -pft_params.fu_k * jnp.log(jnp.maximum(1.0 - _fu_cap * _den, 1.0e-6))
+        _scale = jnp.where((_c > 0.0) & (_fu_raw > _fu_cap), jnp.clip(_wood_cap / jnp.maximum(wood, 1.0e-9), 0.0, 1.0), 1.0)   # no cropland: untouched (fu_raw may exceed 1 before the 0.975 clip)
+        _m8 = (jnp.arange(npft) < 8)[None, :]
+        _cleared = jnp.sum(jnp.where(_m8, (cbiol + cbiow + cbior) * (1.0 - _scale)[:, None], 0.0), axis=1)
+        cbiol = jnp.where(_m8, cbiol * _scale[:, None], cbiol)
+        cbiow = jnp.where(_m8, cbiow * _scale[:, None], cbiow)
+        cbior = jnp.where(_m8, cbior * _scale[:, None], cbior)
+        wood = wood * _scale
+        _harvest = jnp.zeros_like(_c)
+        for j in (10, 11):
+            _harvest = _harvest + _c * _cp.harvest_index * veg.cbiol[:, j] / tauleaf[j]      # from the pre-growth leaf pool, as falll was
+        falll = jnp.maximum(falll - _harvest, 0.0)
+        cdisturb = cdisturb + _cleared + _harvest
+        if diag is not None:
+            diag["clearing"] = _cleared; diag["harvest"] = _harvest
+
     plai = veg.plai
     biomass = veg.biomass
     for j in range(npft):
