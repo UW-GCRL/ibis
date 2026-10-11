@@ -4867,3 +4867,37 @@ r of 0.5-0.6 is that mismatch. Rice (US-Twt) fails outright (r -0.5): a flooded 
 phenology (sowing by growing-degree days, harvest date, bare fallow) is the structural step; until then the C3 value
 is a magnitude correction. Written to `params_s5_crop.yaml` (`crop: harvest_index 0.45, vmax_scale_c3 0.33,
 vmax_scale_c4 1.16`); the global run with the cropland map is section 43.
+
+## 42. The tower's water table in the methane fit: a test, not an adoption (2026-10-11)
+
+**Why.** Section 38.1 found the methane seasonality structural at the towers: a constant inundated fraction of 1 and
+the module's own water-table diagnostic cannot produce the temperate marshes' summer peak or the tropical flood pulse.
+The one hydrological observation the towers carry is the water table (FLUXNET `WTD`, m, positive above the surface;
+24 of the 60 wetland towers have one, 31 sites with at least six months).
+
+**What was built.** `ch4_tower_prep.py` writes the monthly mean water table (`wtd_ch4`) and the inundated share of
+the month (`finund_ch4`) into the targets; `methane_flux` / `methane_step` take an observed water-table depth
+(`zwt_obs`, m below the surface, NaN = the module's own) that replaces the diagnosed depth inside the wetland; the
+site fit's `--wtd-mode tower` passes it month by month (year-specific where recorded). The inundated share was tried
+first and rejected on inspection: a bog with its water table 10-25 cm below the surface all year (CA-SCB) is
+"never inundated" by that rule and would emit nothing, whereas the module's own treatment of depth is what the
+observation should inform. 23 towers were refitted (`site_fit/ch4_wtd`, `ch4_wtd_gpu`; 20 with results, three too short).
+
+**Result, paired with the constant-water-table fits of 38.1 at the same 20 towers** (`logs/ch4_fit_report_wtd.csv`):
+
+| held-out year | model's water table | tower's water table | better / worse with the tower's |
+|---|---|---|---|
+| annual model / tower, median | 0.73 | 0.76 | 11 / 7 towers |
+| monthly r, median | 0.66 | 0.50 | 12 / 5 towers |
+| training-years monthly r, median | 0.55 | 0.50 | 4 / 9 towers |
+
+The tower's water table helps where the record is a real wetland water table (CA-SCB bog 0.60 -> 0.73 r, US-ALQ,
+US-Esm, US-Elm Everglades 0.03 -> 0.33, CA-DBB) and breaks the fit where the record's datum is not the surface: the
+tidal marsh US-HB1 reports 0.6-4.2 m "above the surface" all year and gives a held-out ratio of 125, CA-DB2 and US-Tw4
+lose their seasonality altogether. The medians do not move in one direction, the fitted production ratios scatter
+more (temperate 0.09 against 0.11), and the boreal and tropical bands keep two and three towers. **Verdict: not
+adopted.** The constant-water-table fits of 38.1 remain the parameter set, and the global run uses the module's own
+water table. What the test did settle: where a wetland's water table is known and referenced to the surface, the
+module's response to it is right (the seasonality follows), so the global seasonality problem is the inundation and
+water-table input, not the production or oxidation formulation. A tower-by-tower screening of the WTD datum (or the
+FLUXNET-CH4 v2 release's harmonised WTD) is the way to use this data; the code path stays.
