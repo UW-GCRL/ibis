@@ -27,9 +27,9 @@ for root in roots:
         rt, rr = st(list(range(1, len(yrs) - 1))); rh, rrh = st([len(yrs) - 1])
         h = pd.read_csv(f'{d}history.csv') if os.path.exists(f'{d}history.csv') else None
         rows.append(dict(site=s, years=f'{yrs[0]}-{yrs[-1]}', pft='C4' if s in C4 else 'C3', loss0=float(h.loss.iloc[0]) if h is not None else np.nan, loss=b['loss'], n_eval=b.get('eval'),
-                         crop_vmax_scale=b['params'].get('crop_vmax_scale', np.nan), ratio0=np.nan, ratio_train=rt, r_train=rr, ratio_hold=rh, r_hold=rrh))
+                         crop_vmax_scale=b['params'].get('crop_vmax_scale_c4', b['params'].get('crop_vmax_scale_c3', np.nan)), ratio0=np.nan, ratio_train=rt, r_train=rr, ratio_hold=rh, r_hold=rrh))
 D = pd.DataFrame(rows).drop_duplicates('site'); D.to_csv(out, index=False); pd.set_option('display.width', 200); print(D.round(3).to_string(index=False))
 print(f"\ncrop_vmax_scale median {D.crop_vmax_scale.median():.3f} (IQR {D.crop_vmax_scale.quantile(.25):.2f}-{D.crop_vmax_scale.quantile(.75):.2f}); by pft: " + ', '.join(f'{p} {g.crop_vmax_scale.median():.2f} (n {len(g)})' for p, g in D.groupby('pft')))
 print(f"held-out annual GPP model/tower: median {D.ratio_hold.median():.2f}, within 25 % {np.nanmean(np.abs(D.ratio_hold - 1) <= 0.25):.0%}; monthly r median {D.r_hold.median():.2f}")
 if ybase:
-    import yaml; t = yaml.safe_load(open(ybase)); t['crop'] = {'harvest_index': 0.45, 'vmax_scale': float(D.crop_vmax_scale.median())}; yaml.safe_dump(t, open(yout, 'w'), sort_keys=False); print('wrote', yout, t['crop'])
+    import yaml; t = yaml.safe_load(open(ybase)); g = D.groupby('pft').crop_vmax_scale.median(); t['crop'] = {'harvest_index': 0.45, 'vmax_scale_c3': float(g.get('C3', 1.0)), 'vmax_scale_c4': float(g.get('C4', 1.0))}; yaml.safe_dump(t, open(yout, 'w'), sort_keys=False); print('wrote', yout, t['crop'])

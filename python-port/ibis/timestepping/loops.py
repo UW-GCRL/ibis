@@ -201,14 +201,14 @@ def _solid_phase(soil, params):
 
 
 def crop_vfac(params, vfac, npft):
-    """Per-cell factor on the photosynthetic capacity of the grasses (PFTs 10, 11): 1 + cropfrac x (vmax_scale - 1), i.e.
-    the cropland share of a cell carries crops whose capacity is `crop.vmax_scale` times the natural grass's (docs/
+    """Per-cell factor on the photosynthetic capacity of the grasses (PFTs 10, 11): 1 + cropfrac x (vmax_scale - 1) with the C4 scale on
+    PFT 10 and the C3 scale on PFT 11, i.e. the cropland share of a cell carries crops whose capacity is that multiple of the natural grass's (docs/
     CALIBRATION.md 41). Composed with the acclimation factor when there is one; None in, None out when there is no
     cropland (the F77 path is untouched)."""
     if getattr(params, "cropfrac", None) is None:
         return vfac
-    mask = jnp.zeros((npft,), dtype=jnp.float32).at[jnp.array([10, 11])].set(1.0)
-    g = 1.0 + params.cropfrac[:, jnp.newaxis] * (params.crop.vmax_scale - 1.0) * mask[jnp.newaxis, :]
+    m4 = jnp.zeros((npft,), dtype=jnp.float32).at[10].set(1.0); m3 = jnp.zeros((npft,), dtype=jnp.float32).at[11].set(1.0)
+    g = 1.0 + params.cropfrac[:, jnp.newaxis] * ((params.crop.vmax_scale_c4 - 1.0) * m4[jnp.newaxis, :] + (params.crop.vmax_scale_c3 - 1.0) * m3[jnp.newaxis, :])
     return g if vfac is None else vfac * g
 
 

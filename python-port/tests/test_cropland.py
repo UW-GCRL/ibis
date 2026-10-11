@@ -56,7 +56,7 @@ def test_harvest_removes_the_cropland_share_of_grass_turnover_from_litter():
 def test_daily_capacity_factor():
     from ibis.timestepping.loops import crop_vfac
     class P: pass
-    p = P(); p.cropfrac = jnp.array([0.0, 0.5, 1.0]); p.crop = CropParams(vmax_scale=2.0)
+    p = P(); p.cropfrac = jnp.array([0.0, 0.5, 1.0]); p.crop = CropParams(vmax_scale_c3=2.0, vmax_scale_c4=3.0)
     g = np.asarray(crop_vfac(p, None, 12))
-    assert g.shape == (3, 12) and np.allclose(g[:, :10], 1.0) and np.allclose(g[:, 11], [1.0, 1.5, 2.0]) and np.allclose(g[:, 10], [1.0, 1.5, 2.0])
+    assert g.shape == (3, 12) and np.allclose(g[:, :10], 1.0) and np.allclose(g[:, 11], [1.0, 1.5, 2.0]) and np.allclose(g[:, 10], [1.0, 2.0, 3.0])
     p.cropfrac = None; assert crop_vfac(p, None, 12) is None
