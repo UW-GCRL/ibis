@@ -4826,3 +4826,44 @@ treats tundra as temperate grassland. The remedy is lower-canopy phenology by PF
 one set of thresholds for the whole lower canopy) and a tree-establishment check against the ESA CCI tree cover in
 the boreal zone; both recorded for section 43, not done here. GL-ZaH is also 0.40 in the default run and 0.10 LAI at
 the tower: the Arctic grassland is under-productive in every configuration.
+
+## 41. Cropland as managed grass, calibrated at the cropland towers (2026-10-11)
+
+**Why.** Section 39's GPP excess over FLUXCOM (76 PgC yr-1 in 2001-2010) is a third on cells with more than 30 %
+cropland (ratio 1.8-2.1 there), where this model, which has no land use, had grown forest: tree cover 0.8 in cells
+that are more than 60 % cropland. IBIS 2.6b4 maps the ESA CCI cropland classes to grassland at initialisation
+(`process_esacci_lc.py`) and the dynamic vegetation then plants whatever the climate allows. The cropland fraction of
+each cell, aggregated from the ESA CCI 300 m map of 2000 (classes 10/11/12/20 counted whole, the 30/40 mosaics at half;
+`inputs/eval/landcover/cropfrac_esacci_2000_05deg.npz`), is 21.7 Mkm2 of true land.
+
+**Treatment** (`CropParams`, `SimParams.cropfrac`; commit 652fc52 and 9da8342). (1) Trees may cover at most the
+non-cropland share of a cell: in `dynaveg`, where the cover the wood would give exceeds 1 - cropfrac, the tree pools
+are scaled to the wood that gives exactly that cover (the inverse of the fu formula) and the removed carbon is a
+clearing flux booked like a disturbance. (2) The cropland share of the grass leaf turnover leaves the field as harvest
+(`harvest_index` 0.45) instead of becoming litter; both fluxes are written (`ayharvest`, `ayclearing`). (3) On the
+cropland share the grasses photosynthesise with their vmax times `vmax_scale_c3` (PFT 11) or `vmax_scale_c4` (PFT 10),
+through the same per-cell factor the conifer acclimation uses (`crop_vfac`). Without cropland the code path is the
+old one (test_cropland.py). The driver takes `forcing.cropfrac_file`; the cropland map is on the model's own
+north-to-south grid, so the GSWP3 row indices apply (unlike WAD2M, METHANE.md 5s).
+
+**Tower fits.** FLUXNET2015 has 28 cropland towers, 20 with usable years; 16 with at least three years were fitted
+(own years, last <= 6, last held out; `--fit crop_vmax_scale_c3|c4,stressfac`, the stress factor a nuisance parameter
+because pycma cannot run a one-dimensional problem; 36 evaluations; Mead on 2007-2012 because 2013 has no usable
+tower GPP). Cropland towers run as C3 grass (maize towers US-Ne1/2/3, IT-BCi as C4), fully cropland, leaf area at the
+MODIS cell maximum. Report `logs/crop_fit_report.csv`.
+
+| | C3 crops (12 towers) | C4 maize (4 towers) |
+|---|---|---|
+| crop / grass capacity, median (IQR) | 0.33 (0.30-0.35; 8 at the 0.30 floor) | 1.16 (0.79-1.42) |
+| held-out annual GPP model/tower, median | 0.76 | 1.01 |
+| held-out monthly r, median | 0.55 | 0.77 |
+
+All 16: held-out annual ratio median 0.99, within 25 % at 62 %, monthly r 0.54. Reading: maize behaves like a C4
+grass with a slightly higher capacity and the Mead fits are good (r 0.77-0.80). The C3 crops (wheat, barley, rapeseed,
+sugar beet, rice) want a third of the natural grass's capacity, and eight of twelve press the floor: the model's C3
+grass grows from the first warm days to the first frost, whereas a crop has a sowing date, a harvest in late summer and
+bare soil after it, so the fit cuts the capacity to bring the annual sum down rather than the season in -- the held-out
+r of 0.5-0.6 is that mismatch. Rice (US-Twt) fails outright (r -0.5): a flooded field is not a grassland. A crop
+phenology (sowing by growing-degree days, harvest date, bare fallow) is the structural step; until then the C3 value
+is a magnitude correction. Written to `params_s5_crop.yaml` (`crop: harvest_index 0.45, vmax_scale_c3 0.33,
+vmax_scale_c4 1.16`); the global run with the cropland map is section 43.
