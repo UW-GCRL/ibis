@@ -576,6 +576,7 @@ def run_month_gswp3(
     nsoilcall: int = 1,
     f_inund=None,
     methane_params=None,
+    zwt_obs=None,
     enable_permafrost=False,
     permafrost_params=None,
 ) -> tuple[IBISState, jax.Array]:
@@ -675,7 +676,7 @@ def run_month_gswp3(
         mstate = methane_step(
             mstate, jnp.asarray(f_inund), rh_kgc_day,
             so.tsoi, so.wsoi, so.wisoi, so.hsoi[:so.tsoi.shape[1]],
-            ndays, methane_params,
+            ndays, methane_params, zwt_obs=zwt_obs,
         )
         state_out = eqx.tree_at(lambda s: s.wetland, state_out, mstate,
                                 is_leaf=lambda x: x is None)

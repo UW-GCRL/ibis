@@ -4,7 +4,8 @@
     <out>/compact/     FLX_<s>_FLUXNET2015_FULLSET_DD_* (daily meteorology), _HH_* (compact: TA, SW), _MM_*, _YY_*, FLUXNET_siteinfo.csv
     <out>/halfhourly/  FLX_<s>_FLUXNET2015_FULLSET_HH_* (full: NIGHT, NEE, FCH4 and its gap-fill + uncertainty)
     <out>/monthly/     FLX_<s>_FLUXNET2015_FULLSET_MM_* (same as compact; site_fit.tower_obs reads them from its own FX)
-    <out>/ch4_targets.npz   monthly CH4 (gC-CH4 m-2 month-1, + = emission) per site and year, sigma, measured share
+    <out>/ch4_targets.npz   monthly CH4 (gC-CH4 m-2 month-1, + = emission) per site and year, sigma, measured share, and the
+                            inundated share of the month and the monthly mean water table (finund_ch4, wtd_ch4; NaN without a record)
 
     python verify/calibration/ch4_tower_prep.py <out dir> [SITE ...]
 
@@ -22,7 +23,7 @@ COORDS = pd.read_csv('/shared/nas/Chenchen/hangkai/combined_site_coords.csv').se
 GC = 12.011e-6 * 86400.0                                      # umol m-2 s-1 -> gC m-2 d-1
 for sub in ('compact', 'halfhourly', 'monthly'): os.makedirs(f'{out}/{sub}', exist_ok=True)
 MET = ['TA_F', 'SW_IN_F', 'LW_IN_F', 'VPD_F', 'PA_F', 'P_F', 'WS_F']
-COLS = ['TIMESTAMP_START', 'SW_IN_POT', 'NEE_VUT_REF', 'NEE_VUT_REF_QC', 'GPP_NT_VUT_REF', 'GPP_DT_VUT_REF', 'LE_F_MDS', 'LE_F_MDS_QC', 'FCH4'] + MET
+COLS = ['TIMESTAMP_START', 'SW_IN_POT', 'NEE_VUT_REF', 'NEE_VUT_REF_QC', 'GPP_NT_VUT_REF', 'GPP_DT_VUT_REF', 'LE_F_MDS', 'LE_F_MDS_QC', 'FCH4', 'WTD'] + MET
 info = []; T = {}
 for net, root in ROOTS.items():
     for d in sorted(glob.glob(f'{root}/*/')):
@@ -72,6 +73,12 @@ for net, root in ROOTS.items():
         conv = 12.011e-9 * step
         ch4 = pd.DataFrame({'sum': r.FCH4_F.groupby(mon).sum(min_count=1) * conv, 'n': r.FCH4_F.groupby(mon).count(), 'meas': r.FCH4.notna().groupby(mon).mean(),
                             'sig': np.sqrt((r.FCH4_F_UNCERTAINTY ** 2).groupby(mon).sum(min_count=1)) * conv, 'ndays': r.FCH4_F.groupby(mon).count() * step / 86400.0})
+        # inundation from the tower's water table (CALIBRATION.md 42): the share of the month's half-hours with the water
+        # table at or above 5 cm below the surface (FLUXNET WTD, m, positive above the surface); NaN without a record
+        wtd = r['WTD'] if 'WTD' in r else pd.Series(np.nan, index=r.index)
+        ch4['finund'] = (wtd >= -0.05).astype(float).where(wtd.notna()).groupby(mon).mean(); ch4['n_wtd'] = wtd.notna().groupby(mon).sum()
+        ch4.loc[ch4.n_wtd < 200, 'finund'] = np.nan                                                   # fewer than ~4 days of water-table record
+        ch4['wtd'] = wtd.groupby(mon).mean(); ch4.loc[ch4.n_wtd < 200, 'wtd'] = np.nan                  # monthly mean water table, m, positive above the surface
         ch4 = ch4[ch4.ndays >= 20]                                                                   # months with at least 20 days of record
         T[s] = ch4
         bud = pd.read_csv(bf)
@@ -86,7 +93,7 @@ if want:                                                                        
     print(f'{len(I)} sites rewritten; ch4_targets.npz left as is'); raise SystemExit(0)
 I.to_csv(f'{out}/compact/FLUXNET_siteinfo.csv', index=False); I.to_csv(f'{out}/ch4_sites.csv', index=False)
 sites = list(T); years = list(range(min(int(T[s].index.min().year) for s in sites), max(int(T[s].index.max().year) for s in sites) + 1))
-A = {k: np.full((len(years), 12, len(sites)), np.nan) for k in ('sum', 'sig', 'n', 'meas', 'ndays')}
+A = {k: np.full((len(years), 12, len(sites)), np.nan) for k in ('sum', 'sig', 'n', 'meas', 'ndays', 'finund', 'wtd')}
 for n, s in enumerate(sites):
     for p, row in T[s].iterrows():
         for k in A: A[k][years.index(p.year), p.month - 1, n] = row[k]

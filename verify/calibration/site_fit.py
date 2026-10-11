@@ -180,6 +180,8 @@ def _args(argv=None):
     ap.add_argument('--nee-targets', default='', help='npz from tower_nee_daynight.py (required with --target nee)')
     ap.add_argument('--ch4-targets', default='', help='ch4_targets.npz from ch4_tower_prep.py (required with --target ch4); the methane module then runs with an inundated fraction of 1 at WET towers and the WAD2M climatology of the cell elsewhere (CALIBRATION.md 38)')
     ap.add_argument('--f-inund', default='', help='SITE=fraction[;SITE=fraction]: inundated fraction overrides (0-1)')
+    ap.add_argument('--wtd-mode', default='model', choices=['model', 'tower'], help="WET towers: 'tower' replaces the module's water-table depth by the tower's monthly mean water table (wtd_ch4 in ch4_targets.npz; months without a record keep the model's) (CALIBRATION.md 42)")
+    ap.add_argument('--f-inund-mode', default='wet1', choices=['wet1', 'wtd'], help="WET towers: 'wet1' fully inundated all year; 'wtd' the monthly inundated share from the tower's water table in ch4_targets.npz (finund_ch4; year-specific where recorded, else that tower's climatology, else 1) (CALIBRATION.md 42)")
     ap.add_argument('--start-state', default='', help='state.npz from site_pool_spinup.py for the same towers: its carbon pools replace the grid pools before the warm-up cycle')
     ap.add_argument('--popsize', type=int, default=0, help='CMA-ES population (0: the default 4 + 3 ln n); a multiple of --workers wastes no round')
     ap.add_argument('--workers', type=int, default=1, help='evaluate each CMA-ES generation in this many spawned processes; '
@@ -315,8 +317,30 @@ def setup(a, spin=True, verbose=True):
         except Exception as e: say(f'WAD2M climatology unavailable ({e}); non-wetland towers get 0'); FIN = np.zeros((12, ns), np.float32)
         for n_, s_ in enumerate(sites):
             if META.loc[s_, 'IGBP'] == 'WET': FIN[:, n_] = 1.0
-        for item in [x for x in getattr(a, 'f_inund', '').split(';') if x]: s_, v_ = item.split('='); FIN[:, sites.index(s_)] = float(v_)
-        say('inundated fraction (annual mean): ' + ', '.join(f'{s_} {float(FIN[:, n_].mean()):.2f}' for n_, s_ in enumerate(sites)))
+        if getattr(a, 'f_inund_mode', 'wet1') == 'wtd' and CH4_T is not None and 'finund_ch4' in CH4_T.files:
+            # (nyears, 12, ns): the tower's water-table inundation by simulated year, climatology where a year lacks it
+            FINY = np.repeat(FIN[None], len(YEARS), axis=0).astype(np.float32); ty = [int(y) for y in CH4_T['years']]; ts = list(CH4_T['sites'])
+            for n_, s_ in enumerate(sites):
+                if META.loc[s_, 'IGBP'] != 'WET' or s_ not in ts: continue
+                k = ts.index(s_); rec = CH4_T['finund_ch4'][:, :, k]; clim = np.nanmean(rec, axis=0) if np.isfinite(rec).sum() >= 6 else None
+                if clim is None: continue
+                clim = np.where(np.isfinite(clim), clim, 1.0)
+                for yi, y in enumerate(YEARS):
+                    row = rec[ty.index(y)] if y in ty else np.full(12, np.nan); FINY[yi, :, n_] = np.where(np.isfinite(row), row, clim)
+                say(f'{s_}: inundation from the water table, climatology ' + ' '.join(f'{v:.2f}' for v in clim))
+            FIN = FINY
+    ZWT = None
+    if getattr(a, 'wtd_mode', 'model') == 'tower' and CH4_T is not None and 'wtd_ch4' in CH4_T.files:
+        ty = [int(y) for y in CH4_T['years']]; ts = list(CH4_T['sites']); ZWT = np.full((len(YEARS), 12, ns), np.nan, np.float32); nrec = {}
+        for n_, s_ in enumerate(sites):
+            if META.loc[s_, 'IGBP'] != 'WET' or s_ not in ts: continue
+            k = ts.index(s_)
+            for yi, y in enumerate(YEARS):
+                if y in ty: ZWT[yi, :, n_] = np.maximum(-CH4_T['wtd_ch4'][ty.index(y), :, k], 0.0)      # depth below the surface; above-surface = 0
+            nrec[s_] = int(np.isfinite(ZWT[:, :, n_]).sum())
+        say('water table from the tower (months with a record): ' + ', '.join(f'{s_} {n}' for s_, n in nrec.items()))
+        for item in [x for x in getattr(a, 'f_inund', '').split(';') if x]: s_, v_ = item.split('='); FIN[..., sites.index(s_)] = float(v_)
+        say('inundated fraction (annual mean): ' + ', '.join(f'{s_} {float(FIN[..., n_].mean()):.2f}' for n_, s_ in enumerate(sites)))
     ctx0 = dict(i=i, j=j, lat_rad=lat_rad, sp=sp0, pft=pft0, consts=consts, reader=rd, f_inund=FIN); key0 = jax.random.PRNGKey(0); t0 = time.time()
     if getattr(a, 'start_state', ''):                                                                   # equilibrated pools (site_pool_spinup.py)
         from ibis.state.model_state import create_ibis_state as _cis
@@ -325,7 +349,9 @@ def setup(a, spin=True, verbose=True):
         eq, _ = load_state(a.start_state, tmpl); sel_s = np.array([ssites.index(s_) for s_ in sites])         # the fit's towers inside the spin-up set
         pick = lambda x: (x[sel_s] if isinstance(x, jnp.ndarray) and x.ndim >= 1 and x.shape[0] == nss else x)
         st = eqx.tree_at(lambda s: s.carbon, st, jax.tree.map(pick, eq.carbon)); say(f'carbon pools from {a.start_state} ({nss} towers, {ns} used)')
-    for yr in YEARS: st, key0, _ = one_year(st, key0, yr, ctx0, 0); st = hold_fn(st)
+    _fin_y = lambda yr_: (FIN[YEARS.index(yr_)] if (FIN is not None and FIN.ndim == 3) else FIN)
+    _zwt_y = lambda yr_: (None if ZWT is None else ZWT[YEARS.index(yr_)])
+    for yr in YEARS: ctx0['f_inund'] = _fin_y(yr); ctx0['zwt_obs'] = _zwt_y(yr); st, key0, _ = one_year(st, key0, yr, ctx0, 0); st = hold_fn(st)
     print(f'{"" if verbose else f"worker {os.getpid()}: "}spin-up cycle done in {time.time() - t0:.0f} s', flush=True)
     base_state, base_key = st, key0
     def run(vm, ex):
@@ -334,7 +360,7 @@ def setup(a, spin=True, verbose=True):
         if 'som_scale' in ex:                                                                            # per-site disequilibrium factor on the SOM pools (CALIBRATION.md 36)
             f = jnp.float32(ex['som_scale']); s_ = eqx.tree_at(lambda s: (s.carbon.csoislon, s.carbon.csoislop, s.carbon.csoipas), s_, (s_.carbon.csoislon * f, s_.carbon.csoislop * f, s_.carbon.csoipas * f))
         for yr in YEARS:
-            s_, k_, d = one_year(s_, k_, yr, ctx, 0); s_ = hold_fn(s_); GM.append(d['gpp_monthly'] * 1000); EM.append(d['aet_monthly']); NM.append(d['nee_monthly'] * 1000)
+            ctx['f_inund'] = _fin_y(yr); ctx['zwt_obs'] = _zwt_y(yr); s_, k_, d = one_year(s_, k_, yr, ctx, 0); s_ = hold_fn(s_); GM.append(d['gpp_monthly'] * 1000); EM.append(d['aet_monthly']); NM.append(d['nee_monthly'] * 1000)
             if 'nee_daynight_monthly' in d: DN.append(d['nee_daynight_monthly'] * 1000)
             if 'ch4_monthly' in d: CM.append(d['ch4_monthly'] * 1000)                                  # gC-CH4 m-2 month-1
         return np.array(GM), np.array(EM), (np.array(DN) if (TARGET == 'nee' and DN) else np.array(CM) if (TARGET == 'ch4' and CM) else np.array(NM))

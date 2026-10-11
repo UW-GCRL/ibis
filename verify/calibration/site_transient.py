@@ -100,13 +100,14 @@ def one_year(state, key, year, ctx, isimveg=1):
     _dn = lambda s_: (np.stack([np.asarray(s_.neeparts.night), np.asarray(s_.neeparts.day)]) if getattr(s_, 'neeparts', None) is not None else None)
     dn_prev = _dn(state); dn_m = []
     fin = c.get("f_inund"); ch4_m = []                     # inundated fraction per site: None, (npoi,) or (12, npoi) (CALIBRATION.md 38)
+    zwo = c.get("zwt_obs")                                  # observed water-table depth per site and month, (12, npoi), NaN = model's (CALIBRATION.md 42)
     for im in range(12):
         raw = c["reader"].read_month(year, im, c["i"], c["j"])
         tmean.append(np.nanmean(raw["tas"], axis=0) - 273.16)
         state, key, dd = run_month_gswp3(
             state, c["consts"], c["sp"], c["reader"], c["i"], c["j"],
             c["lat_rad"], year, im, key, 3600.0, leap=leap, nband=2,
-            nsoilcall=1, f_inund=None if fin is None else (fin[im] if np.ndim(fin) == 2 else fin))
+            nsoilcall=1, f_inund=None if fin is None else (fin[im] if np.ndim(fin) == 2 else fin), zwt_obs=None if zwo is None else jnp.asarray(zwo[im], jnp.float32))
         if fin is not None and state.wetland is not None:
             ch4_m.append(np.asarray(state.wetland.flux) * float(raw["ndays"]))     # monthly-mean kgC-CH4 m-2 d-1 x days -> kgC m-2 month-1
         # dd = (daily_gpp, daily_aet, daily_rh), each (ndays, npoi); it was

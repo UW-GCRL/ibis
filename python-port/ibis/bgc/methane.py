@@ -342,6 +342,7 @@ def methane_flux(
     wisoi: Float[Array, "npoi nsoilay"],
     hsoi: Float[Array, "nsoilay"],
     params: MethaneParams | None = None,
+    zwt_obs=None,
 ) -> Float[Array, "npoi"]:
     """Net wetland CH4 emission, kgC m-2 d-1. This is M-lite+ entire.
 
@@ -365,6 +366,8 @@ def methane_flux(
     # The water table INSIDE the wetland, not the column-mean deficit -- see
     # wetland_water_table for why that distinction is load-bearing.
     zwt = wetland_water_table(wsoi, wisoi, hsoi, p)
+    if zwt_obs is not None:                        # an observed water-table depth (m below the surface, >= 0; NaN = use the model's), CALIBRATION.md 42
+        zwt = jnp.where(jnp.isfinite(zwt_obs), jnp.clip(zwt_obs, 0.0, p.z_max), zwt)
     # Only THAWED anaerobic soil sets the production temperature -- but do not
     # multiply by the thawed fraction as well. `Rh` already collapses when the
     # soil freezes (Arctic wetland Rh is 0.027 gC/m2/d in January against 0.995
@@ -435,6 +438,7 @@ def methane_step(
     hsoi: Float[Array, "nsoilay"],
     ndays: int,
     params: MethaneParams | None = None,
+    zwt_obs=None,
 ) -> MethaneState:
     """Advance the methane diagnostics by one month.
 
@@ -444,8 +448,9 @@ def methane_step(
     `rh` is heterotrophic respiration in kgC m-2 d-1 (`tco2mic * 12e-3 * 86400`).
     """
     p = params or MethaneParams()
-    flux = methane_flux(f_inund, rh, tsoi, wsoi, wisoi, hsoi, p)
+    flux = methane_flux(f_inund, rh, tsoi, wsoi, wisoi, hsoi, p, zwt_obs=zwt_obs)
     zwt = wetland_water_table(wsoi, wisoi, hsoi, p)
+    if zwt_obs is not None: zwt = jnp.where(jnp.isfinite(zwt_obs), jnp.clip(zwt_obs, 0.0, p.z_max), zwt)
     return MethaneState(flux=flux, annual=mstate.annual + flux * ndays, zwt=zwt)
 
 
