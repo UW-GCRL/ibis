@@ -4802,3 +4802,27 @@ tropical seasonality, and the temperate band's magnitude); (2) a cropland or man
 boreal productivity under the class-median set; (4) the fire and disturbance carbon loss; (5) from section 36, growth
 respiration over 24 h and the soil-evaporation excess. Open with Hangkai: TRENDY per-model fields (data policy), and
 extending the forcing past 2010.
+
+## 40. The boreal check: the set is right at the towers, the dynamic vegetation is not (2026-10-11)
+
+Section 39 found GPP north of 60 N doubled under the class-median set (6.6 to 11.9 PgC yr-1) and 3.6 x FLUXCOM. Two
+diagnostics settle where that comes from.
+
+At the towers north of 55 N, with prescribed vegetation and leaf area, the class-median set is as good as the default
+or better (annual GPP model / tower, 2009-2012): DK-Sor 0.82, FI-Hyy 0.82, FI-Sod 1.05, RU-Fyo 0.90, RU-Cok 0.84,
+GL-ZaH 0.43 (the default 1.01 / 0.96 / 1.29 / 1.03 / 0.77 / 0.40; the per-tower fits 0.95-1.11). The set is not the
+problem where the vegetation is held.
+
+In the global run the vegetation is dynamic, and that is where the doubling happens (2001-2010 means by band, default
+-> class-median, ILAMB reference): 60-70 N tree cover 0.39 -> 0.57, GPP 0.53 -> 0.88 kgC m-2 yr-1 (ILAMB 0.61), LAI
+2.19 -> 1.78 (ILAMB 0.98); north of 70 N GPP 0.07 -> 0.39 (ILAMB 0.14) with the displayed LAI 0.41 -> 0.09. Lower
+growth respiration (0.16 against 0.30) and the lower-canopy phenology medians (gdd_thresh_l 74 pooled over 24
+grassland, shrubland and savanna towers; drop_stress_thresh 0.14; tthresh_l_c 2.4) let trees expand north and the
+tundra grass photosynthesise through a longer season, neither of which a prescribed-vegetation tower fit can see; the
+one tundra tower in the set, GL-ZaH, is the only tower where the class median fails (0.43), because its own fit (1.11)
+wanted different lower-canopy thresholds from the temperate grasslands it was pooled with. Verdict: no defect in the
+set; a limitation of calibrating a dynamic-vegetation model at fixed-vegetation towers, and a pooled phenology that
+treats tundra as temperate grassland. The remedy is lower-canopy phenology by PFT or by climate class (the model holds
+one set of thresholds for the whole lower canopy) and a tree-establishment check against the ESA CCI tree cover in
+the boreal zone; both recorded for section 43, not done here. GL-ZaH is also 0.40 in the default run and 0.10 LAI at
+the tower: the Arctic grassland is under-productive in every configuration.
