@@ -1,14 +1,152 @@
-# ibis
+# IBIS 3.0
 
-Three-in-one repository for the IBIS land-surface model:
+IBIS 3.0 is the Integrated Biosphere Simulator (IBIS 2.6b4; Foley et al. 1996, Kucharik et al. 2000) rewritten in JAX, verified against the Fortran at machine precision, corrected where the original or the port was wrong, extended with a sunlit/shaded canopy, fire, wetland methane, cropland and a deeper soil column, and recalibrated from the flux towers outward to the globe. A 200-year global spin-up at 0.5° takes three to five hours on one GPU, a per-tower calibration under an hour, and the whole model is differentiable.
+
+`main` is the calibrated IBIS 3.0 of 12 October 2026. Its parameter set is [`params_s7_crop.yaml`](python-port/configs/params/params_s7_crop.yaml); the full record of how it was built is [`docs/CALIBRATION.md`](docs/CALIBRATION.md).
+
+## Results at a glance (12 October 2026)
+
+**Towers** — monthly values at 62 FLUXNET2015 towers, 2009–2012, on each tower's own meteorology; "held-out" scores are on a year the fit never saw. "Within 25 %" is the share of towers whose annual model/tower ratio lies between 0.75 and 1.25.
+
+| Quantity | IBIS 2.6b4 default | IBIS 3.0, one set per PFT | IBIS 3.0, per-tower fits | Target |
+|---|---|---|---|---|
+| GPP, monthly r / NSE | 0.86 / 0.73 | 0.88 / 0.78 | 0.94 / 0.88 | 1 / 1 |
+| GPP, annual within 25 % of tower | 58 % | 66 % | 90 % | 100 % |
+| ET, monthly r / NSE | 0.80 / 0.57 | 0.81 / 0.62 | 0.83 / 0.65 | 1 / 1 |
+| NEE, monthly r / NSE | 0.47 / 0.12 | – | 0.73 / 0.49 | 1 / 1 |
+| NEE day-time uptake, held-out year, model/tower (within 25 %) | 0.68 (23 %) | – | 0.89 (69 %) | 1 |
+| NEE night-time release, held-out year, model/tower | 1.02 | – | 1.07 | 1 |
+| Wetland CH4, held-out model/tower: boreal / temperate / tropical (45 towers) | – | – | 0.84 / 0.82 / 0.95 | 1 |
+| Wetland CH4, held-out monthly r: boreal / temperate / tropical | – | – | 0.66 / 0.83 / 0.03 | 1 |
+| Cropland GPP, held-out model/tower (r): C3 crops / maize (16 towers) | – | – | 0.76 (0.55) / 1.01 (0.77) | 1 |
+
+**Global, 2001–2010** — the final run with cropland, 2001–2010 means on true land area, after a 200-year spin-up and the 1901–2000 transient with rising CO2.
+
+| Quantity | IBIS 2.6b4 default | IBIS 3.0 | Reference |
+|---|---|---|---|
+| Land sink, PgC yr⁻¹ | +1.9 | **+2.2** | GCB 2024: 2.83 ± 0.5; TRENDY v13 range 1.4–4.4 (its IBIS 1.99) |
+| Crop harvest, PgC yr⁻¹ | – | **1.4** | about 1–2 |
+| GPP, PgC yr⁻¹ | 184 | **201** (1.75 × FLUXCOM, cell r 0.85) | TRENDY 115–135; FLUXCOM 109 on its land |
+| GPP / FLUXCOM: tropics / 30–60N / north of 60 | – | 1.52 / 2.29 / 3.58 | 1 (FLUXCOM is 0.75 × the towers) |
+| GPP trend, 1900s to 2000s | – | +18 % | +31 ± 5 % (Campbell et al. 2017); 20–30 % (TRENDY) |
+| ET, mm yr⁻¹ (cell r; cells inside the product spread) | 1.03 × | **527** (1.04 ×; 0.93; 54 %) | 508 (five-product ensemble) |
+| ET / ensemble: tropics / 30–60N / north of 60 | – | 1.08 / 1.00 / 0.75 | 1 |
+| Wetland CH4, Tg yr⁻¹ | 269 | **153** | GMB 2025 bottom-up: 153 (116–189) |
+| CH4 by band 90S–30N / 30–60N / 60–90N | – | 129 / 11 / 13 | 109 / 32 / 12 |
+| Burned area, % yr⁻¹ (rank r vs GFED5, all / burning cells) | 4.62 | **4.55** (+0.76 / +0.42) | 4.60 (products 2.4–4.6) |
+| Wood carbon (above-ground), PgC | 591 | **356** | 450–650 for all vegetation carbon |
+| Soil carbon, PgC | 1873 | **2418** | 1500–2400 to 1 m |
+| Permafrost extent, Mkm² | – | 23.2 | 21.8 (Obu et al. 2019) |
+
+**In one line:** at the towers the per-tower fits reproduce GPP, ET and NEE on unseen years and one set per PFT keeps a quarter of that gain; globally the land sink, ET, wetland methane and burned area sit inside their budgets or product spreads. GPP is the one quantity outside its reference range: the pattern is right (cell r 0.85, two thirds of towers within 25 %) but the total, 201 PgC yr⁻¹, is above every published estimate. About a third of the excess over FLUXCOM is the reference (FLUXCOM runs 0.75 × the towers and is low in the tropics); the rest is located in the boreal dynamic vegetation, which grows trees onto the tundra, and in cropland, which still carries a grass growing season. Both are first on the next-stage list ([CALIBRATION.md 43](docs/CALIBRATION.md)).
+
+### The final global run
+
+![Figure 1. The final global run, 2001–2010 means: GPP, net flux (NPP − Rh), above-ground wood carbon, soil carbon, and wetland methane beside the Global Methane Budget 2025 bottom-up map.](docs/figures/readme/G1_maps.png)
+
+*Figure 1. The final global run, 2001–2010 means: GPP, net flux (NPP − Rh, positive = uptake), above-ground wood carbon, soil carbon, and the model's wetland methane beside the Global Methane Budget 2025 bottom-up wetland map on the same colour scale.*
+
+![Figure 2. Zonal land means: GPP against FLUXCOM, NPP − Rh, and wetland methane per latitude row.](docs/figures/readme/G2_zonal.png)
+
+*Figure 2. Zonal land means of the same run: GPP beside FLUXCOM, the net flux, and wetland methane per latitude row (Tg CH4 yr⁻¹).*
+
+![Figure 3. GPP against FLUXCOM: model, reference, difference, ratio and zonal means.](docs/figures/readme/S_GPP_spatial.png)
+
+*Figure 3. GPP against FLUXCOM: model, reference, model − reference, model / reference, and zonal land means. The pattern matches (cell r 0.85); the excess is largest north of 60 N (boreal tree cover) and in the cropland belts of the northern mid-latitudes.*
+
+![Figure 4. ET against the five-product ensemble: model, reference, difference, cells outside the product spread, and zonal means.](docs/figures/readme/S_ET_spatial.png)
+
+*Figure 4. ET against the ensemble of five satellite- and tower-based products (MODIS ET, MOD16A2, GLEAM v3.3a, DOLCE, FLUXCOM LE; from the ILAMB collection): model, ensemble mean, model − reference, and the part of the difference that lies outside the spread of the five products (white = inside). 54 % of cells are inside the spread; the zonal mean follows the products within their band except in the dry subtropics (too wet) and north of 60 N (too dry).*
+
+## What changed from IBIS 2.6b4
+
+| Component | IBIS 2.6b4 | IBIS 3.0 | Kind |
+|---|---|---|---|
+| Numerics | Fortran 77, serial, hourly | JAX on GPU, float32 with float64 verification, 900 s sub-steps, differentiable | port |
+| Fortran bugs | real*4 physiology constants; bare-cell NaN; wet-day chain; 0×∞ at wilting point | all fixed in both codes | bug fix |
+| Forcing in the port | — | surface pressure, phenology clock, solar latitude, grid duplication, normals on restart, accumulators | port fixes |
+| Canopy photosynthesis | one big leaf, stems credited to leaves, vmax by existence priority | sunlit/shaded two big leaves, capacity e^(−Kn x), vmax mixed by leaf area, acclimation | new |
+| Phenology | hard-coded thresholds, temperature-only senescence, inert drought trigger | parameters; photoperiod senescence; soil-stress drought trigger; absolute cold threshold | new |
+| Cover and establishment | linear grass cover, 25 % floors, no water limit on trees | saturating cover, floors as parameters, stress-gated tree survival | new |
+| Fire | annual-mean dryness, never switched on in the port | fire-season length, VPD × density danger, fine fuel, human terms, per-PFT mortality, emissions, combustion completeness | new |
+| Methane | none | M-lite+ wetland module on WAD2M inundation, per-band parameters fitted at towers | new |
+| Cropland | none (crops become forest) | managed grass on a sub-grid share: harvest, crop capacity factor, calibrated at cropland towers | new |
+| Soil column | 4 m, zero flux | +8 m bedrock, permafrost diagnostic | new |
+| Respiration | hard-coded constants | per-PFT parameters, NEE by day and night, ET components | parameters |
+| Calibration | none shipped | tower-first: 62 FLUXNET2015 + 45 FLUXNET-CH4 + 16 cropland towers; class medians per PFT | calibration |
+
+Every new process sits behind a switch that is off by default and bit-identical to the Fortran when off. The science is written down in `docs/`:
+
+| Document | What it holds |
+|---|---|
+| [`docs/CALIBRATION.md`](docs/CALIBRATION.md) | the calibration log, sections 1–43: every stage, its baseline, its verdict and the next-stage list (43) |
+| [`docs/GPP.md`](docs/GPP.md) | the GPP overestimate and the canopy rebuild |
+| [`docs/FIRE.md`](docs/FIRE.md) | fire module design and build log |
+| [`docs/METHANE.md`](docs/METHANE.md) | methane module design and build log |
+| [`docs/BEDROCK.md`](docs/BEDROCK.md) | the thermal bedrock layers |
+| [`docs/DEFECTS_FOR_REVIEW.md`](docs/DEFECTS_FOR_REVIEW.md) | defects found in the port and the Fortran |
+| [`docs/DATA_INVENTORY.md`](docs/DATA_INVENTORY.md) | every input, evaluation product and archived run, with its path |
+| [`docs/RUNNING.md`](docs/RUNNING.md), [`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md) | how to run, environments, pinned versions |
+| [`verify/STATUS.md`](verify/STATUS.md) | the F77 ↔ JAX verification findings |
+
+## Known limitations
+
+1. **One set per PFT loses most of the tower gain.** Per-tower parameters are within 25 % at 90 % of towers, the class medians at 66 %.
+2. **Dynamic vegetation at high latitudes.** With the calibrated set, trees expand north of 60 N; GPP there is 3.6 times the reference.
+3. **Cropland** is a managed grass: no crop phenology, sowing or harvest date on the cropland share.
+4. **Methane seasonality.** No winter or under-ice emission, and the tropical towers' seasonal cycle is not reproduced (held-out r 0.03) because the inundation input is a climatology.
+5. **The ET partition.** Transpiration is 0.46 of ET against 0.57–0.64 observed; soil evaporation is too large in the boreal zone.
+6. **Respiration structure.** Growth respiration is booked in daylight in step with assimilation rather than over 24 h.
+7. **Fire and disturbance carbon.** The model loses about 10 PgC yr⁻¹ to fire and disturbance where the fire products give about 2.
+8. **Canopy physics left alone.** The two-stream canopy is unclumped (94 % absorption at a leaf area of 2.2).
+9. **Soil thermal and deep carbon.** The hydrological column is 4 m, the bedrock extension is thermal only, there is no vertically resolved decomposition.
+10. **Data.** The forcing on this machine ends in 2010; TRENDY gridded fields are not yet used.
+
+## Repository layout
 
 | Directory | What it contains |
 |---|---|
-| [`fortran/`](fortran/) | Original IBIS 2.6b4 (Fortran 77) and a clean F2008 rewrite |
-| [`python-port/`](python-port/) | JAX/Python port (differentiable, JIT-compiled) |
-| [`verify/`](verify/) | F77 ↔ JAX bit-exact verification framework |
+| [`python-port/`](python-port/) | the model: `ibis/` (physics, bgc, timestepping, io), `scripts/run_global.py` (the global runner), `configs/params/` (parameter sets), `tests/` (600+ tests) |
+| [`verify/`](verify/) | `calibration/` (tower harness, site fits, global protocol, diagnostics), `timestepping/` (F77 ↔ JAX lockstep verification), `STATUS.md` |
+| [`fortran/`](fortran/) | the original IBIS 2.6b4 (Fortran 77) and a Fortran 2008 rewrite |
+| [`docs/`](docs/) | the science log (table above) and the README figures |
+| [`configs/`](configs/) | spin-up configurations of earlier stages |
 
-## Alignment status
+Parameter sets in [`python-port/configs/params/`](python-port/configs/params/): `params_s3_classmedian.yaml` (class medians of the per-tower GPP/ET/NEE fits), `params_s4_classmedian_ch4.yaml` (+ methane by band), `params_s7_crop.yaml` (+ cropland: **the IBIS 3.0 set**).
+
+## Quick start
+
+The inputs (GSWP3 forcing, HWSD soils, ESACCI land cover, WAD2M inundation, the cropland map, FLUXNET2015 and FLUXNET-CH4 towers, and the evaluation products) are not in the repository; [`docs/DATA_INVENTORY.md`](docs/DATA_INVENTORY.md) lists each with its source. The calibration harness and `final_validation.sh` carry the paths of our machine.
+
+```bash
+# environment (CPU; add jax[cuda12] for the GPU) — pinned versions in docs/ENVIRONMENT.md
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e python-port cma pandas pytest
+
+# tests (~5 min)
+cd python-port && PYTHONPATH=. python -m pytest tests/ -q && cd ..
+
+# a global run from a configuration (spin-up, transient or hindcast)
+PYTHONPATH=python-port:. python python-port/scripts/run_global.py <cfg.yaml>
+
+# the IBIS 3.0 protocol: 200-yr spin-up, 1901-2000 transient, 2001-2010 hindcast, scoring against the budgets
+SPINUP_YEARS=200 METHANE=1 CROPFRAC=<cropfrac_npz> \
+  bash verify/calibration/final_validation.sh s7 python-port/configs/params/params_s7_crop.yaml
+
+# a per-tower fit (CMA-ES) at the evergreen-needleleaf towers
+PYTHONPATH=python-port:. python verify/calibration/site_fit.py --igbp ENF \
+  --params python-port/configs/params/params_s7_crop.yaml \
+  --fit vmax:temp_con_ever,acclim_tau,acclim_s0 --n-evals 200 --workers 4 --out <dir>
+```
+
+See [`docs/RUNNING.md`](docs/RUNNING.md) for the reference state, the common tasks and the gotchas.
+
+## Port verification against the Fortran
+
+The JAX port was verified against IBIS 2.6b4 (F77) in lockstep, cell by cell and hour by hour, before any science change was made (May–June 2026). The record is kept here in full; expand to read it.
+
+<details>
+<summary><b>F77 ↔ JAX alignment status, GPU performance, first global spin-ups and the inherited Fortran bugs (findings #20, #26, #27)</b></summary>
 
 The JAX port reproduces the F77 reference at or near machine precision across every test.
 Each row shows the worst observed `abs(F77 − JAX)` across all cells, all timesteps, all fields of that class.
@@ -265,58 +403,14 @@ the fix, **all 117 cells run NaN-free for the entire year**.
 
 See [`verify/STATUS.md`](verify/STATUS.md) for full per-test breakdowns including all 26 verification findings (all closed) discovered and resolved (or definitively characterized) during the port.
 
-## Layout
-
-### `fortran/` — Original IBIS
-- `fortran/ibis_2.6b4/` — the historical Fortran-77 sources (original code from Foley et al.)
-- `fortran/src/` — a Fortran 2008 rewrite by Min (modular, validated against F77 at loose tolerance)
-- `fortran/tests/` — F90 regression test infrastructure
-
-### `python-port/` — JAX port
-- `ibis/` — the port itself, organized by physics module (radiation, soil, snow, canopy, stomata, …)
-- `tests/f2py/` — Python wrappers around the F77 sources for f2py-style direct calls
-- `configs/` — model configuration YAMLs
-
-### `verify/` — Verification framework
-- `verify/<section>/` — per-section bit-exact tests (thermo, radiation, soil, snow, canopy, …)
-- `verify/timestepping/` — full-timestep integration tests including the global GSWP3 multi-month verification
-- `verify/timestepping/pipeline/` — diagnostic pipeline that found the [stresstu unpack-order bug](verify/STATUS.md) (finding #16)
-- `verify/STATUS.md` — comprehensive verification status with all 25 findings
-
-## Quick start
-
-### Build the F2008 reference (optional)
-```bash
-cd fortran && make
-```
-
-### Build the F77 f2py wrapper for testing
-```bash
-cd python-port/tests/f2py && python3 build_f77.py
-```
-
-### Set up the JAX environment
-```bash
-cd verify && python3 -m venv .venv && source .venv/bin/activate
-pip install -e ../python-port  # install JAX port
-pip install netCDF4 jax equinox jaxtyping numpy
-```
-
-### Run the F77↔JAX integration verifier
-```bash
-PYTHONPATH=python-port verify/.venv/bin/python -m verify.timestepping.verify_lsxmain
-```
-
-### Run the global GSWP3 verification (requires GSWP3 data on NAS)
-```bash
-PYTHONPATH=python-port verify/.venv/bin/python -m verify.timestepping.pipeline.global_gswp3_test
-```
+</details>
 
 ## Citation
 
-If you use this code, please cite the original IBIS model:
+A paper describing IBIS 3.0 is in preparation; until it appears, please cite this repository and the original model:
 
-- Foley, J.A. et al. (1996), "An integrated biosphere model of land surface processes, terrestrial carbon balance, and vegetation dynamics", _Global Biogeochemical Cycles_ 10(4): 603-628.
+- Foley, J.A. et al. (1996), "An integrated biosphere model of land surface processes, terrestrial carbon balance, and vegetation dynamics", _Global Biogeochemical Cycles_ 10(4): 603–628.
+- Kucharik, C.J. et al. (2000), "Testing the performance of a dynamic global ecosystem model: water balance, carbon balance, and vegetation structure", _Global Biogeochemical Cycles_ 14(3): 795–825.
 
 ## License
 

@@ -87,3 +87,6 @@ fortran/tests/regression/params.*
 **/*.gcov
 **/*.gcda
 **/*.gcno
+
+# README figures (the only images tracked in the repo)
+!docs/figures/readme/*.png
