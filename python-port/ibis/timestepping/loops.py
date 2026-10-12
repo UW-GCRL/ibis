@@ -208,7 +208,11 @@ def crop_vfac(params, vfac, npft):
     if getattr(params, "cropfrac", None) is None:
         return vfac
     m4 = jnp.zeros((npft,), dtype=jnp.float32).at[10].set(1.0); m3 = jnp.zeros((npft,), dtype=jnp.float32).at[11].set(1.0)
-    g = 1.0 + params.cropfrac[:, jnp.newaxis] * ((params.crop.vmax_scale_c4 - 1.0) * m4[jnp.newaxis, :] + (params.crop.vmax_scale_c3 - 1.0) * m3[jnp.newaxis, :])
+    q = params.crop.c4_share
+    s_mix = (1.0 - jnp.clip(q, 0.0, 1.0)) * params.crop.vmax_scale_c3 + jnp.clip(q, 0.0, 1.0) * params.crop.vmax_scale_c4
+    per_pft = (params.crop.vmax_scale_c4 - 1.0) * m4[jnp.newaxis, :] + (params.crop.vmax_scale_c3 - 1.0) * m3[jnp.newaxis, :]
+    by_share = (s_mix - 1.0) * (m4 + m3)[jnp.newaxis, :]
+    g = 1.0 + params.cropfrac[:, jnp.newaxis] * jnp.where(q < 0.0, per_pft, by_share)
     return g if vfac is None else vfac * g
 
 

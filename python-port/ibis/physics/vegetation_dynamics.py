@@ -378,8 +378,14 @@ def dynaveg(
     cdisturb = jnp.zeros_like(veg.fu)
     wood = jnp.full_like(veg.fu, 0.001)
 
+    # Cropland as managed grass (CALIBRATION.md 41, 43): the share c of the cell that is cropland is grass only. The
+    # shrubs (PFTs 8, 9) grow on the natural share: their NPP is scaled by (1 - c), so their pools equilibrate at
+    # (1 - c) of the natural density; the trees get the sub-grid cover rule below; the grasses are the crops.
+    _crop_c = None if cropfrac is None else jnp.clip(cropfrac, 0.0, 1.0)
     for j in range(npft):
         aynpp_j = exist[:, j] * raw_aynpp[:, j]
+        if _crop_c is not None and j in (8, 9):
+            aynpp_j = aynpp_j * (1.0 - _crop_c)
         ayanpp_j = (aleaf[j] + awood[j]) * aynpp_j
         local_ayanpp = local_ayanpp.at[:, j].set(ayanpp_j)
 
@@ -532,11 +538,9 @@ def dynaveg(
     # (The first version capped the cell cover at 1 - c and scaled the pools to it; because fu saturates near 1 for any
     # wood above ~3 kgC m-2, that cleared every forest with a few percent of cropland -- 12 PgC yr-1, section 43.)
     # The cropland share of the grass leaf turnover leaves the field as harvest instead of becoming litter.
-    _crop_c = None
     if cropfrac is not None:
         from ibis.io.parameters import default_crop_params as _dcp
         _cp = crop_params if crop_params is not None else _dcp()
-        _crop_c = jnp.clip(cropfrac, 0.0, 1.0)
         _harvest = jnp.zeros_like(_crop_c)
         for j in (10, 11):
             _harvest = _harvest + _crop_c * _cp.harvest_index * veg.cbiol[:, j] / tauleaf[j]  # from the pre-growth leaf pool, as falll was

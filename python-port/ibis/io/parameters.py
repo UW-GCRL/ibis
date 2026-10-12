@@ -220,6 +220,11 @@ class CropParams(eqx.Module):
     harvest_index: float = 0.45      # share of the cropland grass leaf turnover removed as harvest (grain + residue export)
     vmax_scale_c3: float = 1.0       # crop / natural-grass ratio of photosynthetic capacity on the cropland share, C3 crops (PFT 11)
     vmax_scale_c4: float = 1.0       # the same for C4 crops (maize, sorghum, sugar cane; PFT 10)
+    #: Which crop a cell's cropland grows. -1 (the tower setting): the C4 scale on the C4 grass and the C3 scale on the
+    #: C3 grass, so a tower prescribed as C4 grass is a maize field. 0..1 (the global setting): the share of the
+    #: cropland that is C4 crops; both grasses on the cropland share get (1 - share) x C3 + share x C4, because the
+    #: model's grass competition (C4 wherever the warmest month exceeds 22 C) says nothing about what is sown there.
+    c4_share: float = -1.0
 
 
 def default_crop_params() -> CropParams:
