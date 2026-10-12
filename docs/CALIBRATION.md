@@ -4901,3 +4901,22 @@ water table. What the test did settle: where a wetland's water table is known an
 module's response to it is right (the seasonality follows), so the global seasonality problem is the inundation and
 water-table input, not the production or oxidation formulation. A tower-by-tower screening of the WTD datum (or the
 FLUXNET-CH4 v2 release's harmonised WTD) is the way to use this data; the code path stays.
+
+## 43. The global run with cropland (2026-10-11/12)
+
+**First attempt, wrong by construction (`final_s5_crop`, 13:08-19:56).** The cropland rule of section 41 capped the
+cell's upper-canopy cover at the non-cropland share and scaled the tree pools down to the wood that gives that cover.
+IBIS's cover rule saturates (fu = 0.95 at 3 kgC m-2 of wood with fu_k = 1), so a cell with 5 % cropland and a forest of
+10 kgC m-2 had its wood cut to 3 kgC m-2 every year: a clearing flux of 12.5 PgC yr-1, wood carbon 434 -> 206 PgC, the
+stored-carbon sink +1.9 -> +0.5 PgC yr-1, and GPP UP (189 -> 199 PgC yr-1 on true land) because the grass took the
+cleared share at full productivity -- the cropland cells' ratio to FLUXCOM did not move (2.1). Harvest came out at
+1.3 PgC yr-1. Kept as the record of a formulation that cannot work in a single-column cover model: the cover of a
+few percent of cropland is not representable as a cap on a saturating cover.
+
+**The rule that replaced it** (commit ed8fba5): cropland is a sub-grid share. The trees keep their natural wood
+density on the non-cropland share (1 - c) and the cell's tree cover is (1 - c) times the cover their density gives,
+`fu = (1 - c) x fu(wood / (1 - c))`; their GPP scales with their cover, so the pools equilibrate on their share with no
+clearing. The crops are the grasses on the share c with the fitted capacity and the harvest of section 41. Tests:
+no cropland reproduces the old path; wood is untouched; cover stays within the non-cropland share.
+
+**Second run (`final_s6_crop`, launched 20:30; results below when it lands).**
