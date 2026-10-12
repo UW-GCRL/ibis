@@ -4920,7 +4920,7 @@ clearing. The crops are the grasses on the share c with the fitted capacity and 
 no cropland reproduces the old path; wood is untouched; cover stays within the non-cropland share.
 
 **Second run (`final_s6_crop`, 20:14-02:34).** The sub-grid rule behaves: no clearing, harvest 1.27 PgC yr-1, wood
-carbon 356 PgC, the 2001-2010 stored-carbon sink +2.34 PgC yr-1 (GCB 2.83), wetland CH4 155 Tg (131 / 11 / 13 by
+carbon 349 PgC, the 2001-2010 stored-carbon sink +1.64 PgC yr-1 (GCB 2.78; numbers corrected 2026-10-12, section 44), wetland CH4 154 Tg (130 / 11 / 13 by
 band), ET 1.04 x the ensemble. But GPP rose again (207 PgC yr-1 on true land) and the cropland cells kept their ratio
 to FLUXCOM (2.15 in cells over 60 % cropland) with the tree cover now correctly at 0.26. The 2010 restart shows why:
 in those cells the lower canopy is C4 grass (mean leaf area 3.4; 5.1 in the tropics, 0.6 C3 grass) and shrubs (2.4
@@ -4941,21 +4941,21 @@ dynamic, and a crop field is bare for part of the year) and a map of which crop 
 
 | 2001-2010 | s4 (no cropland, section 39) | s7 (cropland as managed grass) | reference |
 |---|---|---|---|
-| land sink, stored-carbon change, PgC yr-1 | +1.8 | +2.2 | GCB 2.83 +- 0.5; TRENDY 1.4-4.4 |
+| land sink, stored-carbon change, PgC yr-1 | +2.0 | +1.6 | GCB 2.8 +- 0.7; TRENDY 1.4-4.4 |
 | harvest, PgC yr-1 | - | 1.36 | FAO crop NPP removed ~1-2 |
-| GPP on true land, PgC yr-1 | 189 | 201 | TRENDY 115-135 |
+| GPP on true land, PgC yr-1 | 189 | 195 | TRENDY 115-135 |
 | GPP / FLUXCOM, cells over 60 % cropland | 2.10 | 1.84 | - |
 | GPP / FLUXCOM, cells 30-60 % cropland | 2.13 | 2.05 | - |
 | GPP / FLUXCOM, cells under 10 % cropland | 1.61 | 1.61 | - |
 | tree cover, cells over 60 % cropland | 0.78 | 0.26 | - |
-| wood carbon / soil carbon, PgC | 434 / 2445 | 356 / 2418 | 450-650 (all vegetation) / 1500-2400 |
+| wood carbon / soil carbon, PgC | 434 / 2445 | 349 / 2416 | 450-650 (all vegetation) / 1500-2400 |
 | ET / ensemble (cell r) | 1.03 (0.93) | 1.04 (0.93) | - |
 | wetland CH4, Tg yr-1 (90S-30N / 30-60N / 60-90N) | 151 (126 / 11 / 13) | 153 (129 / 11 / 13) | 153 (109 / 32 / 12), range 116-189 |
 
 Reading. The trees now sit on their share (tree cover 0.26 where cropland is more than 60 %, against 0.78 before),
-the harvest is of the right order, the sink moves toward the budget (+2.2 against 2.83) because less carbon
-accumulates as forest on farmland, and methane and ET are unchanged. The GPP excess on cropland cells falls from
-2.1 to 1.8 times FLUXCOM -- a gain, but a modest one, and the global GPP goes up rather than down (189 -> 201)
+the harvest is of the right order, the sink falls (+2.0 -> +1.6 against GCB 2.8) because the harvest removes carbon that
+used to accumulate as forest on farmland, and methane and ET are unchanged. The GPP excess on cropland cells falls from
+2.1 to 1.8 times FLUXCOM -- a gain, but a modest one, and the global GPP goes up rather than down (189 -> 195)
 because the grass that fills the cropland share grows a dynamic leaf area of 3-4 m2 m-2 that no capacity factor of
 0.33 holds down: lower capacity, lower NPP, lower leaf carbon, but the canopy closes anyway on a grass that has no
 season. The cropland treatment is therefore a partial answer: it fixes the land cover and the carbon accounting
@@ -5019,3 +5019,14 @@ the 2001-2010 hindcast (`final_validation.sh` with `SKIP_SPINUP=1`, env `KOPPEN`
 vegetation and the soil water re-equilibrate: k1 = Köppen mask; k2 = Köppen + larch fix; o1 =
 organic soils. Verdicts on the section-43 quantities (sink, GPP by band vs FLUXCOM, ET by band,
 tree cover by band vs the reference, methane, fire), model/obs ratios first.
+
+**Correction to sections 39-43 (2026-10-12).** `mip_compare.py` grouped years by calendar decade, so for a 2001-2010
+record its last "decade" row was the single year 2010, and its summary line reported that row. The s7 numbers in
+section 43's summary and table, in the IBIS 3.0 report and in the README were read from it: GPP 201, wood 356, soil
+2418 and the sink were year-2010 values. The 2001-2010 means (script fixed: decades labelled 2001-2010, period means,
+first-year dC/dt from the year before the range) are GPP 195 PgC yr-1, stored-carbon sink +1.64 (s4 without cropland
++1.95; the IBIS default run +2.77; GCB 2001-2010 2.78 +- 0.69), wood 349 and soil 2416 PgC, CH4 154 Tg (130 / 11 /
+13). Two verdicts change: the sink is BELOW the Global Carbon Budget, not inside it, and the cropland treatment moved
+it away from the budget rather than toward it (the harvest removes carbon that used to accumulate as forest). The s5
+and s6 numbers quoted earlier in section 43 came from the same row and carry the same year-2010 bias. The band
+ratios (GPP / FLUXCOM, ET / ensemble), the methane and fire scores and everything at the towers are unaffected.

@@ -24,21 +24,21 @@ IBIS 3.0 is the Integrated Biosphere Simulator (IBIS 2.6b4; Foley et al. 1996, K
 
 | Quantity | IBIS 2.6b4 default | IBIS 3.0 | Reference |
 |---|---|---|---|
-| Land sink, PgC yr⁻¹ | +1.9 | **+2.2** | GCB 2024: 2.83 ± 0.5; TRENDY v13 range 1.4–4.4 (its IBIS 1.99) |
+| Land sink, PgC yr⁻¹ | +2.8 | **+1.6** | GCB 2024: 2.8 ± 0.7; TRENDY v13 range 1.4–4.4 (its IBIS 1.99) |
 | Crop harvest, PgC yr⁻¹ | – | **1.4** | about 1–2 |
-| GPP, PgC yr⁻¹ | 184 | **201** (1.75 × FLUXCOM, cell r 0.85) | TRENDY 115–135; FLUXCOM 109 on its land |
+| GPP, PgC yr⁻¹ | 178 | **195** (1.75 × FLUXCOM, cell r 0.85) | TRENDY 115–135; FLUXCOM 109 on its land |
 | GPP / FLUXCOM: tropics / 30–60N / north of 60 | – | 1.52 / 2.29 / 3.58 | 1 (FLUXCOM is 0.75 × the towers) |
 | GPP trend, 1900s to 2000s | – | +18 % | +31 ± 5 % (Campbell et al. 2017); 20–30 % (TRENDY) |
 | ET, mm yr⁻¹ (cell r; cells inside the product spread) | 1.03 × | **527** (1.04 ×; 0.93; 54 %) | 508 (five-product ensemble) |
 | ET / ensemble: tropics / 30–60N / north of 60 | – | 1.08 / 1.00 / 0.75 | 1 |
-| Wetland CH4, Tg yr⁻¹ | 269 | **153** | GMB 2025 bottom-up: 153 (116–189) |
-| CH4 by band 90S–30N / 30–60N / 60–90N | – | 129 / 11 / 13 | 109 / 32 / 12 |
+| Wetland CH4, Tg yr⁻¹ | 269 | **154** | GMB 2025 bottom-up: 153 (116–189) |
+| CH4 by band 90S–30N / 30–60N / 60–90N | – | 130 / 11 / 13 | 109 / 32 / 12 |
 | Burned area, % yr⁻¹ (rank r vs GFED5, all / burning cells) | 4.62 | **4.55** (+0.76 / +0.42) | 4.60 (products 2.4–4.6) |
-| Wood carbon (above-ground), PgC | 591 | **356** | 450–650 for all vegetation carbon |
-| Soil carbon, PgC | 1873 | **2418** | 1500–2400 to 1 m |
+| Wood carbon (above-ground), PgC | 471 | **349** | 450–650 for all vegetation carbon |
+| Soil carbon, PgC | 1938 | **2416** | 1500–2400 to 1 m |
 | Permafrost extent, Mkm² | – | 23.2 | 21.8 (Obu et al. 2019) |
 
-**In one line:** at the towers the per-tower fits reproduce GPP, ET and NEE on unseen years and one set per PFT keeps a quarter of that gain; globally the land sink, ET, wetland methane and burned area sit inside their budgets or product spreads. GPP is the one quantity outside its reference range: the pattern is right (cell r 0.85, two thirds of towers within 25 %) but the total, 201 PgC yr⁻¹, is above every published estimate. About a third of the excess over FLUXCOM is the reference (FLUXCOM runs 0.75 × the towers and is low in the tropics); the rest is located in the boreal dynamic vegetation, which grows trees onto the tundra, and in cropland, which still carries a grass growing season. Both are first on the next-stage list ([CALIBRATION.md 43](docs/CALIBRATION.md)).
+**In one line:** at the towers the per-tower fits reproduce GPP, ET and NEE on unseen years and one set per PFT keeps a quarter of that gain; globally ET, wetland methane and burned area sit inside their budgets or product spreads, and the land sink (+1.6 PgC yr⁻¹) is below the Global Carbon Budget's 2.8 ± 0.7 and inside the TRENDY model range (1.4–4.4). GPP is the quantity furthest outside its reference range: the pattern is right (cell r 0.85, two thirds of towers within 25 %) but the total, 195 PgC yr⁻¹, is above every published estimate. About a third of the excess over FLUXCOM is the reference (FLUXCOM runs 0.75 × the towers and is low in the tropics); the rest is located in the boreal dynamic vegetation, which grows trees onto the tundra, and in cropland, which still carries a grass growing season. Both are first on the next-stage list ([CALIBRATION.md 43](docs/CALIBRATION.md)).
 
 ### The final global run
 
