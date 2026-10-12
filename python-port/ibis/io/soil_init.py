@@ -98,10 +98,32 @@ RHOSOI_VAL = 2650.0 * (1.0 - FORGANIC) + 1300.0 * FORGANIC      # 2636.5
 #: Specific heat of the soil solid phase, J kg-1 K-1 (Campbell & Norman 1998).
 CSOI_VAL = 870.0 * (1.0 - FORGANIC) + 1920.0 * FORGANIC          # 880.5
 
+# ---- Organic end-member (physics.soil_organic) ----
+# Lawrence & Slater (2008, Clim. Dyn. 30:145, Table 1), the CLM4/5 treatment: the organic-matter
+# fraction of the solids f_om = rho_om / RHO_OM_MAX mixes these linearly into the mineral values.
+# rho_om = organic carbon (mass %) x OM_PER_OC x bulk density, from HWSD2
+# (scripts/hwsd2_organic_to_nc.py). Only used when an organic-carbon map is supplied.
+RHO_OM_MAX = 130.0          # kg m-3, bulk density of pure organic soil (peat)
+OM_PER_OC = 1.724           # organic matter per organic carbon (van Bemmelen)
+ORGANIC_POROS = 0.9
+ORGANIC_BEX = 2.7
+ORGANIC_SUCTION = 0.0103    # m (10.3 mm)
+ORGANIC_HYDRAUL = 1.0e-4    # m s-1 (0.1 mm s-1)
+# Volumetric water at field capacity (-33 kPa = 3.37 m) and wilting (-1500 kPa = 153 m) on the
+# organic Campbell curve theta = poros * (suction / psi) ** (1 / b): 0.106 and 0.026.
+ORGANIC_SFIELD = ORGANIC_POROS * (ORGANIC_SUCTION / 3.37) ** (1.0 / ORGANIC_BEX)
+ORGANIC_SWILT = ORGANIC_POROS * (ORGANIC_SUCTION / 153.0) ** (1.0 / ORGANIC_BEX)
+ORGANIC_CONDRY = 0.05       # W m-1 K-1, dry organic conductivity (soil_physics.setsoi)
+ORGANIC_RHO = 1300.0        # kg m-3 and J kg-1 K-1 of the organic solids, as F77 initial.f:715-724
+ORGANIC_CSOI = 1920.0
+
+
 
 def compute_soil_properties(
     sand: np.ndarray,
     clay: np.ndarray,
+    orgc: np.ndarray | None = None,
+    bulk: np.ndarray | None = None,
 ) -> dict:
     """Compute soil hydraulic properties from sand/clay percentages.
 
@@ -109,33 +131,61 @@ def compute_soil_properties(
     ----------
     sand : (npoi, nsoilay) percent sand
     clay : (npoi, nsoilay) percent clay
+    orgc, bulk : (npoi, nsoilay), optional
+        Organic carbon (% of dry mass) and bulk density (g cm-3) from HWSD2.
+        Given together, the organic-matter fraction of the solids
+        f_om = min(1, orgc/100 x OM_PER_OC x bulk x 1000 / RHO_OM_MAX)
+        mixes the organic end-member (module constants) linearly into the
+        porosity, Campbell b, saturated suction and conductivity, field
+        capacity, wilting point, and the solids' density and heat capacity
+        (Lawrence & Slater 2008). Without them every value is the F77 texture
+        lookup, `forganic` is zero and rhosoi/csoi keep the F77 constant
+        correction FORGANIC.
 
     Returns
     -------
     dict with keys: poros, sfield, swilt, bex, suction, hydraul, albsav, albsan,
-                    csoi, rhosoi, z0soi, hsoi
+                    csoi, rhosoi, z0soi, hsoi, sand, clay, forganic
     """
     npoi, nsoilay = sand.shape
-    forganic = FORGANIC
 
     ms = np.clip(np.round(sand).astype(np.int32), 0, 100)
     mc = np.clip(np.round(clay).astype(np.int32), 0, 100)
     lmin = _TEXTURE_LOOKUP[ms, mc]  # (npoi, nsoilay)
 
-    poros   = _POROS[lmin]
-    sfield  = _SFIELD[lmin] / _POROS[lmin]
-    swilt   = _SWILT[lmin] / _POROS[lmin]
-    bex     = _BEX[lmin]
-    suction = _SUCTION[lmin]
-    hydraul = _HYDRAUL[lmin]
+    poros_m   = _POROS[lmin]
+    sfield_m  = _SFIELD[lmin]
+    swilt_m   = _SWILT[lmin]
+    bex_m     = _BEX[lmin]
+    suction_m = _SUCTION[lmin]
+    hydraul_m = _HYDRAUL[lmin]
 
-    # Soil mineral density and heat capacity (Campbell & Norman 1998), matching
-    # F77 `initial.f:715-724`. Uniform today because `forganic` is a placeholder
-    # constant, but kept per-layer so a real organic-fraction map can be dropped
-    # in without touching the physics -- which the methane work will want, since
-    # peat is exactly where this correction stops being negligible.
-    rhosoi = np.full((npoi, nsoilay), RHOSOI_VAL)
-    csoi   = np.full((npoi, nsoilay), CSOI_VAL)
+    if orgc is not None and bulk is not None:
+        oc = np.clip(np.nan_to_num(np.asarray(orgc, dtype=np.float64), nan=0.0), 0.0, 100.0)
+        bd = np.asarray(bulk, dtype=np.float64)
+        bd = np.where(np.isfinite(bd) & (bd > 0.0), bd, 1.3)
+        fo = np.clip(0.01 * oc * OM_PER_OC * bd * 1000.0 / RHO_OM_MAX, 0.0, 1.0)
+        poros   = (1.0 - fo) * poros_m + fo * ORGANIC_POROS
+        sfield  = ((1.0 - fo) * sfield_m + fo * ORGANIC_SFIELD) / poros
+        swilt   = ((1.0 - fo) * swilt_m + fo * ORGANIC_SWILT) / poros
+        bex     = (1.0 - fo) * bex_m + fo * ORGANIC_BEX
+        suction = (1.0 - fo) * suction_m + fo * ORGANIC_SUCTION
+        hydraul = (1.0 - fo) * hydraul_m + fo * ORGANIC_HYDRAUL
+        rhosoi  = 2650.0 * (1.0 - fo) + ORGANIC_RHO * fo
+        csoi    = 870.0 * (1.0 - fo) + ORGANIC_CSOI * fo
+        forganic = fo
+    else:
+        poros   = poros_m
+        sfield  = sfield_m / poros_m
+        swilt   = swilt_m / poros_m
+        bex     = bex_m
+        suction = suction_m
+        hydraul = hydraul_m
+        # Soil mineral density and heat capacity (Campbell & Norman 1998), matching
+        # F77 `initial.f:715-724` with its constant organic fraction FORGANIC.
+        rhosoi = np.full((npoi, nsoilay), RHOSOI_VAL)
+        csoi   = np.full((npoi, nsoilay), CSOI_VAL)
+        forganic = np.zeros((npoi, nsoilay))
 
     # Surface albedo from top-layer texture
     fsand_top = 0.01 * np.round(sand[:, 0]).astype(int)
@@ -169,4 +219,5 @@ def compute_soil_properties(
         'hsoi': jnp.array(hsoi),
         'sand': jnp.array(sand),
         'clay': jnp.array(clay),
+        'forganic': jnp.array(forganic),
     }

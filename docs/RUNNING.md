@@ -214,6 +214,9 @@ The Arctic deficit was `vmax x0.54`, not structure. Magnitude tracks Rh
 | `enable_fire_emissions` | False | trace gases; needs `isimfire=1` |
 | `isimco2` | 0 | fixed vs varying CO₂ |
 | `enable_permafrost` | False | **unwired** — the module exists but nothing reads the flag |
+| `forcing.koppen_file` | "" | path of the Köppen npz (`scripts/koppen_prep.py`): mask on PFT existence by climate class and period (CALIBRATION.md 44) |
+| `physics.larch_gdd_fix` | False | PFT 8 (larch) existence on the degree-day limit the F77 comment intends; False = the F77 code (never true) |
+| `physics.soil_organic` | False | mix the Lawrence & Slater 2008 organic end-member by the HWSD2 organic fraction; needs `orgcpct`/`bulkdens` in `soil_file` (`scripts/hwsd2_organic_to_nc.py`) |
 | `pft.tree_stress_min` (params yaml, not RunConfig) | -1 (off) | >= 0 activates the water-limited tree-establishment gate (CALIBRATION.md 14): the state gains the 3-leaf `StressAccum`, `dynaveg` gets a survival factor, and the run log says `Tree-establishment gate ACTIVE` or `inactive` -- read that line to know which model produced a state |
 | `stomata.vmax_mix` (params yaml) | false (F77) | true: each canopy big leaf takes the displayed-LAI-weighted mean vmax of its PFTs instead of ONE PFT's by existence priority; F77 leaves four `vmax_pft` entries dead (CALIBRATION.md 17). On in every fitted configuration from stage (b2) |
 | `stomata.scale_leaf_only` (params yaml) | false (F77) | true: canopy scaling divides by k(LAI+SAI) instead of kLAI, so stems attenuate light but do not assimilate (old scale x LAI/(LAI+SAI)); F77 credits stem-absorbed PAR to the leaves, +25 % upper-canopy GPP and no response to leaf drop (CALIBRATION.md 16). Takes global GPP 168 -> 131 PgC on the (b1) parameters |

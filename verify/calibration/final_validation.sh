@@ -14,6 +14,8 @@ set -u -o pipefail
 TAG=$1; PAR=$(readlink -f "$2"); V=/shared/nas2/Hangkai/ibis/verify_outputs; R=/shared/nas2/Hangkai/ibis-port
 SPINUP_YEARS=${SPINUP_YEARS:-300}; METHANE=${METHANE:-0}      # CALIBRATION.md 38: SPINUP_YEARS=200 METHANE=1 -> 1701-1900 spin-up, wetland CH4 written in the transient and hindcast
 CROPFRAC=${CROPFRAC:-}                                           # CALIBRATION.md 41: path of the cropland-fraction npz -> cropland as managed grass in every stage
+KOPPEN=${KOPPEN:-}; LARCH_FIX=${LARCH_FIX:-0}                      # CALIBRATION.md 44: Koppen npz -> koppen_file (mask on PFT existence); LARCH_FIX=1 -> larch_gdd_fix
+SOIL_ORGANIC=${SOIL_ORGANIC:-0}; SOIL_FILE=${SOIL_FILE:-}          # CALIBRATION.md 44: SOIL_ORGANIC=1 -> soil_organic (needs the HWSD2 organic soil_file)
 PY=/home/hangkai/.venvs/ibis-gpu/bin/python; CPY=/shared/nas2/Hangkai/ibis-env/ibis-python
 F=$V/final_$TAG; cd $R; export PYTHONPATH=python-port:. XLA_PYTHON_CLIENT_PREALLOCATE=false XLA_PYTHON_CLIENT_MEM_FRACTION=.3
 [ -f "$PAR" ] || { echo "no params yaml $PAR"; exit 1; }
@@ -22,6 +24,10 @@ mkcfg() {  # mkcfg <template cfg> <out cfg> <stage dir> ; then per-stage sed on 
   sed -e "s|$(dirname $(grep -m1 '^  output_dir:' $1 | awk '{print $2}'))|$3|g" $1 > $2
   grep -q '^params_file' $2 && sed -i "s|^params_file:.*|params_file: $PAR|" $2 || echo "params_file: $PAR" >> $2
   [ -n "$CROPFRAC" ] && { grep -q '^  cropfrac_file' $2 || sed -i "s|^  vegtype_dir:|  cropfrac_file: $CROPFRAC\n  vegtype_dir:|" $2; }
+  [ -n "$KOPPEN" ] && { grep -q '^  koppen_file' $2 || sed -i "s|^  vegtype_dir:|  koppen_file: $KOPPEN\n  vegtype_dir:|" $2; }
+  [ "$LARCH_FIX" = 1 ] && { grep -q '^  larch_gdd_fix' $2 || sed -i 's|^  isimveg: 1|  isimveg: 1\n  larch_gdd_fix: true|' $2; }
+  [ "$SOIL_ORGANIC" = 1 ] && { grep -q '^  soil_organic' $2 || sed -i 's|^  isimveg: 1|  isimveg: 1\n  soil_organic: true|' $2; }
+  [ -n "$SOIL_FILE" ] && sed -i "s|^  soil_file:.*|  soil_file: $SOIL_FILE|" $2
 }
 mkdir -p $F/spinup/{out,restart} $F/transient/{out,restart} $F/hindcast/{out,restart}
 # 1. spin-up (SKIP_SPINUP=1: resume from an existing 1900 restart of this TAG)

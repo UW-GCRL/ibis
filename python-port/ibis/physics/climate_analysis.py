@@ -20,8 +20,21 @@ def existence(
     gdd0: Float[Array, "npoi"],
     gdd5: Float[Array, "npoi"],
     pft_params: PFTParams,
+    exist_mask=None,
+    larch_gdd_fix: bool = False,
 ) -> Float[Array, "npoi 12"]:
     """Determine which PFTs can exist in each grid cell.
+
+    `exist_mask` (npoi, 12), optional: multiplied into the result -- the
+    Koppen-Geiger mask of `ibis.io.koppen` (CALIBRATION.md 44). None leaves
+    the bioclimatic envelope exactly as F77 computes it.
+
+    `larch_gdd_fix`: the F77 rule for PFT 8 (boreal conifer cold-deciduous,
+    larch) reads `gdd5 < TminL(4)` (= -45) where its own comment says
+    `gdd5 < GDD(4)` (= 1200) -- `climate.f:398-400`. The comparison can never
+    be true, so larch exists only where the coldest month is below -45 C.
+    False (default) reproduces the Fortran; True uses the degree-day limit
+    the comment intends.
 
     Uses bioclimatic limits from pft_params to set existence flags.
     All logic uses jnp.where for JIT compatibility.
@@ -84,9 +97,10 @@ def existence(
         (tcmin > TminL[6]) & (gdd5 > GDD[6]),
         1.0, 0.0))
 
-    # PFT 8: boreal conifer cold-deciduous
+    # PFT 8: boreal conifer cold-deciduous (see `larch_gdd_fix` above)
+    _gdd_lim8 = GDD[3] if larch_gdd_fix else TminL[3]
     exist = exist.at[:, 7].set(jnp.where(
-        ((tcmin < TminU[7]) | (gdd5 < TminL[3])) &
+        ((tcmin < TminU[7]) | (gdd5 < _gdd_lim8)) &
         (gdd5 > GDD[7]),
         1.0, 0.0))
 
@@ -103,6 +117,8 @@ def existence(
     # PFT 12: cool (C3) grasses
     exist = exist.at[:, 11].set(jnp.where(gdd0 > GDD[11], 1.0, 0.0))
 
+    if exist_mask is not None:
+        exist = exist * jnp.asarray(exist_mask, dtype=exist.dtype)
     return exist
 
 

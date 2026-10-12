@@ -2223,3 +2223,95 @@ once before and attributed to the water-table diagnostic (`wetland_water_table`'
 points' own coordinates (commit 80c48d9); the mean inundated fraction of the land points went from 0.0046 to 0.0168.
 The yearly `aych4` written by the driver also accumulated across years until the same day (no `reset_annual` call);
 both fixes precede the section-39 hindcast.
+
+
+## 6. Dynamic wetland area: what precipitation can and cannot do (2026-10-12)
+
+Min asked for a switch, off by default, that scales the WAD2M climatology with precipitation for years without
+observations. Before any code, two things were done (CALIBRATION.md 44): a regression of WAD2M 2000-2010 on the
+model's own GSWP3 precipitation per band (`verify/calibration/diagnostics/wad2m_precip_regression.py`, outputs in
+`verify_outputs/wad2m_regression/`), and a literature review. Both reports are kept in full in
+`ibis_local_document/logs/` (`wad2m_precip_regression_2026-10-12.md`, `wetland_area_review_2026-10-12.md`); the
+review follows.
+
+### Interannual variability of wetland area: literature support for an empirical precipitation-driven extent mode in IBIS-JAX
+
+Target equation: `f_inund(m) = f_clim(m) x g(precipitation anomaly)`. Numbers are quoted from the papers; "not reported" means no number was given in the accessible text. My own inferences are labelled.
+
+#### 1. Observational products and the precipitation share of their IAV
+
+**GIEMS** (Prigent et al. 2007, JGR 112, doi:10.1029/2006JD007847; Papa et al. 2010, JGR 115, doi:10.1029/2009JD012674; Prigent et al. 2012, GRL 39, doi:10.1029/2012GL051276). 1993-2007, 0.25 deg. Global mean annual maximum fell ~5.7 % over 1993-2004 (6 % to 2007), mostly tropical. The precipitation link is only qualitative: "in the tropics, surface water is essentially related to precipitation", with "much worse agreement at higher latitudes"; Prigent 2007 documents a rain-to-inundation hysteresis. No slope or r is given. Quantified relations come from users: Ringeval et al. 2012 (GMD 5, 941, doi:10.5194/gmd-5-941-2012) find for tropical South America a zero-lag seasonal inundation-rainfall r = 0.03 rising to 0.60 at 3-month lag, lags of 0-5 months globally, and interannual r between GIEMS anomalies and a precipitation-driven saturated fraction from -0.30 (tropical Asia) to 0.85 (temperate Eurasia), < 0.1 in several regions. Papa et al. 2013 (JGR 118, doi:10.1002/2013JD020500): Amazon surface-water volume vs basin rain, lagged r = 0.86, rain leading by 2 months.
+
+**GIEMS-2** (Prigent et al. 2020, JGR 125, doi:10.1029/2019JD030711): 1992-2020; "comparisons with precipitation estimates show good agreement" (no r). The 30-year assessment (Frontiers in Remote Sensing 2024, doi:10.3389/frsen.2024.1399234): mean annual max 6.18 Mkm2; interannual-anomaly r vs river discharge 0.60 (Amazon), 0.66 (Congo), > 0.6 in 7 of 9 basins, inundation leading discharge by 1 month (Amazon, Congo, Mekong, La Plata) to 2 months (Mississippi, Yangtze). Precipitation/GRACE: not reported.
+
+**SWAMPS** (Schroeder et al. 2015, Remote Sens. 7, 16688, doi:10.3390/rs71215843; Jensen and McDonald 2019, IEEE GRSL 16, 1402): 1992-present; R2 = 0.91-0.94 vs MODIS/SRTM open water. Precipitation regression: not reported.
+
+**WAD2M** (Zhang et al. 2021, ESSD 13, 2001, doi:10.5194/essd-13-2001-2021): long-term max 13.0 Mkm2 = 3.5 (annual min) + 4.0 (seasonal) + 5.5 (intermittent) Mkm2, so long-term max is 1.7x the mean annual max. Tropics give 68 % of global annual variation; no significant trend 2000-2018; captures the 2010-11 La Nina peak and 2015-16 Amazon decline; basin anomalies agree with GRACE and ESA-CCI soil moisture (figure only). Drivers stated: tropics "primarily driven by precipitation"; high latitudes "surface water runoff from snowmelt, not direct precipitation, contributes towards the lower correlation between inundation extent and precipitation". No slope.
+
+**GIEMS-MC** (Bernard et al. 2025, ESSD 17, 2985, doi:10.5194/essd-17-2985-2025): 1992-2020; inundated+saturated MAmax 3.80 Mkm2. Boreal trends +10e3 km2/yr (May-Jun) and +24e3 km2/yr (Sep-Oct), linked to snow cover. Precipitation: not reported.
+
+**GRACE as proxy** (Bloom et al. 2010, Science 327, 322, doi:10.1126/science.1175176): tropical CH4 variability "largely described" by GRACE water height, extratropical by temperature; variance fraction not given. Feng et al. 2024 (Nat. Commun. 15, doi:10.1038/s41467-024-55266-y): 2020-21 inversion anomalies correlate with GRACE-FO storage, while "correlation with temperature or precipitation changes was not statistically significant across regions"; storage leads emissions by ~1 month.
+
+**IAV amplitude check** (Comm. Earth Environ. 6, 450, 2025, doi:10.1038/s43247-025-02438-3): CYGNSS tropical inundation has 25.7 % and 11.9 % higher relative SD than SWAMPS and WAD2M (Pantanal 5.8x / 3.6x; Sudd annual range 11.4 % vs 2.5 / 4.1 %); inundation vs ONI r = 0.77 (Congo 0.85, Pantanal 0.73, Sudd -0.74); vs GRACE-FO r = 0.81-0.90. The microwave climatology understates tropical IAV.
+
+**Boreal** (Watts et al. 2014, ERL 9, 075001, doi:10.1088/1748-9326/9/7/075001): AMSR-E 2003-11; driest year -6 %, wettest +3 % (N. America) / +7 % (Eurasia) of the mean extent.
+
+#### 2. Empirical extent schemes in CH4 budget work
+
+- **Hodson et al. 2011** (GRL 38, L08810, doi:10.1029/2011GL046861): extent 1950-2005 from linear fits of GIEMS 1993-2000 area to LPJ-simulated runoff, per cell and month or per TransCom region; "each of the fitting methods captured approximately 50 % of the inundation variability"; boreal uses the GIEMS climatology because its IAV is small. Tropical CH4 IAV: R2_inundation = 0.65 vs R2_Rh = 0.39 (boreal 0.16 vs 0.77); tropical emissions vs -MEI R2 = 0.56 (global 0.39) with MEI lagging precipitation 3 months; El Nino -9 +/- 3, La Nina +8 +/- 4 Tg CH4/yr.
+- **Bousquet et al. 2006** (Nature 443, 439, doi:10.1038/nature05132): wetlands dominate CH4 IAV; bottom-up used ORCHIDEE with Prigent inundation; any precipitation extrapolation: not retrievable.
+- **Bousquet et al. 2011** (ACP 11, 3689, doi:10.5194/acp-11-3689-2011): ORCHIDEE-TOPMODEL saturated-area anomalies (relative to its 1993-2000 mean) are added to the satellite 1993-2000 climatology; no precipitation regression. Sensitivity runs: tropical emissions "mostly driven by precipitations through the wetland extent"; removing precipitation IAV flips the 2006 anomaly; tropical land precipitation +3 % (2007), +10 % (2008). Warning: the model "may overstate the control ... by precipitations" since floodplains are absent and "modelled wetland extent increases continuously with precipitations".
+- **WetCHARTs** (Bloom et al. 2017, GMD 10, 2141, doi:10.5194/gmd-10-2141-2017), the only budget product with an explicit precipitation-scaled extent: A_ij(t,x) = w_i(x) h_ij(t,x); w = static GLOBCOVER or GLWD maximum; h = SWAMPS or monthly ERA-Interim precipitation normalised so its mean (GLOBCOVER) or maximum (GLWD) is 1; A = min{w h, 1}. Linear in same-month precipitation, elasticity 1, no lag; skill vs satellite IAV not reported; precipitation "does not provide a direct constraint on the wetland ... extent".
+- **Poulter et al. 2017** (ERL 12, 094013, doi:10.1088/1748-9326/aa8391): SWAMPS-GLWD prescribed; global mean area -2 % between 2000-06 and 2007-12 (tropics -3.4 %, boreal +1.8 %); ensemble CH4 IAV partial r: area 0.64, temperature 0.37, precipitation 0.09.
+- **Zhang et al. 2017** (PNAS 114, doi:10.1073/pnas.1618765114) and **2018** (ERL 13, doi:10.1088/1748-9326/aac939): prognostic LPJ-wsl TOPMODEL calibrated to SWAMPS-GLWD; "precipitation is the dominant climatic variable regulating interannual variability", temperature the trend; growth rate vs MEI r = -0.35 to -0.51, peak at 3-month lag. **Zhu et al. 2017** (GCB 23, doi:10.1111/gcb.13726): ENSO explains 49 % of tropical CH4 IAV, ~8-month lag. **Zhu et al. 2015** (GEB 24, doi:10.1111/geb.12307): extent scheme not retrieved.
+- **GMB protocol** (Saunois et al. 2020, ESSD 12, doi:10.5194/essd-12-1561-2020; 2025, ESSD 17, doi:10.5194/essd-17-1873-2025; Zhang et al. 2025, BG 22, 305, doi:10.5194/bg-22-305-2025): diagnostic runs prescribe WAD2M (v1 2000-2017, v2 2000-2020), prognostic runs use own hydrology; no precipitation scaling. Ensemble max 8.0 +/- 2.0 Mkm2, seasonal amplitude 4.7 +/- 2.0; no trend in prognostic annual-mean area 2000-2020; +5.2 Tg (2010 La Nina), -4.6 Tg (2015 El Nino). The 2000-2025 extension (Li et al. 2026, ESSD preprint, doi:10.5194/essd-2026-176) emulates emissions directly from ERA5 soil temperature and precipitation, bypassing extent.
+
+#### 3. Process-based (TOPMODEL-type) schemes
+
+- **Gedney and Cox 2003** (J. Hydrometeorol. 4, 1265) / **Gedney et al. 2004** (GRL 31, doi:10.1029/2004GL020919): wetland fraction = share of the topographic-index distribution with local water table at the surface; inputs: index statistics, simulated moisture deficit. IAV skill: not reported.
+- **Ringeval et al. 2010** (GBC 24, doi:10.1029/2008GB003354), GIEMS prescribed: area variation gives ~30 % of annual flux for boreal bogs, 40 %/66 % of temperate/tropical seasonal amplitude; interannually area is "the dominant cause". **Ringeval 2012**: ORCHIDEE-TOP seasonal figure-of-merit 64-92 %, interannual r -0.30 to 0.85; the modelled fraction tracks precipitation (r > 0.54 outside boreal; 0.81 tropical Asia, 0.94 S. Africa) while observed inundation does not, because floodplain routing is missing.
+- **DYPTOP** (Stocker et al. 2014, GMD 7, 3089, doi:10.5194/gmd-7-3089-2014): per-cell asymmetric sigmoid f = [1 + v exp(-k(Gamma - q))]^(-1/v) fitted to the CTI distribution, Gamma = monthly water-table index from soil water + runoff, CTImin caps f_max; Amazon seasonal max 13 % vs 15 % observed; regional totals/timing agree with GIEMS, spatial heterogeneity not; retreat too fast where routing matters. IAV r: not reported.
+- **LPJ-wsl** (Zhang et al. 2016, BG 13, 1387, doi:10.5194/bg-13-1387-2016): F_max calibrated to SWAMPS-GLWD; Spearman r of interannual anomalies vs SWAMPS-GLWD (GIEMS): boreal N. America 0.77 (0.38), boreal Eurasia 0.79 (0.51), tropical S. America 0.72 (0.84), tropical Asia 0.69 (0.67), S. Africa 0.08 (0.74), temperate Eurasia 0.74 (0.65), temperate N. America 0.36 (0.14), Europe 0.60 (0.09). Global annual max 5.17 Mkm2 (GIEMS 4.47, SWAMPS-GLWD 6.62); IAV sigma of annual max 0.11 / 0.20 / 0.18 Mkm2 (2.7-4.5 % of max).
+- **JSBACH** (Kleinen et al. 2020, Clim. Past 16, 575, doi:10.5194/cp-16-575-2020): z_i = z_bar + (1/f)(chi_i - chi_bar), f = 2.6, chi_min = 8.5, saturation threshold 0.95; tropics 1.2 vs 0.8 Mkm2 observed; boreal peak phase-shifted. IAV: not evaluated.
+- **CLM4Me** (Riley et al. 2011, BG 8, 1925, doi:10.5194/bg-8-1925-2011): f_s = p1 exp(-z_w/p2) + p3 Q_r, three parameters per cell inverted against Prigent 2007 (+ IGBP where < 10 %); "consistent ... at large spatial scales"; IAV r: not reported.
+- **Diagnostic TOPMODEL on reanalysis soil moisture** (Xi et al. 2022, Sci. Data 9, doi:10.1038/s41597-022-01460-w): same sigmoid, 3 parameters per cell; global interannual r = 0.79 (ERA5) / 0.77 (ERA5-Land) vs GIEMS-2, 0.70 / 0.66 vs WAD2M; boreal 0.59-0.88, temperate 0.36-0.90 vs GIEMS-2. Best documented IAV skill of any scheme (same approach: Xi et al. 2021, Nat. Clim. Change 11, 45; Hardouin et al. 2024, Earth's Future 12, doi:10.1029/2024EF004553).
+- **WETCHIMP** (Melton et al. 2013, BG 10, 753, doi:10.5194/bg-10-753-2013): +3.9 % uniform precipitation gave "a consistent small positive response in CH4 fluxes and wetland area" (magnitude not retrieved); none of the models reproduced the GIEMS 1990s decline.
+
+#### 4. Dominant driver by climate zone
+
+- **Tropics**: precipitation integrated over 1-3 months and routed through rivers/floodplains. Amazon storage vs rain r = 0.86 at 2-month lag (Papa 2013); inundation vs rain r 0.03 -> 0.60 at 3-month lag (Ringeval 2012); GIEMS-2 anomalies vs discharge r = 0.60-0.66 (2024 assessment); inundation vs GRACE r = 0.81-0.90 (2025 CEE); floodplain area is a function of river stage, not local rain (Hamilton et al. 2002, JGR 107, 8038, doi:10.1029/2000JD000306; regressions not retrieved). ENSO integrates this: tropical CH4 vs MEI R2 = 0.56 (Hodson), 49 % with 8-month lag (Zhu 2017), inundation vs ONI r = 0.77 (2025); the 2011 La Nina gave +4.9 mm/month tropical land precipitation, SWAMPS area expansion and >= 5 % higher tropical emissions (Pandey et al. 2017, Sci. Rep. 7, 45759, doi:10.1038/srep45759). Caveats: Feng 2024 finds storage, not precipitation, significant; the Sudd has the opposite ENSO sign.
+- **Boreal/Arctic**: snowmelt timing, thaw and frozen-soil drainage. WAD2M and Papa 2010 both report weak precipitation correlation; Hodson used a climatology (R2_inund = 0.16); Watts IAV +/-3-7 %; Zhang et al. 2024 (Nat. Clim. Change 14, doi:10.1038/s41558-024-01933-3) find boreal-Arctic CH4 IAV dominated by temperature (42 % of cells) and GPP (24 %), water-related drivers 18 %, no WAD2M area trend; GIEMS-MC trends sit in the melt and freeze-up months; prognostic models mis-phase the boreal peak (Kleinen 2020; Stocker 2014).
+- **Temperate**: weakest and human-affected: TOPMODEL vs observation r 0.09-0.65 (Zhang 2016); GIEMS declines co-locate with population growth (Prigent 2012). (Prigent 2007 and Papa 2010 statements are from abstracts; full texts were not accessible.)
+
+#### 5. Synthesis
+
+**Form.** A bounded multiplicative anomaly: f = min(f_clim(m) x g, f_max), g = 1 + beta (P_w - P_w,clim)/P_w,clim or (P_w/P_w,clim)^beta, P_w over window w. Precedents: WetCHARTs (linear, beta = 1, same month), Hodson (linear in runoff per cell/month), Bousquet 2011 (anomaly transplant). TOPMODEL theory and the fitted sigmoids (Stocker 2014; Xi 2022) imply a saturating response, so g must be capped and a power form with beta < 1 for wet anomalies is more defensible than unbounded linear (Bousquet 2011 flags the overshoot).
+
+**Window.** Tropics: 2-3 months, lagged 1-2 months (Papa 2013; Ringeval 2012; Hodson's 3-month lag). Boreal: no precipitation window is supported; use thaw/melt indicators or g = 1. Temperate: 1-3 months (not quantified).
+
+**Coefficients.** No paper reports an elasticity of area to precipitation. Inference (mine): observed IAV of global annual-max area is 2.7-4.5 % (Zhang 2016) against tropical land precipitation anomalies of ~3-10 % in anomalous years (Bousquet 2011), consistent with beta ~ 0.5-1 in the tropics (WetCHARTs' beta = 1 is the upper end; the CYGNSS finding that microwave products damp tropical IAV by 12-26 % argues against < 0.7). Boreal: beta ~ 0-0.3. Temperate: ~0.5, poorly constrained. Fit them: regress WAD2M or GIEMS-2 monthly anomalies (1992/2000-2020) on the chosen P_w anomaly per climate band.
+
+**Bound.** Cap per cell at the WAD2M long-term maximum (1.7x mean annual max globally) or GIEMS-2 MAmax; Zhang 2016's calibrated F_max (10.3 vs 5.2 Mkm2) implies a similar ~2x ceiling. Floor at the WAD2M annual minimum, not zero.
+
+**Expected skill.** Precipitation-only schemes reach roughly half of the IAV, and only in the tropics: Hodson ~50 % (runoff-fitted); Ringeval 2012 precipitation-driven vs observed r < 0.1 to 0.85; Feng 2024 and the 2025 CEE paper find storage, not rain, significant. Schemes with memory and routing do better: Xi 2022 r = 0.79 global vs GIEMS-2 (~60 % of variance), Zhang 2016 r 0.7-0.8 boreal/tropics; GRACE storage is the strongest single predictor (Bloom 2010; Feng 2024). Nothing shows a precipitation-only scheme above ~50 % outside the tropics; in the boreal zone the area signal is small and thaw-driven.
+
+#### Summary table
+
+| Product / scheme | Driver | Lag / window | Variance explained or slope | Region | Reference |
+|---|---|---|---|---|---|
+| GIEMS | precipitation | hysteresis; 0-5 mo | qualitative; seasonal r 0.03 -> 0.60 at 3 mo; IAV r -0.30 to 0.85 vs precip-driven model | tropics / regions | Papa 2010; Prigent 2007, 2012; Ringeval 2012 |
+| GIEMS Amazon volume | precipitation | 2 mo | r = 0.86 | Amazon | Papa 2013 |
+| GIEMS-2 | river discharge | leads 1-2 mo | r_ano 0.60 Amazon, 0.66 Congo | 9 basins | Frontiers RS 2024 |
+| WAD2M | precip (tropics), snowmelt (boreal) | - | tropics 68 % of annual variation; ENSO captured; no slope | global | Zhang 2021 |
+| GIEMS-MC | snow cover | - | boreal +10e3 / +24e3 km2 yr-1 | boreal | Bernard 2025 |
+| CYGNSS | ENSO, GRACE | 3-mo means | r 0.77 vs ONI; 0.81-0.90 vs GRACE-FO; RSD 12-26 % > WAD2M/SWAMPS | tropics | CEE 2025 |
+| GRACE | storage | ~1 mo lead | "largely describes" tropical CH4; precip n.s. | tropics | Bloom 2010; Feng 2024 |
+| Hodson runoff fit | LPJ runoff | per cell/month | ~50 % of inundation IAV | global | Hodson 2011 |
+| WetCHARTs | monthly precipitation | 0 | linear, elasticity 1, capped; skill n.r. | global | Bloom 2017 |
+| ORCHIDEE transplant | TOPMODEL/precip | - | precip IAV flips 2006 sign; +3/+10 % precip 2007/08 | tropics | Bousquet 2011 |
+| LPJ-wsl TOPMODEL | soil water | - | IAV r 0.7-0.8 boreal/tropics, 0.1-0.6 temperate | regions | Zhang 2016 |
+| Diagnostic TOPMODEL | reanalysis soil moisture | - | r 0.79 (GIEMS-2), 0.70 (WAD2M) | global | Xi 2022 |
+
+#### Recommendation
+
+Implement the optional mode as `f = clip(f_clim(m) x (1 + beta_band x A_w), f_min, f_max)`, where A_w is the relative anomaly of a 3-month running mean of IBIS-simulated total runoff or soil-water storage (not raw precipitation), lagged one month in the tropics; fit beta per climate band by regressing WAD2M or GIEMS-2 anomalies on the same IBIS variable over the satellite period (expect ~0.7-1 tropics, ~0.5 temperate, 0-0.3 boreal, where the mode should probably stay off); set f_max = WAD2M long-term maximum and f_min = WAD2M annual minimum per cell. Using the model's own storage anomaly is what Hodson (runoff), Riley (water table + runoff) and the GRACE studies all point to, costs nothing extra in IBIS, and is the only route the literature suggests can approach the ~60 % of interannual variance that soil-moisture TOPMODEL diagnostics reach; a precipitation-only version will plausibly capture about half of the tropical IAV and little elsewhere, and should be documented as such.

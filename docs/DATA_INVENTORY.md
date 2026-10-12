@@ -68,6 +68,8 @@ downloading more variables.
 | **Vegetation type** | `/shared/nas2/Min/ESACCI_LC/ibis_vegtype` | 56 MB | cold-start PFT init, 29 years (1992-2020) |
 | ESACCI raw | `/shared/nas2/Min/ESACCI_LC` | 63 GB | 300 m land cover, source for the above |
 | **Wetland extent** | `/shared/nas2/Hangkai/ibis/inputs/methane/wad2m` | 571 MB | WAD2M `Fw`, monthly 2000-2020 -- methane forcing |
+| **Köppen-Geiger classes** | `/shared/nas2/Hangkai/ibis/inputs/koppen/koppen_beck2023_0.5deg.npz` | 0.1 MB | Beck et al. 2023 (`/shared/nas/Public/Climate_Biome/Koppen_Beck2023`, 0.5-degree per period 1901-30, 31-60, 61-90, 91-2020), packed by `python-port/scripts/koppen_prep.py`; `classes` (4, 360, 720) uint8 N->S, 0 = none; mask on PFT existence (CALIBRATION.md 44) |
+| **Soil organic carbon, bulk density** | `/shared/nas2/Hangkai/ibis/inputs/soil/soita_hwsd2_organic.nc` | ~8 MB | HWSD2 ORG_CARBON (%), BULK (g cm-3) plus sand and clay on the six IBIS layers, 0.5 degree N->S, by `python-port/scripts/hwsd2_organic_to_nc.py` (Min's mapping-unit rule); `physics.soil_organic` (CALIBRATION.md 44) |
 | **Population** | `/shared/nas2/Hangkai/ibis/inputs/fire/popdens` | 252 MB | CLM population stream -- human ignition (OFF by default) |
 | Burned area | `/shared/nas2/Hangkai/ibis/inputs/fire/gfed5` | 307 MB | GFED5 -- fire *target*, not forcing |
 | Emission factors | `/shared/nas2/Hangkai/ibis/inputs/fire/emission_factors` | 36 KB | Andreae, per-species |

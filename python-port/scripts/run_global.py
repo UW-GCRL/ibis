@@ -157,11 +157,16 @@ def _subset_land_mask(
 # Soil loading
 # ---------------------------------------------------------------------------
 
-def _load_soil(soil_file: str, gswp3_latindex: np.ndarray, gswp3_lonindex: np.ndarray) -> dict:
+def _load_soil(soil_file: str, gswp3_latindex: np.ndarray, gswp3_lonindex: np.ndarray,
+               organic: bool = False) -> dict:
     """Read sand/clay from soita.nc and compute soil hydraulic properties.
 
     soita.nc has variables sandpct and claypct with dimensions
-    (layer=6, lat=360, lon=720), lat N→S to match GSWP3.
+    (layer=6, lat=360, lon=720), lat N→S to match GSWP3. With `organic`
+    (physics.soil_organic) it also needs orgcpct and bulkdens
+    (scripts/hwsd2_organic_to_nc.py), which set the organic-matter fraction
+    of the solids per layer (ibis.io.soil_init); cells without HWSD2 data
+    count as mineral.
     """
     import netCDF4 as nc
 
@@ -179,6 +184,14 @@ def _load_soil(soil_file: str, gswp3_latindex: np.ndarray, gswp3_lonindex: np.nd
             break
     else:
         raise KeyError(f"Cannot find clay variable in {soil_file}")
+    orgc_grid = bulk_grid = None
+    if organic:
+        for vname in ('orgcpct', 'bulkdens'):
+            if vname not in ds.variables:
+                ds.close()
+                raise KeyError(f"soil_organic needs {vname} in {soil_file} (scripts/hwsd2_organic_to_nc.py)")
+        orgc_grid = np.array(ds.variables['orgcpct'][:], dtype=np.float32)
+        bulk_grid = np.array(ds.variables['bulkdens'][:], dtype=np.float32)
     ds.close()
 
     # sand_grid shape: (layer, lat, lon) → extract land points → (npoi, layer)
@@ -193,7 +206,13 @@ def _load_soil(soil_file: str, gswp3_latindex: np.ndarray, gswp3_lonindex: np.nd
     sand = np.where(np.isfinite(sand), sand, 45.0)
     clay = np.where(np.isfinite(clay), clay, 25.0)
 
-    return compute_soil_properties(sand, clay)
+    orgc = bulk = None
+    if organic:
+        orgc = orgc_grid[:, gswp3_latindex, gswp3_lonindex].T
+        bulk = bulk_grid[:, gswp3_latindex, gswp3_lonindex].T
+        orgc = np.where(np.isfinite(orgc), orgc, 0.0)                      # no HWSD2 data: mineral
+        bulk = np.where(np.isfinite(bulk) & (bulk > 0.0), bulk, 1.3)
+    return compute_soil_properties(sand, clay, orgc=orgc, bulk=bulk)
 
 
 # ---------------------------------------------------------------------------
@@ -334,7 +353,12 @@ def run_global_simulation(config: IBISConfig) -> None:
     # ------------------------------------------------------------------
     soil_file = f.soil_file or os.path.join(config.input.input_dir, 'soita.nc')
     logger.info("Loading soil from %s ...", soil_file)
-    soil_props = _load_soil(soil_file, gswp3_latindex, gswp3_lonindex)
+    soil_props = _load_soil(soil_file, gswp3_latindex, gswp3_lonindex,
+                            organic=bool(getattr(config.physics, "soil_organic", False)))
+    if getattr(config.physics, "soil_organic", False):
+        _fo = np.asarray(soil_props["forganic"])
+        logger.info("Organic soil mixing ON (Lawrence & Slater 2008): f_om top layer mean %.3f, >0.5 at %d of %d points; 1-2 m layer mean %.3f",
+                    float(_fo[:, 0].mean()), int((_fo[:, 0] > 0.5).sum()), _fo.shape[0], float(_fo[:, 4].mean()))
 
     # ------------------------------------------------------------------
     # 4. Create or load state
@@ -466,7 +490,27 @@ def run_global_simulation(config: IBISConfig) -> None:
         # the cropland map is on the IBIS north-to-south grid, the same as GSWP3's, so the GSWP3 row indices apply
         _cg = np.load(f.cropfrac_file)["cropfrac"]; _cropfrac = np.asarray(_cg[gswp3_latindex, gswp3_lonindex], np.float32)
         logger.info("Cropland as managed grass: %s, mean cropland fraction of the land points %.4f", f.cropfrac_file, float(_cropfrac.mean()))
-    params, pft_params, bgc_params = build_all_params(npoi, lat_rad, _pdict, cropfrac=_cropfrac)
+    # Koppen-Geiger mask on PFT existence (CALIBRATION.md 44): a class map per 30-year period; the
+    # year's period is looked up at every existence() call. None = the bioclimatic envelope alone.
+    _koppen = None
+    if getattr(f, "koppen_file", ""):
+        from ibis.io.koppen import load_koppen, koppen_exist_mask, period_index, describe
+        _koppen = load_koppen(f.koppen_file, gswp3_latindex, gswp3_lonindex)
+        _m0 = koppen_exist_mask(_koppen["classes"][period_index(config.time.iyear0, _koppen["period_start"], _koppen["period_end"])])
+        logger.info("Koppen mask on PFT existence: %s, periods %s; %s", f.koppen_file,
+                    list(zip(_koppen["period_start"].tolist(), _koppen["period_end"].tolist())),
+                    describe(_koppen["classes"][period_index(config.time.iyear0, _koppen["period_start"], _koppen["period_end"])], _m0))
+    _larch_fix = bool(getattr(config.physics, "larch_gdd_fix", False))
+    if _larch_fix:
+        logger.info("PFT 8 (larch) existence: degree-day limit (larch_gdd_fix)")
+
+    def _exist_mask_for(year):
+        if _koppen is None:
+            return None
+        return koppen_exist_mask(_koppen["classes"][period_index(int(year), _koppen["period_start"], _koppen["period_end"])])
+
+    _forganic = soil_props.get("forganic") if getattr(config.physics, "soil_organic", False) else None
+    params, pft_params, bgc_params = build_all_params(npoi, lat_rad, _pdict, cropfrac=_cropfrac, forganic=_forganic)
 
     # Seed thermal-only bedrock on a cold start. Downward continuation along a
     # geothermal gradient puts the new layers near equilibrium immediately;
@@ -512,6 +556,7 @@ def run_global_simulation(config: IBISConfig) -> None:
         state.vegetation.tcmin, state.vegetation.tw,
         state.vegetation.gdd0, state.vegetation.gdd5,
         pft_params,
+        exist_mask=_exist_mask_for(config.time.iyear0), larch_gdd_fix=_larch_fix,
     )
     state = eqx.tree_at(lambda s: s.vegetation.exist, state, exist_init)
     logger.info("  PFT existence set from climate normals "
@@ -713,6 +758,7 @@ def run_global_simulation(config: IBISConfig) -> None:
             state.vegetation.tcmin, state.vegetation.tw,
             state.vegetation.gdd0, state.vegetation.gdd5,
             pft_params,
+            exist_mask=_exist_mask_for(year), larch_gdd_fix=_larch_fix,
         )
         state = eqx.tree_at(
             lambda s: s.vegetation.exist, state, exist_new,

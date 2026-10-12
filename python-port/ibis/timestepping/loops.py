@@ -112,6 +112,9 @@ class SimParams(eqx.Module):
     # treatment) and its parameters. Read by the daily step (grass vmax on the cropland share) and by dynaveg (tree cap,
     # harvest).
     cropfrac: Optional[Float[Array, "npoi"]] = None
+    #: Organic-matter fraction of the soil solids per layer (npoi, nsoilay), from HWSD2 organic carbon and
+    #: bulk density (ibis.io.soil_init, physics.soil_organic). None (default) = mineral conductivity as F77.
+    forganic: Optional[Float[Array, "npoi nsoilay"]] = None
     crop: CropParams = eqx.field(default_factory=default_crop_params)
 
     # Thermal-only bedrock below the soil column (docs/BEDROCK.md). Only used
@@ -301,6 +304,7 @@ def timestep_body(
         params.wpudmax, params.zwpmax,
         snow.tsno[:, 0], atm.ta,
         c.tmelt, c.hvap, c.hsub, c.ch2o, c.cvap, c.cice, c.epsilon,
+        forganic=params.forganic,
     )
 
     # =====================================================================

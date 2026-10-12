@@ -399,6 +399,7 @@ def build_sim_params(
     lat_rad,
     params_dict: Optional[dict] = None,
     cropfrac=None,
+    forganic=None,
 ):
     """Build SimParams from an optional params dict.
 
@@ -441,6 +442,7 @@ def build_sim_params(
         methane=build_methane_params(d),
         cropfrac=None if cropfrac is None else jnp.asarray(cropfrac, dtype=jnp.float32),
         crop=build_crop_params(d),
+        forganic=None if forganic is None else jnp.asarray(forganic, dtype=jnp.float32),
     )
 
 
@@ -449,6 +451,7 @@ def build_all_params(
     lat_rad,
     params_dict: Optional[dict] = None,
     cropfrac=None,
+    forganic=None,
 ):
     """Build all parameter objects from an optional params dict.
 
@@ -467,7 +470,7 @@ def build_all_params(
     """
     d = params_dict or {}
     return (
-        build_sim_params(npoi, lat_rad, d, cropfrac=cropfrac),
+        build_sim_params(npoi, lat_rad, d, cropfrac=cropfrac, forganic=forganic),
         build_pft_params(d),
         build_bgc_params(d),
     )

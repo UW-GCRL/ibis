@@ -4966,3 +4966,56 @@ capacity factor fitted at the towers (0.33 for C3) would no longer be asked to c
 next stage. Everything else the section-39 run showed stands: the sink, ET and methane inside or near their
 budgets; GPP 1.5 x FLUXCOM in the tropics (where FLUXCOM itself sits 25 % below the towers), 2.3 x in the temperate
 zone and 3.6 x north of 60 (section 40).
+
+## 44. Min's four points: the PFT envelope (Köppen mask), organic soils, cropland, dynamic wetland area (2026-10-12, in progress)
+
+Min's comments on the IBIS 3.0 report, and what was done with each.
+
+**1. The PFT envelope.** IBIS decides which of its 12 PFTs may exist in a cell from four temperature
+normals only (absolute minimum, warmest month, GDD0, GDD5; `climate_analysis.existence`, table in the
+README of 2026-10-12). Nothing in the envelope says how dry a cell is, which is why trees had to be
+held off steppes with the survival gate (section 14) and why the calibrated set grows them onto the
+tundra (section 40). Two findings while summarising it:
+
+- *Larch is broken in the original Fortran.* `climate.f:398-400` compares `gdd5` with `TminL(4)`
+  (-45) where the comment above it says `GDD(4)` (1200); the comparison is never true, so PFT 8 exists
+  only where the coldest month averages below -45 C. The port reproduced it. `physics.larch_gdd_fix`
+  (default off, Fortran-identical) uses the degree-day limit the comment intends.
+- *Köppen-Geiger supplies the missing moisture axis.* `ibis.io.koppen` maps each of the 30 classes
+  of Beck et al. (2023, Sci. Data 10:724; 0.5-degree maps per 30-year period, on the NAS under
+  `/shared/nas/Public/Climate_Biome/Koppen_Beck2023`) to the upper-canopy PFTs it allows, and
+  `existence()` multiplies the mask into its envelope; the lower canopy is never masked. The table is
+  in the module docstring: A keeps the tropical trees (Aw the drought-deciduous one only), B is
+  treeless except the hot steppe (acacia savanna), Cs the Mediterranean set, Cw/Cfa the subtropical
+  set, Cfb/Cfc and D the temperate-boreal set, E treeless. `forcing.koppen_file` points at the npz of
+  `scripts/koppen_prep.py` (periods 1901-1930 ... 1991-2020; the run picks the period of each year,
+  the spin-up takes the first). Decided with Hangkai 2026-10-12: prescribe first (this), derive the
+  class from the model's own normals later if it pays.
+
+**2. Soils.** The 0.5-degree texture file already is HWSD2 (Min's `hwsd2_to_soita.py`, March 2026),
+but only sand and clay were read; organic carbon and bulk density were discarded, and IBIS's
+hydraulic and thermal properties were texture-only with a constant 1 % organic correction on the
+solids. `scripts/hwsd2_organic_to_nc.py` puts ORG_CARBON and BULK on the six IBIS layers with Min's
+rule (SHARE x depth-overlap per mapping unit, pixel-count mean per cell) into
+`inputs/soil/soita_hwsd2_organic.nc` (with sand and clay recomputed alongside), and
+`physics.soil_organic` mixes the Lawrence & Slater (2008) organic end-member into porosity,
+Campbell b, saturated suction and conductivity, field capacity, wilting point, the solids' density
+and heat capacity (`soil_init`) and the dry thermal conductivity (`setsoi`) by
+f_om = min(1, OC/100 x 1.724 x BD / 130 kg m-3). Off by default and bit-identical when off.
+
+**3. Cropland.** Left as it is (section 41-43); Chris's crop model will replace the managed grass on
+the cropland share later. No change.
+
+**4. Dynamic wetland area.** The methane module takes the WAD2M fraction as a 2000-2020 monthly
+climatology, identical every year. Min wants a switch, off by default, that scales it with
+precipitation for the years without observations. Before any code: a literature review
+(GIEMS/SWAMPS/WAD2M interannual variability, the precipitation-scaled extents of the methane budget
+studies, the TOPMODEL family) and a regression of WAD2M 2000-2010 on the model's precipitation per
+band, to see how much of the variance precipitation explains. Both in progress; results below.
+
+**Experiment design.** All from the s7 1900 state (section 43) through the 1901-2000 transient and
+the 2001-2010 hindcast (`final_validation.sh` with `SKIP_SPINUP=1`, env `KOPPEN`, `LARCH_FIX`,
+`SOIL_ORGANIC`/`SOIL_FILE`), so each differs from s7 in one switch and the 110 years let the
+vegetation and the soil water re-equilibrate: k1 = Köppen mask; k2 = Köppen + larch fix; o1 =
+organic soils. Verdicts on the section-43 quantities (sink, GPP by band vs FLUXCOM, ET by band,
+tree cover by band vs the reference, methane, fire), model/obs ratios first.

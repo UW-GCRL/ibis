@@ -54,6 +54,7 @@ def setsoi(
     cvap: float,
     cice: float,
     epsilon: float,
+    forganic=None,
 ) -> SetsoiResult:
     """Set diagnostic soil conductivity, evap fractions, latent heat.
 
@@ -70,6 +71,10 @@ def setsoi(
     powice = poros * wisoi
 
     zcondry = fsand * 0.300 + fsilt * 0.265 + fclay * 0.250
+    # Organic fraction of the solids (physics.soil_organic): dry conductivity of
+    # organic matter 0.05 W m-1 K-1 (Lawrence & Slater 2008); None = F77.
+    if forganic is not None:
+        zcondry = (1.0 - forganic) * zcondry + forganic * 0.05
     consoi = zcondry * (56.0 ** powliq) * (224.0 ** powice)
 
     # --- Evaporation source fractions (qglif) ---

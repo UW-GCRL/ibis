@@ -67,6 +67,12 @@ class PhysicsSection:
     #: Wetland CH4 diagnostics (docs/METHANE.md; CALIBRATION.md 38): the runner loads the WAD2M climatology
     #: (`forcing.wad2m_file`) and runs the methane module; written as aych4 / amch4.
     enable_methane: bool = False
+    #: PFT 8 (larch) existence: use the degree-day limit the F77 comment intends instead of the
+    #: temperature limit the F77 code compares against (ibis.physics.climate_analysis.existence).
+    larch_gdd_fix: bool = False
+    #: Mix organic-soil hydraulic and thermal properties by the HWSD2 organic-carbon fraction
+    #: (Lawrence & Slater 2008); needs orgcpct and bulkdens in soil_file (scripts/hwsd2_organic_to_nc.py).
+    soil_organic: bool = False
     #: Prescribe leaf area index from MODIS instead of growing it. This is the
     #: configuration behind the published IBIS GPP of 107.5 PgC/yr (Liu et al.
     #: 2014). Carbon totals from such a run are diagnostic, not a closed
@@ -153,6 +159,10 @@ class ForcingSection:
     #: Cropland fraction per 0.5-degree cell (npz with "cropfrac" (360, 720), north to south; CALIBRATION.md 41).
     #: Empty string = no cropland treatment.
     cropfrac_file: str = ""
+    #: Koppen-Geiger classes per 0.5-degree cell and period (npz from scripts/koppen_prep.py: "classes"
+    #: (nperiod, 360, 720) uint8 north to south, "period_start", "period_end"; CALIBRATION.md 44).
+    #: Empty string = no Koppen mask on PFT existence.
+    koppen_file: str = ""
     soil_file: str = ""
     land_mask_file: str = ""
     # Spinup: repeat [spinup_year_start, spinup_year_end] cyclically for nrun years.
