@@ -31,15 +31,16 @@ def test_no_cropland_is_the_old_path():
     assert np.allclose(np.asarray(s0.ayneetot), np.asarray(s1.ayneetot))
 
 
-def test_tree_cap_keeps_trees_off_the_cropland_share():
+def test_tree_cover_is_the_natural_share_times_the_natural_cover():
     st = _state(); pp = default_pft_params()
-    cf = jnp.array([0.0, 0.5, 0.9, 1.0]); diag = {}
+    cf = jnp.array([0.0, 0.5, 0.9, 0.99]); diag = {}
     v, c, s = _run(st, cf, diag=diag)
-    fu = np.asarray(v.fu); wood = np.asarray(v.cbiow[:, :8].sum(axis=1))
-    assert fu[0] > 0.9                                                         # a full forest cell keeps its canopy
-    assert fu[1] <= 0.5 + 1e-3 and fu[2] <= max(0.1, float(pp.fu_min)) + 1e-3  # trees within the non-cropland share (fu_min floor is the F77 cover floor)
-    assert wood[3] < 1e-3                                                      # full cropland: no trees
-    assert np.asarray(diag["clearing"])[3] > np.asarray(diag["clearing"])[1] > np.asarray(diag["clearing"])[0] == 0.0
+    v0, _, _ = _run(st, None)
+    fu = np.asarray(v.fu); fu0 = np.asarray(v0.fu); wood = np.asarray(v.cbiow[:, :8].sum(axis=1)); wood0 = np.asarray(v0.cbiow[:, :8].sum(axis=1))
+    assert np.allclose(wood, wood0)                                             # no clearing: the tree pools are untouched
+    assert abs(fu[0] - fu0[0]) < 1e-6                                            # no cropland: the old cover
+    assert fu[1] <= 0.5 + 1e-3 and fu[2] <= max(0.1, float(pp.fu_min)) + 1e-3   # cover within the non-cropland share (fu_min is the F77 floor)
+    assert float(np.asarray(diag["clearing"]).sum()) == 0.0
 
 
 def test_harvest_removes_the_cropland_share_of_grass_turnover_from_litter():

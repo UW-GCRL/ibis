@@ -524,33 +524,26 @@ def dynaveg(
         cbior = cbior.at[:, j].set(jnp.maximum(0.0, cbior[:, j] * (1.0 - disturb_total)))
 
     # --- Maintain minimum biomass and update plai / biomass ---
-    # --- Cropland as managed grass (docs/CALIBRATION.md 41) ---
-    # (1) trees may cover at most the non-cropland share of the cell: where the cover the wood would give exceeds it,
-    #     the tree pools are scaled to the wood that gives exactly that cover (the inverse of the fu formula below)
-    #     and the removed carbon is a clearing flux, booked like a disturbance (to the atmosphere, out of NEE);
-    # (2) the cropland share of the grass leaf turnover leaves the field as harvest instead of becoming litter.
+    # --- Cropland as managed grass (docs/CALIBRATION.md 41, 43) ---
+    # The cropland share c of a cell carries crops (grass with the crop capacity, harvested); the trees live on the
+    # non-cropland share 1 - c at their natural wood density. Cover is sub-grid: the cell's upper-canopy cover is
+    # (1 - c) x the cover that the wood DENSITY ON THE NATURAL SHARE (wood / (1 - c)) gives, applied in the fu formula
+    # below. The trees' GPP scales with their cover, so their pools equilibrate on their share without any clearing.
+    # (The first version capped the cell cover at 1 - c and scaled the pools to it; because fu saturates near 1 for any
+    # wood above ~3 kgC m-2, that cleared every forest with a few percent of cropland -- 12 PgC yr-1, section 43.)
+    # The cropland share of the grass leaf turnover leaves the field as harvest instead of becoming litter.
+    _crop_c = None
     if cropfrac is not None:
         from ibis.io.parameters import default_crop_params as _dcp
         _cp = crop_params if crop_params is not None else _dcp()
-        _c = jnp.clip(cropfrac, 0.0, 1.0)
-        _den = 1.0 - jnp.exp(-woodnorm / pft_params.fu_k)
-        _fu_raw = (1.0 - jnp.exp(-wood / pft_params.fu_k)) / _den
-        _fu_cap = 1.0 - _c
-        _wood_cap = -pft_params.fu_k * jnp.log(jnp.maximum(1.0 - _fu_cap * _den, 1.0e-6))
-        _scale = jnp.where((_c > 0.0) & (_fu_raw > _fu_cap), jnp.clip(_wood_cap / jnp.maximum(wood, 1.0e-9), 0.0, 1.0), 1.0)   # no cropland: untouched (fu_raw may exceed 1 before the 0.975 clip)
-        _m8 = (jnp.arange(npft) < 8)[None, :]
-        _cleared = jnp.sum(jnp.where(_m8, (cbiol + cbiow + cbior) * (1.0 - _scale)[:, None], 0.0), axis=1)
-        cbiol = jnp.where(_m8, cbiol * _scale[:, None], cbiol)
-        cbiow = jnp.where(_m8, cbiow * _scale[:, None], cbiow)
-        cbior = jnp.where(_m8, cbior * _scale[:, None], cbior)
-        wood = wood * _scale
-        _harvest = jnp.zeros_like(_c)
+        _crop_c = jnp.clip(cropfrac, 0.0, 1.0)
+        _harvest = jnp.zeros_like(_crop_c)
         for j in (10, 11):
-            _harvest = _harvest + _c * _cp.harvest_index * veg.cbiol[:, j] / tauleaf[j]      # from the pre-growth leaf pool, as falll was
+            _harvest = _harvest + _crop_c * _cp.harvest_index * veg.cbiol[:, j] / tauleaf[j]  # from the pre-growth leaf pool, as falll was
         falll = jnp.maximum(falll - _harvest, 0.0)
-        cdisturb = cdisturb + _cleared + _harvest
+        cdisturb = cdisturb + _harvest
         if diag is not None:
-            diag["clearing"] = _cleared; diag["harvest"] = _harvest
+            diag["harvest"] = _harvest; diag["clearing"] = jnp.zeros_like(_harvest)
 
     plai = veg.plai
     biomass = veg.biomass
@@ -581,7 +574,11 @@ def dynaveg(
         disturb_total = disturbf_val * _mort_mean + disturbo_val
     else:
         disturb_total = disturbf_val + disturbo_val
-    fu = (1.0 - jnp.exp(-wood / pft_params.fu_k)) / (1.0 - jnp.exp(-woodnorm / pft_params.fu_k))
+    if _crop_c is not None:                                       # sub-grid cropland: cover of the trees' own share, times that share
+        _wn = wood / jnp.maximum(1.0 - _crop_c, 0.01)
+        fu = (1.0 - _crop_c) * (1.0 - jnp.exp(-_wn / pft_params.fu_k)) / (1.0 - jnp.exp(-woodnorm / pft_params.fu_k))
+    else:
+        fu = (1.0 - jnp.exp(-wood / pft_params.fu_k)) / (1.0 - jnp.exp(-woodnorm / pft_params.fu_k))
     fu = fu * (1.0 - disturb_total)
     fu = jnp.maximum(pft_params.fu_min, jnp.minimum(0.975, fu))
 
