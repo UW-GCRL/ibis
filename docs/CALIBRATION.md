@@ -4919,4 +4919,21 @@ density on the non-cropland share (1 - c) and the cell's tree cover is (1 - c) t
 clearing. The crops are the grasses on the share c with the fitted capacity and the harvest of section 41. Tests:
 no cropland reproduces the old path; wood is untouched; cover stays within the non-cropland share.
 
-**Second run (`final_s6_crop`, launched 20:30; results below when it lands).**
+**Second run (`final_s6_crop`, 20:14-02:34).** The sub-grid rule behaves: no clearing, harvest 1.27 PgC yr-1, wood
+carbon 356 PgC, the 2001-2010 stored-carbon sink +2.34 PgC yr-1 (GCB 2.83), wetland CH4 155 Tg (131 / 11 / 13 by
+band), ET 1.04 x the ensemble. But GPP rose again (207 PgC yr-1 on true land) and the cropland cells kept their ratio
+to FLUXCOM (2.15 in cells over 60 % cropland) with the tree cover now correctly at 0.26. The 2010 restart shows why:
+in those cells the lower canopy is C4 grass (mean leaf area 3.4; 5.1 in the tropics, 0.6 C3 grass) and shrubs (2.4
+at 30-60 N). The model's grass competition puts C4 grass wherever the warmest month exceeds 22 C and the shrubs take
+the rest, so the "crop" ran as C4 grass at 1.16 x and as shrubs, and the C3 crop capacity of 0.33 that the European
+and American towers asked for was applied to a grass that was hardly there. The fault is in letting the natural
+competition decide what grows on cropland.
+
+**The rule that replaced it** (commit 7450f75): on the cropland share the shrubs' NPP is scaled by (1 - c), so they
+too keep to the natural share, and the crop capacity is a mix of the C3 and C4 values, (1 - q) x 0.33 + q x 1.16,
+applied to both grasses, with q the C4 share of the cropland (`CropParams.c4_share`; -1 keeps the per-PFT rule the
+tower fits used; the global file `params_s7_crop.yaml` sets 0.2, about the harvested-area share of maize, sorghum,
+millet and sugar cane). What is still not represented: a crop's leaf area and season (the grass LAI on cropland is
+dynamic, and a crop field is bare for part of the year) and a map of which crop grows where.
+
+**Third run (`final_s7_crop`, launched 02:49; results below when it lands).**
