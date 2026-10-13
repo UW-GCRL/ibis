@@ -5099,3 +5099,21 @@ the water and the column stays well-posed. So no solver guard is needed for the 
 the one to evaluate: o2 = organic soils (hemic) with its own 200-year spin-up, beside s7b = s7 with its own
 200-year spin-up, because s7's spin-up was inherited from s5 and the soil-carbon comparison needs the same
 protocol on both sides. Queued behind k2.
+
+**Result, k2 (06:10): the larch fix is inert from a restart.** k2 (Köppen mask + `larch_gdd_fix`) is k1 to four
+digits on every score (GPP 186.97 vs 186.98 PgC yr-1, wood 295.8 vs 295.9, sink +1.43 both, every band ratio
+equal). The 2010 restarts say why: with the fix larch MAY exist at 12,372 points instead of 308 (the same count
+as the two other boreal trees, as the rule intends), but after 110 years its wood is 0.2 TgC against 50 PgC for
+the boreal evergreen conifer, and not one point carries more than 0.1 kgC m-2 of it. A PFT that starts at zero
+biomass cannot establish in `dynaveg`: the upper-canopy NPP is shared by leaf-area fraction, the seed leaf
+(`xminlai`) is a negligible share, and the exponential never takes off. Two consequences. (1) The Fortran bug is
+real but inert in any run that starts from an existing state; the fix is the right rule and costs nothing, so it
+goes into the default together with the mask, but its effect can only show in a cold-start spin-up where the
+land-cover map seeds larch. (2) For the new-PFT stage this is the structural item that comes first: a new type
+needs a seed from the land-cover map at cold start or an establishment rule (a minimum share of the canopy NPP,
+or a biomass floor where it may exist), or it will never appear in a run started from today's states.
+
+Verdict on the envelope (k1 = k2): adopt the Köppen mask and the larch rule as the default envelope -- they
+remove the steppe, Mediterranean and tundra phantom trees at no cost -- and carry the taiga density and the
+tundra lower canopy to the new-PFT stage. Hindcast scoring of k2 was re-run outside the launcher
+(`$S/final_validation_from_hindcast.sh`) after the launcher was patched while k2 was executing it.
