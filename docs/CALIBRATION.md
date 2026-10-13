@@ -5245,3 +5245,46 @@ birch-aspen (1, US-Rpf), S06 tundra dwarf shrub (1, GL-Dsk), S07 tropical shrub 
 openness or boundary rule is applied and no other merge. IDs are kept stable (there is no T20). Caveat recorded,
 not acted on: a type fitted on one tower has no between-tower spread, so its held-out year is its only check.
 Towers per type after the acquisition: `figures/pft31/PFT31_tower_counts.csv`; map redrawn with 40 types.
+
+### 45.1 Build design (2026-10-13)
+
+**Types live in IBIS's 12 positions, not in a 40-wide state.** Every cell has one Köppen zone, and within one
+zone the tree types are at most three broadleaf and two conifer, the shrubs one, the grasses one. So each cell
+maps each of its types to one of the 12 IBIS positions, and every per-PFT parameter becomes a per-cell array
+(npoi, 12) gathered from a 40-row type table. The state arrays, restarts, fire and mortality tables and the
+Fortran-identical path stay as they are; switched off (no type map), every cell takes the parent values and the
+model is bit-identical. Outputs per position convert back to the 40 types through the same map.
+
+Placement rule: a type takes its parent's position (T01 -> 1, T17 -> 6, T19 -> 8, ...); trees keep their leaf
+form (broadleaf positions 1, 2, 3, 5, 7; conifer 4, 6, 8, the groups of the big-leaf photosynthesis); if the
+parent's position is taken, the type takes the first free position of its leaf form. Two zones need that: A
+savanna (T02 and T03 are both drought-deciduous, T03 goes to position 1) and B hot (T03 and T05, T05 to position
+1). Lower canopy: the zone's shrub type takes position 9 (evergreen) or 10 (deciduous) by its habit, the zone's
+grass takes 11 (C4) or 12 (C3); the other shrub and grass positions keep the IBIS 3.0 generic shrub and grass with
+their own envelope, so C4 grass still grows in the hot-summer temperate climates and deciduous shrubs in the
+boreal zone. Tree positions with no type in the zone are off. Wetland types W01-W03 are not positions: they
+are the methane parameter sets by zone (replacing the latitude bands); crop types C01/C02 are the crop capacity
+factors on the cropland share.
+
+**What becomes per type.** vmax, specla, tauleaf, tauroot, tauwood0, aleaf/aroot/awood, rgrowth, rroot, rwood,
+lt_e0, the Ball-Berry slope and the acclimation parameters, and the leaf habit (evergreen, drought-deciduous,
+cold-deciduous), which phenology reads from the type instead of from the position. Existence: the zone gate
+(the type map) times the type's parent envelope.
+
+**Competition inside a big leaf.** All types in one big leaf (the conifers of a cell, say) get the same net
+assimilation per unit leaf area, so their own vmax hardly matters to how they compete -- the reason larch never
+established (k2). New switch `stomata.gpp_split_by_capacity`: each big leaf's GPP is split among its positions by
+displayed leaf area x own vmax instead of by leaf area alone. With the mixed vmax (`vmax_mix`) as the leaf-area
+weighted mean, the shares still sum to one, so the canopy total is unchanged and only its division moves. Off by
+default.
+
+**Establishment.** Every position that may exist keeps the minimum leaf carbon (`xminlai`), as now; at cold start
+the land-cover initialisation fills positions by parent and the type map relabels them, so a type starts where its
+parent had biomass. Whether the capacity split is enough for a seeded type to take hold is tested before any
+further rule is added.
+
+**Calibration.** (1) New towers to the FLUXNET2015 layout the harness reads (as `ch4_tower_prep.py` does for the
+methane towers). (2) Per-tower NEE fits on every tower with three or more good years, each tower run as its zone's
+cell with its type in its position, under the corrected respiration of section 36; class medians per type; a
+type's parent median where it has no fit. (3) Leaf area, cover and season per type against MODIS LAI, tree cover
+and the seasonal cycle by zone (the GPP finding above). (4) The global protocol and the section-43 scores.
