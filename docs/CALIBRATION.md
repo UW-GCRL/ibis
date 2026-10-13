@@ -5190,3 +5190,31 @@ rules differ -- that is stated in the table, not hidden.
    no towers; then the GPP/ET verdicts of sections 37 and 39 and the global protocol.
 Expected effort: one to two weeks for 1-3, one week of fits for 4 (about 300 towers at the section-36 cost,
 six at a time), two days of global runs; three to four weeks to a scored IBIS 3.1.
+
+**Why the GPP is high: it is leaf area, not physiology (2026-10-13 16:00).** Decomposition of the s7 2001-2010
+excess over FLUXCOM into leaf area (annual mean of the monthly cover-weighted displayed LAI against the MODIS
+annual mean of the ILAMB collection), light use per unit leaf area, and growing-season length (months with GPP
+above 20 % of the annual maximum, model against FLUXCOM's monthly climatology):
+
+| region | GPP ratio | LAI ratio (model / MODIS, m2 m-2) | GPP per leaf area | season, months model / ref |
+|---|---|---|---|---|
+| all land | 1.75 | 2.81 (4.33 / 1.54) | 0.62 | 8.6 / 7.4 |
+| tropics | 1.47 | 2.35 (4.72 / 2.01) | 0.62 | 10.3 / 9.3 |
+| 30-60 N | 2.29 | 3.56 (4.25 / 1.19) | 0.64 | 7.3 / 6.1 |
+| 60-90 N | 3.58 | 2.86 (2.75 / 0.96) | 1.25 | 4.2 / 3.8 |
+| Köppen A / B / C / D / ET | 1.35 / 1.91 / 2.11 / 2.44 / 4.92 | 2.07 / 2.83 / 4.21 / 2.99 / 7.51 | 0.65 / 0.67 / 0.50 / 0.81 / 0.65 | |
+| cropland > 50 % | 1.89 | 4.29 (4.72 / 1.10) | 0.44 | 9.1 / 7.8 |
+
+The model carries 2.8 times the observed leaf area and photosynthesises 0.62 times the observed amount per unit
+of it; the excess GPP is the excess canopy, damped by its own shading. Temperate climates hold the extreme (LAI
+7.8 against 1.9, two stacked full canopies: tree cover 0.64 with a grass understorey at 0.80), the tundra the
+largest ratio (2.5 against 0.34, a lower canopy that nothing limits), the cropland share a grass of 4.7. Only
+north of 60 does the rate per leaf also run high (1.25, where FLUXCOM is weakest), with a season 10-25 % too
+long everywhere outside the tropics. The towers did not see this because every fit held the leaf carbon at the
+site-attribute or MODIS leaf area (`--fixed-lai attrs`, `--lai-mode attrs-modis`, sections 31-36): the
+physiology was calibrated under observed canopies; the model's own canopy generation (leaf allocation and
+turnover, the lower-canopy LAI, the cover rules, the two-canopy stacking) was never under test. So the answer
+to "is it the framework" is yes: the vegetation dynamics, not the parameters of photosynthesis. For IBIS 3.1
+this fixes the calibration design: NEE at towers calibrates the physiology and respiration of each type; the
+leaf area, cover and season of each type must be fitted against MODIS LAI, tree cover and the seasonal cycle
+by type and zone, or the global GPP stays where it is however well the towers fit.
