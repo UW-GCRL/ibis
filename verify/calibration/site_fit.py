@@ -168,6 +168,7 @@ def _args(argv=None):
     ap.add_argument('--lai', default='', help='SITE=value[,SITE=value]: leaf area to hold where the site attributes have none')
     ap.add_argument('--co2', default='fixed', choices=['fixed', 'series'], help="'fixed' 385 ppm (the batch fits) or the historical annual series")
     ap.add_argument('--lai-mode', default='', choices=['', 'attrs-modis'], help="'attrs-modis': non-forest towers (OSH, CSH, SAV, WSA, GRA) held at the MODIS cell maximum LAI, forests at the attribute maximum (CALIBRATION.md 31); --lai still overrides per tower")
+    ap.add_argument('--robust-auto', action='store_true', help='with --robust: if the baseline loss is at the tower cap, lift the caps to 400,1e9 before fitting (CALIBRATION.md 45)')
     ap.add_argument('--robust', default='', help="bounded objective 'cap_month,cap_tower,w_mag,tol' e.g. 25,30,1,0.15: capped monthly misfits, annual and summer GPP ratio terms (ln R / tol)^2, capped per-tower total (CALIBRATION.md 34)")
     ap.add_argument('--et-corr-only', action='store_true', help='ET term only at towers with energy-balance-corrected LE (LE_CORR)')
     ap.add_argument('--et-sites', default='', help='comma list: only these towers carry the ET term (towers without energy-balance-corrected LE get 0); default all')
@@ -253,7 +254,8 @@ def setup(a, spin=True, verbose=True):
         if at is not None and np.isfinite(at['lai_max']) and at['lai_max'] > 0:
             cb[n] = mask[n] / max(mask[n].sum(), 1) * at['lai_max'] / np.maximum(specla, 1e-6); lai_src[s] = f"attributes {at['lai_max']:.1f}"
         else: lai_src[s] = f"state {float((cb[n] * specla).sum()):.1f}"
-        if getattr(a, 'lai_mode', '') == 'attrs-modis' and META.loc[s, 'IGBP'] in ('OSH', 'CSH', 'SAV', 'WSA', 'GRA', 'WET', 'CRO'):     # WET: methane towers (38); CRO: cropland (41)
+        if getattr(a, 'lai_mode', '') == 'attrs-modis' and (META.loc[s, 'IGBP'] in ('OSH', 'CSH', 'SAV', 'WSA', 'GRA', 'WET', 'CRO')     # WET: methane towers (38); CRO: cropland (41)
+                                                            or not lai_src[s].startswith('attributes')):    # towers without a site-attribute file (CALIBRATION.md 45): not the model's own state LAI
             mm = float(np.asarray(modis_at(i, j))[n])
             if np.isfinite(mm) and mm > 0: cb[n] = mask[n] / max(mask[n].sum(), 1) * mm / np.maximum(specla, 1e-6); lai_src[s] = f'MODIS cell maximum {mm:.1f}'
         given = dict(kv.split('=') for kv in getattr(a, 'lai', '').split(',') if kv)
@@ -438,6 +440,13 @@ def main():
         return Ls
     try:
         L0 = objective_batch([C.z0], local=True)[0]; print(f'baseline loss {L0:.4f}', flush=True)       # in the parent, while workers start
+        if getattr(a, 'robust_auto', False) and ROBUST and L0 >= 0.999 * ROBUST['cap_tower']:
+            # the tower starts at the tower cap: the capped objective is flat there and CMA-ES cannot see improvement
+            # (the crop fits of CALIBRATION.md 41); lift the caps to the single-tower setting and re-score the start
+            ROBUST = dict(ROBUST, cap_month=400.0, cap_tower=1e9)
+            print(f'robust-auto: baseline at the tower cap -> month cap 400, tower cap 1e9 (CALIBRATION.md 45)', flush=True)
+            hist.clear(); best['loss'] = np.inf
+            L0 = objective_batch([C.z0], local=True)[0]; print(f'baseline loss {L0:.4f} (lifted caps)', flush=True)
         json.dump(dict(igbp=a.igbp, params=a.params, fit=names, train=train, hold=hold, lai=C.lai_src, w_et=a.w_et, years=YEARS, train_years=[YEARS[k] for k in TRAIN_Y], hold_years=[YEARS[k] for k in HOLD_Y], workers=a.workers, popsize=a.popsize, seed=a.seed, sigma=a.sigma, n_evals=a.n_evals, co2=a.co2, lai_given=a.lai, hourly_sw=getattr(a, 'hourly_sw', False), vmax_bounds=getattr(a, 'vmax_bounds', ''), pft_override=getattr(a, 'pft', ''), et_sites=getattr(a, 'et_sites', ''), robust=getattr(a, 'robust', '')), open(f'{a.out}/setup.json', 'w'), indent=1)
         if a.only_baseline: return
         if a.profile:                                                                # one-at-a-time profile around the start (CALIBRATION.md 32)

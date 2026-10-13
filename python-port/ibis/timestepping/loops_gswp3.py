@@ -165,7 +165,8 @@ def _run_day_inner(
         # --- Issue 20: NPP with maintenance + growth respiration ---
         # (Fortran stats.f sumnow: rwood, rroot, rgrowth)
         # scalars or (12,) per-PFT vectors (CALIBRATION.md 37); indexed by PFT below
-        _pv = lambda x: jnp.broadcast_to(jnp.asarray(x, dtype=jnp.float32), (12,))
+        _pv = lambda x: (jnp.asarray(x, dtype=jnp.float32) if jnp.ndim(x) == 2
+                         else jnp.broadcast_to(jnp.asarray(x, dtype=jnp.float32), (12,)))   # (npoi, 12) under IBIS 3.1 types
         rwood   = _pv(params.bgc_params.rwood) / (ndaypy * 86400.0) * (1000.0 / 12.0)  # /s, mol C basis; F77 0.0125 (CALIBRATION.md 36)
         rroot   = _pv(params.bgc_params.rroot) / (ndaypy * 86400.0) * (1000.0 / 12.0)  # F77 1.25
         rgrowth = _pv(params.bgc_params.rgrowth)     # F77 0.30 (CALIBRATION.md 36)
@@ -182,33 +183,43 @@ def _run_day_inner(
         # Per-PFT GPP (mol CO2/m2 ground/s)
         c_fac   = 12.0e-3 * dtime   # mol CO2 → kgC × dtime
         aynpp   = sm.aynpp
+        # IBIS 3.1 (CALIBRATION.md 45.1): optionally split each big leaf's GPP by leaf area x own vmax
+        _sp = params.stomata_params
+        if getattr(_sp, 'gpp_split_by_capacity', False):
+            from ibis.physics.stomata import capacity_shares
+            _vp = _sp.vmax_pft
+            _sh_b = capacity_shares(frac, _vp, (0, 1, 2, 4, 6)); _sh_c = capacity_shares(frac, _vp, (3, 5, 7))
+            _sh_s = capacity_shares(frac, _vp, (8, 9))
+            share = frac.at[:, jnp.array([0, 1, 2, 4, 6])].set(_sh_b).at[:, jnp.array([3, 5, 7])].set(_sh_c).at[:, jnp.array([8, 9])].set(_sh_s)
+        else:
+            share = frac
         # Upper canopy: broadleaf
         for j in (0, 1, 2, 4, 6):
-            gpp_j = an_ub * frac[:, j] * lai_u * veg.fu
-            resp_j = rwood[j] * veg.cbiow[:, j] * veg.sapfrac * funca + rroot[j] * veg.cbior[:, j] * funcb
-            npp_j = (1.0 - rgrowth[j]) * (gpp_j - resp_j)
+            gpp_j = an_ub * share[:, j] * lai_u * veg.fu
+            resp_j = rwood[..., j] * veg.cbiow[:, j] * veg.sapfrac * funca + rroot[..., j] * veg.cbior[:, j] * funcb
+            npp_j = (1.0 - rgrowth[..., j]) * (gpp_j - resp_j)
             aynpp = aynpp.at[:, j].add(npp_j * c_fac)
         # Upper canopy: conifer
         for j in (3, 5, 7):
-            gpp_j = an_uc * frac[:, j] * lai_u * veg.fu
-            resp_j = rwood[j] * veg.cbiow[:, j] * veg.sapfrac * funca + rroot[j] * veg.cbior[:, j] * funcb
-            npp_j = (1.0 - rgrowth[j]) * (gpp_j - resp_j)
+            gpp_j = an_uc * share[:, j] * lai_u * veg.fu
+            resp_j = rwood[..., j] * veg.cbiow[:, j] * veg.sapfrac * funca + rroot[..., j] * veg.cbior[:, j] * funcb
+            npp_j = (1.0 - rgrowth[..., j]) * (gpp_j - resp_j)
             aynpp = aynpp.at[:, j].add(npp_j * c_fac)
         # Lower canopy: shrubs (no sapwood for PFTs 8,9 — but cbiow may be nonzero)
         for j in (8, 9):
-            gpp_j = an_ls * frac[:, j] * lai_l * veg.fl * smask
-            resp_j = rwood[j] * veg.cbiow[:, j] * funca + rroot[j] * veg.cbior[:, j] * funcb
-            npp_j = (1.0 - rgrowth[j]) * (gpp_j - resp_j)
+            gpp_j = an_ls * share[:, j] * lai_l * veg.fl * smask
+            resp_j = rwood[..., j] * veg.cbiow[:, j] * funca + rroot[..., j] * veg.cbior[:, j] * funcb
+            npp_j = (1.0 - rgrowth[..., j]) * (gpp_j - resp_j)
             aynpp = aynpp.at[:, j].add(npp_j * c_fac)
         # C4 grass
         gpp_c4 = an_l4 * frac[:, 10] * lai_l * veg.fl * smask
-        resp_c4 = rroot[10] * veg.cbior[:, 10] * funcb
-        npp_c4 = (1.0 - rgrowth[10]) * (gpp_c4 - resp_c4)
+        resp_c4 = rroot[..., 10] * veg.cbior[:, 10] * funcb
+        npp_c4 = (1.0 - rgrowth[..., 10]) * (gpp_c4 - resp_c4)
         aynpp = aynpp.at[:, 10].add(npp_c4 * c_fac)
         # C3 grass
         gpp_c3 = an_l3 * frac[:, 11] * lai_l * veg.fl * smask
-        resp_c3 = rroot[11] * veg.cbior[:, 11] * funcb
-        npp_c3 = (1.0 - rgrowth[11]) * (gpp_c3 - resp_c3)
+        resp_c3 = rroot[..., 11] * veg.cbior[:, 11] * funcb
+        npp_c3 = (1.0 - rgrowth[..., 11]) * (gpp_c3 - resp_c3)
         aynpp = aynpp.at[:, 11].add(npp_c3 * c_fac)
 
         # Total canopy NPP this timestep (kgC/m2)
@@ -394,7 +405,8 @@ def _run_month_scan(
         # Phenology update (once per day, before timestep physics)
         new_veg = pheno(st.vegetation, pheno_summary, td_d, consts.epsilon,
                         params.pheno, st.soil.stresstu, st.soil.stresstl,
-                        sen_on_u=sen_on_u, sen_on_l=sen_on_l)
+                        sen_on_u=sen_on_u, sen_on_l=sen_on_l,
+                        habit=getattr(params, 'slot_habit', None))
         st = eqx.tree_at(lambda s: s.vegetation, st, new_veg)
 
         k, k_timing, k_day = jax.random.split(k, 3)
@@ -450,6 +462,9 @@ def _run_month_scan(
         if _tconst.ndim == 1:                            # (12,) per PFT: the cell's leaf-area-weighted value (CALIBRATION.md 37)
             _w = jnp.maximum(st.vegetation.plai, 0.0); _ws = _w.sum(axis=1)
             _tconst = jnp.where(_ws > 0.0, (_w * _tconst[None, :]).sum(axis=1) / jnp.maximum(_ws, 1e-6), _tconst.mean())
+        elif _tconst.ndim == 2:                          # (npoi, 12) per position under IBIS 3.1 types
+            _w = jnp.maximum(st.vegetation.plai, 0.0); _ws = _w.sum(axis=1)
+            _tconst = jnp.where(_ws > 0.0, (_w * _tconst).sum(axis=1) / jnp.maximum(_ws, 1e-6), _tconst.mean(axis=1))
         _wshift = params.bgc_params.wfps_opt - 60.0     # F77 optimum 60 %
         _btemp = jnp.float32(288.16)
         _tzero = jnp.float32(227.13)

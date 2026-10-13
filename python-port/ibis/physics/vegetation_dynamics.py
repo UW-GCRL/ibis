@@ -208,33 +208,33 @@ def biomass_update(
 
     for j in range(npft):
         aynpp_j = exist[:, j] * raw_aynpp[:, j]
-        ayanpp_j = (aleaf[j] + awood[j]) * aynpp_j
+        ayanpp_j = (aleaf[..., j] + awood[..., j]) * aynpp_j
         local_ayanpp = local_ayanpp.at[:, j].set(ayanpp_j)
 
         # Use tauwood0 (no exist-dependent acceleration — that's for dynaveg)
-        tauwood_j = tauwood0[j]
+        tauwood_j = tauwood0[..., j]
 
         # Litterfall
-        falll = falll + cbiol[:, j] / tauleaf[j]
-        fallr = fallr + cbior[:, j] / tauroot[j]
+        falll = falll + cbiol[:, j] / tauleaf[..., j]
+        fallr = fallr + cbior[:, j] / tauroot[..., j]
         fallw = fallw + cbiow[:, j] / tauwood_j
 
         # Biomass pool update: exponential relaxation toward NPP-driven equilibrium
-        exp_leaf = jnp.exp(-1.0 / tauleaf[j])
+        exp_leaf = jnp.exp(-1.0 / tauleaf[..., j])
         cbiol_j = (cbiol[:, j] * exp_leaf +
-                   aleaf[j] * tauleaf[j] * jnp.maximum(0.0, aynpp_j) *
+                   aleaf[..., j] * tauleaf[..., j] * jnp.maximum(0.0, aynpp_j) *
                    (1.0 - exp_leaf))
         cbiol = cbiol.at[:, j].set(cbiol_j)
 
         exp_wood = jnp.exp(-1.0 / tauwood_j)
         cbiow_j = (cbiow[:, j] * exp_wood +
-                   awood[j] * tauwood_j * jnp.maximum(0.0, aynpp_j) *
+                   awood[..., j] * tauwood_j * jnp.maximum(0.0, aynpp_j) *
                    (1.0 - exp_wood))
         cbiow = cbiow.at[:, j].set(cbiow_j)
 
-        exp_root = jnp.exp(-1.0 / tauroot[j])
+        exp_root = jnp.exp(-1.0 / tauroot[..., j])
         cbior_j = (cbior[:, j] * exp_root +
-                   aroot[j] * tauroot[j] * jnp.maximum(0.0, aynpp_j) *
+                   aroot[..., j] * tauroot[..., j] * jnp.maximum(0.0, aynpp_j) *
                    (1.0 - exp_root))
         cbior = cbior.at[:, j].set(cbior_j)
 
@@ -242,9 +242,9 @@ def biomass_update(
     plai = veg.plai
     biomass = veg.biomass
     for j in range(npft):
-        cbiol_min = exist[:, j] * xminlai / specla[j]
+        cbiol_min = exist[:, j] * xminlai / specla[..., j]
         cbiol = cbiol.at[:, j].set(jnp.maximum(cbiol_min, cbiol[:, j]))
-        plai = plai.at[:, j].set(cbiol[:, j] * specla[j])
+        plai = plai.at[:, j].set(cbiol[:, j] * specla[..., j])
         biomass = biomass.at[:, j].set(cbiol[:, j] + cbiow[:, j] + cbior[:, j])
 
     # Update canopy fractions from wood biomass
@@ -386,31 +386,31 @@ def dynaveg(
         aynpp_j = exist[:, j] * raw_aynpp[:, j]
         if _crop_c is not None and j in (8, 9):
             aynpp_j = aynpp_j * (1.0 - _crop_c)
-        ayanpp_j = (aleaf[j] + awood[j]) * aynpp_j
+        ayanpp_j = (aleaf[..., j] + awood[..., j]) * aynpp_j
         local_ayanpp = local_ayanpp.at[:, j].set(ayanpp_j)
 
-        taufin = tauwood0[j] / 2.0
-        tauwood_j = tauwood0[j] - (tauwood0[j] - taufin) * (1.0 - exist[:, j])
+        taufin = tauwood0[..., j] / 2.0
+        tauwood_j = tauwood0[..., j] - (tauwood0[..., j] - taufin) * (1.0 - exist[:, j])
 
-        falll = falll + cbiol[:, j] / tauleaf[j]
-        fallr = fallr + cbior[:, j] / tauroot[j]
+        falll = falll + cbiol[:, j] / tauleaf[..., j]
+        fallr = fallr + cbior[:, j] / tauroot[..., j]
         fallw = fallw + cbiow[:, j] / tauwood_j
 
-        exp_leaf = jnp.exp(-1.0 / tauleaf[j])
+        exp_leaf = jnp.exp(-1.0 / tauleaf[..., j])
         cbiol_j = (cbiol[:, j] * exp_leaf +
-                   aleaf[j] * tauleaf[j] * jnp.maximum(0.0, aynpp_j) *
+                   aleaf[..., j] * tauleaf[..., j] * jnp.maximum(0.0, aynpp_j) *
                    (1.0 - exp_leaf))
         cbiol = cbiol.at[:, j].set(cbiol_j)
 
         exp_wood = jnp.exp(-1.0 / tauwood_j)
         cbiow_j = (cbiow[:, j] * exp_wood +
-                   awood[j] * tauwood_j * jnp.maximum(0.0, aynpp_j) *
+                   awood[..., j] * tauwood_j * jnp.maximum(0.0, aynpp_j) *
                    (1.0 - exp_wood))
         cbiow = cbiow.at[:, j].set(cbiow_j)
 
-        exp_root = jnp.exp(-1.0 / tauroot[j])
+        exp_root = jnp.exp(-1.0 / tauroot[..., j])
         cbior_j = (cbior[:, j] * exp_root +
-                   aroot[j] * tauroot[j] * jnp.maximum(0.0, aynpp_j) *
+                   aroot[..., j] * tauroot[..., j] * jnp.maximum(0.0, aynpp_j) *
                    (1.0 - exp_root))
         cbior = cbior.at[:, j].set(cbior_j)
 
@@ -504,12 +504,12 @@ def dynaveg(
 
     for j in range(npft):
         if _use_mort:
-            disturb_total = disturbf_val * _mort[j] + disturbo_val
+            disturb_total = disturbf_val * _mort[..., j] + disturbo_val
         else:
             disturb_total = disturbf_val + disturbo_val
 
         if _use_cc:
-            _f = disturbf_val * (_mort[j] if _use_mort else 1.0)
+            _f = disturbf_val * (_mort[..., j] if _use_mort else 1.0)
             kill_l, kill_w, kill_r = (cbiol[:, j] * _f, cbiow[:, j] * _f,
                                       cbior[:, j] * _f)
             # Fine roots do not combust at all -- they are underground.
@@ -543,7 +543,7 @@ def dynaveg(
         _cp = crop_params if crop_params is not None else _dcp()
         _harvest = jnp.zeros_like(_crop_c)
         for j in (10, 11):
-            _harvest = _harvest + _crop_c * _cp.harvest_index * veg.cbiol[:, j] / tauleaf[j]  # from the pre-growth leaf pool, as falll was
+            _harvest = _harvest + _crop_c * _cp.harvest_index * veg.cbiol[:, j] / tauleaf[..., j]  # from the pre-growth leaf pool, as falll was
         falll = jnp.maximum(falll - _harvest, 0.0)
         cdisturb = cdisturb + _harvest
         if diag is not None:
@@ -552,11 +552,11 @@ def dynaveg(
     plai = veg.plai
     biomass = veg.biomass
     for j in range(npft):
-        cbiol_min = exist[:, j] * xminlai / specla[j]
+        cbiol_min = exist[:, j] * xminlai / specla[..., j]
         if tree_surv is not None and j < 8:
             cbiol_min = cbiol_min * (tree_surv > 0.0)
         cbiol = cbiol.at[:, j].set(jnp.maximum(cbiol_min, cbiol[:, j]))
-        plai = plai.at[:, j].set(cbiol[:, j] * specla[j])
+        plai = plai.at[:, j].set(cbiol[:, j] * specla[..., j])
         biomass = biomass.at[:, j].set(cbiol[:, j] + cbiow[:, j] + cbior[:, j])
 
     # --- Update annual summary ---

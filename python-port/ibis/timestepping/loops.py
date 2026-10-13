@@ -115,6 +115,12 @@ class SimParams(eqx.Module):
     #: Organic-matter fraction of the soil solids per layer (npoi, nsoilay), from HWSD2 organic carbon and
     #: bulk density (ibis.io.soil_init, physics.soil_organic). None (default) = mineral conductivity as F77.
     forganic: Optional[Float[Array, "npoi nsoilay"]] = None
+    #: IBIS 3.1 Köppen-zone types (ibis.io.pft_types, CALIBRATION.md 45.1): per position, the leaf habit (0 evergreen,
+    #: 1 drought-, 2 cold-deciduous), the 0-based parent PFT whose envelope applies, and the zone gate (1 = may exist).
+    #: None (default) = the 12 IBIS PFTs as they are.
+    slot_habit: Optional[Float[Array, "npoi 12"]] = None
+    slot_parent: Optional[Float[Array, "npoi 12"]] = None
+    slot_gate: Optional[Float[Array, "npoi 12"]] = None
     crop: CropParams = eqx.field(default_factory=default_crop_params)
 
     # Thermal-only bedrock below the soil column (docs/BEDROCK.md). Only used
@@ -281,7 +287,8 @@ def timestep_body(
     acclim_vfac = None
     if getattr(state, "seasonal", None) is not None and sp.acclim_on:
         if sp.acclim_per_pft:                                        # constants per PFT (CALIBRATION.md 32)
-            _fs = jnp.clip((state.seasonal.acclim_x[:, jnp.newaxis] - sp.acclim_s0_pft[jnp.newaxis, :]) / sp.acclim_smax_pft[jnp.newaxis, :], 0.0, 1.0)
+            _row = lambda x: x if jnp.ndim(x) == 2 else x[jnp.newaxis, :]      # (npoi, 12) under IBIS 3.1 types
+            _fs = jnp.clip((state.seasonal.acclim_x[:, jnp.newaxis] - _row(sp.acclim_s0_pft)) / _row(sp.acclim_smax_pft), 0.0, 1.0)
             _mask = jnp.zeros((veg.plai.shape[1],), dtype=_fs.dtype).at[jnp.array(sp.acclim_pfts)].set(1.0)
             acclim_vfac = 1.0 - _mask[jnp.newaxis, :] + _mask[jnp.newaxis, :] * _fs
         else:

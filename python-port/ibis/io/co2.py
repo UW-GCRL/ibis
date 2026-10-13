@@ -16,7 +16,9 @@ mean but NOT for interannual attribution -- it carries no seasonal cycle and
 no year-to-year growth-rate variability. `co2_series_from_file` is provided so
 the table can be replaced by real data without touching callers.
 
-Outside the table CO2 is clamped to the end values rather than extrapolated.
+Outside the table CO2 is clamped to the end values rather than extrapolated. 2021-2024 (NOAA GML Mauna Loa annual
+means) were added on 2026-10-13 for the IBIS 3.1 tower windows that run past 2020 (CALIBRATION.md 45); the run
+years up to 2020 are unchanged.
 """
 from __future__ import annotations
 
@@ -30,7 +32,7 @@ CO2_KNOTS: tuple[tuple[int, float], ...] = (
     (1960, 316.91), (1965, 320.04), (1970, 325.68), (1975, 331.13),
     (1980, 338.76), (1985, 346.12), (1990, 354.39), (1995, 360.82),
     (2000, 369.55), (2005, 379.80), (2010, 389.85), (2015, 400.83),
-    (2020, 414.24),
+    (2020, 414.24), (2021, 416.41), (2022, 418.53), (2023, 421.08), (2024, 424.61),
 )
 
 PREINDUSTRIAL_PPM = 285.2

@@ -64,7 +64,7 @@ def test_parameter_file_round_trip_and_defaults():
 
 def test_acclimation_branch_is_wired_per_pft():
     src = (ROOT / "ibis" / "timestepping" / "loops.py").read_text()
-    assert "if sp.acclim_per_pft:" in src and "sp.acclim_s0_pft[jnp.newaxis, :]" in src and "sp.acclim_smax_pft[jnp.newaxis, :]" in src
+    assert "if sp.acclim_per_pft:" in src and "_row(sp.acclim_s0_pft)" in src and "_row(sp.acclim_smax_pft)" in src   # _row: (12,) or per-cell (npoi, 12) (CALIBRATION.md 45.1)
 
 
 def test_per_pft_tables_accept_short_and_long_names():

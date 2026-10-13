@@ -58,7 +58,7 @@ def apply_prescribed_lai(
 
     plai_new = plai * scale[:, None]
     # Keep plai = cbiol * specla exact by back-solving the leaf pool.
-    cbiol_new = plai_new / jnp.maximum(specla[None, :], epsilon)
+    cbiol_new = plai_new / jnp.maximum(specla if jnp.ndim(specla) == 2 else specla[None, :], epsilon)
 
     totlaiu = jnp.sum(plai_new[:, :8], axis=1)
     totlail = jnp.sum(plai_new[:, 8:], axis=1)

@@ -70,6 +70,10 @@ class PhysicsSection:
     #: PFT 8 (larch) existence: use the degree-day limit the F77 comment intends instead of the
     #: temperature limit the F77 code compares against (ibis.physics.climate_analysis.existence).
     larch_gdd_fix: bool = False
+    #: IBIS 3.1 Köppen-zone plant functional types (ibis.io.pft_types, CALIBRATION.md 45.1): each cell's zone,
+    #: from forcing.koppen_file by period, maps its 12 positions to the 40 types; per-type parameters from the
+    #: params-file section 'types'. Supersedes the Köppen existence mask. False = the 12 IBIS PFTs.
+    koppen_types: bool = False
     #: Mix organic-soil hydraulic and thermal properties by the HWSD2 organic-carbon fraction
     #: (Lawrence & Slater 2008); needs orgcpct and bulkdens in soil_file (scripts/hwsd2_organic_to_nc.py).
     soil_organic: bool | str = False

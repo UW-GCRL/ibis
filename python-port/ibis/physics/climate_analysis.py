@@ -22,6 +22,8 @@ def existence(
     pft_params: PFTParams,
     exist_mask=None,
     larch_gdd_fix: bool = False,
+    slot_parent=None,
+    slot_gate=None,
 ) -> Float[Array, "npoi 12"]:
     """Determine which PFTs can exist in each grid cell.
 
@@ -117,6 +119,11 @@ def existence(
     # PFT 12: cool (C3) grasses
     exist = exist.at[:, 11].set(jnp.where(gdd0 > GDD[11], 1.0, 0.0))
 
+    if slot_parent is not None:
+        # IBIS 3.1 types (CALIBRATION.md 45.1): each position takes the envelope of the PFT its type descends from
+        exist = jnp.take_along_axis(exist, jnp.asarray(slot_parent, dtype=jnp.int32), axis=1)
+    if slot_gate is not None:
+        exist = exist * jnp.asarray(slot_gate, dtype=exist.dtype)
     if exist_mask is not None:
         exist = exist * jnp.asarray(exist_mask, dtype=exist.dtype)
     return exist

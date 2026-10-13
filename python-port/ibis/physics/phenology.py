@@ -96,6 +96,7 @@ def pheno(
     stresstl=None,
     sen_on_u=None,
     sen_on_l=None,
+    habit=None,
 ) -> VegetationState:
     """Update leaf phenology and derive canopy structure.
 
@@ -226,14 +227,24 @@ def pheno(
     avglaiu_safe = jnp.maximum(avglaiu, epsilon)
 
     frac = veg.frac
-    frac = frac.at[:, 0].set(plai[:, 0] / avglaiu_safe)
-    frac = frac.at[:, 1].set(plai[:, 1] * dropu / avglaiu_safe)
-    frac = frac.at[:, 2].set(plai[:, 2] / avglaiu_safe)
-    frac = frac.at[:, 3].set(plai[:, 3] / avglaiu_safe)
-    frac = frac.at[:, 4].set(plai[:, 4] * tempu / avglaiu_safe)
-    frac = frac.at[:, 5].set(plai[:, 5] / avglaiu_safe)
-    frac = frac.at[:, 6].set(plai[:, 6] * tempu / avglaiu_safe)
-    frac = frac.at[:, 7].set(plai[:, 7] * tempu / avglaiu_safe)
+    if habit is None:
+        frac = frac.at[:, 0].set(plai[:, 0] / avglaiu_safe)
+        frac = frac.at[:, 1].set(plai[:, 1] * dropu / avglaiu_safe)
+        frac = frac.at[:, 2].set(plai[:, 2] / avglaiu_safe)
+        frac = frac.at[:, 3].set(plai[:, 3] / avglaiu_safe)
+        frac = frac.at[:, 4].set(plai[:, 4] * tempu / avglaiu_safe)
+        frac = frac.at[:, 5].set(plai[:, 5] / avglaiu_safe)
+        frac = frac.at[:, 6].set(plai[:, 6] * tempu / avglaiu_safe)
+        frac = frac.at[:, 7].set(plai[:, 7] * tempu / avglaiu_safe)
+    else:
+        # IBIS 3.1 types (CALIBRATION.md 45.1): the habit travels with the type, not the position --
+        # 0 evergreen, 1 drought-deciduous (dropu), 2 cold-deciduous (tempu)
+        h = jnp.asarray(habit)[:, :8]
+        fac = jnp.where(h == 1, dropu[:, None], jnp.where(h == 2, tempu[:, None], 1.0))
+        disp = plai[:, :8] * fac
+        avglaiu = jnp.sum(disp, axis=1)
+        avglaiu_safe = jnp.maximum(avglaiu, epsilon)
+        frac = frac.at[:, :8].set(disp / avglaiu_safe[:, None])
 
     # Lower canopy: PFTs 9-12 (8-11)
     avglail = (

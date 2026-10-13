@@ -505,13 +505,44 @@ def run_global_simulation(config: IBISConfig) -> None:
     if _larch_fix:
         logger.info("PFT 8 (larch) existence: degree-day limit (larch_gdd_fix)")
 
+    _types_on = bool(getattr(config.physics, "koppen_types", False))
+    if _types_on and _koppen is None:
+        raise ValueError("physics.koppen_types needs forcing.koppen_file (the Köppen npz of scripts/koppen_prep.py)")
+
     def _exist_mask_for(year):
-        if _koppen is None:
+        if _koppen is None or _types_on:      # the type map supersedes the mask (CALIBRATION.md 45.1)
             return None
         return koppen_exist_mask(_koppen["classes"][period_index(int(year), _koppen["period_start"], _koppen["period_end"])])
 
     _forganic = soil_props.get("forganic") if getattr(config.physics, "soil_organic", False) else None
     params, pft_params, bgc_params = build_all_params(npoi, lat_rad, _pdict, cropfrac=_cropfrac, forganic=_forganic)
+
+    # IBIS 3.1 Köppen-zone types (CALIBRATION.md 45.1): the cell's zone maps its 12 positions to the 40 types and
+    # every per-PFT parameter becomes per cell. The 12-entry base pair is kept so the map can be re-applied when a
+    # year enters a new Köppen period (same shapes, so the compiled kernels are reused).
+    _types_base = (params, pft_params); _types_period = None; _type_over = None; _zones = None
+    if _types_on:
+        from ibis.io import pft_types as _pt
+        _type_over = _pt.parse_type_overrides((_pdict or {}).get("types"))
+        _zones = _pt.zones_from_classes(_koppen["classes"])          # (nperiod, npoi)
+
+    def _apply_types_for(year, params, pft_params):
+        nonlocal _types_period
+        if not _types_on:
+            return params, pft_params
+        k = period_index(int(year), _koppen["period_start"], _koppen["period_end"])
+        if k == _types_period:
+            return params, pft_params
+        _types_period = k
+        params, pft_params = _pt.apply_types(params, pft_params, _zones[k], _type_over, base=_types_base)
+        logger.info("Köppen-zone types (period %d-%d): %d types with own parameters %s; land points per zone %s",
+                    int(_koppen["period_start"][k]), int(_koppen["period_end"][k]),
+                    len({t for v in _type_over.values() for t in v}), sorted(_type_over), _pt.type_area_summary(_zones[k]))
+        return params, pft_params
+
+    params, pft_params = _apply_types_for(config.time.iyear0, params, pft_params)
+    if _types_on:
+        logger.info("Köppen-zone types: positions per zone\n%s", _pt.describe_zones())
 
     # Seed thermal-only bedrock on a cold start. Downward continuation along a
     # geothermal gradient puts the new layers near equilibrium immediately;
@@ -558,6 +589,7 @@ def run_global_simulation(config: IBISConfig) -> None:
         state.vegetation.gdd0, state.vegetation.gdd5,
         pft_params,
         exist_mask=_exist_mask_for(config.time.iyear0), larch_gdd_fix=_larch_fix,
+        slot_parent=params.slot_parent, slot_gate=params.slot_gate,
     )
     state = eqx.tree_at(lambda s: s.vegetation.exist, state, exist_init)
     logger.info("  PFT existence set from climate normals "
@@ -618,6 +650,7 @@ def run_global_simulation(config: IBISConfig) -> None:
         year = t.iyear0 + iyear_offset
         t0 = time.time()
         logger.info("Year %d (%d/%d) ...", year, iyear_offset + 1, t.nrun)
+        params, pft_params = _apply_types_for(year, params, pft_params)       # new Köppen period: new type map
 
         # Map to forcing year (cycle spinup period, or use actual year)
         if spinup:
@@ -760,6 +793,7 @@ def run_global_simulation(config: IBISConfig) -> None:
             state.vegetation.gdd0, state.vegetation.gdd5,
             pft_params,
             exist_mask=_exist_mask_for(year), larch_gdd_fix=_larch_fix,
+            slot_parent=params.slot_parent, slot_gate=params.slot_gate,
         )
         state = eqx.tree_at(
             lambda s: s.vegetation.exist, state, exist_new,

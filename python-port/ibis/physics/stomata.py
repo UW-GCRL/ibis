@@ -142,6 +142,10 @@ class StomataParams(eqx.Module):
     coefm_pft: jnp.ndarray = eqx.field(default_factory=lambda: jnp.array([10.0, 10.0, 10.0, 6.0, 10.0, 6.0, 10.0, 6.0, 9.0, 9.0, 4.0, 9.0], dtype=jnp.float64))
     # Acclimation constants per PFT (CALIBRATION.md 32); off: the scalars acclim_s0 / acclim_smax for every PFT in acclim_pfts.
     acclim_per_pft: bool = eqx.field(static=True, default=False)
+    #: IBIS 3.1 (CALIBRATION.md 45.1): split each big leaf's GPP among its positions by displayed leaf area x own
+    #: vmax instead of leaf area alone (shares re-normalised to the big leaf's total, so the canopy GPP is unchanged).
+    #: False (default) is the F77 split.
+    gpp_split_by_capacity: bool = eqx.field(static=True, default=False)
     acclim_s0_pft: jnp.ndarray = eqx.field(default_factory=lambda: jnp.full((12,), -3.063, dtype=jnp.float64))
     acclim_smax_pft: jnp.ndarray = eqx.field(default_factory=lambda: jnp.full((12,), 17.72, dtype=jnp.float64))
 
@@ -550,6 +554,19 @@ CONIFER_PFTS = (3, 5, 7)             # upper-canopy conifer big leaf
 SHRUB_PFTS = (8, 9)                  # lower-canopy shrub big leaf
 
 
+def capacity_shares(frac, vp, idx, eps=1e-12):
+    """(npoi, len(idx)) shares of a big leaf's GPP: frac x vmax, re-normalised to sum(frac) over `idx`.
+
+    Where the big leaf has no capacity-weighted leaves the plain leaf-area shares are returned, so the sum is
+    always the F77 sum and only the division among positions changes (CALIBRATION.md 45.1)."""
+    ix = jnp.array(idx)
+    f = frac[:, ix]
+    v = vp[:, ix] if jnp.ndim(vp) == 2 else jnp.asarray(vp)[ix][jnp.newaxis, :]
+    w = f * v
+    tw = jnp.sum(w, axis=1, keepdims=True); tf = jnp.sum(f, axis=1, keepdims=True)
+    return jnp.where(tw > eps, w / jnp.maximum(tw, eps) * tf, f)
+
+
 def _mix_vmax(frac, vp, idx, fallback, eps=1e-6):
     """Displayed-LAI-weighted mean of vp over the PFTs in `idx`; `fallback`
     where those PFTs have no leaves (frac sums to ~0)."""
@@ -617,7 +634,7 @@ def _slopes(params, frac):
         return cm[0], cm[1], cm[2], cm[4], cm[3]
     cp = params.coefm_pft
     return (_mix_vmax(frac, cp, BROADLEAF_PFTS, cm[0]), _mix_vmax(frac, cp, CONIFER_PFTS, cm[1]), _mix_vmax(frac, cp, SHRUB_PFTS, cm[2]),
-            jnp.broadcast_to(cp[11], frac.shape[:1]), jnp.broadcast_to(cp[10], frac.shape[:1]))
+            jnp.broadcast_to(cp[..., 11], frac.shape[:1]), jnp.broadcast_to(cp[..., 10], frac.shape[:1]))
 
 
 # ---------------------------------------------------------------------------
@@ -789,7 +806,8 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
 
     # Select Vmax per PFT. `vfac` (npoi, npft) is the acclimation factor of StomataParams.acclim_on (built in
     # timestep_body from state.seasonal); None keeps the F77 path bit-identical.
-    vp_eff = None if vfac is None else params.vmax_pft[jnp.newaxis, :] * vfac
+    _vrow = params.vmax_pft if jnp.ndim(params.vmax_pft) == 2 else params.vmax_pft[jnp.newaxis, :]   # (npoi, 12) under IBIS 3.1 types
+    vp_eff = None if vfac is None else _vrow * vfac
     vmaxub_nom, vmaxuc_nom = _select_vmax_upper(exist, params, frac, vp=vp_eff)
     cm_ub, cm_uc, cm_ls, cm_l3, cm_l4 = _slopes(params, frac)          # Ball-Berry slopes of the five big leaves
 
@@ -913,7 +931,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
         params.gsmin[2], gamstar_min_l, params.cimax)
 
     # --- C3 grass (l3) ---
-    vmaxl3_nom = params.vmax_pft[11] if vp_eff is None else vp_eff[:, 11]
+    vmaxl3_nom = params.vmax_pft[..., 11] if vp_eff is None else vp_eff[:, 11]
     vmax_l3 = vmaxl3_nom * tempvm_c3_l * stresstl
     rdark_l3 = params.gamma[4] * vmaxl3_nom * tempvm_c3_l
     ag_l3, an_l3 = farquhar_c3(
@@ -929,7 +947,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
         params.gsmin[4], gamstar_min_l, params.cimax)
 
     # --- C4 grass (l4) ---
-    vmaxl4_nom = params.vmax_pft[10] if vp_eff is None else vp_eff[:, 10]
+    vmaxl4_nom = params.vmax_pft[..., 10] if vp_eff is None else vp_eff[:, 10]
     vmax_l4 = vmaxl4_nom * tempvm_c4_l * stresstl
     rdark_l4 = params.gamma[3] * vmaxl4_nom * tempvm_c4_l
     ag_l4, an_l4 = farquhar_c4(

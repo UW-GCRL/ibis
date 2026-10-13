@@ -1,4 +1,4 @@
-"""Day-time and night-time NEE targets from the FLUXNET2015 half-hourly files (Hangkai 2026-09-30: calibrate NEE with
+"""Day-time and night-time NEE targets from the FLUXNET2015 half-hourly files (or the towers31_prep.py compact files) (Hangkai 2026-09-30: calibrate NEE with
 the day and night parts separated; night NEE is ecosystem respiration measured directly).
 
     python verify/calibration/tower_nee_daynight.py <out.npz> [SITE ...]        (default: the 62-tower batch)
@@ -11,8 +11,17 @@ with QC > 1 (poor gap-fill) are dropped. Files: the FULLSET HH/HR file under FX 
 import sys, glob, numpy as np, pandas as pd
 sys.path[:0] = ['verify/calibration']
 from tower_forcing import FX
-out = sys.argv[1]; sites = sys.argv[2:] or open('verify/calibration/site_data/site_batches.txt').readline().split()[1].split(',')
-YEARS = list(range(2008, 2013)); MOL = 12.011e-6 * 1800.0                       # gC per umol m-2 s-1 over a half-hour
+import os
+out = sys.argv[1]; args = sys.argv[2:]
+# --years A-B: the year axis (default the 2008-2012 batch window); --siteinfo FILE: every calibration-grade tower of a
+# towers31_prep.py site table (CALIBRATION.md 45; window with a good held-out year and a half-hourly file)
+_y = '2008-2012'
+if '--years' in args: k = args.index('--years'); _y = args[k + 1]; args = args[:k] + args[k + 2:]
+if '--siteinfo' in args:
+    k = args.index('--siteinfo'); _si = pd.read_csv(args[k + 1]); args = args[:k] + args[k + 2:]
+    args = args or [r.SITE_ID for r in _si.itertuples() if str(r.HH) == 'yes' and pd.notna(r.WIN_SCORE) and float(r.WIN_SCORE) >= 2]
+sites = args or open('verify/calibration/site_data/site_batches.txt').readline().split()[1].split(',')
+YEARS = list(range(int(_y.split('-')[0]), int(_y.split('-')[1]) + 1)); MOL = 12.011e-6 * 1800.0   # gC per umol m-2 s-1 over a half-hour
 keys = ['nee_night', 'nee_day', 'sum_night', 'sum_day', 'n_night', 'n_day', 'meas_night', 'meas_day']
 A = {k: np.full((len(YEARS), 12, len(sites)), np.nan) for k in keys}
 for n, s in enumerate(sites):
@@ -26,7 +35,12 @@ for n, s in enumerate(sites):
         yi, mi, tag = YEARS.index(y), m - 1, ('night' if night == 1 else 'day')
         A[f'nee_{tag}'][yi, mi, n] = g.NEE_VUT_REF.mean(); A[f'sum_{tag}'][yi, mi, n] = g.NEE_VUT_REF.sum() * MOL * step
         A[f'n_{tag}'][yi, mi, n] = len(g) * step; A[f'meas_{tag}'][yi, mi, n] = (g.NEE_VUT_REF_QC == 0).mean()
-    ok = np.isfinite(A['nee_night'][1:, :, n]).sum()
-    print(f'{s}: {ok}/48 months; 2010 night mean {np.nanmean(A["nee_night"][2, :, n]):+.2f}, day mean {np.nanmean(A["nee_day"][2, :, n]):+.2f} umol m-2 s-1; '
-          f'annual 2010 night {np.nansum(A["sum_night"][2, :, n]):+.0f} day {np.nansum(A["sum_day"][2, :, n]):+.0f} gC m-2', flush=True)
+    ok = np.isfinite(A['nee_night'][:, :, n]).sum()
+    yrs = [y for y in YEARS if np.isfinite(A['nee_night'][YEARS.index(y), :, n]).any()]
+    if yrs:
+        yi = YEARS.index(yrs[-1])
+        print(f'{s}: {ok} months with night NEE over {yrs[0]}-{yrs[-1]}; {yrs[-1]} annual night {np.nansum(A["sum_night"][yi, :, n]):+.0f} '
+              f'day {np.nansum(A["sum_day"][yi, :, n]):+.0f} gC m-2', flush=True)
+    else:
+        print(f'{s}: no month with NEE in {YEARS[0]}-{YEARS[-1]}', flush=True)
 np.savez(out, sites=np.array(sites), years=np.array(YEARS), **A); print('wrote', out)

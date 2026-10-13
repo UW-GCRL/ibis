@@ -115,7 +115,7 @@ def test_every_path_is_wired():
     rg = (ROOT / "scripts" / "run_global.py").read_text()
     assert rg.count("with_seasonal=seas_on") == 2
     st = (ROOT / "ibis" / "physics" / "stomata.py").read_text()
-    assert "vmaxl3_nom = params.vmax_pft[11] if vp_eff is None else vp_eff[:, 11]" in st and "vmaxl4_nom = params.vmax_pft[10] if vp_eff is None else vp_eff[:, 10]" in st
+    assert "vmaxl3_nom = params.vmax_pft[..., 11] if vp_eff is None else vp_eff[:, 11]" in st and "vmaxl4_nom = params.vmax_pft[..., 10] if vp_eff is None else vp_eff[:, 10]" in st   # [..., k]: (12,) or per-cell (CALIBRATION.md 45.1)
 
 
 def test_acclimation_recursion_matches_preles():
