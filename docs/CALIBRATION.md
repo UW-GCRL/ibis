@@ -5288,3 +5288,29 @@ methane towers). (2) Per-tower NEE fits on every tower with three or more good y
 cell with its type in its position, under the corrected respiration of section 36; class medians per type; a
 type's parent median where it has no fit. (3) Leaf area, cover and season per type against MODIS LAI, tree cover
 and the seasonal cycle by zone (the GPP finding above). (4) The global protocol and the section-43 scores.
+
+### 45.2 The tower campaign (2026-10-13)
+
+`towers31_prep.py` put every tower on disk into the FLUXNET2015 layout the harness reads
+(`inputs/sites/towers31/compact`, with `FLUXNET_siteinfo.csv`; NAS paths, no symbolic links on the share): 605
+towers, 478 calibration-grade (a window with a good held-out year and at least one good fitted year, and a
+half-hourly file), 358 of them natural vegetation. Record per tower: the source with the most good NEE years (a good
+year has >= 240 daily values and a mean NEE_VUT_REF_QC >= 0.5; 240 because high-latitude records leave the winter
+unfilled -- RU-SkP), ties to the newer processing (FLUXNET v1.3 291 towers, FLUXNET2015 64, ICOS 3). Window: five
+years (four or three for short records) within 1996-2024, the latest with the most good years (145 end in 2024).
+CO2 knots 2021-2024 added (Mauna Loa annual means). Calibration-grade towers per type: T01 11, T02 4, T03 12, T04 1,
+T05 1, T06 9, T07 26, T08 21, T09 14, T10 16, T11 4, T12 9, T13 9, T14 6, T15 36, T16 37, T17 24, T18 1, T19 8,
+T21 7, S01 7, S02 9, S03 4, S04 7, S05 10, S06 1, S07 1, G01 4, G02 4, G03 11, G04 11, G05 5, G06 35, G07 9, G08 7.
+
+Protocol, per tower, in the harness of sections 31-36 (a type runs at its parent's position at a single tower,
+which is the same physics as at its zone position -- same leaf group, same habit -- so the fits need no type
+machinery; the type enters when the per-tower values are grouped): (S2) GPP and ET, `towers31_cmds.py`: vmax and
+slope of the prescribed PFTs, acclimation of evergreen conifers, upper or lower phenology where present, drought
+trigger, stress factor; IBIS 3.0 set as base; TRY vmax bounds; robust objective 25,30 with `--robust-auto` (caps
+lifted to 400,1e9 where the start is already at the tower cap: CN-Ash starts at 30.0, 118 uncapped); 80 evaluations.
+Leaf area: attributes where a tower has the file, else the MODIS cell maximum (not the model's own state, which is
+the inflated leaf area of the GPP finding). (P) pool spin-up per window group from the S2 parameters. (NEE) night and
+day NEE (`tower_nee_daynight.py --years 1996-2024 --siteinfo`) on the S2 start and the pools: som_scale, bgc_e0,
+rgrowth, rroot, 48 evaluations. Then per-type medians -> the `types:` section, plus per-zone phenology and stress
+from the same fits. Launched 2026-10-13 18:55, at most seven fits at a time (4-core slots, nice 5), thinnest types
+first; S2 is expected to take 2-3 days, the NEE stage 1-2 more.
