@@ -5236,3 +5236,12 @@ Map: `verify/calibration/diagnostics/pft_koppen_map.py` -> `ibis_local_document/
 (dominant type per cell; barren = bare ground > 60 %, wetland = WAD2M > 25 %; towers on disk before 13 October as
 circles, acquired as stars, filled with the colour of the type they calibrate). The dominant-type areas
 (`PFT31_dominant_area.csv`) put 40 of 41 types on the map; C4 crops cannot be separated without a crop-type map.
+
+**The list is final: 40 types (2026-10-13, Hangkai).** T20 (northern open taiga conifer, no tower) is merged into
+its nearest type, T17 (subarctic conifer evergreen tree, now "closed and open taiga": same parent PFT 6, same form,
+zones D_subarctic + D_extreme + E_tundra). The other thin types stay separate and are calibrated on their own
+towers: T04 tropical highland evergreen tree (1, CN-Ash), T05 hot-arid woodland tree (2), T18 subarctic
+birch-aspen (1, US-Rpf), S06 tundra dwarf shrub (1, GL-Dsk), S07 tropical shrub (1, ID-PaB). No treeline,
+openness or boundary rule is applied and no other merge. IDs are kept stable (there is no T20). Caveat recorded,
+not acted on: a type fitted on one tower has no between-tower spread, so its held-out year is its only check.
+Towers per type after the acquisition: `figures/pft31/PFT31_tower_counts.csv`; map redrawn with 40 types.

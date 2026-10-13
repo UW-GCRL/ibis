@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Global map of the 41 Köppen-zone PFTs of IBIS 3.1 (CALIBRATION.md 45) with the calibration towers.
+"""Global map of the 40 Köppen-zone PFTs of IBIS 3.1 (CALIBRATION.md 45) with the calibration towers.
 
     <ibis-python> verify/calibration/diagnostics/pft_koppen_map.py <out dir>
 
@@ -68,7 +68,7 @@ def type_for(form, zone):
           'grass_c3': 'GRA', 'grass_c4': 'GRA', 'wetland': 'WET', 'crop': 'CRO'}[form]
     if form == 'tree_ne' and zone == 'B_hot': return 'T21'
     if form == 'tree_be' and zone == 'B_cold': return 'T05'
-    if form == 'tree_be' and zone in ('D_subarctic', 'D_extreme', 'E_tundra'): return 'T17' if zone == 'D_subarctic' else 'T20'
+    if form == 'tree_be' and zone in ('D_subarctic', 'D_extreme', 'E_tundra'): return 'T17'
     ids = D.assign(ig, zone, '')
     return ids[0] if ids else None
 IDS = [p[0] for p in D.PFTS]; idx = {p: i for i, p in enumerate(IDS)}
@@ -123,6 +123,7 @@ new, nnew = [], {p: 0 for p in IDS}
 for r in csv.DictReader(open('/shared/nas2/Hangkai/ibis/inputs/sites/new_sites_inventory.csv')):
     if r['status'] != 'NEW' or r['site'] in seen: continue
     t = r['pft_types'].replace(';', ' ').replace(',', ' ').split()
+    t = ['T17' if p == 'T20' else p for p in t]                    # T20 merged into T17 (2026-10-13)
     if not t or int(float(r['n_years_nee50'] or 0)) < 1: continue
     seen.add(r['site']); new.append((r['site'], float(r['lat']), float(r['lon']))); site_type[r['site']] = t[0]
     for p in t:

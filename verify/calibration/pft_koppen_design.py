@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Köppen-zone PFT list for IBIS 3.1 and the towers that can calibrate each type (CALIBRATION.md 45).
 
+40 types. T20 (northern open taiga conifer) was merged into T17 on 2026-10-13 (Hangkai: no towers; T17 is the
+nearest type, same parent and form, adjacent zone); IDs are kept stable, so there is no T20.
+
     python3 verify/calibration/pft_koppen_design.py [<out csv>]
 
 Each PFT = growth form x Köppen zone; `parent` is the IBIS 2.6b4 PFT (1-12) whose parameters a type inherits
@@ -39,10 +42,9 @@ PFTS = [
  ('T14','oceanic temperate broadleaf evergreen tree','tree_be',['C_oceanic'],3,'upper'),
  ('T15','continental temperate broadleaf deciduous tree','tree_bd',['D_temperate','B_cold'],5,'upper'),
  ('T16','continental temperate conifer evergreen tree','tree_ne',['D_temperate'],4,'upper'),
- ('T17','subarctic conifer evergreen tree (closed taiga)','tree_ne',['D_subarctic'],6,'upper'),
+ ('T17','subarctic conifer evergreen tree (closed and open taiga)','tree_ne',['D_subarctic','D_extreme','E_tundra'],6,'upper'),
  ('T18','subarctic broadleaf deciduous tree (birch, aspen)','tree_bd',['D_subarctic','D_extreme'],7,'upper'),
  ('T19','subarctic conifer deciduous tree (larch)','tree_nd',['D_subarctic','D_extreme'],8,'upper'),
- ('T20','northern open taiga conifer (lichen woodland)','tree_ne',['D_extreme','E_tundra'],6,'upper'),
  ('T21','cold-steppe conifer woodland (juniper, pinyon)','tree_ne',['B_cold'],4,'upper'),
  ('S01','hot-arid evergreen shrub','shrub_e',['B_hot'],9,'lower'),
  ('S02','cold-desert and steppe shrub (sagebrush)','shrub_d',['B_cold'],10,'lower'),
@@ -83,7 +85,7 @@ def assign(igbp, zone, site):
         return {'A_humid':['T02'],'A_savanna':['T03'],'B_hot':['T03'],'C_med':['T09'],'B_cold':['T21'],'C_subtrop':['T08'],'C_highland':['T04'],
                 'D_temperate':['T15'],'C_oceanic':['T12']}.get(z, [])
     ne = {'A_humid':'T07','A_savanna':'T07','C_subtrop':'T07','C_highland':'T07','C_med':'T10','C_oceanic':'T13','D_temperate':'T16',
-          'D_subarctic':'T17','D_extreme':'T20','B_cold':'T21','B_hot':'T05','E_tundra':'T20'}
+          'D_subarctic':'T17','D_extreme':'T17','B_cold':'T21','B_hot':'T05','E_tundra':'T17'}
     be = {'A_humid':'T01','A_savanna':'T02','B_hot':'T05','C_med':'T09','C_subtrop':'T06','C_highland':'T04','C_oceanic':'T14','D_temperate':'T06'}
     bd = {'A_humid':'T02','A_savanna':'T03','B_hot':'T03','B_cold':'T15','C_med':'T11','C_subtrop':'T08','C_highland':'T08','C_oceanic':'T12',
           'D_temperate':'T15','D_subarctic':'T18','D_extreme':'T18','E_tundra':'T18'}
