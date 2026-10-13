@@ -5149,3 +5149,44 @@ the sink falls from +1.64 to +1.13 PgC yr-1. The two small gains (tree cover 0.5
 finding: IBIS's soil-carbon equilibrium is already at the top of the literature range with mineral soils, so
 anything that slows decomposition pushes it out; the soil respiration side (section 36, the growth-respiration
 and Rh structure) has to move first. Min's item 2 is closed with that record.
+
+## 45. IBIS 3.1: Köppen-zone PFTs and recalibration on tower NEE (2026-10-13, design)
+
+Hangkai's decision (2026-10-13, after Min's comments and sections 44): regenerate the PFT list from the Köppen
+mask, 30-40 or more types, then recalibrate the parameter set on the towers' NEE. This supersedes the four-PFT
+proposal of 2026-10-12 and the Köppen mask of section 44 as such: the mask becomes the definition of the types.
+
+**The list** (`verify/calibration/pft_koppen_design.py` -> `docs/pft_koppen_design.csv`): each PFT is a growth
+form in a Köppen zone. Twelve zones -- A humid (Af, Am), A savanna (Aw), B hot (BWh, BSh), B cold (BWk, BSk),
+C Mediterranean (Cs), C subtropical (Cwa, Cfa), C tropical highland (Cwb, Cwc), C oceanic (Cfb, Cfc), D
+temperate (Dfa/b, Dwa/b, Dsa/b), D subarctic (Dfc, Dwc, Dsc), D extreme (Dfd, Dwd, Dsd), E tundra (ET) -- and
+nine forms (needleleaf evergreen, broadleaf evergreen, broadleaf deciduous, needleleaf deciduous, evergreen
+shrub, deciduous shrub, C3 grass, C4 grass, wetland vegetation), pruned to the combinations that exist, plus the
+two managed crops: 41 types, 21 trees, 7 shrubs, 8 grasses, 3 wetland types, 2 crops. Each carries a `parent`
+among the 12 IBIS PFTs whose parameters it inherits until its own towers are fitted, and the canopy it lives in
+(the sunlit/shaded big-leaf structure stays: trees in the upper canopy, the rest in the lower).
+
+**Towers.** 295 distinct towers (206 FLUXNET2015, 107 FLUXNET-CH4, 2 unassigned snow sites), assigned by IGBP
+class and the 1-km Köppen class of the site: 28 of the 41 types have three or more towers, 7 have one or two,
+and 6 have none (tropical highland evergreen tree, subarctic broadleaf deciduous, larch, open taiga conifer,
+tundra dwarf shrub, tropical shrub). The large classes are the temperate wetlands (43), the continental conifer
+(30), C3 crops (29), boreal wetlands (23), temperate C3 grass (21), subarctic conifer (20), continental
+deciduous (20). Types without towers keep their parent's fitted parameters and only their envelope and cover
+rules differ -- that is stated in the table, not hidden.
+
+**What has to be built, in order.**
+1. *Establishment* (section 44, k2): a PFT at zero biomass never grows in `dynaveg`, so every type needs a seed
+   -- at cold start from the land-cover map crossed with the Köppen class (ESA CCI gives the form, Köppen the
+   zone), and an establishment rule (a minimum share of canopy NPP where the type may exist) so the vegetation
+   can move when the climate does.
+2. *npft generalised*: the 12 is wired through the existence rules, every per-PFT parameter array, fire
+   mortality, the phenology and canopy groups, the vegetation-type map, restarts and the site harness. The
+   generalisation keeps the 12-PFT path bit-identical (the F77 tests) and keys the new types by `parent` and
+   form.
+3. *Existence by type*: the Köppen zone list of each type replaces the temperature envelope as the first gate
+   (the envelope stays as the second, by form), the mask of section 44 retires.
+4. *Calibration on NEE*: per-tower fits with the NEE harness of section 36 (night-time respiration and
+   day-time uptake, held-out year), grouped by type; class medians per type; parent medians where a type has
+   no towers; then the GPP/ET verdicts of sections 37 and 39 and the global protocol.
+Expected effort: one to two weeks for 1-3, one week of fits for 4 (about 300 towers at the section-36 cost,
+six at a time), two days of global runs; three to four weeks to a scored IBIS 3.1.
