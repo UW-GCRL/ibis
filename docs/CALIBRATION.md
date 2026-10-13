@@ -5074,3 +5074,28 @@ spin-up before the sink or the soil carbon mean anything. (3) Where it stays fin
 GPP ratio rises (3.58 -> 3.78, cover 0.53 -> 0.59), ET is unchanged, and the methane module blew up in a few
 cells on the way to NaN. The organic fraction itself is large: f_om above 0.9 in 14 % of the land's top layer
 (boreal and peat soils), mean 0.31, as the CLM definition gives with HWSD2's 0-20 cm organic carbon.
+
+*o1, second look (03:30).* With `organic_ksat` (percolation mix) the one-year smoke run `smoke_o1p` still lost
+5 cells (309 before) and the methane module still exploded in 3 (one cell 7,000 kgC m-2 yr-1). The monthly
+files show what fails: the soil HEAT solver. In a dry organic column (Tibet, 33.75 N 80.25 E, f_om 0.91 in the
+top layer; the Sudd, 8.75 N 30 E, f_om 0.8 through the column) layer temperatures reach hundreds then thousands
+of degrees within a month (2821, 4467, -3769 C) while the water solver is still finite; everything downstream
+(Rh, Q10, methane) follows and the cell is NaN the month after. The organic solids of the Lawrence & Slater
+end-member carry a volumetric heat capacity five times smaller than mineral soil ((1 - 0.9) x 1920 x 1300
+= 2.5e5 J m-3 K-1 against 1.25e6) and a dry conductivity of 0.05 W m-1 K-1, and IBIS's hourly soil-heat step
+with its explicit freeze-thaw exchange is not stable for a dry layer of that capacity. The conductivity change
+alone is not the problem, the capacity is. GPP and ET also moved +6 % in the first year, so the hydraulic
+part is not small either. A hemic-end-member run (`smoke_o1h`) tests whether the slower drainage changes the
+picture; the thermal failure needs a solver guard (a floor on the solids' heat capacity, or sub-stepping of the
+soil column where it is small) before organic soils can be evaluated at all. Recorded; parked behind the
+new-PFT stage unless Min wants it first.
+
+*o1, third look (03:40): the hemic end-member is stable.* `smoke_o1h` (percolation k_sat, Letts et al. 2000
+hemic: porosity 0.88, b 6.1, k_sat 2e-6 m s-1) ran its year with 0 NaN cells (309 for the first o1, 5 with the
+percolation mix alone), a sane methane field (max 61 gC m-2 yr-1 against s7's 74) and GPP +2.9 %, ET +3.4 %.
+That reorders the diagnosis above: the fibric drainage (b 2.7, k_sat 1e-4) dried the organic layers to zero
+water, and it is a DRY organic layer whose heat capacity is too small for the heat step; the hemic curve holds
+the water and the column stays well-posed. So no solver guard is needed for the hemic configuration, and that is
+the one to evaluate: o2 = organic soils (hemic) with its own 200-year spin-up, beside s7b = s7 with its own
+200-year spin-up, because s7's spin-up was inherited from s5 and the soil-carbon comparison needs the same
+protocol on both sides. Queued behind k2.
