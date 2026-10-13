@@ -97,6 +97,10 @@ protocol and is not needed here.
 | ILAMB fields | `python-port/data/ilamb_obs/` | small | pre-processed `gpp/lai/cveg/csoil` means |
 | **FLUXNET2015** | `/shared/nas2/Min/FLUXNET2015/fluxnet_compact` | 810 files | ~200 sites, GPP/RECO/LE/NEE at HH/DD/MM/YY |
 | **FLUXNET-CH4** | `/shared/nas/Chenchen/AmeriFLuxet/combined` | 65 sites | Chenchen's processing: RF-gapfilled FCH4 + uncertainty |
+| **ICOS Warm Winter 2020** | `/shared/nas2/Hangkai/ibis/inputs/sites/ICOS_WW2020` | 31 GB | 73 stations 1989-2020, FLUXNET format, CC-BY-4.0, doi:10.18160/2G60-ZHAK; 39 new, 34 extend FLUXNET2015 sites; acquired 2026-10-13 |
+| **ICOS ETC L2 archive 2026-1** | `/shared/nas2/Hangkai/ibis/inputs/sites/ICOS_L2` | 23 GB | 93 stations, CC-BY-4.0, doi:10.18160/S6TB-567H; 83 with ONEFlux daily + half-hourly, 10 urban/water half-hourly only (`halfhourly_L2_only/`) |
+| **FLUXNET v1.3 (ONEFlux, FLUXNET Shuttle)** | `/shared/nas2/Hangkai/ibis/inputs/sites/FLUXNET_v1.3` | 102 GB | 512 sites, 4,365 site-years (ICOS, EuroFlux, JapanFlux, ChinaFlux, KoFlux, SAEON, 140 AmeriFlux incl. NEON Alaska, 19 TERN), CC-BY-4.0, no login; FLUXNET2015 column names; no AUXNEE/AUXMETEO; half-hourly extracted for the 301 sites of `halfhourly_sites.txt` |
+| **New-tower inventory** | `/shared/nas2/Hangkai/ibis/inputs/sites/new_sites_inventory.csv` | 679 rows | one row per site x source, 524 distinct sites, 344 new; years with 50 % NEE, NEE variable, Köppen class/zone/PFT type, per-site citation; report `ibis_local_document/logs/tower_acquisition_2026-10-13.md` |
 | FLUXNET-CH4 Europe | `/shared/nas/Chenchen/Eurofluxnet/EuroFlux` | 43 sites | |
 | Site coordinates | `/shared/nas/Chenchen/hangkai/combined_site_coords.csv` | 108 sites | lat/lon/network for the above |
 

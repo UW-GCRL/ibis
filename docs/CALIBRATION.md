@@ -5218,3 +5218,21 @@ to "is it the framework" is yes: the vegetation dynamics, not the parameters of 
 this fixes the calibration design: NEE at towers calibrates the physiology and respiration of each type; the
 leaf area, cover and season of each type must be fitted against MODIS LAI, tree cover and the seasonal cycle
 by type and zone, or the global GPP stays where it is however well the towers fit.
+
+**Towers acquired (2026-10-13 evening).** Hangkai: fetch the towers that exist but are not on disk before the
+type list is decided. ICOS Warm Winter 2020, the ICOS L2 archive and the FLUXNET v1.3 product (open through the
+FLUXNET Shuttle, CC-BY-4.0, including 140 AmeriFlux and NEON Alaska sites) add 344 sites not on disk, 313 of them
+vegetated with at least one year of 50 % NEE coverage (`inputs/sites/new_sites_inventory.csv`, DATA_INVENTORY 6).
+Towers per type before -> after, under the assignment rules of `pft_koppen_design.py` unchanged:
+larch T19 0 -> 12 (RU-SkP, RU-Ege, JP-Tef, JP-Fhk ...), birch-aspen T18 0 -> 1, open taiga T20 0 -> 0 (FI-Ken,
+FI-Var, SE-Svb, US-xDJ, CA-HPC are Köppen Dfc and go to T17), tundra dwarf shrub S06 0 -> 1, tropical highland T04
+0 -> 1 (CN-Ash), tropical shrub S07 0 -> 1, boreal wetlands W03 22 -> 40, closed taiga T17 18 -> 28, continental
+deciduous T15 20 -> 41, subtropical conifer T07 4 -> 29, Mediterranean sclerophyll T09 5 -> 16, cold-steppe grass
+G04 4 -> 11, steppe shrub S02 1 -> 10, juniper-pinyon T21 1 -> 7; full table `figures/pft31/PFT31_tower_counts.csv`.
+Six types stay under three towers: T04 1, T05 2, T18 1, T20 0, S06 1, S07 1 -- the decision on the treeline,
+openness and boundary rules and on the merges (2026-10-13) is open with Hangkai.
+
+Map: `verify/calibration/diagnostics/pft_koppen_map.py` -> `ibis_local_document/figures/pft31/PFT31_koppen_types_map.png`
+(dominant type per cell; barren = bare ground > 60 %, wetland = WAD2M > 25 %; towers on disk before 13 October as
+circles, acquired as stars, filled with the colour of the type they calibrate). The dominant-type areas
+(`PFT31_dominant_area.csv`) put 40 of 41 types on the map; C4 crops cannot be separated without a crop-type map.
