@@ -522,6 +522,8 @@ def drystress(wsoi, wisoi, swilt, sfield, froot, stressfac=-5.0):
     stressl, stressu : arrays [npoi, nsoilay]
         Per-layer moisture stress, lower and upper canopy.
     """
+    if jnp.ndim(stressfac) == 1:                       # per cell (npoi,) under IBIS 3.1 types (CALIBRATION.md 45)
+        stressfac = jnp.asarray(stressfac)[:, None]
     znorm = 1.0 - jnp.exp(stressfac)
 
     # Plant-available water content (fraction of field-capacity range)

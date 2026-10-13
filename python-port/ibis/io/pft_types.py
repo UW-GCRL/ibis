@@ -207,6 +207,31 @@ TYPE_FIELDS = {
 }
 
 
+#: per-cell scalars a type can carry (CALIBRATION.md 45): yaml key -> (object, field, which of the zone's types set it).
+#: 'upper': the zone's cold-deciduous tree types; 'lower': the zone's grass type, else its shrub type; 'all': every
+#: type of the zone. A zone with no such type with a value keeps the base scalar.
+TYPE_SCALARS = {
+    'gdd_thresh_u': ('pheno', 'gdd_thresh_u', 'upper'), 'gdd_ramp_u': ('pheno', 'gdd_ramp_u', 'upper'),
+    'sen_ycrit_u': ('pheno', 'sen_ycrit_u', 'upper'),
+    'gdd_thresh_l': ('pheno', 'gdd_thresh_l', 'lower'), 'tthresh_l_c': ('pheno', 'tthresh_l_c', 'lower'),
+    'drop_stress_thresh': ('pheno', 'drop_stress_thresh', 'all'), 'stressfac': ('stomata', 'stressfac', 'all'),
+}
+
+
+def zone_scalar(zone: str, values: dict, which: str):
+    """Median of `values` ({type_id: v}) over the zone's types selected by `which`; None when none has a value."""
+    row = ZONE_SLOTS[ZI[zone]]; hab = ZONE_HABIT[ZI[zone]]
+    if which == 'upper':
+        tids = [IDS[row[p]] for p in range(8) if row[p] >= 0 and hab[p] == CD]
+    elif which == 'lower':
+        g = [IDS[row[p]] for p in (10, 11) if row[p] >= 0]; s = [IDS[row[p]] for p in (8, 9) if row[p] >= 0]
+        tids = [t for t in g if t in values] or [t for t in s if t in values]
+    else:
+        tids = [IDS[r] for r in row if r >= 0]
+    v = [values[t] for t in tids if t in values]
+    return float(np.median(v)) if v else None
+
+
 def parse_type_overrides(section) -> dict:
     """{param: {type_id: value}} from the params-file section 'types' ({type_id: {param: value}}); unknown
     types or parameters are an error."""
@@ -215,8 +240,8 @@ def parse_type_overrides(section) -> dict:
         if tid not in TI:
             raise KeyError(f"unknown type {tid!r} in 'types'; types are {IDS}")
         for k, v in (kv or {}).items():
-            if k not in TYPE_FIELDS:
-                raise KeyError(f"unknown type parameter {k!r} for {tid}; parameters are {sorted(TYPE_FIELDS)}")
+            if k not in TYPE_FIELDS and k not in TYPE_SCALARS:
+                raise KeyError(f"unknown type parameter {k!r} for {tid}; parameters are {sorted(TYPE_FIELDS) + sorted(TYPE_SCALARS)}")
             out.setdefault(k, {})[tid] = float(v)
     return out
 
@@ -248,10 +273,21 @@ def apply_types(params, pft_params, zone_idx, overrides: dict | None = None, bas
     pf = bf
     for (obj, field), v in new.items():
         if obj == 'pft': pf = eqx.tree_at(lambda o: getattr(o, field), pf, v)
+    # per-cell scalars by zone (phenology thresholds, drought trigger, stress factor)
+    zi = np.asarray(zone_idx, dtype=np.int64); ph = bp.pheno
+    for key, (obj, field, which) in TYPE_SCALARS.items():
+        if key not in overrides:
+            continue
+        base_v = float(np.asarray(getattr(ph if obj == 'pheno' else bp.stomata_params, field)))
+        per_zone = np.array([zone_scalar(z, overrides[key], which) if z not in ('none', 'E_ice') else None for z in ZONES], dtype=object)
+        per_zone = np.array([base_v if v is None else v for v in per_zone], dtype=np.float64)
+        val = jnp.asarray(per_zone[zi], dtype=jnp.float32)
+        if obj == 'pheno': ph = eqx.tree_at(lambda o: getattr(o, field), ph, val)
+        else: sp = eqx.tree_at(lambda o: getattr(o, field), sp, val)
     hab = jnp.asarray(slot_habit(zone_idx), dtype=jnp.int32)
     par = jnp.asarray(slot_parent(slots), dtype=jnp.int32)
     gate = jnp.asarray(slot_gate(slots), dtype=jnp.float32)
-    p = eqx.tree_at(lambda o: (o.stomata_params, o.bgc_params, o.fire), bp, (sp, bg, fp))
+    p = eqx.tree_at(lambda o: (o.stomata_params, o.bgc_params, o.fire, o.pheno), bp, (sp, bg, fp, ph))
     p = eqx.tree_at(lambda o: (o.slot_habit, o.slot_parent, o.slot_gate), p, (hab, par, gate),
                     is_leaf=lambda x: x is None)
     return p, pf

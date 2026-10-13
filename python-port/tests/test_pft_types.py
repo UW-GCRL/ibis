@@ -135,3 +135,29 @@ def test_table_matches_the_design_script():
     d = {p[0]: (p[2], tuple(p[3]), p[4]) for p in ast.literal_eval(node.value)}
     m = {t[0]: (t[2], tuple(t[3]), t[4]) for t in P.TYPES}
     assert d == m
+
+
+def test_per_zone_scalars_follow_the_zone_types():
+    params, pp, _ = build_all_params(3, np.zeros(3))
+    z = np.array([P.ZI['D_temperate'], P.ZI['A_humid'], P.ZI['D_subarctic']])
+    over = P.parse_type_overrides({'T15': {'gdd_thresh_u': 200.0}, 'G06': {'gdd_thresh_l': 120.0},
+                                   'T16': {'stressfac': -3.0}, 'T18': {'gdd_thresh_u': 80.0}, 'T19': {'gdd_thresh_u': 100.0}})
+    p, _ = P.apply_types(params, pp, z, over)
+    gu = np.asarray(p.pheno.gdd_thresh_u); gl = np.asarray(p.pheno.gdd_thresh_l); sf = np.asarray(p.stomata_params.stressfac)
+    assert gu[0] == pytest.approx(200.0)                                   # T15, the zone's cold-deciduous tree
+    assert gu[1] == pytest.approx(float(params.pheno.gdd_thresh_u))        # no cold-deciduous tree in A_humid: base
+    assert gu[2] == pytest.approx(90.0)                                    # median of T18 and T19
+    assert gl[0] == pytest.approx(120.0) and gl[2] == pytest.approx(float(params.pheno.gdd_thresh_l))
+    assert sf[0] == pytest.approx(-3.0) and sf[1] == pytest.approx(float(params.stomata_params.stressfac))
+
+
+def test_drystress_per_cell_stressfac_matches_the_scalar():
+    from ibis.physics.stomata import drystress
+    rng = np.random.default_rng(1)
+    w = jnp.asarray(rng.uniform(0.2, 0.9, (3, 6))); wi = jnp.zeros((3, 6))
+    sw = jnp.full((3, 6), 0.3); sfc = jnp.full((3, 6), 0.7); fr = jnp.asarray(np.tile(np.linspace(0.3, 0.05, 6)[:, None], (1, 2)))
+    per = drystress(w, wi, sw, sfc, fr, stressfac=jnp.array([-5.0, -3.0, -8.0]))
+    for k, s in enumerate((-5.0, -3.0, -8.0)):
+        one = drystress(w, wi, sw, sfc, fr, stressfac=s)
+        for a, b in zip(per, one):
+            assert np.allclose(np.asarray(a)[k], np.asarray(b)[k], rtol=1e-6)
