@@ -5117,3 +5117,35 @@ Verdict on the envelope (k1 = k2): adopt the Köppen mask and the larch rule as 
 remove the steppe, Mediterranean and tundra phantom trees at no cost -- and carry the taiga density and the
 tundra lower canopy to the new-PFT stage. Hindcast scoring of k2 was re-run outside the launcher
 (`$S/final_validation_from_hindcast.sh`) after the launcher was patched while k2 was executing it.
+
+**Results, s7b and o2 (2026-10-13 13:50): organic soils run clean and make the soil carbon worse.** Both
+cold-start 200-year spin-ups (1701-1900), 1901-2000 transient, 2001-2010 hindcast, the full protocol.
+
+| 2001-2010 | s7 | s7b (s7, fresh spin-up) | o2 organic soils, hemic, percolation k_sat |
+|---|---|---|---|
+| GPP, PgC yr-1 | 195.3 | 195.3 | 195.7 |
+| stored-carbon sink, PgC yr-1 (GCB 2.78) | +1.64 | +1.64 | +1.13 |
+| wood / soil / litter carbon, PgC (soil 1500-2400 to 1 m) | 349 / 2416 / 150 | 349 / 2416 / 150 | 344 / 3110 / 242 |
+| soil-carbon drift 2001-2010, PgC yr-1 | +0.44 | +0.44 | +0.45 |
+| GPP / FLUXCOM 60-90 N; tree cover there (ref 0.25) | 3.58; 0.53 | 3.58; 0.53 | 3.60; 0.49 |
+| tree cover all natural land (ref 0.335); phantom area | 0.556; 10.8 % | 0.556; 10.8 % | 0.542; 9.7 % |
+| ET / products by band 60-90 N / 45-60 / 30-45 | 0.65 / 0.87 / 1.21 | same | 0.66 / 0.89 / 1.23 |
+| wetland CH4, Tg yr-1 (bands 90S-30N / 30-60N / 60-90N) | 154 (130 / 11 / 13) | same | 154 (128 / 12 / 14) |
+| burned area x GFED5 | 0.99 | 0.99 | 1.00 |
+| cells gone NaN by 2010 | 0 | 0 | 0 |
+
+*s7b reproduces s7 to every printed digit.* So the s7 spin-up was its own (the note in section 43 that it was
+inherited was wrong), and a 310-year run is bit-reproducible across launches -- worth knowing before any
+ensemble work.
+
+*o2.* With the hemic end-member and the percolation conductivity the organic column is numerically sound: no
+NaN in 310 years, methane bounded (max 85 gC m-2 yr-1 against s7's 74). It changes almost nothing that is
+scored -- GPP, its pattern, tree cover, ET, fire and methane are within 2 % of s7 -- and the one thing it
+changes a lot it changes the wrong way: the equilibrium soil carbon is 3,110 PgC against 2,416 (literature
+1,500-2,400 to 1 m), litter 242 against 150, because the wetter, colder organic column decomposes slower, and
+the sink falls from +1.64 to +1.13 PgC yr-1. The two small gains (tree cover 0.556 -> 0.542, phantom area 10.8
+-> 9.7 %) do not pay for that. Verdict: not adopted. The switch stays (`physics.soil_organic`,
+`soil_organic_end_member: hemic` is the configuration that runs), and the reason it does not help is itself a
+finding: IBIS's soil-carbon equilibrium is already at the top of the literature range with mineral soils, so
+anything that slows decomposition pushes it out; the soil respiration side (section 36, the growth-respiration
+and Rh structure) has to move first. Min's item 2 is closed with that record.
