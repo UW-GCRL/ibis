@@ -93,3 +93,29 @@ def test_forganic_rides_on_sim_params():
     q, _, _ = build_all_params(3, np.zeros(3), forganic=np.full((3, 6), 0.2))
     assert q.forganic.shape == (3, 6) and float(q.forganic[0, 0]) == pytest.approx(0.2)
     assert SimParams.__dataclass_fields__["forganic"].default is None
+
+
+def test_end_members_are_ordered_by_decomposition():
+    from ibis.io.soil_init import ORGANIC_END_MEMBERS
+    s, c = _tex()
+    oc = np.full(s.shape, 58.0); bd = np.full(s.shape, RHO_OM_MAX / (0.58 * OM_PER_OC * 1000.0))
+    k = {e: float(compute_soil_properties(s, c, orgc=oc, bulk=bd, end_member=e)["hydraul"][0, 0]) for e in ("fibric", "hemic", "sapric")}
+    assert k["fibric"] > k["hemic"] > k["sapric"]
+    d = compute_soil_properties(s, c, orgc=oc, bulk=bd)
+    assert float(d["hydraul"][0, 0]) == pytest.approx(ORGANIC_END_MEMBERS["ls2008"][3], rel=1e-4)
+    with pytest.raises(KeyError):
+        compute_soil_properties(s, c, orgc=oc, bulk=bd, end_member="peat")
+
+
+def test_ksat_mixes_by_percolation_not_linearly():
+    from ibis.io.soil_init import organic_ksat, ORGANIC_HYDRAUL
+    k_min = np.full(5, 1.7e-7)                                  # clay
+    fo = np.array([0.0, 0.3, 0.5, 0.75, 1.0])
+    k = organic_ksat(k_min, ORGANIC_HYDRAUL, fo)
+    assert k[0] == pytest.approx(1.7e-7, rel=1e-6)
+    assert k[1] < 3.0e-7                                       # a third organic: series, barely above the clay
+    assert k[2] < 1.0e-6
+    assert np.all(np.diff(k) > 0)                               # monotonic in f_om
+    assert k[4] == pytest.approx(ORGANIC_HYDRAUL, rel=1e-6)    # pure organic: the end-member
+    linear = (1 - fo) * k_min + fo * ORGANIC_HYDRAUL
+    assert linear[1] / k[1] > 50                                # what the first o1 run did

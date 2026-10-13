@@ -72,7 +72,9 @@ class PhysicsSection:
     larch_gdd_fix: bool = False
     #: Mix organic-soil hydraulic and thermal properties by the HWSD2 organic-carbon fraction
     #: (Lawrence & Slater 2008); needs orgcpct and bulkdens in soil_file (scripts/hwsd2_organic_to_nc.py).
-    soil_organic: bool = False
+    soil_organic: bool | str = False
+    #: Organic end-member when soil_organic is on: 'ls2008' (default), 'fibric', 'hemic' or 'sapric'.
+    soil_organic_end_member: str = "ls2008"
     #: Prescribe leaf area index from MODIS instead of growing it. This is the
     #: configuration behind the published IBIS GPP of 107.5 PgC/yr (Liu et al.
     #: 2014). Carbon totals from such a run are diagnostic, not a closed

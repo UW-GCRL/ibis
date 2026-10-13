@@ -113,10 +113,42 @@ ORGANIC_HYDRAUL = 1.0e-4    # m s-1 (0.1 mm s-1)
 # organic Campbell curve theta = poros * (suction / psi) ** (1 / b): 0.106 and 0.026.
 ORGANIC_SFIELD = ORGANIC_POROS * (ORGANIC_SUCTION / 3.37) ** (1.0 / ORGANIC_BEX)
 ORGANIC_SWILT = ORGANIC_POROS * (ORGANIC_SUCTION / 153.0) ** (1.0 / ORGANIC_BEX)
+# End-members by decomposition state (Letts et al. 2000, Atmos.-Ocean 38:141, Table 2; poros, b, psi_sat m,
+# k_sat m s-1). "ls2008" is the Lawrence & Slater set above (fibric-like), the CLM default. The fibric drainage
+# (k_sat 1e-4 m s-1 with b 2.7 at porosity 0.9) made IBIS's hourly soil-water solver produce NaN in ~1 % of
+# cells, pure-peat cells first (CALIBRATION.md 44, run o1); the hemic and sapric sets drain 50-1000x slower.
+PERC_THRESHOLD = 0.5        # organic fraction above which organic matter percolates (Lawrence & Slater 2008)
+PERC_BETA = 0.139
+ORGANIC_END_MEMBERS = {
+    'ls2008': (ORGANIC_POROS, ORGANIC_BEX, ORGANIC_SUCTION, ORGANIC_HYDRAUL),
+    'fibric': (0.93, 2.7, 0.0103, 2.8e-4),
+    'hemic':  (0.88, 6.1, 0.0102, 2.0e-6),
+    'sapric': (0.83, 12.0, 0.0101, 1.0e-7),
+}
 ORGANIC_CONDRY = 0.05       # W m-1 K-1, dry organic conductivity (soil_physics.setsoi)
 ORGANIC_RHO = 1300.0        # kg m-3 and J kg-1 K-1 of the organic solids, as F77 initial.f:715-724
 ORGANIC_CSOI = 1920.0
 
+
+
+def organic_ksat(k_min: np.ndarray, k_om: float, fo: np.ndarray,
+                 f_threshold: float = PERC_THRESHOLD, beta: float = PERC_BETA) -> np.ndarray:
+    """Saturated conductivity of a mineral-organic mix by percolation theory
+    (Lawrence & Slater 2008 eq. 6-8; CLM4 Tech. Note 7.4). Below the
+    percolation threshold the organic matter is in series with the mineral
+    soil (harmonic mean, so a third organic barely changes k_sat); above it a
+    connected fraction f_perc = ((f_om - f_thr) / (1 - f_thr)) ** beta * f_om
+    conducts in parallel at the organic rate. A linear mix (the first o1 run,
+    CALIBRATION.md 44) raised k_sat a hundredfold at f_om = 0.3 and the hourly
+    soil-water solver returned NaN in 1 % of the cells.
+    """
+    fo = np.asarray(fo, dtype=np.float64)
+    n = np.clip((fo - f_threshold) / (1.0 - f_threshold), 0.0, 1.0)
+    f_perc = np.where(fo > f_threshold, n ** beta * fo, 0.0)
+    f_uncon = 1.0 - f_perc
+    k_uncon = f_uncon / np.maximum((1.0 - fo) / k_min + (fo - f_perc) / k_om, 1e-30)
+    k_uncon = np.where(f_uncon > 0.0, k_uncon, 0.0)
+    return (1.0 - f_perc) * k_uncon + f_perc * k_om
 
 
 def compute_soil_properties(
@@ -124,6 +156,7 @@ def compute_soil_properties(
     clay: np.ndarray,
     orgc: np.ndarray | None = None,
     bulk: np.ndarray | None = None,
+    end_member: str = 'ls2008',
 ) -> dict:
     """Compute soil hydraulic properties from sand/clay percentages.
 
@@ -133,6 +166,8 @@ def compute_soil_properties(
     clay : (npoi, nsoilay) percent clay
     orgc, bulk : (npoi, nsoilay), optional
         Organic carbon (% of dry mass) and bulk density (g cm-3) from HWSD2.
+    end_member : 'ls2008' (default, Lawrence & Slater 2008), 'fibric', 'hemic' or 'sapric'
+        (Letts et al. 2000): the organic hydraulic properties mixed in.
         Given together, the organic-matter fraction of the solids
         f_om = min(1, orgc/100 x OM_PER_OC x bulk x 1000 / RHO_OM_MAX)
         mixes the organic end-member (module constants) linearly into the
@@ -165,12 +200,15 @@ def compute_soil_properties(
         bd = np.asarray(bulk, dtype=np.float64)
         bd = np.where(np.isfinite(bd) & (bd > 0.0), bd, 1.3)
         fo = np.clip(0.01 * oc * OM_PER_OC * bd * 1000.0 / RHO_OM_MAX, 0.0, 1.0)
-        poros   = (1.0 - fo) * poros_m + fo * ORGANIC_POROS
-        sfield  = ((1.0 - fo) * sfield_m + fo * ORGANIC_SFIELD) / poros
-        swilt   = ((1.0 - fo) * swilt_m + fo * ORGANIC_SWILT) / poros
-        bex     = (1.0 - fo) * bex_m + fo * ORGANIC_BEX
-        suction = (1.0 - fo) * suction_m + fo * ORGANIC_SUCTION
-        hydraul = (1.0 - fo) * hydraul_m + fo * ORGANIC_HYDRAUL
+        o_poros, o_bex, o_suction, o_hydraul = ORGANIC_END_MEMBERS[end_member]
+        o_sfield = o_poros * (o_suction / 3.37) ** (1.0 / o_bex)
+        o_swilt = o_poros * (o_suction / 153.0) ** (1.0 / o_bex)
+        poros   = (1.0 - fo) * poros_m + fo * o_poros
+        sfield  = ((1.0 - fo) * sfield_m + fo * o_sfield) / poros
+        swilt   = ((1.0 - fo) * swilt_m + fo * o_swilt) / poros
+        bex     = (1.0 - fo) * bex_m + fo * o_bex
+        suction = (1.0 - fo) * suction_m + fo * o_suction
+        hydraul = organic_ksat(hydraul_m, o_hydraul, fo)
         rhosoi  = 2650.0 * (1.0 - fo) + ORGANIC_RHO * fo
         csoi    = 870.0 * (1.0 - fo) + ORGANIC_CSOI * fo
         forganic = fo

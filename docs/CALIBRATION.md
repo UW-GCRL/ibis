@@ -5030,3 +5030,47 @@ first-year dC/dt from the year before the range) are GPP 195 PgC yr-1, stored-ca
 it away from the budget rather than toward it (the harvest removes carbon that used to accumulate as forest). The s5
 and s6 numbers quoted earlier in section 43 came from the same row and carry the same year-2010 bias. The band
 ratios (GPP / FLUXCOM, ET / ensemble), the methane and fire scores and everything at the towers are unaffected.
+
+**Results, k1 and o1 (2026-10-13 00:30; k2 running).** Both from the s7 1900 state, 1901-2000 transient and
+2001-2010 hindcast; verdicts as model/reference ratios (`$S/k44_summary.py`; s7 numbers are the corrected
+2001-2010 means).
+
+| 2001-2010 | s7 | k1 Köppen mask | o1 organic soils (L&S 2008, linear k_sat) |
+|---|---|---|---|
+| GPP, PgC yr-1 (x FLUXCOM, cell r) | 195 (1.75, 0.85) | 187 (1.68, 0.85) | 198 (1.77, 0.78: NaN cells) |
+| GPP / FLUXCOM by Köppen group A / B / C / D / ET | 1.35 / 1.91 / 2.11 / 2.44 / 4.92 | 1.31 / 1.75 / 2.00 / 2.37 / 4.42 | 1.31 / 2.13 / 2.14 / 2.56 / 5.05 |
+| tree cover (fu) by group A / B / C / D / ET | 0.71 / 0.34 / 0.64 / 0.65 / 0.42 | 0.72 / 0.28 / 0.54 / 0.64 / 0.25 | 0.67 / 0.34 / 0.63 / 0.69 / 0.42 |
+| fu 30-60 S (reference 0.23) / phantom-tree area | 0.63 / 10.8 % | 0.34 / 6.3 % | 0.63 / 11.8 % |
+| fu 60-90 N (reference 0.25); GPP ratio there | 0.53; 3.58 | 0.51; 3.58 | 0.59; 3.78 |
+| stored-carbon sink, PgC yr-1 (GCB 2.78) | +1.64 | +1.43 | +3.36 (soil C still rising 2.3 PgC yr-1) |
+| wood / soil / litter carbon, PgC | 349 / 2416 / 150 | 296 / 2369 / 130 | 370 / 2608 / 240 |
+| ET / ensemble (cell r) | 1.04 (0.93) | 1.04 (0.93) | 1.03 (0.87) |
+| wetland CH4, Tg yr-1 | 154 | 152 | blew up (one cell 8e6) |
+| burned area x GFED5 | 0.99 | 0.97 | 1.07 |
+| cells gone NaN by 2010 | 0 | 0 | 1,259 (309 after the first year) |
+
+*k1.* The mask does what it was built to do and nothing more. Where it removes trees (B, C, ET) the cover falls
+to or toward the reference: the 30-60 S steppes from 0.63 to 0.34 against 0.23, the phantom-tree area from 10.8
+to 6.3 % of land, the tundra from 0.42 to 0.25. GPP falls 4 % (195 -> 187) and the FLUXCOM ratio from 1.75 to
+1.68, with the pattern unchanged (r 0.85). It does not touch the two large excesses: the D climates (30 % of
+land, ratio 2.44 -> 2.37, cover 0.65 -> 0.64) because every temperate and boreal tree is allowed there, so the
+taiga keeps a closed canopy (fu 0.5 against 0.25 north of 60) by competition rather than by envelope -- the
+section-40 finding in a different light: the boreal excess is a density problem inside Dfc/Dfd, not a treeline
+problem; and the tundra GPP ratio stays 4.4 with no trees at all, so there it is the lower canopy (shrubs and
+grasses, fl 0.74) and the reference itself. The sink moves further from the budget (+1.64 -> +1.43) because
+less wood accumulates. Verdict: adopt as the default envelope (it removes real errors and costs nothing), but it
+is not the GPP fix; that stays with the boreal tree density and the cropland season.
+
+*o1.* Not adoptable as run, for three reasons in order. (1) NaN: 309 cells after the first year, 1,259 (1.3 % of
+land) by 2010, mostly tropical and subtropical with ordinary organic fractions (f_om 0.3, not the peat cells).
+Cause found: the linear mix of saturated conductivity gave a cell with a third organic matter a k_sat a hundred
+times its clay value (1e-4 m s-1 is 360 mm h-1), which the hourly soil-water solver cannot take. Lawrence &
+Slater mix k_sat by percolation theory (series below f_om 0.5, a connected fraction in parallel above), which
+the first run did not; `organic_ksat` now does, and a one-year smoke test (`smoke_o1p`) says whether the NaN
+goes away. (2) Disequilibrium: the 1900 state's soil carbon was in balance with mineral properties; the wetter,
+colder organic column slows decomposition and the soil pool gained 230 PgC over the transient and is still
+rising 2.3 PgC yr-1 in 2010, so the +3.36 sink is the pool filling, not a verdict -- o1 needs its own 200-year
+spin-up before the sink or the soil carbon mean anything. (3) Where it stays finite it does not help: the boreal
+GPP ratio rises (3.58 -> 3.78, cover 0.53 -> 0.59), ET is unchanged, and the methane module blew up in a few
+cells on the way to NaN. The organic fraction itself is large: f_om above 0.9 in 14 % of the land's top layer
+(boreal and peat soils), mean 0.31, as the CLM definition gives with HWSD2's 0-20 cm organic carbon.

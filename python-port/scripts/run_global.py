@@ -158,7 +158,7 @@ def _subset_land_mask(
 # ---------------------------------------------------------------------------
 
 def _load_soil(soil_file: str, gswp3_latindex: np.ndarray, gswp3_lonindex: np.ndarray,
-               organic: bool = False) -> dict:
+               organic: bool = False, end_member: str = 'ls2008') -> dict:
     """Read sand/clay from soita.nc and compute soil hydraulic properties.
 
     soita.nc has variables sandpct and claypct with dimensions
@@ -212,7 +212,7 @@ def _load_soil(soil_file: str, gswp3_latindex: np.ndarray, gswp3_lonindex: np.nd
         bulk = bulk_grid[:, gswp3_latindex, gswp3_lonindex].T
         orgc = np.where(np.isfinite(orgc), orgc, 0.0)                      # no HWSD2 data: mineral
         bulk = np.where(np.isfinite(bulk) & (bulk > 0.0), bulk, 1.3)
-    return compute_soil_properties(sand, clay, orgc=orgc, bulk=bulk)
+    return compute_soil_properties(sand, clay, orgc=orgc, bulk=bulk, end_member=end_member)
 
 
 # ---------------------------------------------------------------------------
@@ -353,12 +353,13 @@ def run_global_simulation(config: IBISConfig) -> None:
     # ------------------------------------------------------------------
     soil_file = f.soil_file or os.path.join(config.input.input_dir, 'soita.nc')
     logger.info("Loading soil from %s ...", soil_file)
+    _so_end = str(getattr(config.physics, "soil_organic_end_member", "ls2008"))
     soil_props = _load_soil(soil_file, gswp3_latindex, gswp3_lonindex,
-                            organic=bool(getattr(config.physics, "soil_organic", False)))
+                            organic=bool(getattr(config.physics, "soil_organic", False)), end_member=_so_end)
     if getattr(config.physics, "soil_organic", False):
         _fo = np.asarray(soil_props["forganic"])
-        logger.info("Organic soil mixing ON (Lawrence & Slater 2008): f_om top layer mean %.3f, >0.5 at %d of %d points; 1-2 m layer mean %.3f",
-                    float(_fo[:, 0].mean()), int((_fo[:, 0] > 0.5).sum()), _fo.shape[0], float(_fo[:, 4].mean()))
+        logger.info("Organic soil mixing ON (end-member %s): f_om top layer mean %.3f, >0.5 at %d of %d points; 1-2 m layer mean %.3f",
+                    _so_end, float(_fo[:, 0].mean()), int((_fo[:, 0] > 0.5).sum()), _fo.shape[0], float(_fo[:, 4].mean()))
 
     # ------------------------------------------------------------------
     # 4. Create or load state
