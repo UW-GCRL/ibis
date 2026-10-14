@@ -641,7 +641,15 @@ def run_global_simulation(config: IBISConfig) -> None:
         # per-biome r_ch4 and t_ref tables apply, as before.
         _mb = (_pdict or {}).get('methane_bands') if _pdict else None
         _has_fit = bool(_pdict and (_pdict.get('methane') or _mb))
-        ch4_params = biome_methane_params(lat_land_deg, base=params.methane, bands=_mb) if _has_fit else biome_methane_params(lat_land_deg)
+        # IBIS 3.1 types: the band is the wetland type of the cell's Köppen zone (W01/W02/W03; CALIBRATION.md 45), fixed at
+        # the start period
+        _bi = None
+        if _types_on:
+            _bi = _pt.wetland_band(_zones[period_index(config.time.iyear0, _koppen["period_start"], _koppen["period_end"])])
+            logger.info("  CH4 bands by wetland type (Köppen zone): W01 %d, W02 %d, W03 %d land points, latitude rule %d",
+                        int((_bi == 0).sum()), int((_bi == 1).sum()), int((_bi == 2).sum()), int((_bi < 0).sum()))
+        ch4_params = (biome_methane_params(lat_land_deg, base=params.methane, bands=_mb, band_index=_bi) if _has_fit
+                      else biome_methane_params(lat_land_deg, band_index=_bi))
         logger.info("  wetland CH4 enabled: WAD2M climatology loaded, "
                     "mean inundated fraction %.4f", float(ch4_clim.mean()))
         logger.info("  CH4 params: %s", (f"parameter file ({'with' if _mb else 'without'} band overrides)" if _has_fit else "per-biome r_ch4 and t_ref (docs/METHANE.md 5q)"))

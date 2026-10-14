@@ -297,3 +297,15 @@ def type_area_summary(zone_idx) -> str:
     """Land points per zone, for the run log."""
     z = np.asarray(zone_idx)
     return ' '.join(f'{ZONES[i]}:{int((z == i).sum())}' for i in range(len(ZONES)) if (z == i).any())
+
+
+#: methane band of the wetland type of each zone (ibis.bgc.methane.biome_methane_params: 0 tropical, 1 temperate,
+#: 2 boreal; -1 = no wetland type, the latitude rule applies)
+def wetland_band(zone_idx) -> np.ndarray:
+    band = {}
+    for t in TYPES:
+        if t[2] != 'wetland': continue
+        b = {'W01': 0, 'W02': 1, 'W03': 2}[t[0]]
+        for z in t[3]: band[z] = b
+    lut = np.array([band.get(z, -1) for z in ZONES], dtype=np.int16)
+    return lut[np.asarray(zone_idx, dtype=np.int64)]

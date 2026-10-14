@@ -13,6 +13,9 @@ rep, base, out = sys.argv[1:4]; a = sys.argv[4:]
 cls = a[a.index('--class') + 1] if '--class' in a else 'WET'; nmin = int(a[a.index('--min-band') + 1]) if '--min-band' in a else 3
 FIELDS = {'p:ch4_r': 'r_ch4', 'p:ch4_q10': 'q10p', 'p:ch4_ztau': 'z_tau', 'p:ch4_tauox': 'tau_oxid', 'p:ch4_zwtmax': 'z_wt_max', 'p:ch4_tref': 't_ref'}
 D = pd.read_csv(rep); W = D[D.igbp == cls]; cols = [c for c in FIELDS if c in D.columns]
+if '--band-csv' in a:                    # IBIS 3.1 (CALIBRATION.md 45): bands = the wetland type of the tower's Köppen zone
+    zb = pd.read_csv(a[a.index('--band-csv') + 1]).set_index('site')['zone_band']
+    W = W.assign(band=[zb.get(s, b) for s, b in zip(W.site, W.band)]); print('bands from', a[a.index('--band-csv') + 1])
 if W.empty: raise SystemExit(f'no {cls} towers in {rep}')
 t = yaml.safe_load(open(base)); t['methane'] = {FIELDS[c]: float(W[c].median()) for c in cols}
 bands = {}
