@@ -5335,3 +5335,12 @@ same flux, Pastorello et al. 2020), applied in place to the written files and re
 (`GPP_FILL_MM`). Two towers have no GPP partition at all in their window (BR-Ji3, ES-Amo): placeholder results skip
 their S2 fit and send them to the NEE stage from the base set. ID-PaB, rescued by the fill, was rerun in the spare
 slot after four orphaned workers of the killed fit were stopped (they held its log and its cores).
+
+**The NaN fits, found (2026-10-14 00:45).** Five S2 fits (ID-PaB, CD-Ygb, ES-LJu, PA-SPs, PR-xGU) ended after a few
+evaluations with loss NaN. Not the model and not the target: `tower_obs` set each month's GPP sigma as
+np.maximum(|NT - DT| / 2, 10 % of GPP, 5 g), and at towers where FLUXNET v1.3 gives only one partition (DT only at
+PA-SPs, GF-Guy ...) the NT - DT spread is NaN, which np.maximum propagates into every sigma and the loss; the ET
+sigma had the same flaw where LE_F_MDS is missing (that one silently dropped the ET term). np.fmax now. Fits with
+both partitions -- every FLUXNET2015 tower and every fit that had finished -- are unchanged. The five were rerun
+(outputs of the NaN runs kept in `t31_s2/_nan_runs`). AU-DaP is not a bug: its loss moved between 10.8 and 22.9
+and none beat the start, which sits near the lower vmax bound -- the tower wants less C4 capacity than TRY allows.

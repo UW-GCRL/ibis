@@ -69,9 +69,11 @@ def tower_obs(site):
     d = pd.read_csv(f[0]); t = pd.to_datetime(d['TIMESTAMP'].astype(str).str[:6], format='%Y%m'); d['y'] = t.dt.year; d['m'] = t.dt.month; nd = t.dt.days_in_month
     w = lambda c: d[c].where(d[c] > -9000) if c in d else pd.Series(np.nan, index=d.index)
     nt = w('GPP_NT_VUT_REF') * nd; dt = w('GPP_DT_VUT_REF') * nd; g = pd.concat([nt, dt], axis=1).mean(axis=1)
-    gs = np.maximum.reduce([(nt - dt).abs() / 2.0, 0.1 * g.abs(), pd.Series(5.0, index=d.index)])
+    # np.fmax, not np.maximum: a tower with one partition only (FLUXNET v1.3 leaves NT or DT empty at some towers) has a NaN
+    # NT-DT spread, which np.maximum propagated into every month's sigma and the loss (CALIBRATION.md 45.2)
+    gs = np.fmax.reduce([(nt - dt).abs() / 2.0, 0.1 * g.abs(), pd.Series(5.0, index=d.index)])
     k = 86400.0 / 2.45e6 * nd; le = w('LE_CORR') * k; lef = w('LE_F_MDS') * k
-    es = np.maximum.reduce([(le - lef).abs() / 2.0, 0.1 * le.abs(), pd.Series(3.0, index=d.index)])
+    es = np.fmax.reduce([(le - lef).abs() / 2.0, 0.1 * le.abs(), pd.Series(3.0, index=d.index)])   # fmax: LE_F_MDS may be missing
     if le.notna().sum() == 0 and lef.notna().sum() > 0:
         # no energy-balance-corrected LE at this tower (e.g. US-Ha1): the gap-filled LE, with a wider sigma since the
         # closure correction is unknown; fill-value years drop out through LE_F_MDS_QC below
