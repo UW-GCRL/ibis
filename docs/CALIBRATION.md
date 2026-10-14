@@ -5314,3 +5314,14 @@ day NEE (`tower_nee_daynight.py --years 1996-2024 --siteinfo`) on the S2 start a
 rgrowth, rroot, 48 evaluations. Then per-type medians -> the `types:` section, plus per-zone phenology and stress
 from the same fits. Launched 2026-10-13 18:55, at most seven fits at a time (4-core slots, nice 5), thinnest types
 first; S2 is expected to take 2-3 days, the NEE stage 1-2 more.
+
+**Wetland and crop types (2026-10-13).** W01/W02/W03 are the methane parameter sets, now assigned by the wetland type
+of the cell's Köppen zone instead of by latitude when the types are on (`biome_methane_params(band_index=)`,
+`pft_types.wetland_band`; unclassified cells keep the latitude rule). The 66 per-tower methane fits regrouped by zone
+(`logs/ch4_towers_zone.csv`, `ch4_class_yaml.py --band-csv`): 12 towers change band (five subtropical sites --
+the Everglades and similar -- go from temperate to tropical, seven between temperate and boreal); wetland medians
+W01 (12 towers) / W02 (24) / W03 (12): boreal r_ch4 0.143 (latitude bands 0.170), temperate 0.126 (0.113), tropical
+on 12 towers instead of 10. C01/C02 are the crop capacity factors: 46 calibration-grade crop towers (16 before),
+fitted with the section-41 protocol after the NEE stage (`$S/t31_crop_cmds.txt`); maize at US-Ne1/2/3 and IT-BCi as
+before, every other crop tower as C3 -- the new towers' crop types are not on disk, so rotations with maize (CN-Yuc,
+KE-Mkt, SN-Nkr and others) are an open item.
