@@ -30,6 +30,10 @@ import pft_koppen_design as D
 from landmask import true_landfrac
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else '.'
+# --towers31 SITEINFO: the calibration towers of the 3.1 campaign (towers31_prep.py; CALIBRATION.md 45.2) instead of
+# every tower on disk; circles = on disk before 2026-10-13, stars = acquired that day; counts = calibration-grade towers
+CAMPAIGN = sys.argv[sys.argv.index('--towers31') + 1] if '--towers31' in sys.argv else None
+SUFFIX = '_campaign' if CAMPAIGN else ''
 os.makedirs(OUT, exist_ok=True)
 LAT = np.arange(89.75, -90, -0.5); LON = np.arange(-179.75, 180, 0.5)
 
@@ -129,6 +133,19 @@ for r in csv.DictReader(open('/shared/nas2/Hangkai/ibis/inputs/sites/new_sites_i
     for p in t:
         if p in nnew: nnew[p] += 1
 fx, ch = old, new
+ncal = None
+if CAMPAIGN:
+    import pandas as _pd
+    _si = _pd.read_csv(CAMPAIGN)
+    _cal = _si[(_si.HH == 'yes') & (_si.WIN_SCORE.fillna(0) >= 2)]
+    _old = {s for s, _, _ in old}
+    fx, ch, ncal = [], [], {p: 0 for p in IDS}
+    for r in _cal.itertuples():
+        ts = [t for t in str(r.TYPE).split() if t in ncal]
+        if not ts: continue
+        site_type[r.SITE_ID] = ts[0]
+        for t in ts: ncal[t] += 1
+        (fx if r.SITE_ID in _old else ch).append((r.SITE_ID, float(r.LOCATION_LAT), float(r.LOCATION_LONG)))
 colour = lambda s: PAL.get(site_type.get(s, ''), '#ffffff')
 
 # ---- figure
@@ -144,7 +161,7 @@ ax.scatter([lo for _, _, lo in fx], [la for _, la, _ in fx], s=40, marker='o', c
            edgecolors='black', linewidths=0.8, transform=ccrs.PlateCarree(), zorder=5)
 ax.scatter([lo for _, _, lo in ch], [la for _, la, _ in ch], s=120, marker='*', c=[colour(s) for s, _, _ in ch],
            edgecolors='black', linewidths=0.7, transform=ccrs.PlateCarree(), zorder=6)
-ax.set_title('IBIS 3.1 Köppen-zone plant functional types (dominant type per 0.5° cell) and the calibration towers',
+ax.set_title('IBIS 3.1: the 40 Köppen-zone plant functional types (dominant type per 0.5° cell) and the calibration towers',
              fontsize=17, loc='left', pad=10)
 
 # legend: one block per life form
@@ -153,6 +170,11 @@ groups = [('Trees', [p for p in IDS if p.startswith('T')]), ('Shrubs', [p for p 
           ('Crops', ['C01'])]
 name = {p[0]: p[1] for p in D.PFTS}
 def label(p):
+    if ncal is not None:
+        if p == 'C01':
+            return f'C01/C02 managed crops, C3 and C4 ({ncal["C01"] + ncal["C02"]}; {amk["C01"] + amk["C02"]:.1f})'
+        nm = name[p] if len(name[p]) <= 50 else name[p][:48] + '…'
+        return f'{p} {nm} ({ncal[p]}; {amk[p]:.1f})'
     if p == 'C01':
         b = ntw['C01'] + ntw['C02']; a = b + nnew['C01'] + nnew['C02']
         return f'C01/C02 managed crops, C3 and C4 ({b} → {a}; {amk["C01"] + amk["C02"]:.1f})'
@@ -170,23 +192,32 @@ for k, (title, members) in enumerate(blocks):
         h += [Patch(facecolor='none', edgecolor='none', label=''),
               Patch(facecolor='#cfcfcf', edgecolor='#555555', linewidth=0.4, label=f'barren / sparse ({float(area[cat == BARREN].sum()) / 1e6:.1f} Mkm²)'),
               Patch(facecolor='#f4f4f4', edgecolor='#555555', linewidth=0.4, label='ice'),
-              Line2D([], [], marker='o', color='none', markerfacecolor='#ffffff', markeredgecolor='black', markersize=9, label=f'tower on disk before 13 Oct: FLUXNET2015, FLUXNET-CH4 ({len(fx)})'),
-              Line2D([], [], marker='*', color='none', markerfacecolor='#ffffff', markeredgecolor='black', markersize=14, label=f'tower acquired 13 Oct: ICOS, FLUXNET v1.3 ({len(ch)})')]
+              Line2D([], [], marker='o', color='none', markerfacecolor='#ffffff', markeredgecolor='black', markersize=9, label=(f'calibration tower, on disk before 13 Oct ({len(fx)})' if ncal is not None else f'tower on disk before 13 Oct: FLUXNET2015, FLUXNET-CH4 ({len(fx)})')),
+              Line2D([], [], marker='*', color='none', markerfacecolor='#ffffff', markeredgecolor='black', markersize=14, label=(f'calibration tower, acquired 13 Oct ({len(ch)})' if ncal is not None else f'tower acquired 13 Oct: ICOS, FLUXNET v1.3 ({len(ch)})'))]
     t = 'Trees' if k < 2 else ('Shrubs, wetlands, crops' if k == 2 else 'Grasses, other')
     lg = fig.legend(handles=h, loc='upper left', bbox_to_anchor=(x0[k], 0.33), frameon=False, fontsize=10.5,
-                    title=t + ('  (towers before → after 13 Oct; Mkm² where dominant)' if k == 0 else ''), title_fontsize=12.5, alignment='left',
+                    title=t + (('  (calibration-grade towers; Mkm² where dominant)' if ncal is not None else '  (towers before → after 13 Oct; Mkm² where dominant)') if k == 0 else ''), title_fontsize=12.5, alignment='left',
                     handlelength=1.6, handleheight=1.1, labelspacing=0.55)
+_tw = ('Calibration-grade towers: a 3-5-year window (1996-2024) with a good held-out year and at least one good fitted year, and a half-hourly file '
+       '(towers31_prep.py).' if ncal is not None else 'Acquired towers are those with at least one year of 50 % NEE coverage.')
 fig.text(0.015, 0.012, 'Dominant type per cell: life form from MODIS plant-type fractions (CLM surface data), ESA CCI cropland and WAD2M wetland; '
-         'leaf type within it; Köppen zone (Beck et al. 2023, 1991-2020). Barren = bare ground above 60 % of the cell; wetland = WAD2M inundated fraction above 25 %. Markers are filled with the colour of the type the tower calibrates; '
-         'acquired towers are those with at least one year of 50 % NEE coverage. C3 and C4 crops share a colour (no crop-type map on disk). Cell areas use the true land fraction.', fontsize=9.5, color='#444444', wrap=True)
-fig.savefig(f'{OUT}/PFT31_koppen_types_map.png', dpi=150)
-fig.savefig(f'{OUT}/PFT31_koppen_types_map.pdf')
-print('wrote', f'{OUT}/PFT31_koppen_types_map.png')
+         'leaf type within it; Köppen zone (Beck et al. 2023, 1991-2020). Barren = bare ground above 60 % of the cell; wetland = WAD2M inundated '
+         'fraction above 25 %. Markers are filled with the colour of the type the tower calibrates. ' + _tw +
+         ' C3 and C4 crops share a colour (no crop-type map on disk). Cell areas use the true land fraction.', fontsize=9.5, color='#444444', wrap=True)
+fig.savefig(f'{OUT}/PFT31_koppen_types_map{SUFFIX}.png', dpi=150)
+fig.savefig(f'{OUT}/PFT31_koppen_types_map{SUFFIX}.pdf')
+print('wrote', f'{OUT}/PFT31_koppen_types_map{SUFFIX}.png')
 with open(f'{OUT}/PFT31_dominant_area.csv', 'w') as f:
     f.write('id,name,dominant_area_Mkm2,n_towers\n')
     for p in IDS: f.write(f'{p},"{name[p]}",{amk[p]:.3f},{ntw[p]}\n')
     f.write(f'barren,,{float(area[cat == BARREN].sum()) / 1e6:.3f},\nice,,{float(area[cat == ICE].sum()) / 1e6:.3f},\n')
 np.savez_compressed(f'{OUT}/PFT31_dominant_type.npz', cat=cat.astype(np.int16), ids=np.array(IDS + ['barren', 'ice']), lat=LAT, lon=LON)
+if ncal is not None:
+    with open(f'{OUT}/PFT31_tower_counts_campaign.csv', 'w') as f:
+        f.write('id,name,calibration_towers\n')
+        for p in IDS: f.write(f'{p},"{name[p]}",{ncal[p]}\n')
+    print('calibration towers on the map:', len(fx) + len(ch), '(before', len(fx), ', acquired', len(ch), '); types with < 3:', [(p, ncal[p]) for p in IDS if ncal[p] < 3])
+    raise SystemExit(0)
 with open(f'{OUT}/PFT31_tower_counts.csv', 'w') as f:
     f.write('id,name,towers_before,towers_acquired,towers_after\n')
     for p in IDS: f.write(f'{p},"{name[p]}",{ntw[p]},{nnew[p]},{ntw[p] + nnew[p]}\n')
