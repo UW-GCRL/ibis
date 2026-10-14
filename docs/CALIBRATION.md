@@ -5325,3 +5325,13 @@ on 12 towers instead of 10. C01/C02 are the crop capacity factors: 46 calibratio
 fitted with the section-41 protocol after the NEE stage (`$S/t31_crop_cmds.txt`); maize at US-Ne1/2/3 and IT-BCi as
 before, every other crop tower as C3 -- the new towers' crop types are not on disk, so rotations with maize (CN-Yuc,
 KE-Mkt, SN-Nkr and others) are an open item.
+
+**First hour of the campaign (2026-10-13 19:00-19:40).** Seven fits running, all moving except one. ID-PaB (the only
+tropical-shrub tower) returned NaN from its first evaluation: not the model (a forward run is clean) but the target --
+the v1.3 record has no variable-u* GPP partition there. A scan found 68 towers where FLUXNET v1.3 leaves the
+variable-u* partitions (GPP_NT_VUT_REF, GPP_DT_VUT_REF) empty while the constant-u* ones exist (DE-Lnf, US-NR1,
+RU-SkP, CH-Dav ...); `towers31_prep.fill_gpp` fills the VUT columns from the CUT twins (alternative estimates of the
+same flux, Pastorello et al. 2020), applied in place to the written files and recorded in the site table
+(`GPP_FILL_MM`). Two towers have no GPP partition at all in their window (BR-Ji3, ES-Amo): placeholder results skip
+their S2 fit and send them to the NEE stage from the base set. ID-PaB, rescued by the fill, was rerun in the spare
+slot after four orphaned workers of the killed fit were stopped (they held its log and its cores).

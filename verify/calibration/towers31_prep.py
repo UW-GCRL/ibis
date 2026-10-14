@@ -93,6 +93,21 @@ def window(g):
     return (best[1], best[2], best[0][0]) if best else None
 
 
+def fill_gpp(x):
+    """GPP_NT_VUT_REF / GPP_DT_VUT_REF (and RECO_*) from their constant-u* twins where the variable-u* partition is
+    missing: v1.3 leaves the VUT partition empty at some towers while the CUT one exists (DE-Lnf, US-NR1); the two are
+    alternative estimates of the same flux (Pastorello et al. 2020). Returns the frame and the number of filled rows."""
+    n = 0
+    for v in ('GPP_NT', 'GPP_DT', 'RECO_NT', 'RECO_DT'):
+        a, b = f'{v}_VUT_REF', f'{v}_CUT_REF'
+        if b not in x: continue
+        av = x[a] if a in x else pd.Series(np.nan, index=x.index)
+        miss = (av.isna() | (av <= -9000)) & x[b].notna() & (x[b] > -9000)
+        if miss.any():
+            x[a] = av.where(~miss, x[b]); n += int(miss.sum())
+    return x, n
+
+
 def read_hh(src):
     cols = ('TIMESTAMP_START', 'TA_F_MDS', 'TA_F', 'SW_IN_F_MDS', 'SW_IN_F', 'NIGHT', 'NEE_VUT_REF', 'NEE_VUT_REF_QC', 'NEE_CUT_REF', 'NEE_CUT_REF_QC')
     if isinstance(src, tuple):
@@ -128,8 +143,9 @@ def prep(args):
             if not os.path.exists(p): continue
             x = pd.read_csv(p)
             if var == 'NEE_CUT_REF':                                                    # the harness reads the VUT names
-                for c in list(x.columns):
-                    if 'CUT_REF' in c and c.replace('CUT_REF', 'VUT_REF') not in x: x[c.replace('CUT_REF', 'VUT_REF')] = x[c]
+                x = pd.concat([x, pd.DataFrame({c.replace('CUT_REF', 'VUT_REF'): x[c] for c in x.columns
+                                                if 'CUT_REF' in c and c.replace('CUT_REF', 'VUT_REF') not in x})], axis=1)
+            x, row[f'GPP_FILL_{res}'] = fill_gpp(x)
             x.to_csv(f'{out}/FLX_{site}_FLUXNET2015_FULLSET_{res}_{tag}.csv', index=False)
         if hh is not None and w:
             h = read_hh(hh)
@@ -181,7 +197,7 @@ def main():
         k = kclass(float(r['LOCATION_LAT']), float(r['LOCATION_LONG'])); z = D.ZONE.get(k, 'none')
         t = D.assign(r['IGBP'], z, r['SITE_ID']); r.update(KOPPEN=k, ZONE=z, TYPE=' '.join(t))
     cols = ['SITE_ID', 'SITE_NAME', 'FLUXNET2015', 'FLUXNET-CH4', 'LOCATION_LAT', 'LOCATION_LONG', 'LOCATION_ELEV', 'IGBP', 'MAT', 'MAP',
-            'SOURCE', 'NEE_VAR', 'Y0_REC', 'Y1_REC', 'N_GOOD', 'WIN_Y0', 'WIN_Y1', 'WIN_SCORE', 'HH', 'KOPPEN', 'ZONE', 'TYPE']
+            'SOURCE', 'NEE_VAR', 'Y0_REC', 'Y1_REC', 'N_GOOD', 'WIN_Y0', 'WIN_Y1', 'WIN_SCORE', 'HH', 'KOPPEN', 'ZONE', 'TYPE', 'GPP_FILL_MM']
     pd.DataFrame([{c: r.get(c, '') for c in cols} for r in ok]).to_csv(f'{out}/FLUXNET_siteinfo.csv', index=False)
     bad = [r for r in rows if r.get('status') != 'ok']
     print(f'{len(ok)} towers written, {len(bad)} skipped: {[(r["site"], r["status"]) for r in bad][:20]}')
