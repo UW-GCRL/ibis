@@ -287,7 +287,16 @@ def build_pft_params(d: dict) -> PFTParams:
         fu_k=float(s.get('fu_k', defaults.fu_k)),
         tree_stress_min=float(s.get('tree_stress_min', defaults.tree_stress_min)),
         tree_stress_ramp=float(s.get('tree_stress_ramp', defaults.tree_stress_ramp)),
+        lai_max=_lai_max(s),
     )
+
+
+def _lai_max(s: dict):
+    """The optional per-PFT `lai_max` (CALIBRATION.md 46): None unless some PFT entry sets it; unset entries are uncapped."""
+    ent = [s.get(n) if isinstance(s.get(n), dict) else {} for n in PFT_NAMES]
+    if not any('lai_max' in e for e in ent):
+        return None
+    return jnp.array([float(e.get('lai_max', float('inf'))) for e in ent])
 
 
 def build_crop_params(d: dict):

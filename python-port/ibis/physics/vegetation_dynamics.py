@@ -169,6 +169,47 @@ def vegmap(
     return vegtype0
 
 
+def cap_leaf_area(cbiol, cbiow, cbior, pft_params, fu, fl_of, crop_c=None, crop_lai_max=None):
+    """Per-type maximum canopy leaf area (docs/CALIBRATION.md 46), applied to the year's leaf pools.
+
+    A layer's LAI per unit of its cover (upper: sum plai[:, :8] / fu; lower: sum plai[:, 8:] / fl) may not exceed the
+    leaf-area-weighted mean lai_max of its PFTs. The layer's leaf pools are scaled down to that, and the removed leaf
+    carbon goes to each PFT's wood and roots in its awood:aroot ratio (roots when both are 0), so biomass is conserved.
+    The upper cover fu comes from wood and is held fixed (the moved carbon can only raise it). The lower cover fl_of(L)
+    rises with the lower LAI L, so the lower limit is the largest L with L <= cap x fl_of(L), found by bisection
+    (L / fl_of(L) never falls as L rises). Returns the new leaf, wood and root pools and the wood added to PFTs 0-7.
+    """
+    n = cbiol.shape[0]
+    cap = jnp.broadcast_to(pft_params.lai_max, cbiol.shape)
+    plai = cbiol * jnp.broadcast_to(pft_params.specla, cbiol.shape)
+
+    def layer(sl):
+        w = plai[:, sl]
+        tot = jnp.sum(w, axis=1)
+        c = jnp.sum(jnp.where(w > 0.0, w * cap[:, sl], 0.0), axis=1) / jnp.maximum(tot, 1e-12)
+        return tot, jnp.where(tot > 0.0, c, jnp.inf)
+
+    lu, cu = layer(slice(0, 8))
+    ll, cl = layer(slice(8, 12))
+    if crop_c is not None and crop_lai_max is not None:
+        cl = (1.0 - crop_c) * cl + crop_c * crop_lai_max
+    su = jnp.where(lu > cu * fu, cu * fu / jnp.maximum(lu, 1e-12), 1.0)
+    lo, hi = jnp.zeros_like(ll), ll
+    for _ in range(30):
+        mid = 0.5 * (lo + hi)
+        ok = mid <= cl * fl_of(mid)
+        lo, hi = jnp.where(ok, mid, lo), jnp.where(ok, hi, mid)
+    sl = jnp.where(ll > cl * fl_of(ll), lo / jnp.maximum(ll, 1e-12), 1.0)
+    scale = jnp.concatenate([jnp.broadcast_to(su[:, None], (n, 8)), jnp.broadcast_to(sl[:, None], (n, 4))], axis=1)
+    excess = cbiol * (1.0 - scale)
+    aw = jnp.broadcast_to(pft_params.awood, cbiol.shape)
+    ar = jnp.broadcast_to(pft_params.aroot, cbiol.shape)
+    to_wood = excess * jnp.where(aw + ar > 0.0, aw / jnp.maximum(aw + ar, 1e-12), 0.0)
+    dt = cbiol.dtype                        # keep the pools' dtype (the cover and caps may be float64 under x64)
+    return ((cbiol * scale).astype(dt), (cbiow + to_wood).astype(dt), (cbior + (excess - to_wood)).astype(dt),
+            jnp.sum(to_wood[:, :8], axis=1).astype(dt))
+
+
 def biomass_update(
     veg: VegetationState,
     carbon: CarbonState,
@@ -244,25 +285,36 @@ def biomass_update(
     for j in range(npft):
         cbiol_min = exist[:, j] * xminlai / specla[..., j]
         cbiol = cbiol.at[:, j].set(jnp.maximum(cbiol_min, cbiol[:, j]))
+
+    # Canopy fractions: upper from wood biomass; lower from lower LAI
+    # (cover_k = 0 keeps F77's linear rule, cover = LAI; > 0 saturates).
+    woodnorm = pft_params.woodnorm
+
+    def _fu_of(wood):
+        fu = (1.0 - jnp.exp(-wood / pft_params.fu_k)) / (1.0 - jnp.exp(-woodnorm / pft_params.fu_k))
+        return jnp.maximum(pft_params.fu_min, jnp.minimum(0.975, fu))
+
+    def _fl_of(totlail):
+        fl_raw = jnp.where(pft_params.cover_k > 0.0,
+                           1.0 - jnp.exp(-pft_params.cover_k * totlail), totlail)
+        return jnp.maximum(pft_params.fl_min, jnp.minimum(0.975, fl_raw))
+
+    if pft_params.lai_max is not None:      # per-type maximum leaf area (CALIBRATION.md 46)
+        cbiol, cbiow, cbior, _ = cap_leaf_area(cbiol, cbiow, cbior, pft_params,
+                                               _fu_of(0.001 + jnp.sum(jnp.maximum(0.0, cbiow[:, :8]), axis=1)), _fl_of)
+
+    for j in range(npft):
         plai = plai.at[:, j].set(cbiol[:, j] * specla[..., j])
         biomass = biomass.at[:, j].set(cbiol[:, j] + cbiow[:, j] + cbior[:, j])
 
-    # Update canopy fractions from wood biomass
-    woodnorm = pft_params.woodnorm
     wood = jnp.full_like(veg.fu, 0.001)
     for j in range(8):  # upper canopy PFTs only
         wood = wood + jnp.maximum(0.0, cbiow[:, j])
-
-    fu = (1.0 - jnp.exp(-wood / pft_params.fu_k)) / (1.0 - jnp.exp(-woodnorm / pft_params.fu_k))
-    fu = jnp.maximum(pft_params.fu_min, jnp.minimum(0.975, fu))
+    fu = _fu_of(wood)
 
     totlaiu = jnp.sum(plai[:, :8], axis=1)
     totlail = jnp.sum(plai[:, 8:], axis=1)
-
-    # cover_k = 0 keeps F77's linear rule (cover = LAI); > 0 saturates.
-    fl_raw = jnp.where(pft_params.cover_k > 0.0,
-                       1.0 - jnp.exp(-pft_params.cover_k * totlail), totlail)
-    fl = jnp.maximum(pft_params.fl_min, jnp.minimum(0.975, fl_raw))
+    fl = _fl_of(totlail)
 
     # Canopy-level LAI (per unit canopy area)
     lai = veg.lai
@@ -556,6 +608,40 @@ def dynaveg(
         if tree_surv is not None and j < 8:
             cbiol_min = cbiol_min * (tree_surv > 0.0)
         cbiol = cbiol.at[:, j].set(jnp.maximum(cbiol_min, cbiol[:, j]))
+
+    # --- Fractional cover rules (used by the leaf-area cap and below) ---
+    # Cover is a cell-level quantity, so it takes the LAI-weighted mean
+    # mortality rather than any single PFT's.
+    if _use_mort:
+        _w = jnp.maximum(veg.plai, 0.0)
+        _wsum = jnp.maximum(jnp.sum(_w, axis=1), 1e-12)
+        _mort_mean = jnp.sum(_w * _mort[None, :], axis=1) / _wsum
+        disturb_total = disturbf_val * _mort_mean + disturbo_val
+    else:
+        disturb_total = disturbf_val + disturbo_val
+
+    def _fu_of(wood):
+        if _crop_c is not None:                                   # sub-grid cropland: cover of the trees' own share, times that share
+            _wn = wood / jnp.maximum(1.0 - _crop_c, 0.01)
+            fu = (1.0 - _crop_c) * (1.0 - jnp.exp(-_wn / pft_params.fu_k)) / (1.0 - jnp.exp(-woodnorm / pft_params.fu_k))
+        else:
+            fu = (1.0 - jnp.exp(-wood / pft_params.fu_k)) / (1.0 - jnp.exp(-woodnorm / pft_params.fu_k))
+        fu = fu * (1.0 - disturb_total)
+        return jnp.maximum(pft_params.fu_min, jnp.minimum(0.975, fu))
+
+    def _fl_of(totlail):
+        fl = jnp.where(pft_params.cover_k > 0.0,
+                       1.0 - jnp.exp(-pft_params.cover_k * totlail), totlail / 1.0)
+        fl = fl * (1.0 - disturb_total)
+        return jnp.maximum(pft_params.fl_min, jnp.minimum(0.975, fl))
+
+    if pft_params.lai_max is not None:      # per-type maximum leaf area (CALIBRATION.md 46)
+        _clm = None if (_crop_c is None or crop_params is None) else crop_params.lai_max
+        cbiol, cbiow, cbior, _dw = cap_leaf_area(cbiol, cbiow, cbior, pft_params, _fu_of(wood), _fl_of,
+                                                 crop_c=_crop_c, crop_lai_max=_clm)
+        wood = wood + _dw
+
+    for j in range(npft):
         plai = plai.at[:, j].set(cbiol[:, j] * specla[..., j])
         biomass = biomass.at[:, j].set(cbiol[:, j] + cbiow[:, j] + cbior[:, j])
 
@@ -569,27 +655,8 @@ def dynaveg(
     totbiol_agg = jnp.sum(biomass[:, 8:], axis=1)
 
     # --- Update fractional cover ---
-    # Cover is a cell-level quantity, so it takes the LAI-weighted mean
-    # mortality rather than any single PFT's.
-    if _use_mort:
-        _w = jnp.maximum(veg.plai, 0.0)
-        _wsum = jnp.maximum(jnp.sum(_w, axis=1), 1e-12)
-        _mort_mean = jnp.sum(_w * _mort[None, :], axis=1) / _wsum
-        disturb_total = disturbf_val * _mort_mean + disturbo_val
-    else:
-        disturb_total = disturbf_val + disturbo_val
-    if _crop_c is not None:                                       # sub-grid cropland: cover of the trees' own share, times that share
-        _wn = wood / jnp.maximum(1.0 - _crop_c, 0.01)
-        fu = (1.0 - _crop_c) * (1.0 - jnp.exp(-_wn / pft_params.fu_k)) / (1.0 - jnp.exp(-woodnorm / pft_params.fu_k))
-    else:
-        fu = (1.0 - jnp.exp(-wood / pft_params.fu_k)) / (1.0 - jnp.exp(-woodnorm / pft_params.fu_k))
-    fu = fu * (1.0 - disturb_total)
-    fu = jnp.maximum(pft_params.fu_min, jnp.minimum(0.975, fu))
-
-    fl = jnp.where(pft_params.cover_k > 0.0,
-                   1.0 - jnp.exp(-pft_params.cover_k * totlail), totlail / 1.0)
-    fl = fl * (1.0 - disturb_total)
-    fl = jnp.maximum(pft_params.fl_min, jnp.minimum(0.975, fl))
+    fu = _fu_of(wood)
+    fl = _fl_of(totlail)
 
     # --- Update upper canopy height ---
     zbot = veg.zbot.at[:, 1].set(3.0)

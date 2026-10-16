@@ -63,6 +63,10 @@ class PFTParams(eqx.Module):
     #: 0, 1). -1.0 never binds: F77 has no water limit on where trees grow.
     tree_stress_min: float = -1.0
     tree_stress_ramp: float = 0.2
+    #: Per-type maximum canopy leaf area, m2 of leaf per m2 of the layer's cover (docs/CALIBRATION.md 46). Each year
+    #: the leaf carbon of a canopy layer is held to the layer's leaf-area-weighted mean cap; the excess goes to wood
+    #: and roots in the awood:aroot ratio (ORCHIDEE's lai_max rule). None (default) leaves the pools as F77 has them.
+    lai_max: Float[Array, "npft"] | None = None
 
 
 def default_pft_params() -> PFTParams:
@@ -225,6 +229,9 @@ class CropParams(eqx.Module):
     #: cropland that is C4 crops; both grasses on the cropland share get (1 - share) x C3 + share x C4, because the
     #: model's grass competition (C4 wherever the warmest month exceeds 22 C) says nothing about what is sown there.
     c4_share: float = -1.0
+    #: Maximum canopy leaf area on the cropland share of the lower canopy (docs/CALIBRATION.md 46); the lower-canopy
+    #: cap of a cell is (1 - c) x the grasses' cap + c x this. None: the crops take the grasses' cap.
+    lai_max: float | None = None
 
 
 def default_crop_params() -> CropParams:

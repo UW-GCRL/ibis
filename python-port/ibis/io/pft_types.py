@@ -203,7 +203,7 @@ TYPE_FIELDS = {
     'specla': ('pft', 'specla'), 'tauleaf': ('pft', 'tauleaf'), 'tauroot': ('pft', 'tauroot'),
     'tauwood0': ('pft', 'tauwood0'), 'aleaf': ('pft', 'aleaf'), 'aroot': ('pft', 'aroot'), 'awood': ('pft', 'awood'),
     'rgrowth': ('bgc', 'rgrowth'), 'rroot': ('bgc', 'rroot'), 'rwood': ('bgc', 'rwood'), 'lt_e0': ('bgc', 'lt_e0'),
-    'fire_mort': ('fire', 'mort'),
+    'fire_mort': ('fire', 'mort'), 'lai_max': ('pft', 'lai_max'),
 }
 
 
@@ -261,7 +261,12 @@ def apply_types(params, pft_params, zone_idx, overrides: dict | None = None, bas
     objs = {'stomata': bp.stomata_params, 'pft': bf, 'bgc': bp.bgc_params, 'fire': bp.fire}
     new = {}
     for key, (obj, field) in TYPE_FIELDS.items():
-        b = np.asarray(getattr(objs[obj], field), dtype=np.float64)
+        b = getattr(objs[obj], field)
+        if b is None:                # an optional field (lai_max): stays off unless a type sets it; then unset = no cap
+            if not overrides.get(key):
+                continue
+            b = np.full(NSLOT, np.inf)
+        b = np.asarray(b, dtype=np.float64)
         if b.ndim == 2:          # already per cell: take the 12-entry base of the first row is wrong -- refuse
             raise ValueError(f'{obj}.{field} is already per cell; pass the 12-entry base via `base=`')
         new[(obj, field)] = jnp.asarray(gather(np.broadcast_to(b, (NSLOT,)), slots, overrides.get(key)))
@@ -272,7 +277,7 @@ def apply_types(params, pft_params, zone_idx, overrides: dict | None = None, bas
         elif obj == 'fire': fp = eqx.tree_at(lambda o: getattr(o, field), fp, v)
     pf = bf
     for (obj, field), v in new.items():
-        if obj == 'pft': pf = eqx.tree_at(lambda o: getattr(o, field), pf, v)
+        if obj == 'pft': pf = eqx.tree_at(lambda o: getattr(o, field), pf, v, is_leaf=lambda x: x is None)
     # per-cell scalars by zone (phenology thresholds, drought trigger, stress factor)
     zi = np.asarray(zone_idx, dtype=np.int64); ph = bp.pheno
     for key, (obj, field, which) in TYPE_SCALARS.items():

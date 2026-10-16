@@ -5355,3 +5355,55 @@ is (~19 Oct). Decision: finish as is. Consequence carried into the leaf-area sta
 ground-corrected values, the per-type capacity must be re-checked at the towers (re-scored with the corrected leaf area)
 and corrected where it overshoots. Literature review of how other models determine and calibrate LAI launched the same
 day (`$S/lai_review.md`).
+
+## 46. A per-type maximum leaf area (2026-10-16, Hangkai: "to keep IBIS slim")
+
+**Why.** The GPP excess (195 PgC yr-1, 1.75x FLUXCOM, section 44) is mostly leaf area: s7's cell LAI is 2.8x MODIS at the seasonal peak
+and 3.3x on the annual mean (2010, true land north of 60 S, `diagnostics/laicap_compare.py`), while GPP per unit LAI is
+0.62x. IBIS has no limit on leaf area: the leaf pool relaxes to aleaf x tauleaf x NPP, so a productive cell keeps
+adding leaves. Most big-leaf DGVMs cap it (ORCHIDEE `lai_max`, JULES `Lmax`, JSBACH, CLM crops; review in
+`logs/lai_review_2026-10-16.md`), and uncapped models overestimate LAI (CLM4/4.5 "chronic overestimation", Noah-MP).
+Of the options from the review (cap; cap + understorey light rule; pipe-model allometry), Hangkai chose the cap alone.
+
+**Rule** (`vegetation_dynamics.cap_leaf_area`, called by `dynaveg` and `biomass_update` after the minimum-LAI rule).
+A layer's LAI per unit of its cover -- upper sum(plai[:8]) / fu, lower sum(plai[8:]) / fl, the canopy LAI the
+photosynthesis sees -- may not exceed the leaf-area-weighted mean `lai_max` of its PFTs; the layer's leaf pools are
+scaled down to it. The removed leaf carbon goes to the same PFT's wood and roots in its awood:aroot ratio (roots for
+grasses), so plant carbon and this year's litterfall are unchanged (ORCHIDEE redirects leaf allocation to sapwood and
+roots the same way). fu comes from wood and is held fixed (the moved carbon can only raise it); fl rises with the
+lower LAI, so the lower limit is the largest L with L <= cap x fl(L), found by bisection. The cap acts on the year's
+leaf pool, so it bounds the seasonal peak; phenology still shapes the season below it. On the cropland share of the
+lower canopy the cap is `crop.lai_max` (cell cap (1 - c) x grass cap + c x crop cap). Off unless a params file sets
+`lai_max` (bit-identical: 26 dynaveg/biomass_update cases against the committed code, fire, survival, cropland and
+both cover rules); per type through `types.<id>.lai_max` (a type without one keeps its parent's). Tests:
+`tests/test_lai_cap.py`.
+
+**Values** (`verify/calibration/laicap_yaml.py`, written into `configs/params/params_s7_laicap.yaml` = s7 + caps): the
+midpoint of ORCHIDEE's lai_max and JULES's Lmax for the matching PFT -- the generous end of the published caps, as
+MODIS reads low over needleleaf, crops and dense canopies (Hangkai: "MODIS might underestimate"):
+
+| PFT | ORCHIDEE | JULES | cap | s7 canopy LAI, median / p90 (2010 restart, dominant PFT) |
+|---|---|---|---|---|
+| tropical broadleaf evergreen | 7 | 9 | 8.0 | 7.5 / 10.4 |
+| tropical broadleaf deciduous | 5 | 7 | 6.0 | 6.0 / 8.7 |
+| warm-temperate broadleaf evergreen | 4 | 7 | 5.5 | 7.7 / 9.4 |
+| temperate conifer evergreen | 5 | 7 | 6.0 | 6.1 / 7.8 |
+| temperate broadleaf deciduous | 5 | 7 | 6.0 | 3.8 / 5.5 |
+| boreal conifer evergreen | 3.5 | 7 | 5.25 | 5.2 / 6.4 |
+| boreal broadleaf deciduous | 4 | 7 | 5.5 | 2.7 / 3.8 |
+| boreal conifer deciduous | 3 | 6 | 4.5 | (none dominant) |
+| evergreen / deciduous shrub | -- | 4 | 4.0 | 1.5 / 3.3, 1.4 / 2.3 (lower canopy) |
+| C4 grass | 2 | 3 | 2.5 | 2.2 / 5.6 (lower canopy) |
+| C3 grass | 2.5 | 3 | 2.75 | 4.8 / 8.0 (lower canopy) |
+| crops (cropland share) | 5 | -- | 5.0 | (CLM5 crops 5-7) |
+
+Offline on the s7 2010 state (the cap applied once to the pools, F77 lower cover): it binds in 31 % of cells in the
+upper canopy and 40 % in the lower; the cell peak LAI goes 5.39 -> 3.96 (-27 %). Most of the cut is the C3-grass lower
+canopy (median 4.8 -> 2.75, including grass under forests: boreal broadleaf cells 6.2 -> 4.5 with the tree canopy
+untouched) and the warm-temperate evergreens (7.7 -> 5.5). Even then the model would sit near 2.3x MODIS at the peak:
+part of the remaining gap is the two stacked canopies (fl is 0.98 under most forests), which the cap does not touch.
+
+**Global test (running).** Two arms from the s7 2008 restart, 2009-2010, monthly output
+(`verify_outputs/laicap_smoke/{cap,ctl}`): the control is needed because a restart from 2008 already differs from the
+continuous s7 hindcast in its first month. Results to follow.
+
