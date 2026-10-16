@@ -5428,3 +5428,77 @@ shading the lower, falls 3.1 % globally and 14 % north of 60 N, matching the GPP
 reach. Side effects: NPP falls more than GPP (-7 %) because the moved carbon raises wood and root maintenance
 respiration; the 2010 NEE drop is the first-year transient of that and is not a budget number (no spin-up with the
 cap); ET is +1 %.
+
+## 47. Why the global GPP is 1.75x FLUXCOM: the diagnosis (2026-10-16, Hangkai: "dig deeper")
+
+**The target.** FLUXCOM RS+METEO (110 PgC yr-1 on our land) is the low end of the defensible range, about 110-160 for
+2001-2010: SIF-GOSIF 135, NIRv 147, COS 157 +- 8.5, 18O 150-175; ISIMIP2a models 106-134, CMIP6 84-152 (review with
+DOIs: `logs/gpp_estimates_review_2026-10-16.md`). A FLUXCOM low bias accounts for at most ~35-45 PgC, mostly tropical;
+s7's 195 is ~35 above 160, so the model is high whichever reference is used.
+
+**At the towers' own cells** (`diagnostics/gpp_tower_cells.py`, `logs/gpp_tower_cells_s7.csv`; 435 natural towers,
+model and FLUXCOM 2001-2010 climatologies against each tower's own years): tower / FLUXCOM 1.43 (the towers stand in
+more productive patches than their 0.5-degree cell, section 1), global run / FLUXCOM 2.32, global run / tower 1.62. The
+site model with the same set reproduces the towers (section 39), so the excess at the tower cells is not the
+parameters but the difference between the global configuration and the tower configuration.
+
+**The controlled chain** (`diagnostics/gpp_chain.py`, `verify_outputs/gpp_chain/b1`; the 62 towers of the 2008-2012
+batch, s7 parameters, CO2 series, the s7 state at the end of 2007, 2008 warm-up, 2009-2010 scored; one ingredient at a
+time from the global run to the tower; medians of the per-tower step ratios):
+
+| step | what changes | ratio |
+|---|---|---|
+| G/F | the global vegetation frozen (composition, pools, cover) | 1.00 (the harness reproduces the global run) |
+| F/L | leaf area scaled from the global run's (cell LAI 7.8) to the towers' prescription (2.7: site attributes for forests, else the MODIS cell maximum) | **1.41** |
+| L/V | composition and cover to the tower prescription (no grass layer under trees, no trees at open sites) | 1.11 |
+| V/S | GSWP3 at the cell -> the tower's weather | 1.04 |
+| S/T | the s7 site model -> the tower | 0.89 |
+| G/T | | 1.46 |
+
+The elasticity dlnGPP/dlnLAI between F and L is 0.29: leaf area is a weak lever at the top of the range (the cap,
+section 46: -20 % LAI for -3 % GPP) but not over the whole gap between the global leaf area and the leaf area the towers
+were fitted at. By class: DBF F/L 1.45, L/V 1.28; ENF 1.24, 1.14; GRA 1.50, 1.02; OSH 2.02, 1.17.
+
+**Over the globe, by observed land type** (CLM/MODIS PFT shares, ESA CCI cropland; 2001-2010; total excess 82 PgC):
+
+| observed | area | model / FLUXCOM | share of the excess | model tree cover | observed tree share |
+|---|---|---|---|---|---|
+| forest (trees >= 60 %) | 27 % | 1.39 | 25 % | 0.86 | 0.87 |
+| mixed (10-60 %) | 26 % | 1.97 | 35 % | 0.66 | 0.32 |
+| grassland | 9 % | 2.37 | 10 % | 0.48 | 0.02 |
+| shrubland | 7 % | 5.45 | 7 % | 0.40 | 0.03 |
+| bare / sparse | 15 % | 2.84 | 5 % | 0.34 | 0.03 |
+| cropland (>= 50 %) | 16 % | 1.89 | 18 % | 0.29 | 0.13 |
+
+In real forests the tree cover is right and the ratio (1.39) is the towers' own over FLUXCOM (1.43). Three quarters of
+the excess is where the model grows trees the observation does not have. **s7 runs F77's cover rules**: no water limit
+on tree establishment (`tree_stress_min` -1), a 25 % cover floor in each canopy (`fu_min`, `fl_min`), the linear lower
+cover (`cover_k` 0). The global calibration had fixed this (section 14: the gate; stages b3/b4: GPP 118-132 PgC on true
+land with tree cover 0.27-0.36); the site-first calibration (section 20) started again from the defaults, and towers
+with prescribed vegetation cannot see tree establishment or cover. Section 40 had found the same in the boreal zone.
+
+**Season.** 30-50 N: model / FLUXCOM 14 in December-January, 2-4 in spring and autumn, 1.4-1.6 in summer; November-March
+holds 21 % of the model's GPP against 7 % and 31 % of the band's excess. Tropics: 1.3-1.5 in every month.
+
+**Leaf area, revisited.** The equilibrium leaf pool is aleaf x tauleaf x NPP, so leaf area and GPP feed each other.
+Split of the peak-LAI excess (s7 2001-2010, `diagnostics/lai_npp_decomp.py`; CUE_obs 0.5 assumed): LAI 2.72x MODIS =
+GPP 1.75 x CUE 0.76 x leaf area per NPP 2.04 globally. Leaf area per unit GPP (assumption-free) is 1.55x MODIS and
+1.12x MODIS / 0.72 (the MODIS/ground ratio at the towers). The towers were fitted near the MODIS level (section 45.2),
+so against the model's own calibration the leaf parameters (aleaf, tauleaf, specla -- all still F77's: 25 / 12.5 /
+20 m2 kgC-1, never calibrated because they are dead at fixed-leaf-area towers, section 0) carry ~1.5x too much leaf per
+unit GPP.
+
+**Decision (Hangkai, 2026-10-16): keep dynamic vegetation and calibrate the tree gate against the observed tree cover**
+(not a prescribed land-cover map); leaf-area calibration after it.
+
+**Gate, first estimate** (`diagnostics/gate_calib.py` on a one-year s7 run that writes the gate's input, `aystressu`,
+and the NPP of each canopy, `aynppu`/`aynppl`, now in run_global's yearly files; `verify_outputs/gate_test/diag`).
+Annual-mean upper-canopy stress separates the observed classes (median 0.23 where trees < 10 %, 0.48 at 10-30 %, 0.61 at
+30-60 %, 0.82 in forest) but overlaps (p90 of treeless land 0.48, p10 of forest 0.42). With the wood response of the
+gate (equilibrium wood x (1 - e^(-1/tau)) / (1 - s e^(-1/tau))) and the cover rule, the score rmse + 2 x forest lost
+picks tree_stress_min 0.225, ramp 0.30; with the floor fu_min 0.05 the natural-land cover goes 0.648 -> 0.457 (obs
+0.334), phantom area (obs < 0.15, model > 0.4) 13.0 -> 5.0 %, forest lost (obs > 0.6, model < 0.3) 1.0 -> 3.0 %. The
+soil-water feedback is not in this estimate. Global test: `verify_outputs/gate_test/gate10` (`params_s7_gate.yaml` =
+s7 + the three values), 2001-2010 from the s7 2000 restart, i.e. the s7 hindcast's own start, so the hindcast is the
+control (its first month reproduced bit for bit in GPP, LAI and soil state). Results to follow.
+

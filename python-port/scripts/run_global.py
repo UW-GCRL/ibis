@@ -910,6 +910,12 @@ def run_global_simulation(config: IBISConfig) -> None:
                 _extra = {"ayharvest": (_veg_diag["harvest"], "kgC/m2/yr", "Crop harvest removed from the cropland share"),
                           "ayclearing": (_veg_diag["clearing"], "kgC/m2/yr", "Tree carbon cleared to keep trees off the cropland share")}
                 logger.info("  cropland: harvest %.4f, clearing %.4f kgC/m2 (land-point means)", float(jnp.mean(_veg_diag["harvest"])), float(jnp.mean(_veg_diag["clearing"])))
+            # diagnostics of the canopy structure (CALIBRATION.md 47): the tree gate's input and the NPP of each canopy
+            if state.stress is not None:
+                _extra["aystressu"] = (state.stress.aystressu / jnp.maximum(state.stress.nday, 1.0), "1",
+                                       "Annual-mean upper-canopy soil-water stress factor (input of the tree-establishment gate)")
+            _extra["aynppu"] = (jnp.sum(state.summary.aynpp[:, :8], axis=1), "kgC/m2/yr", "Annual NPP of the upper canopy (PFTs 1-8)")
+            _extra["aynppl"] = (jnp.sum(state.summary.aynpp[:, 8:], axis=1), "kgC/m2/yr", "Annual NPP of the lower canopy (PFTs 9-12)")
             path = writer.write_yearly(state, year, extra=_extra)
             logger.info("Wrote yearly output: %s", path)
 
