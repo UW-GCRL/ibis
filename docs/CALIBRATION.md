@@ -5403,7 +5403,28 @@ canopy (median 4.8 -> 2.75, including grass under forests: boreal broadleaf cell
 untouched) and the warm-temperate evergreens (7.7 -> 5.5). Even then the model would sit near 2.3x MODIS at the peak:
 part of the remaining gap is the two stacked canopies (fl is 0.98 under most forests), which the cap does not touch.
 
-**Global test (running).** Two arms from the s7 2008 restart, 2009-2010, monthly output
-(`verify_outputs/laicap_smoke/{cap,ctl}`): the control is needed because a restart from 2008 already differs from the
-continuous s7 hindcast in its first month. Results to follow.
+**Global test (2026-10-16).** Two arms from the s7 2008 restart, 2009-2010, monthly output
+(`verify_outputs/laicap_smoke/{cap,ctl}`, comparison `compare_2010.txt`); the control is needed because a restart
+from 2008 already differs from the continuous s7 hindcast in its first month. The cap acts at the end of 2009, so
+2010 is the first capped year. In the capped run's end-of-2009 state no cell exceeds its cap in either layer (with
+the cropland blend), and plant carbon is unchanged.
 
+| 2010 | control | cap | reference |
+|---|---|---|---|
+| GPP, PgC yr-1 (x FLUXCOM) | 196.0 (1.78) | 190.3 (1.73) | 110.0 |
+| GPP 90S-30N / 30-60N / 60-90N (x FLUXCOM) | 1.55 / 2.32 / 3.74 | 1.52 / 2.23 / 3.33 | |
+| cell LAI, peak month (x MODIS) | 4.89 (2.80) | 3.94 (2.26) | 1.74 |
+| cell LAI, annual mean (x MODIS) | 3.91 (3.30) | 3.24 (2.74) | 1.18 |
+| cell LAI peak, 60-90N (x MODIS) | 4.98 (4.01) | 3.08 (2.48) | 1.24 |
+| ET, mm yr-1 (x ensemble) | 540 (1.06) | 547 (1.08) | 508 |
+| NPP, PgC yr-1 | 77.3 | 71.8 | |
+| NEE, PgC yr-1 | 5.7 | 1.0 (first-year transient) | |
+
+**Verdict: the cap does what it is meant to do for leaf area, not for GPP.** Leaf area falls 17-20 % (38 % at the
+peak north of 60 N), but GPP only 2.9 %: the canopies are light-saturated. The GPP-weighted cell LAI is 7.0 in the
+control and 5.6 with the cap, and a crude absorption index, cover x (1 - exp(-0.5 LAI)) with the upper canopy
+shading the lower, falls 3.1 % globally and 14 % north of 60 N, matching the GPP changes band by band (-2.9 %,
+-11 %). Leaf area is a GPP lever only below LAI ~3, i.e. near the MODIS values, which the literature caps do not
+reach. Side effects: NPP falls more than GPP (-7 %) because the moved carbon raises wood and root maintenance
+respiration; the 2010 NEE drop is the first-year transient of that and is not a budget number (no spin-up with the
+cap); ET is +1 %.
