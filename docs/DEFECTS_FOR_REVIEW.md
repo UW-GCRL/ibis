@@ -603,3 +603,16 @@ robust class-wide error") are candidates for this cause and must be re-read on t
 **Fix.** `loops_gswp3.latitude_degrees(params)` at the generator call, the same conversion in `loops.py`;
 `tests/test_solar_latitude.py` guards the convention at both call sites and the day lengths. The correction changes
 every result; no earlier run is reproducible against it.
+
+## Runoff and drainage diagnostics (found 2026-10-16, fixed)
+
+The surface-runoff diagnostic `HydrologyDiag.grunof` added the squeeze-out of a saturated column (`fsqueez`) although
+`soilh2o` already returns that water to the puddle; F77 `soil.f` keeps it in the puddle (line 845) and never adds it to
+`grunof` (lines 256-280). The same water was therefore counted as runoff every timestep it re-infiltrated. The bottom
+drainage `gdrain` was hard-wired to zero, while F77 reports `wflo(nsoilay+1)` (line 387). Diagnostics only -- no physics
+reads either field -- but every runoff and drainage output before this date is wrong: in the 2001-2010 hindcast of
+IBIS 3.0 the wetland cells reported 2,182 mm/yr of runoff on 1,278 mm/yr of rain and 713 of evapotranspiration (8x
+P - ET in the Amazon), all land 60S-60N 1,309 mm/yr of runoff on 969 of rain, and zero drainage everywhere. Found by the
+WAD2M regression (`logs/wad2m_storage_regression_2026-10-16.md`). Fixed in `loops.py`; `tests/test_water_balance.py`
+closes the soil-plus-puddle water balance of a timestep with the stored fluxes (it failed by 0.55 and 6.1 mm per step
+before the fix).

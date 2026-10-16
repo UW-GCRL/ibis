@@ -2315,3 +2315,29 @@ Target equation: `f_inund(m) = f_clim(m) x g(precipitation anomaly)`. Numbers ar
 #### Recommendation
 
 Implement the optional mode as `f = clip(f_clim(m) x (1 + beta_band x A_w), f_min, f_max)`, where A_w is the relative anomaly of a 3-month running mean of IBIS-simulated total runoff or soil-water storage (not raw precipitation), lagged one month in the tropics; fit beta per climate band by regressing WAD2M or GIEMS-2 anomalies on the same IBIS variable over the satellite period (expect ~0.7-1 tropics, ~0.5 temperate, 0-0.3 boreal, where the mode should probably stay off); set f_max = WAD2M long-term maximum and f_min = WAD2M annual minimum per cell. Using the model's own storage anomaly is what Hodson (runoff), Riley (water table + runoff) and the GRACE studies all point to, costs nothing extra in IBIS, and is the only route the literature suggests can approach the ~60 % of interannual variance that soil-moisture TOPMODEL diagnostics reach; a precipitation-only version will plausibly capture about half of the tropical IAV and little elsewhere, and should be documented as such.
+
+## 7. Dynamic wetland area driven by the model's own water: what others did and what our data say (2026-10-16)
+
+Decision (Hangkai, 2026-10-16): the switchable wetland area of Min's point 4 is driven by the model's own runoff or
+soil-water anomaly, after background research. Two studies, kept in full in `ibis_local_document/logs/`:
+
+* `wetland_storage_review_2026-10-16.md` -- how Hodson 2011 (LPJ runoff regression), CLM4Me/CLM5 (water table + runoff;
+  total water storage), ORCHIDEE and JULES (TOPMODEL), DYPTOP and LPJ-wsl (water-table index + sigmoid), JSBACH and the
+  Xi et al. 2022 diagnostic product drive extent. Lessons: tropical floodplains need accumulated runoff with a ~3-month
+  lag and local soil-water schemes fail there; boreal interannual variability is small (Hodson used the climatology) and
+  unfrozen soil water does best; every working scheme bounds the area by the cell's observed range, handles snow and
+  frozen soil explicitly and works with anomalies against the model's own climatology; WAD2M carries almost no tropical
+  interannual signal (Xi 2022: r <= 0 in 60S-30N), so a beta fitted to it will be small there; the water-table term must
+  not count the same wet anomaly a second time.
+* `wad2m_storage_regression_2026-10-16.md` -- WAD2M 2001-2010 against the IBIS 3.0 hindcast's own variables at the same
+  19,278 wetland cells: no model variable explains WAD2M's interannual variability better than precipitation; column or
+  root-zone soil water has the best seasonal shape (seasonal r 0.85; boreal 0.91) and is no worse interannually; the
+  model's runoff output was unusable (the diagnostic defect of DEFECTS_FOR_REVIEW, fixed the same day); a fitted
+  f = clip(f_clim (1 + beta A), f_min, f_max) reproduces 5-20 % of the observed interannual amplitude with beta per band
+  0.06-0.13 (95 % CIs above zero) and little hold-out skill except the temperate band.
+
+Design adopted for the switch (off by default, as Min asked): soil-water storage of the unfrozen layers of the top
+metre, as a standardised anomaly against the model's own monthly climatology, applied to the seasonal part of the WAD2M
+climatology, bounded by each cell's WAD2M minimum and maximum, zero under snow or frozen soil, one beta per band fitted
+on 2000-2010 and checked on later years, and the CH4 water-table factor held at its monthly climatology inside f_inund
+in that mode. The expected effect is small; the switch exists for the transient and future runs.

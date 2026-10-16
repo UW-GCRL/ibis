@@ -1202,15 +1202,18 @@ def timestep_body(
         (fi_new, tsno_va, hsno_final, ti, tlsub_out, heati, setsoi_res.hvasui),
     )
 
-    # Updated hydrology (grunof = puddle overflow + rain runoff + squeeze)
+    # Updated hydrology. grunof = puddle overflow + rain runoff, as F77 soil.f 256-280: the squeeze-out of a saturated
+    # column (fsqueez) goes back into the puddle inside soilh2o (F77 soil.f 845), so adding it here counted the same water
+    # every step it re-infiltrated. gdrain = the flow out of the bottom soil layer, F77 soil.f 387 (was hard-wired to 0).
+    # Both are diagnostics only: nothing in the physics reads them (CALIBRATION.md 45.2, 2026-10-16).
     new_hydro = HydrologyDiag(
         ginvap=canopy_result.ginvap,
         gsuvap=canopy_result.gsuvap,
         gtrans=canopy_result.gtrans,
         gtransu=gtransu,
         gtransl=gtransl,
-        grunof=grunof + h2o.fsqueez,
-        gdrain=jnp.zeros((npoi,)),    # Bottom drainage
+        grunof=grunof,
+        gdrain=h2o.wflo[:, -1],       # bottom drainage, F77 gdrain = wflo(nsoilay+1)
         gadjust=gadjust,
         wtot=jnp.zeros((npoi,)),      # Computed in accounting
         # Diagnostic exposures for day-84 shock investigation
