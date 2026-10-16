@@ -5500,5 +5500,19 @@ picks tree_stress_min 0.225, ramp 0.30; with the floor fu_min 0.05 the natural-l
 0.334), phantom area (obs < 0.15, model > 0.4) 13.0 -> 5.0 %, forest lost (obs > 0.6, model < 0.3) 1.0 -> 3.0 %. The
 soil-water feedback is not in this estimate. Global test: `verify_outputs/gate_test/gate10` (`params_s7_gate.yaml` =
 s7 + the three values), 2001-2010 from the s7 2000 restart, i.e. the s7 hindcast's own start, so the hindcast is the
-control (its first month reproduced bit for bit in GPP, LAI and soil state). Results to follow.
+control (its first month reproduced bit for bit in GPP, LAI and soil state).
+
+**Gate, global test (2026-10-16 18:16; `gate_test/gate10/compare_2006-2010.txt`, `diagnostics/gate_compare.py`; means
+2006-2010 against the s7 hindcast).** The gate does what it is fitted for: natural-land tree cover 0.70 -> 0.52 (obs
+0.39), phantom area 15.2 -> 6.2 %, forest lost 1.1 -> 3.2 %, r 0.60 -> 0.65; tree cover on observed grassland 0.59 ->
+0.29, shrubland 0.42 -> 0.14, bare land 0.36 -> 0.09 (obs 0.02-0.03). **GPP does not follow: 193.9 -> 191.7 PgC yr-1
+(-1 %)**; grassland 2.42 -> 2.34 x FLUXCOM, shrubland 5.39 -> 5.38, bare land 2.76 -> 2.52, mixed 2.00 -> 2.00, cropland
+1.92 -> 1.83, north of 60 N 3.64 -> 3.77; ET and LAI unchanged. Where the trees went, the lower canopy took the land and
+photosynthesises as much (lower-canopy share of global NPP 0.42 in 2010, 0.16 in observed forest). So the excess
+outside forests is not the tree life form but the productivity of whatever grows there -- the same reading as the
+chain (leaf area 1.41, composition and cover 1.11). The grasses carry the most leaf per unit NPP of any PFT (aleaf x
+tauleaf x specla 13.5 for C3 grass, 11.25 C4, against 7.5 for the trees) and F77's lower cover saturates (fl = LAI,
+clipped at 0.975), so a modest dryland NPP grows a full, dense grass canopy. Next: the leaf-area calibration, grasses
+and shrubs first. The gate is kept as the tree-cover fix (a realism gain at no GPP cost); its 3 % forest loss is the
+price of the stress overlap and can be revisited per type when the 3.1 types carry their own stress.
 
