@@ -5344,3 +5344,14 @@ sigma had the same flaw where LE_F_MDS is missing (that one silently dropped the
 both partitions -- every FLUXNET2015 tower and every fit that had finished -- are unchanged. The five were rerun
 (outputs of the NaN runs kept in `t31_s2/_nan_runs`). AU-DaP is not a bug: its loss moved between 10.8 and 22.9
 and none beat the start, which sits near the lower vmax bound -- the tower wants less C4 capacity than TRY allows.
+
+**Tower leaf area in the campaign: a known bias, kept (2026-10-16, Hangkai).** At the 69 towers with a ground maximum
+LAI (site attributes), the MODIS peak LAI of the tower's own PFT is 0.72x the ground value (ENF 0.62, CRO 0.41, DBF
+0.77, GRA 0.80, SAV 0.82; `logs/modis_vs_ground_lai.csv`), and the value `site_fit` holds at towers without an attribute
+file (`fit_carbon.modis_at`: the cell maximum times the natural-vegetation share) is 0.60x. 328 of the 358 campaign fits
+use it, so their fitted capacity (vmax, slope) is expected to be biased high, roughly 20-30 %, compensating for too few
+leaves. Options put to Hangkai: pause and rerun those towers with ground-corrected leaf area (end ~21 Oct) or finish as
+is (~19 Oct). Decision: finish as is. Consequence carried into the leaf-area stage: when leaf area is raised toward
+ground-corrected values, the per-type capacity must be re-checked at the towers (re-scored with the corrected leaf area)
+and corrected where it overshoots. Literature review of how other models determine and calibrate LAI launched the same
+day (`$S/lai_review.md`).
