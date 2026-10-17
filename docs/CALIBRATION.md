@@ -5516,3 +5516,41 @@ clipped at 0.975), so a modest dryland NPP grows a full, dense grass canopy. Nex
 and shrubs first. The gate is kept as the tree-cover fix (a realism gain at no GPP cost); its 3 % forest loss is the
 price of the stress overlap and can be revisited per type when the 3.1 types carry their own stress.
 
+## 48. The leaf-area stage: references and where the excess sits (2026-10-17)
+
+**Reference (Hangkai, 2026-10-16/17).** The MODIS/ground factor 0.72 of section 45.2 is not a basis for a global
+correction: it is a median over 64 towers (IQR 0.51-0.95; 20 ENF, no EBF) of a plot maximum against a 0.5-degree cell,
+so it mixes representativeness with retrieval error, while MODIS C6 is nearly unbiased against upscaled true-LAI maps
+(2.28 vs 2.31, Yan et al. 2016) with class-specific low biases (needleleaf clumping, pasture/crops, saturation). The
+references are therefore two products as they are, their mean the target and their difference the tolerance:
+**GLASS LAI V61** (MODIS-based, 0.05 deg 8-day, glass.hku.hk, public) and **GIMMS LAI4g** (Cao et al. 2023, doi
+10.5194/essd-15-4877-2023; AVHRR NDVI with networks trained on 3.6 million Landsat LAI samples; ILAMB's 0.5-degree
+monthly copy). The reprocessed MODIS C6.1 LAI (Lin et al. 2023) needs a registration form and was not used. ILAMB's
+"MODIS" LAI is NCAR's 2014 Collection-5 climatology, the lineage of the CLM surface data used as the reference until
+now. `verify/calibration/lai_products_prep.py` (system Python, GDAL with HDF4) writes
+`inputs/eval/lai/{glass_v61,gimms_lai4g}_0.5deg_monthly_2001-2010.npz` (north-up, model grid). Checks: Amazon and
+Congo 5-6, Sahara 0, boreal peak 3-4; GLASS-GIMMS cell correlation 0.98 (annual mean); GIMMS leaves deserts and ice
+empty (86 % of land), GLASS alone is used there. On common cells the products are above the old reference: annual mean
+/ peak month 1.46 / 2.28 (GLASS), 1.63 / 2.60 (GIMMS), 1.37 / 2.02 (CLM Collection 5).
+
+**The model against them** (the gate run of section 47, 2006-2010; cell LAI fu x laiu + fl x lail):
+
+| region | peak LAI x obs | annual mean x obs | GPP x FLUXCOM | leaf per unit GPP x obs (peak) |
+|---|---|---|---|---|
+| global | 2.28 (GLASS 2.43, GIMMS 2.15) | 2.82 | 1.75 | 1.30 |
+| 90S-30N | 2.01 | 2.27 | 1.52 | 1.33 |
+| 30-60 N | 2.48 | 4.04 | 2.29 | 1.09 |
+| 60-90 N | 3.30 | 4.59 | 3.77 | 0.87 |
+| observed forest | 1.73 | 2.22 | 1.41 | 1.23 |
+| observed mixed | 2.53 | 3.30 | 2.00 | 1.26 |
+| observed grassland | 2.77 | 3.34 | 2.34 | 1.18 |
+| observed shrubland | 4.63 | 4.58 | 5.38 | 0.86 |
+| observed bare / sparse | 4.66 | 3.78 | 2.52 | 1.85 |
+| observed cropland | 2.67 | 3.80 | 1.83 | 1.45 |
+
+Three parts: the leaf parameters (leaf per unit GPP 1.3x globally, 1.1-1.5x by type), the GPP the leaves are grown from
+(1.75x), and the season (annual mean / peak excess 1.6x at 30-90 N: leaves out too long). With dlnGPP/dlnLAI ~0.29
+(section 47) and LAI proportional to the leaf-per-NPP factor k times NPP, LAI scales as k^1.41 and GPP as k^0.41:
+correcting k by the observed 1.3 takes LAI 2.28 -> ~1.6x and GPP 1.75 -> ~1.58x; pushing LAI all the way to the
+products would need k 1.8x below what the products imply -- the leaves compensating for productivity per leaf.
+
