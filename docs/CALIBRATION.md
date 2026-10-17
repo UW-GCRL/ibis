@@ -5554,3 +5554,35 @@ Three parts: the leaf parameters (leaf per unit GPP 1.3x globally, 1.1-1.5x by t
 correcting k by the observed 1.3 takes LAI 2.28 -> ~1.6x and GPP 1.75 -> ~1.58x; pushing LAI all the way to the
 products would need k 1.8x below what the products imply -- the leaves compensating for productivity per leaf.
 
+**Decision (Hangkai, 2026-10-17): match the observed leaf area per unit GPP**, not the leaf area itself.
+
+**Factors** (`diagnostics/leaf_per_gpp.py` on the gate run, 2006-2010; peak-month cell LAI against the GLASS/GIMMS
+mean, annual GPP against FLUXCOM; cells where one PFT holds >= 50 % of the leaf area, cropland < 30 %): model / observed
+leaf per unit GPP = tropical broadleaf evergreen 1.33 (4109 cells), tropical broadleaf deciduous 1.18 (3618),
+warm-temperate broadleaf evergreen 1.22 (1820), temperate conifer 0.85 (1722), boreal conifer 1.05 (5721), C4 grass
+1.23 (6201), C3 grass 0.91 (11608); deciduous shrub 1.47 on 50 cells only; temperate and boreal broadleaf deciduous,
+larch and evergreen shrub dominate too few cells (0-11) and stay as they are; cropland 1.46 (on the grass PFTs; left for
+the crop model). C3 grass is not too leafy for its GPP: its leaf area (3.35x) follows its GPP (3.67x).
+
+**Which parameter carries each factor.** The equilibrium leaf area is aleaf x tauleaf x specla x NPP, and specla or
+tauleaf scale it linearly without touching the carbon allocation (aleaf would move carbon to wood and roots). Trait
+review (`logs/leaf_trait_ranges_2026-10-17.md`: TRY, Kattge et al. 2011, which CLM5 and LPJmL reuse; GLOPNET, Wright et
+al. 2004; JSBACH): each factor goes through the parameter that it moves TOWARD its published range.
+
+| PFT | factor | parameter | change | trait range |
+|---|---|---|---|---|
+| tropical BE | 1.33 | specla | 25 -> 18.8 | TRY 19.7 (12.7-30.5), GLOPNET 18.0 |
+| tropical BD | 1.18 | tauleaf | 1.0 -> 0.85 | specla would fall under TRY's 21.7 (TRY 32.1) |
+| warm-temperate BE | 1.22 | specla | 25 -> 20.5 | TRY 19.7, GLOPNET 15.4, LPJmL 15.0 |
+| temperate conifer | 0.85 | tauleaf | 2.0 -> 2.35 | needle lifespan TRY 3.3 (2.0-5.4); specla would exceed TRY's 14.1 |
+| boreal conifer | 1.05 | specla | 12.5 -> 11.9 | TRY 10.4 (7.7-14.1) |
+| C4 grass | 1.23 | tauleaf | 1.25 -> 1.02 | leaf lifespan TRY 0.14, GLOPNET 0.16; specla would move away from TRY's 40 |
+| C3 grass | 0.91 | specla | 20 -> 22.0 | TRY 41.9 (26-66) |
+
+F77's grasses are far from the traits on both specla (20 against ~40) and lifespan (1.25-1.5 against 0.14-0.5), in
+opposite directions: IBIS's single yearly leaf pool cannot represent sub-annual grass turnover, so only the product is
+constrained, by the observations. Tree aleaf 0.30 is at the top of the evidence (0.22 global forests, Litton et al.
+2007; 0.34 canopy incl. reproduction in the tropics, Malhi et al. 2011), left as it is. Parameter file
+`configs/params/params_s7_gate_leaf.yaml` (= params_s7_gate.yaml + the seven changes); global test
+`verify_outputs/gate_test/gate_leaf10`, 2001-2010 from the s7 2000 restart, control the gate run.
+
