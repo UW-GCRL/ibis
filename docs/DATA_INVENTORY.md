@@ -109,6 +109,17 @@ using it in anything that leaves the group.
 
 ---
 
+### Leaf-area reference products (2026-10-17, CALIBRATION.md 48)
+`/shared/nas2/Hangkai/ibis/inputs/eval/lai/`
+- `raw_glass_v61/<year>/GLASS01B01.V61.A<year><doy>.2025248.hdf` -- GLASS LAI V61 (MODIS-based), 0.05 deg, 8-day,
+  2001-2010, 460 files, 1.2 GB, from https://glass.hku.hk/archive/LAI/MODIS/0.05D/ (public). Byte, LAI x 10, fill 255.
+- `raw_ilamb_gimms_lai4g/cao2023_lai.nc` -- GIMMS LAI4g (Cao et al. 2023, doi:10.5194/essd-15-4877-2023), ILAMB's
+  0.5-degree monthly copy, 1982-2020, 970 MB, from https://www.ilamb.org/ILAMB-Data/DATA/lai/GIMMS_LAI4g/.
+- `raw_ilamb_modis/lai_0.5x0.5.nc` -- ILAMB "MODIS" LAI = NCAR's 2014 Collection-5 monthly climatology (not C6/C6.1).
+- `glass_v61_0.5deg_monthly_2001-2010.npz`, `gimms_lai4g_0.5deg_monthly_2001-2010.npz` -- both on the model grid
+  (north-up, 360 x 720), lai (10 years, 12 months, lat, lon); built by `verify/calibration/lai_products_prep.py`
+  (run with the system Python, `/usr/bin/python3 -I`, which has GDAL with HDF4).
+
 ## 5. Model states you can start from
 
 Spinning up from cold costs ~4.5 h on the GPU. Use a restart instead.
