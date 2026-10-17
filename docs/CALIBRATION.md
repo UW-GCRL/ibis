@@ -5586,3 +5586,15 @@ constrained, by the observations. Tree aleaf 0.30 is at the top of the evidence 
 `configs/params/params_s7_gate_leaf.yaml` (= params_s7_gate.yaml + the seven changes); global test
 `verify_outputs/gate_test/gate_leaf10`, 2001-2010 from the s7 2000 restart, control the gate run.
 
+**Global test of the leaf step (2026-10-17 06:02; `gate_test/gate_leaf10/{compare_vs_gate,leaf_per_gpp}_2006-2010.txt`,
+control the gate run).** The calibration converges: leaf per unit GPP, model / observed, tropical BE 1.33 -> 1.17,
+tropical BD 1.18 -> 1.05, warm-temperate BE 1.22 -> 1.07, temperate conifer 0.85 -> 0.96, boreal conifer 1.05 -> 1.02,
+C4 1.23 -> 1.06, C3 0.91 -> 1.02 (tropical BE wants a second step). **GPP barely follows: 191.7 -> 189.0 PgC yr-1
+(1.75 -> 1.73 x FLUXCOM)**; tropics 1.52 -> 1.48, 30-60 N 2.29 -> 2.29, north of 60 N 3.77 -> 3.80; peak LAI -14 % in
+the tropics, +6 % north of 60 N (C3 grass and the temperate conifers needed more leaf); ET 1.04 -> 1.05; NPP 73.7 ->
+74.6; tree cover unchanged. The estimate of 1.58x in the decision above was wrong: it assumed one global 1.3x cut, but
+the factors have both signs (the largest PFT by area, C3 grass, went up) and where leaf area fell, in the tropics, the
+canopy is light-saturated (-14 % LAI, -2.3 % GPP). With tree cover (section 47) and leaf per unit GPP now consistent
+with the observations, the remaining 1.7x is GPP per unit leaf area and the season: leaf area and GPP feed each other,
+and neither fix moved the level the loop settles at.
+
