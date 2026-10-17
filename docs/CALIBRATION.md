@@ -5598,3 +5598,15 @@ canopy is light-saturated (-14 % LAI, -2.3 % GPP). With tree cover (section 47) 
 with the observations, the remaining 1.7x is GPP per unit leaf area and the season: leaf area and GPP feed each other,
 and neither fix moved the level the loop settles at.
 
+**What sets the level (2026-10-17).** The leaf area the 62 calibration fits held, against the GLASS/GIMMS cell peak:
+1.26x below the products at the 41 towers held at the Collection-5 MODIS cell maximum (held 1.8, products 2.6), 0.73x at
+the 21 forest towers held at their site attribute (4.2 vs 3.2); a capacity re-check against the products' leaf area would
+move tower GPP by only about +7 / -9 % (elasticity 0.29), with opposite signs -- not the lever. At the 54 towers with >= 18
+good months in 2009-2010 (`gpp_chain/b1`): tower / FLUXCOM 1.43 (1.30 MODIS-held, 1.68 attribute-held), site model with
+the tower's vegetation on GSWP3 (V) / FLUXCOM 1.33, global run / V 1.48, global run / FLUXCOM 2.22. The fits matched plot
+GPP with the cell's leaf area, so the model carries tower-level GPP per unit leaf area (1.3x the grid's), and the dynamic
+vegetation, growing leaves in proportion to NPP with dlnGPP/dlnLAI 0.29, amplifies it: 1.33^(1/(1-0.29)) = 1.50, the
+1.48 the global run adds. Bringing GPP per unit leaf area to the grid level would let the loop settle ~1.5x lower
+(global ~1.73 -> ~1.15x FLUXCOM, leaf area with it) -- an estimate for a global test. The open choice is the global GPP
+level the spatial stage targets (section 47: defensible 110-160 PgC yr-1, FLUXCOM at the low end).
+
