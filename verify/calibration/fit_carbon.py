@@ -236,7 +236,14 @@ def _set(path):
     # eqx.filter_jit, where Python scalars are static: a Python-float extra
     # would recompile the whole model on every evaluation (measured: 1695 s
     # per evaluation instead of ~240). An array leaf is traced once.
-    return lambda sp, pft, v: (eqx.tree_at(path, sp, jnp.asarray(v, dtype=jnp.float32)), pft)
+    # A field the parameter file holds per PFT (the class-median sets, CALIBRATION.md 37: rgrowth, rroot, lt_e0 are (12,))
+    # keeps its shape: the fitted value is spread over it -- a tower runs its own PFTs only, so this is the scalar
+    # semantics the fits were built on, without breaking the model's per-PFT indexing (CALIBRATION.md 45.2).
+    def f(sp, pft, v):
+        v = jnp.asarray(v, dtype=jnp.float32); cur = path(sp)
+        if np.ndim(cur) >= 1 and v.ndim == 0: v = jnp.broadcast_to(v, np.shape(cur))
+        return eqx.tree_at(path, sp, v), pft
+    return f
 
 
 def _set_pft(path):

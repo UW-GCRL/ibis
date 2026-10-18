@@ -5356,6 +5356,19 @@ ground-corrected values, the per-type capacity must be re-checked at the towers 
 and corrected where it overshoots. Literature review of how other models determine and calibrate LAI launched the same
 day (`$S/lai_review.md`).
 
+**GPP stage end and the NEE start (2026-10-17/18).** The launcher printed "S2 CHAIN DONE" at 08:56 with six fits still
+running (its command loop was piped, so `wait` ran in a subshell), and the pool stage started on their intermediate
+best.json (written as a fit improves). Caught at the first window group (1996-2000, not one of the six); the stage was
+stopped, the launcher fixed (no pipe, a final wait on its own fits, a tower done only when its log has the final "BEST
+eval" line, towers running in another launcher skipped) and the pools resumed at 10:11 after the last fit. 358 S2
+results: 356 fitted, BR-Ji3 and ES-Amo the placeholders. On Hangkai's word (10-18) the NEE fits started at 02:50 for the
+191 towers whose pools were ready instead of after all 52 groups, and both remaining stages use 8 slots (cores 0-31).
+The first NEE fit failed at its start value: the s7 class-median set holds rgrowth, rroot and lt_e0 per PFT (12,), and
+the NEE harness expected scalars (`float(array)`), and its setter would have replaced the vector by a scalar. Fixed: the
+start value is the tower's own PFT's value, and a fitted scalar is spread over the vector (`fit_carbon._set`), the
+scalar semantics of section 36. CN-Ash then started from its class medians (bgc_e0 311.7, rgrowth 0.201, rroot 1.643),
+baseline loss 82.2, ~90 s per evaluation.
+
 ## 46. A per-type maximum leaf area (2026-10-16, Hangkai: "to keep IBIS slim")
 
 **Why.** The GPP excess (195 PgC yr-1, 1.75x FLUXCOM, section 44) is mostly leaf area: s7's cell LAI is 2.8x MODIS at the seasonal peak
