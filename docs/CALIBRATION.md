@@ -5663,3 +5663,13 @@ replace), 30-60 N 2.09x (the season: November-March 21 % of the GPP against 7 %)
 crop model), tropics 1.34x (within FLUXCOM's documented tropical low bias; COS-based estimates are 25-30 % higher).
 Since s7 (2006-2010): 193.9 -> 191.7 (gate) -> 189.0 (leaf) -> 175.9 (cover) -> 171.2 (capacity), -12 %.
 
+**The cover rule at the towers (`gpp_chain/cover_{f77cover,lpjcover}`; the chain's V and S arms at the 62 calibration
+towers, 2009-2010, params_s7_gate_leaf vs params_s7_gate_leaf_cover).** The site harness recomputes fl each year
+(biomass_update), so unlike the gate and the leaf step the cover rule does reach the tower runs (an earlier statement
+that none of the three fixes does was wrong for this one). Site model on tower weather, LPJ / F77 cover: forests 1.00
+(no grass layer at forest towers); grassland 0.96 (dense European meadows 0.99, the arid US and Australian grasslands
+0.80-0.91), shrubland 0.87, savanna 0.90, woody savanna 0.91; open classes together 0.93. Site / tower, F77 -> LPJ:
+shrubland 1.26 -> 1.11 (closer), grassland 1.05 -> 1.04, savanna 0.80 -> 0.70 and woody savanna 1.01 -> 0.86 (further
+below), open classes 1.02 -> 0.95, all towers 0.89 -> 0.87. The rule removes 9-20 % of GPP at sparse towers and nothing
+in forests and dense grasslands.
+
