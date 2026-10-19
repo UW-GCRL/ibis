@@ -5673,3 +5673,12 @@ shrubland 1.26 -> 1.11 (closer), grassland 1.05 -> 1.04, savanna 0.80 -> 0.70 an
 below), open classes 1.02 -> 0.95, all towers 0.89 -> 0.87. The rule removes 9-20 % of GPP at sparse towers and nothing
 in forests and dense grasslands.
 
+**Decision (Hangkai, 2026-10-19): adopt the LPJ cover in IBIS 3.1 and refit the open types' capacity under it.** The
+3.1 base is the gate + leaf step + LPJ cover (`params_s7_gate_leaf_cover.yaml`; the approximate capacity test of
+`params_s7_glc_cap.yaml` is not adopted -- capacity comes from the refits). The refit (`$S/t31_stage4.sh`, queued after
+the crop stage, 8 slots): the GPP/ET fits of the 148 open towers (GRA 86, OSH 34, SAV 15, WSA 8, CSH 5) again, same
+fitted set as S2, base `params_s7_crop_lpjcover.yaml` (= s7 + cover_k 0.5, fl_min 0.05), warm-started from the S2
+best.json, at the tower's GLASS 0.05-degree pixel peak leaf area (`--lai`, 147 towers; logs/lai_tower_pixel.csv), 48
+evaluations, outputs `site_fit/t31_open_lpj`. The first 3.1 global run uses the open types' S2 capacity until the
+refit lands; the NEE respiration fits of the open towers were made at the S2 GPP and may want a re-check after it.
+
