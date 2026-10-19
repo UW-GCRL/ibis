@@ -5650,3 +5650,16 @@ low bias, plot productivity beyond leaf area, or both, which these data cannot s
 physically grounded capacity correction: refitting capacity at the tower pixel's leaf area (+22 % over what was held)
 would lower GPP per leaf by ~7 %, ~10 % through the leaf-GPP feedback -- to be done per type on the 3.1 set.
 
+**Capacity from the tower pixel's leaf area, approximate test (`gate_test/glc_cap10`, `params_s7_glc_cap.yaml`,
+`diagnostics/capacity_pixel.py`; `compare_vs_cover_2006-2010.txt`).** vmax x (pixel / held)^(-0.29/0.75), median per
+PFT: tropical BE x0.98, tropical BD 0.94, warm-temperate BE 0.91, temperate conifer 0.93, temperate BD 0.87, boreal
+conifer 0.94, larch 0.81, evergreen shrub 0.95, C4 0.93, C3 0.90 (boreal BD and deciduous shrub unchanged). Against the
+cover run: **GPP 175.9 -> 171.2 PgC yr-1 (1.61 -> 1.57 x FLUXCOM)**; tropics 1.36 -> 1.34, 30-60 N 2.17 -> 2.09, north of
+60 N 3.71 -> 3.56; excess 67 -> 62 PgC; ET, tree cover unchanged. The estimate of ~10 % was again too high (the leaf
+step: -10 % estimated, -1.4 % measured): the effective dlnGPP/dlnVmax in this state is ~0.37, half of section 4's 0.75,
+and the leaf-GPP amplification hardly shows. Only measured effects are reported from here. Where the 62 PgC stand:
+north of 60 N 3.56x (tundra and boreal: the pooled lower-canopy phenology of section 40, which the 3.1 tundra types
+replace), 30-60 N 2.09x (the season: November-March 21 % of the GPP against 7 %), shrubland 4.86x, cropland 1.58x (the
+crop model), tropics 1.34x (within FLUXCOM's documented tropical low bias; COS-based estimates are 25-30 % higher).
+Since s7 (2006-2010): 193.9 -> 191.7 (gate) -> 189.0 (leaf) -> 175.9 (cover) -> 171.2 (capacity), -12 %.
+
