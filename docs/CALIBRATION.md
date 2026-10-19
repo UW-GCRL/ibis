@@ -5623,3 +5623,30 @@ vegetation, growing leaves in proportion to NPP with dlnGPP/dlnLAI 0.29, amplifi
 (global ~1.73 -> ~1.15x FLUXCOM, leaf area with it) -- an estimate for a global test. The open choice is the global GPP
 level the spatial stage targets (section 47: defensible 110-160 PgC yr-1, FLUXCOM at the low end).
 
+## 49. Toward a reasonable GPP without a target (2026-10-19, Hangkai: "No target but try our best to make it more reasonable")
+
+No capacity scaling to a chosen total: structural causes are fixed on physical grounds and the result is judged against
+FLUXCOM's pattern and the published range (110-160 PgC yr-1, section 47).
+
+**Lower-canopy cover (`gate_test/gate_leaf_cover10`, `params_s7_gate_leaf_cover.yaml` = the leaf step + `cover_k` 0.5,
+`fl_min` 0.05; 2001-2010 from the s7 2000 restart; `compare_vs_gate_leaf_2006-2010.txt`).** F77 sets the lower cover
+fl = LAI (clipped to [0.25, 0.975]), so any grass layer with LAI > 1 covers the whole cell; cover_k 0.5 is LPJ's foliar
+projective cover, 1 - exp(-0.5 LAI) (Sitch et al. 2003), and the floor drops from 25 % to 5 % as the tree floor did
+(section 47). Against the leaf step, 2006-2010: **GPP 189.0 -> 175.9 PgC yr-1 (1.73 -> 1.61 x FLUXCOM)**; tropics 1.48 ->
+1.36, 30-60 N 2.29 -> 2.17, north of 60 N 3.80 -> 3.71; excess over FLUXCOM 80 -> 67 PgC (forest 21.5 -> 18.3, mixed
+28.2 -> 23.4, grassland 7.5 -> 6.2, shrubland 5.8 -> 5.4, bare 3.3 -> 2.6, cropland 13.5 -> 10.8); ET unchanged (1.05 x
+the ensemble); peak LAI 2.61 -> 2.42 x MODIS; lower-canopy share of NPP 0.41 -> 0.35 (0.15 -> 0.11 in observed forest);
+tree cover 0.519 -> 0.531 (phantom 6.3 -> 6.8 %: trees gain a little where the grass thinned). The largest single step so
+far; the steps since s7 (2006-2010): 193.9 (s7) -> 191.7 (gate) -> 189.0 (leaf) -> 175.9 (cover).
+
+**The towers' own leaf area (`verify/calibration/lai_tower_pixel.py`, `logs/lai_tower_pixel.csv`; GLASS V61 8-day
+climatological peak 2001-2010 at the 0.05-degree pixel holding each of 355 towers).** Pixel / 0.5-degree cell 1.08
+(median; 68 % of towers above 1; DBF 1.20, EBF 1.24, DNF 1.41, ENF 1.10, MF 1.08, GRA 1.02, SAV 1.01, OSH 0.88): towers
+sit in somewhat leafier spots than their cells, mostly in deciduous and tropical forests. Pixel / the leaf area each S2
+fit held 1.22 (1.26 at the 325 towers held at the Collection-5 MODIS cell maximum, 0.76 at the 29 held at the site
+attribute). This corrects section 48's reading: plot-versus-cell leaf area explains only ~7 % (1.26^0.29) of the 1.3x
+GPP per leaf area the model carries, not most of it; the rest of the tower / FLUXCOM gap (1.43) is FLUXCOM's documented
+low bias, plot productivity beyond leaf area, or both, which these data cannot separate. What it does supply is a
+physically grounded capacity correction: refitting capacity at the tower pixel's leaf area (+22 % over what was held)
+would lower GPP per leaf by ~7 %, ~10 % through the leaf-GPP feedback -- to be done per type on the 3.1 set.
+
