@@ -5889,3 +5889,13 @@ only on the big-leaf path, which no run has used since section 26. Nothing to fi
 is the one of section 49 again: test the claim on a tower before building on it. The s31b decision of section 50
 stands.
 
+**s31b launched (14:09; Hangkai: "run the s31b now", all refits adopted -- one rule for every tower).**
+`params_31b_relax.yaml` = `params_31_base_gs.yaml` (the 3.1 base + stress_accum_tmin 5 C + the section-46 leaf-area
+cap) + the `types:` section from the S2 fits with the 126 finished relaxed-bound refits replacing the pinned towers'
+(CA-TP4 and SE-Nor were cut off mid-fit and keep their earlier values) and the NEE fits; all 35 natural types with their
+own values. Protocol: the closing protocol with SKIP_SPINUP=1 from s31a's 1900 state (transient 1901-2000, monthly
+hindcast 2001-2010), `verify_outputs/final_s31b/`; the scoring driver runs the section-47/48 diagnostics against the
+s31a hindcast when it lands (~18:30). Changes against s31a, in one run: the gate on the growing-season stress, the
+leaf-area cap, the grass / shrub / boreal-conifer capacities down 25-45 %, the forest capacities up (temperate deciduous
++47 %, tropical evergreen +19 %).
+

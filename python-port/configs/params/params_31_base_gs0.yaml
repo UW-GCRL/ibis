@@ -1,0 +1,417 @@
+# params_31_base.yaml + pheno.stress_accum_tmin 5.0 (the tree gate on the growing-season stress; CALIBRATION.md 50)
+stomata:
+  tau15: 4500.0
+  kc15: 0.00015
+  ko15: 0.25
+  cimax: 0.002
+  o2conc: 0.209
+  alpha3: 0.08
+  theta3: 0.95
+  beta3: 0.99
+  alpha4: 0.05
+  theta4: 0.97
+  beta4: 0.8
+  stressfac: -3.339435378791719
+  ball_berry:
+    broadleaf:
+      gamma: 0.015
+      coefm: 10.0
+      coefb: 0.01
+      gsmin: 1.0e-05
+    conifer:
+      gamma: 0.015
+      coefm: 6.0
+      coefb: 0.01
+      gsmin: 1.0e-05
+    shrub:
+      gamma: 0.015
+      coefm: 9.0
+      coefb: 0.01
+      gsmin: 1.0e-05
+    c4_grass:
+      gamma: 0.03
+      coefm: 4.0
+      coefb: 0.04
+      gsmin: 1.0e-05
+    c3_grass:
+      gamma: 0.015
+      coefm: 9.0
+      coefb: 0.01
+      gsmin: 1.0e-05
+  vmax:
+    tropical_broadleaf_evergreen: 3.951837970816996e-05
+    tropical_broadleaf_deciduous: 6.5e-05
+    warm_temperate_broadleaf_evergreen: 2.8906828447361477e-05
+    temperate_conifer_evergreen: 2.9255461413413286e-05
+    temperate_broadleaf_deciduous: 3.379043482709676e-05
+    boreal_conifer_evergreen: 2.548940756241791e-05
+    boreal_broadleaf_deciduous: 3.496862791507738e-05
+    boreal_conifer_deciduous: 3.0e-05
+    evergreen_shrub: 2.532568214519415e-05
+    deciduous_shrub: 2.7134821721119806e-05
+    c4_grass: 8.627913302916568e-06
+    c3_grass: 3.106717122136615e-05
+  acclim_on: true
+  acclim_pfts:
+  - 3
+  - 5
+  - 8
+  acclim_tau: 10.93
+  acclim_s0: -3.063
+  acclim_smax: 17.72
+  sunshade_u: true
+  sunshade_l: true
+  cap_kn: 0.15
+  coefm_mix: true
+  acclim_per_pft: true
+  acclim_s0_pft:
+    boreal_con_ever: -6.605008539061032
+    temp_con_ever: -8.594074099316897
+  acclim_smax_pft:
+    boreal_con_ever: 29.761092750574143
+    temp_con_ever: 24.20244012475597
+  coefm_pft:
+    boreal_bl_dec: 10.379262155439477
+    boreal_con_ever: 4.367369183017934
+    c3_grass: 7.681441528496794
+    c4_grass: 3.159928628206834
+    dec_shrub: 8.987020958470636
+    ever_shrub: 5.130632626654376
+    temp_bl_dec: 7.61115526464377
+    temp_con_ever: 7.634652875034636
+    trop_bl_ever: 4.857781745507882
+    warm_bl_ever: 5.914173241532264
+pft:
+  tropical_broadleaf_evergreen:
+    TminL: 0.0
+    TminU: 9999.0
+    Twarm: 9999.0
+    GDD: 9999.0
+    tauleaf: 1.01
+    tauroot: 1.0
+    tauwood0: 25.0
+    specla: 18.75632402762226
+    aleaf: 0.3
+    aroot: 0.2
+    awood: 0.5
+  tropical_broadleaf_deciduous:
+    TminL: 0.0
+    TminU: 9999.0
+    Twarm: 9999.0
+    GDD: 9999.0
+    tauleaf: 0.8508659585590213
+    tauroot: 1.0
+    tauwood0: 25.0
+    specla: 25.0
+    aleaf: 0.3
+    aroot: 0.2
+    awood: 0.5
+  warm_temperate_broadleaf_evergreen:
+    TminL: -10.0
+    TminU: 0.0
+    Twarm: 9999.0
+    GDD: 9999.0
+    tauleaf: 1.0
+    tauroot: 1.0
+    tauwood0: 25.0
+    specla: 20.47623891556273
+    aleaf: 0.3
+    aroot: 0.2
+    awood: 0.5
+  temperate_conifer_evergreen:
+    TminL: -45.0
+    TminU: 0.0
+    Twarm: 9999.0
+    GDD: 1200.0
+    tauleaf: 2.3458136004245382
+    tauroot: 1.0
+    tauwood0: 50.0
+    specla: 12.5
+    aleaf: 0.3
+    aroot: 0.4
+    awood: 0.3
+  temperate_broadleaf_deciduous:
+    TminL: -45.0
+    TminU: 0.0
+    Twarm: 9999.0
+    GDD: 1200.0
+    tauleaf: 1.0
+    tauroot: 1.0
+    tauwood0: 50.0
+    specla: 25.0
+    aleaf: 0.3
+    aroot: 0.2
+    awood: 0.5
+  boreal_conifer_evergreen:
+    TminL: -57.5
+    TminU: -45.0
+    Twarm: 9999.0
+    GDD: 350.0
+    tauleaf: 2.5
+    tauroot: 1.0
+    tauwood0: 100.0
+    specla: 11.906455540157317
+    aleaf: 0.3
+    aroot: 0.4
+    awood: 0.3
+  boreal_broadleaf_deciduous:
+    TminL: -57.5
+    TminU: -45.0
+    Twarm: 9999.0
+    GDD: 350.0
+    tauleaf: 1.0
+    tauroot: 1.0
+    tauwood0: 100.0
+    specla: 25.0
+    aleaf: 0.3
+    aroot: 0.2
+    awood: 0.5
+  boreal_conifer_deciduous:
+    TminL: 9999.0
+    TminU: -45.0
+    Twarm: 9999.0
+    GDD: 350.0
+    tauleaf: 1.0
+    tauroot: 1.0
+    tauwood0: 100.0
+    specla: 25.0
+    aleaf: 0.3
+    aroot: 0.2
+    awood: 0.5
+  evergreen_shrub:
+    TminL: 9999.0
+    TminU: 9999.0
+    Twarm: 9999.0
+    GDD: 100.0
+    tauleaf: 1.5
+    tauroot: 1.0
+    tauwood0: 5.0
+    specla: 12.5
+    aleaf: 0.45
+    aroot: 0.4
+    awood: 0.15
+  deciduous_shrub:
+    TminL: 9999.0
+    TminU: 9999.0
+    Twarm: 9999.0
+    GDD: 100.0
+    tauleaf: 1.0
+    tauroot: 1.0
+    tauwood0: 5.0
+    specla: 25.0
+    aleaf: 0.45
+    aroot: 0.35
+    awood: 0.2
+  c4_grass:
+    TminL: 9999.0
+    TminU: 9999.0
+    Twarm: 22.0
+    GDD: 100.0
+    tauleaf: 1.0193849869489293
+    tauroot: 1.0
+    tauwood0: 999.0
+    specla: 20.0
+    aleaf: 0.45
+    aroot: 0.55
+    awood: 0.0
+  c3_grass:
+    TminL: 9999.0
+    TminU: 9999.0
+    Twarm: 9999.0
+    GDD: 100.0
+    tauleaf: 1.5
+    tauroot: 1.0
+    tauwood0: 999.0
+    specla: 21.948192535449014
+    aleaf: 0.45
+    aroot: 0.55
+    awood: 0.0
+  xminlai: 0.01
+  woodnorm: 7.5
+  tree_stress_min: 0.225
+  tree_stress_ramp: 0.3
+  fu_min: 0.05
+  cover_k: 0.5
+  fl_min: 0.05
+veg_rad:
+  rhoveg:
+  - - 0.1
+    - 0.1
+  - - 0.6
+    - 0.4
+  tauveg:
+  - - 0.07
+    - 0.05
+  - - 0.25
+    - 0.2
+  oriev:
+  - 0.5
+  - 0.0
+  orieh:
+  - 0.0
+  - 0.0
+canopy:
+  cleaf: 0.01
+  cstem: 0.01
+  cgrass: 0.01
+  dleaf:
+  - 0.1
+  - 0.1
+  dstem:
+  - 0.1
+  - 0.1
+  alaiml: 8.0
+  alaimu: 8.0
+  chu: 8436.0
+  chs: 210900.0
+  chl: 8436.0
+interception:
+  wliqumax: 0.2
+  wliqsmax: 0.4
+  wliqlmax: 0.2
+  wsnoumax: 2.0
+  wsnosmax: 4.0
+  wsnolmax: 2.0
+  tdripu: 7200.0
+  tdrips: 7200.0
+  tdripl: 7200.0
+  tblowu: 43200.0
+  tblows: 43200.0
+  tblowl: 43200.0
+  fmax: 0.25
+soil:
+  wpudmax: 10.0
+  zwpmax: 0.5
+  bperm: 0.04
+  rhosoi_val: 2650.0
+  csoi_mineral_val: 870.0
+bgc:
+  lig_frac: 0.5
+  fbsom: 0.017
+  effac: 0.4
+  fmax: 0.45
+  rconst: 1200.0
+  cnleaf: 40.0
+  cnroot: 60.0
+  cnwood: 200.0
+  cnr:
+    microbial_biomass: 8.0
+    passive_soc: 15.0
+    protected_slow_soc: 10.0
+    nonprotected_slow_soc: 15.0
+    resistant_litter: 100.0
+    structural_litter: 150.0
+    metabolic_litter: 6.0
+    woody_biomass: 250.0
+  klm: 0.15
+  kls: 0.01
+  kll: 0.01
+  krm: 0.1
+  krs: 0.005
+  krl: 0.005
+  kwm: 0.001
+  kws: 0.001
+  kwl: 0.001
+  kbn: 0.045
+  kbp: 0.005
+  knb: 0.001
+  kns: 1.0e-06
+  kpb: 0.0001
+  kps: 1.0e-06
+  ksb: 8.0e-07
+  ylm: 0.4
+  yls: 0.3
+  yll: 1.0
+  yrm: 0.4
+  yrs: 0.3
+  yrl: 1.0
+  ywm: 0.4
+  yws: 0.3
+  ywl: 1.0
+  ybn: 1.0
+  ybp: 1.0
+  yps: 1.0
+  yns: 1.0
+  ysb: 0.2
+  ypb: 0.2
+  ynb: 0.25
+  lt_e0:
+    temp_con_ever: 368.9768979338093
+    boreal_con_ever: 368.9768979338093
+    boreal_con_dec: 368.9768979338093
+    temp_bl_dec: 222.21824765592083
+    boreal_bl_dec: 222.21824765592083
+    trop_bl_ever: 311.7295001576849
+    warm_bl_ever: 311.7295001576849
+    trop_bl_dec: 311.7295001576849
+    c3_grass: 309.0383435637133
+    c4_grass: 309.0383435637133
+    dec_shrub: 305.52780305348244
+    ever_shrub: 305.52780305348244
+  rgrowth:
+    temp_con_ever: 0.15656937610028432
+    boreal_con_ever: 0.15656937610028432
+    boreal_con_dec: 0.15656937610028432
+    temp_bl_dec: 0.146987816181275
+    boreal_bl_dec: 0.146987816181275
+    trop_bl_ever: 0.20070413733662515
+    warm_bl_ever: 0.20070413733662515
+    trop_bl_dec: 0.20070413733662515
+    c3_grass: 0.20596081191536186
+    c4_grass: 0.20596081191536186
+    dec_shrub: 0.373787219975607
+    ever_shrub: 0.373787219975607
+  rroot:
+    temp_con_ever: 0.7793798846433811
+    boreal_con_ever: 0.7793798846433811
+    boreal_con_dec: 0.7793798846433811
+    temp_bl_dec: 1.0579537193495434
+    boreal_bl_dec: 1.0579537193495434
+    trop_bl_ever: 1.6428147274105689
+    warm_bl_ever: 1.6428147274105689
+    trop_bl_dec: 1.6428147274105689
+    c3_grass: 1.6929704221939186
+    c4_grass: 1.6929704221939186
+    dec_shrub: 0.6674251741327041
+    ever_shrub: 0.6674251741327041
+pheno:
+  sen_photoperiod_u: true
+  sen_pstart_u: 14.0
+  sen_tb_u: 20.0
+  sen_ycrit_u: 148.06638290671148
+  sen_photoperiod_l: true
+  sen_pstart_l: 14.0
+  sen_tb_l: 20.0
+  sen_ycrit_l: 300.0
+  drop_stress_thresh: 0.13537658523463447
+  gdd_ramp_u: 75.83037406930552
+  gdd_thresh_l: 73.65148335274642
+  gdd_thresh_u: 412.54506131427974
+  tthresh_l_c: 2.438753794167722
+  stress_accum_tmin: 5.0
+methane:
+  r_ch4: 0.1383982364306608
+  q10p: 2.0231523148850714
+  z_tau: 0.6929843344567566
+  tau_oxid: 0.1540533626059316
+methane_bands:
+  boreal:
+    r_ch4: 0.1429423502971796
+    q10p: 1.646461835109554
+    z_tau: 0.7282381097915979
+    tau_oxid: 0.1383746965949963
+  temperate:
+    r_ch4: 0.1264571294041385
+    q10p: 2.388144649929381
+    z_tau: 0.6434287837402356
+    tau_oxid: 0.16438471193668464
+  tropical:
+    r_ch4: 0.139294386203153
+    q10p: 1.9210449974957946
+    z_tau: 0.6595780242030262
+    tau_oxid: 0.10674664246076959
+crop:
+  harvest_index: 0.45
+  vmax_scale_c3: 0.3292926944425464
+  vmax_scale_c4: 1.1582642996411432
+  c4_share: 0.2
