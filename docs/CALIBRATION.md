@@ -5899,3 +5899,8 @@ s31a hindcast when it lands (~18:30). Changes against s31a, in one run: the gate
 leaf-area cap, the grass / shrub / boreal-conifer capacities down 25-45 %, the forest capacities up (temperate deciduous
 +47 %, tropical evergreen +19 %).
 
+**Naming (Hangkai, 2026-10-20 14:45).** "IBIS 3.1" in sections 45-51, the run tags (s31a, s31b, ...), the `t31_*`
+tower outputs and the `params_31*.yaml` files is an internal working label for the Köppen-type calibration. Until the
+model is published, all of it is part of **IBIS 3.0**: the README, the report and any external text say IBIS 3.0; the
+internal labels stay as they are in logs and file names.
+
