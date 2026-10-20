@@ -5861,3 +5861,15 @@ worst, unbounded leaf area. The A-zone mixed land (6.8 PgC) is a flat 1.4 x with
 leaf area of section 46 (Hangkai's choice; C3 grass 2.75, C4 2.5, shrubs 4.0) was never carried into the 3.1 base** --
 the leaf step superseded the cap test without adopting the cap. s31b carries it (`build_s31b.sh`: base = gate on the
 growing-season stress + the cap + the relaxed capacities).
+
+**The relaxed-bound refit (`site_fit/t31_relax`, 128 towers, bounds x 0.5 / x 1.5, warm-started, 48 evaluations; Mac
+and box, 10:12-12:45; `logs/relax_refit.csv`).** The loss improves at 91 % of the towers (median 0.78 x the S2 loss).
+Capacity medians, S2 -> relaxed (umol at 15 C): C3 grass 30.8 -> 17.5 (0.56; 21 % at the new floor), evergreen shrub
+25.1 -> 15.3 (0.61), boreal conifer 24.8 -> 18.9 (0.76), temperate conifer 38 -> 34, warm-temperate evergreen 28.6 ->
+28.7, C4 grass 16.8 -> 22.7 (0.99 median) -- the grass, shrub and boreal-conifer towers wanted less, as the floor said.
+On the other side, temperate broadleaf deciduous 51 -> 75 (1.47; 42 % at the new ceiling), tropical evergreen 40 -> 47
+(1.19; 42 % at the ceiling), deciduous shrub 32 -> 47: the forest towers chase their plot GPP, 1.43 x FLUXCOM at the
+cell, which is the representativeness gap and not a model error. By class: GRA 0.58, OSH 0.67, ENF 0.76, CSH 0.79;
+DBF 1.50, WSA 1.39, MF 1.17, EBF 1.09. The build offers three adoptions (`build_s31b.sh relax | down | norelax`): all
+refits, only the towers whose every capacity moved down (the floor was the artefact), or none.
+
