@@ -5747,3 +5747,16 @@ and on the high side S05 1.46 (10), G02 1.99 (4), T13 1.17 (9). A pooled median 
 by construction; the types at 0.5-0.7 or above 1.4 are the candidates for a capacity correction toward their towers
 before s31b (one decision, after the global scoring).
 
+**The TRY bounds bind (2026-10-20 05:05).** Of the 440 capacities fitted at the 356 towers (S2, with the open refit),
+18 % sit at the TRY lower bound and 12 % at the upper: C3 grass 40 % at the lower bound (median 31.5 against the bound
+30.8 umol at 15 C), evergreen shrub 55 % (25.2 vs 25.0), boreal conifer 31 %, warm-temperate evergreen 28 % at each
+end; tropical broadleaf evergreen 59 % at the UPPER bound (39.6 vs 39.6), larch 50 % at the upper. By class, 43 % of the
+grassland and 40 % of the closed-shrubland fits are at the floor. So the grass, shrub and boreal-conifer towers want less
+capacity than the trait range allows (their 3.1 medians are the bound, not a fit: G06 30.9, S05 25.1), and the tropical
+evergreen towers want more. Two readings, not separable here: a trait range for leaf-level Vcmax is not the range of a
+big-leaf canopy parameter in a model whose leaf area and cover run high (the grass side), and the plot GPP of the
+tropical towers exceeds what the bound allows (the tropical side; the towers are 1.43 x FLUXCOM). The pooled medians
+inherit the pins. Option for s31b, one decision: refit the pinned towers with the bounds relaxed (floor x 0.5, ceiling
+x 1.5) from their current best, ~100 towers, an hour on the Mac; the commands are prepared
+(`$S/t31_relax_cmds_mac.txt`), not launched.
+
