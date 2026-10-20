@@ -5837,3 +5837,15 @@ threshold 0.225 and ramp 0.30 survival falls below 1 only under 0.525, i.e. on a
 treeless cells the gate is for; the offline tool keeps 0.225 / 0.30 as its optimum on this field. Adopted for s31b
 (`params_31a_gs.yaml`): a restored stage-(b3) setting, not a new design.
 
+**The mixed-tree class, decomposed (s31a 2006-2010; obs tree 10-60 %, cropland < 50 %; 26 % of land, 52.2 vs 29.5 PgC,
+1.77 x, 22.7 PgC = the largest bucket).** By Köppen group: A 1.42 x (6.8 PgC, 30 %), B 1.98 x (2.3), C 1.82 x (5.7, 25
+%), D 2.96 x (7.2, 32 %), E 3.0 x (0.7). By latitude: tropics 1.48, 23-40 1.97, 40-55 2.34, >= 55 N 3.62. Not a
+land-use artefact: the cells with < 10 % cropland carry 53 % of the excess at 1.83 x, the 10-50 % cells 1.7 x.
+Understorey: grass-dominated cells 1.66 x (81 % of the excess), shrub-dominated 3.47 x (19 %). By month: the tropical
+mixed land is a flat 1.3-1.6 x in every month (the tower-level factor: the towers are 1.43 x FLUXCOM at their cells);
+the arid and temperate mixed land a flat 1.6-2.5 x (the grass productivity); the boreal / continental mixed land is a
+shoulder-season problem -- summer 1.9-2.3 x but April 5.1, August 3.1, September 5.3, October 22 x, with the model's
+cold-season share only 1 %: the season starts too early and ends too late in the
+forest-tundra and parkland of the D zone. Three causes, three fixes: the tropics are at tower level (reference), the
+temperate and arid grass is capacity (the running refit), the D-zone shoulders are the subarctic phenology.
+
