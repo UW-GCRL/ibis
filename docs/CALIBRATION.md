@@ -5830,3 +5830,10 @@ pinned towers is launched on the Mac as an experiment (`site_fit/t31_relax`); wh
 decision. (Per-PFT NPP cannot be read from restarts: the yearly accumulators are reset before the restart is written; the
 section-47 canopy table's zero lower-canopy NPP shares were that artefact, superseded by the yearly aynppu / aynppl.)
 
+**The gate on the growing-season stress (`gate_test/gs_stress1`, one year from the s31a 2000 state with
+stress_accum_tmin 5 C, 10:14).** The field separates the classes as the calendar mean never did: observed forest
+stress median 0.93 (p10 0.72; calendar mean 0.80 / 0.47), mixed 0.78-0.83, treeless land 0.34 (p10 0.00). With the
+threshold 0.225 and ramp 0.30 survival falls below 1 only under 0.525, i.e. on a few percent of forest area and on the
+treeless cells the gate is for; the offline tool keeps 0.225 / 0.30 as its optimum on this field. Adopted for s31b
+(`params_31a_gs.yaml`): a restored stage-(b3) setting, not a new design.
+
