@@ -5760,3 +5760,45 @@ inherit the pins. Option for s31b, one decision: refit the pinned towers with th
 x 1.5) from their current best, ~100 towers, an hour on the Mac; the commands are prepared
 (`$S/t31_relax_cmds_mac.txt`), not launched.
 
+**s31a results (protocol done 09:36; `final_s31a/score/`, the protocol's own scores in `$S/s31a_protocol.log`; means
+2006-2010 unless noted; the s7 protocol run as the reference, the cover run of section 49 where the per-type set's own
+effect is wanted).**
+
+| quantity | s7 | s31a | observed |
+|---|---|---|---|
+| GPP true land, PgC yr-1 (x FLUXCOM) | 193.9 (1.77) | **174.9 (1.60)** | 110-160 (section 47) |
+| GPP x FLUXCOM: 90S-30N / 30-60N / 60-90N | 1.54 / 2.32 / 3.64 | 1.34 / 2.22 / 3.56 | |
+| GPP x FLUXCOM by observed type: forest / mixed / grass / shrub / bare / crop | 1.40 / 2.00 / 2.42 / 5.39 / 2.76 / 1.92 | 1.26 / 1.77 / 2.29 / 5.08 / 3.20 / 1.68 | |
+| GPP at the tower cells, model / tower | 1.62 | 1.46 | (tower / FLUXCOM 1.43) |
+| season (FLUXCOM): shape error / amplitude / 30-50 N amplitude | 0.017 / 0.85 / 0.62 (3.0 runs) | **0.0097 / 0.92 / 0.83** | 0 / 1 / 1 |
+| land sink dC/dt 2001-2010, PgC yr-1 | +1.64 | **+2.26** | GCB 2.78 +- 0.69; TRENDY 2.83 (1.4-4.4) |
+| NPP / Rh, PgC yr-1 | 74.4 / 66.9 | 79.6 / 66.9 | 55-60 / 49-58 |
+| vegetation C true land, PgC | 349 (wood) | **196** | 450-650 |
+| soil C, kgC m-2 | 25.4 | 18.7 | 10-15 |
+| ET, mm yr-1 (x ensemble) | 540 (1.04) | 486 (0.99) | 508 |
+| peak LAI x MODIS (C5 ref) | 2.75 | 3.04 | 1 |
+| tree cover, natural land (obs 0.39): phantom / forest lost | 0.70: 15 % / 1 % | **0.39: 3.5 % / 9.2 %** | |
+| burned area x GFED5, rank r | 1.01, 0.76 | 1.08, 0.76 | 1, 1 |
+| wetland CH4 2001-2010, Tg (90S-30N / 30-60N / 60-90N) | 154 (130 / 11 / 13) | 189 (165 / 14 / 10) | GMB 153 [116-189] (109 / 32 / 12) |
+
+**Reading.** The structural fixes set the GPP level (the cover run gave 175.9; the per-type set 174.9) and the per-type
+set improved what it was fitted for: the season (the per-zone phenology took the 30-50 N amplitude from 0.62 to 0.83
+and the shape error below 0.01), the tropics (1.34), the tower cells (1.46), and the sink is inside the budget's spread
+for the first time. The zone-band methane sets raise the tropical total above the budget's central value (165 against
+109) while the temperate band stays below (14 against 32): the W03 band's r_ch4 from 12 towers is the lever, to be
+checked against the section-38 shape score. **The regression is the forest.** Vegetation carbon fell to 196 PgC and 9 %
+of observed-forest area has lost its tree cover; by band (observed-forest tree cover, July 2010): tropical 0.85 (s7) ->
+0.76, temperate 0.87 -> 0.42, boreal 0.86 -> 0.61. Two causes, dated by the test runs: (1) the boreal loss is already
+in the gate run (0.86 -> 0.70) and comes from the gate itself: the gate's survival is below 1 on 32-47 % of boreal
+forest area (mean 0.5-0.7 there; tropical and temperate forest 5-6 %), because the annual mean of the soil-water
+stress factor includes the frozen season (boreal forest stress median 0.55-0.64, p10 0.3-0.4, against 0.9 in
+temperate and tropical forest) -- a cold-season artefact, not drought; over 300 years a factor 0.7 per year thins a
+stand to a fraction of its wood (the spin-up trajectory: boreal forest cover 0.91 at 1701, 0.62 at 1726, 0.51 at 1800;
+s7 holds 0.82). (2) The temperate loss is in s31a only (the cover run keeps 0.84): the temperate grass under the
+forest grows from LAI 1.4 (cover run) to 6.4, i.e. the 3.1 grass types (G06 with its capacity at the TRY floor and the
+per-zone lower-canopy phenology) outgrow the T15/T16 trees in the dynamic competition, which the LPJ cover does not stop.
+The lower canopy carries 64 % of global NPP (40 % inside observed forest), which is also why NPP and the far north
+rose. A two-arm five-year run from the s7 2000 state (the 3.1 set with and without the gate) is launched to confirm the
+split; the fixes on offer are the gate's stress averaged over the growing season (a definition change of the gate) and
+the bound-relaxed refit of the grass and shrub types.
+
