@@ -5820,3 +5820,13 @@ over the spin-up (0.52 by 1750). The boreal fix is the restored growing-season t
 temperate fix is the grass types' capacity, which 40 % of the C3-grass fits had pinned at the TRY floor (above): the
 bound-relaxed refit.
 
+**The far north is the same grass (10:30).** Leaf area by type in the s31a 2010 state: north of 70 N G08 (tundra
+graminoid) 74 % and G07 (subarctic C3 grass) 25 %, the lower canopy 99 % of the leaf area with cover fl 0.56 on land
+that is mostly barren; 60-70 N G07 59 %, G08 16 %, T17 17 %, the lower canopy 78 %. Both grass types score 0.86-0.91 at
+their own towers (productive tundra patches, where tower / FLUXCOM is highest), and their capacity sits at the TRY floor
+(G07 31.2, G08 33.3 umol). The 70-90 N excess (9 x) is grass cover and leaf area wherever the climate allows, the
+temperate invasion and the open-land excess are the same grass; one fix family. The relaxed-bound refit of the 128
+pinned towers is launched on the Mac as an experiment (`site_fit/t31_relax`); whether its values enter s31b is the
+decision. (Per-PFT NPP cannot be read from restarts: the yearly accumulators are reset before the restart is written; the
+section-47 canopy table's zero lower-canopy NPP shares were that artefact, superseded by the yearly aynppu / aynppl.)
+
