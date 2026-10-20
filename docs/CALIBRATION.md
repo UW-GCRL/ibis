@@ -5873,3 +5873,19 @@ cell, which is the representativeness gap and not a model error. By class: GRA 0
 DBF 1.50, WSA 1.39, MF 1.17, EBF 1.09. The build offers three adoptions (`build_s31b.sh relax | down | norelax`): all
 refits, only the towers whose every capacity moved down (the floor was the artefact), or none.
 
+## 51. The canopy scaling was already right: a retracted premise (2026-10-20 13:00-14:10)
+
+Claimed at 12:55 and chosen by Hangkai as the next fix: that the s7 / 3.1 runs still carry the F77 big-leaf scaling of
+section 16 (stems' absorbed PAR credited to the leaves, a leafless canopy still assimilating), because the
+`scale_leaf_only` / `vmax_mix` switches of sections 16-17 are absent from every parameter file since the site-first
+restart. Checked before launching the refit cycle: four forest towers (DE-Hai, US-Ha1, US-MMS, FI-Hyy) run with and
+without the switches are bit-identical, and the deciduous towers' December-February GPP is 0.0 either way. The reason
+is in the code: the s7 and 3.1 sets run the sun / shade canopy of section 26 (`sunshade_u`, `sunshade_l` true, `cap_kn`
+0.15), and `sunshade_canopy` integrates the two-stream light over the plant area with the leaves as the share L / (L + S)
+at every depth and the only assimilating surface; with no leaves it assimilates nothing. On that path `canopy_scaling`
+is computed and unused (`anc_ub if params.sunshade_u else an_ub`), so its switch is inert. The section-16 error exists
+only on the big-leaf path, which no run has used since section 26. Nothing to fix; the premise is withdrawn, the files
+`params_31c_base*.yaml` and `params_s7_crop_lpjcover_canopy.yaml` are removed, the staged refit is not run. The lesson
+is the one of section 49 again: test the claim on a tower before building on it. The s31b decision of section 50
+stands.
+
