@@ -5735,3 +5735,15 @@ sink are the per-type respiration meeting s7's soil, which the spin-up settles. 
 (~16:30): the section-47/48 diagnostics (GPP by band and observed land type, leaf area against GLASS/GIMMS, tree
 cover, ET, the 30-50 N season), the budgets, methane by zone band, and the towers re-scored with the 3.1 set.
 
+**The 3.1 set at its own towers (re-score, 2026-10-20 04:55; `towers31_rescore.py` on the Mac, 358 baselines,
+`logs/rescore31a.csv`, `diagnostics/rescore_report.py`).** Each tower run with its types' medians at the parent
+positions, on its own GPP/ET objective, against its own fit. Annual GPP model / tower, medians: **0.97 under the set
+against 0.99 under the own fits**, but the share of towers within 0.8-1.25 falls from 78 % to 47 %, and 31 % of the
+baselines sit at the objective's tower cap (the capped loss cannot rank them; the own fits had their caps lifted). By
+class: DBF 0.96, EBF 1.00, ENF 0.96, GRA 1.11, MF 0.92, OSH 1.14, CSH 1.28, SAV 0.70, WSA 0.73, DNF 0.76. By type, the
+large ones hold (T15 0.96, T17 0.98, T16 0.88, T07 1.09, T08 1.08, G06 1.11, T01 0.97, T10 1.06); the misses are T21 0.49
+(7 towers, 86 % capped), S02 0.65 (9), T03 0.73 (12), S01 0.73 (6), T09 0.82 (14), T19 0.76 (8, as its own fits 0.70),
+and on the high side S05 1.46 (10), G02 1.99 (4), T13 1.17 (9). A pooled median loses about 40 % of the per-tower skill
+by construction; the types at 0.5-0.7 or above 1.4 are the candidates for a capacity correction toward their towers
+before s31b (one decision, after the global scoring).
+
