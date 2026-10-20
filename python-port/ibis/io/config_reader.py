@@ -74,6 +74,11 @@ class PhysicsSection:
     #: from forcing.koppen_file by period, maps its 12 positions to the 40 types; per-type parameters from the
     #: params-file section 'types'. Supersedes the Köppen existence mask. False = the 12 IBIS PFTs.
     koppen_types: bool = False
+    #: Dynamic wetland (inundated) area from the model's own root-zone water (docs/METHANE.md 7; Min's point 4):
+    #: f = clip(f_clim (1 + beta A), f_min, f_max) with A the standardised storage anomaly against the climatology of
+    #: forcing.wetland_clim_file and beta per band from the parameter file's `wetland_area:` section. False: the WAD2M
+    #: climatology, as before.
+    wetland_dynamic: bool = False
     #: Mix organic-soil hydraulic and thermal properties by the HWSD2 organic-carbon fraction
     #: (Lawrence & Slater 2008); needs orgcpct and bulkdens in soil_file (scripts/hwsd2_organic_to_nc.py).
     soil_organic: bool | str = False
@@ -169,6 +174,9 @@ class ForcingSection:
     #: (nperiod, 360, 720) uint8 north to south, "period_start", "period_end"; CALIBRATION.md 44).
     #: Empty string = no Koppen mask on PFT existence.
     koppen_file: str = ""
+    #: Root-zone soil-water climatology (mu, sd per cell and month) of a reference hindcast, for wetland_dynamic
+    #: (verify/methane/wetland_clim_prep.py).
+    wetland_clim_file: str = ""
     soil_file: str = ""
     land_mask_file: str = ""
     # Spinup: repeat [spinup_year_start, spinup_year_end] cyclically for nrun years.

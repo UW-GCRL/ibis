@@ -2149,7 +2149,28 @@ deep peat" or quantify the bias. Do not leave it implicit.
 
 > Append one entry per work session: what changed, what was measured, what broke.
 
-_(empty — first entry goes here)_
+- **2026-10-20 -- the dynamic wetland-area switch (section 7) built.** `ibis.bgc.wetland_area`: `root_zone_water` (top
+  metre, poros x wsoi x hsoi, frozen layers 0 -- the regression study's Wrz) and `dynamic_fraction`
+  (f = clip(f_clim (1 + beta A), f_min, f_max), A standardised against a monthly climatology, A = 0 under a frozen top
+  layer -- the first version zeroed f itself there, which removed boreal shoulder-month wetland the WAD2M climatology
+  has (-21 % boreal CH4 in a global year at beta 0.06) and broke "beta 0 = the climatology"; a West-Siberian box test had
+  not caught it because that domain has no frozen month with nonzero climatology -- invariants are checked globally);
+  `ibis.io.wad2m.read_wad2m_bounds` (per-cell range over 2000-2020); `verify/methane/wetland_clim_prep.py` (mu, sd per
+  cell and month from a hindcast's monthly wsoi/tsoi with the model's own porosity; s7 2001-2010 ->
+  `inputs/methane/wetland_clim/wetland_clim_s7_2001-2010.npz`, W 0.137 +- 0.018 m); run_global: `physics.wetland_dynamic`
+  + `forcing.wetland_clim_file` + the yaml `wetland_area:` betas by band (W01/W02/W03 when the 3.1 types are on, else the
+  latitude bands), the fraction written as `finund`. Off by default; beta 0 is the bounded climatology. Betas from the
+  regression: tropical 0.13 (Wrz), boreal 0.06 (W lag 0); the temperate storage beta was not tabulated (the band's best
+  predictor was precipitation), 0.07 provisional. Not done: the water-table factor held at climatology inside f_inund
+  (the design's last clause) -- the module diagnoses the water table from the same soil water, so the wet anomaly is
+  counted twice; to be measured on a global run before deciding whether it matters. Tests: `tests/test_wetland_dynamic.py`;
+  wiring checks: a three-arm cold-start box on West Siberia (off == beta 0 bit-for-bit; beta moves every cell within
+  its bounds in summer) and two global years from the s7 2000 state beside the s31a run (beta 0 against the cover run's
+  2001 as the off control, and beta 0.13 / 0.07 / 0.06). Results: beta 0 leaves GPP, ET, soil water, soil temperature
+  and LAI exactly as the off run and CH4 within 3.7e-10 kgC m-2 (1.6e-6 relative, 6 cells: float32 roundoff of the
+  methane step); the betas change CH4 in 43,905 cells, wetland CH4 2001 +0.4 % globally (+0.6 % tropical, +1.1 %
+  temperate, -3.0 % boreal) at an unchanged annual-mean fraction (0.0168): the small effect the design expected for a
+  single year; the interannual behaviour is for a multi-year run. Full suite 728 passed with the switch in place.
 
 ---
 

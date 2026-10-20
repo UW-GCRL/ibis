@@ -654,6 +654,27 @@ def run_global_simulation(config: IBISConfig) -> None:
                     "mean inundated fraction %.4f", float(ch4_clim.mean()))
         logger.info("  CH4 params: %s", (f"parameter file ({'with' if _mb else 'without'} band overrides)" if _has_fit else "per-biome r_ch4 and t_ref (docs/METHANE.md 5q)"))
 
+    # Dynamic wetland area (docs/METHANE.md 7; Min's point 4): the month's inundated fraction from the model's own
+    # root-zone water as a standardised anomaly against a reference climatology, bounded by the cell's WAD2M range,
+    # beta per band from the parameter file's `wetland_area:` section. Off (the default): the WAD2M climatology as before.
+    _wdyn = None
+    if ch4_clim is not None and getattr(p, "wetland_dynamic", False):
+        from ibis.io.wad2m import read_wad2m_bounds
+        from ibis.bgc import wetland_area as _wa
+        if not getattr(f, "wetland_clim_file", ""):
+            raise ValueError("physics.wetland_dynamic needs forcing.wetland_clim_file (verify/methane/wetland_clim_prep.py)")
+        _wz = np.load(f.wetland_clim_file)
+        _mu = np.asarray(_wz["mu"])[:, gswp3_latindex, gswp3_lonindex]; _sd = np.asarray(_wz["sd"])[:, gswp3_latindex, gswp3_lonindex]
+        if not np.isfinite(_mu).all(): raise ValueError("wetland_clim_file has no climatology at some land points")
+        _fmin, _fmax = read_wad2m_bounds(f.wad2m_file, _wli, _wlo, mlat, mlon)
+        _wb = (_pdict or {}).get("wetland_area") or {}
+        _bt = np.array([float(_wb.get(k, 0.0)) for k in ("tropical", "temperate", "boreal")])
+        _lat = np.asarray(lat_land_deg); _band = np.where((_lat > -30.0) & (_lat < 30.0), 0, np.where(_lat >= 60.0, 2, 1))
+        if _bi is not None: _band = np.where(np.asarray(_bi) >= 0, np.asarray(_bi), _band)      # the wetland type of the zone
+        _wdyn = (_mu, _sd, _fmin, _fmax, _bt[_band])
+        logger.info("  dynamic wetland area ON: climatology %s; beta tropical/temperate/boreal %s; cell bounds mean %.4f-%.4f",
+                    f.wetland_clim_file, _bt.tolist(), float(_fmin.mean()), float(_fmax.mean()))
+
     for iyear_offset in range(t.nrun):
         year = t.iyear0 + iyear_offset
         t0 = time.time()
@@ -719,11 +740,17 @@ def run_global_simulation(config: IBISConfig) -> None:
                 runof_before = state.summary.aytrunof
                 drain_before = state.summary.aytdrain
 
+            _fdyn = None
+            if _wdyn is not None:
+                _so = state.soil
+                _W = _wa.root_zone_water(np.asarray(_so.wsoi), np.asarray(_so.poros), np.asarray(_so.hsoi), np.asarray(_so.tsoi))
+                _fdyn = _wa.dynamic_fraction(ch4_clim[imonth], _W, _wdyn[0][imonth], _wdyn[1][imonth], _wdyn[4], _wdyn[2], _wdyn[3],
+                                             frozen=np.asarray(_so.tsoi)[:, 0] <= _wa.T_FREEZE)
             state, key, _ = run_month_gswp3(
                 state, consts, params, reader,
                 gswp3_latindex, gswp3_lonindex, np.array(lat_rad),
                 forcing_year, imonth, key, t.dtime, leap, grid.nband, nsoilcall,
-                f_inund=None if ch4_clim is None else ch4_clim[imonth],
+                f_inund=(_fdyn if _fdyn is not None else (None if ch4_clim is None else ch4_clim[imonth])),
                 methane_params=ch4_params,
             )
 
@@ -732,6 +759,7 @@ def run_global_simulation(config: IBISConfig) -> None:
                 monthly_fluxes = {
                     'amprcp':   (state.summary.ayprcp   - prcp_before, 'mm',      'Monthly precipitation'),
                     'amaet':    (state.summary.ayaet    - aet_before,  'mm',      'Monthly AET'),
+                    **({'finund': (jnp.asarray(_fdyn, jnp.float32), '1', 'Inundated fraction of the month (dynamic wetland area)')} if _fdyn is not None else {}),
                     'amnpptot': (state.summary.aynpptot - npp_before, 'kgC/m2', 'Monthly NPP'),
                     # NEE is only formed at year end, so a monthly value has to
                     # be built from its two parts rather than differenced.

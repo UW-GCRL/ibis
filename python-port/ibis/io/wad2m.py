@@ -115,6 +115,20 @@ def read_wad2m_climatology(
     return clim[:, latindex, lonindex]
 
 
+
+def read_wad2m_bounds(path: str, latindex: np.ndarray, lonindex: np.ndarray, model_lat: np.ndarray, model_lon: np.ndarray,
+                      years: tuple[int, int] = WAD2M_YEARS) -> tuple[np.ndarray, np.ndarray]:
+    """Each land point's minimum and maximum wetland fraction over the record, (npoi,) each -- the bounds of the
+    dynamic wetland area (ibis.bgc.wetland_area; docs/METHANE.md 7). Fill (frozen / no data) counts as 0, as in the
+    climatology, so a cell that freezes has a minimum of 0."""
+    y0, y1 = years
+    with open_wad2m(path) as ds:
+        _check_grid(ds, model_lat, model_lon)
+        fw = np.asarray(ds["Fw"].values, dtype=np.float64)
+    i0 = (y0 - WAD2M_YEARS[0]) * 12; i1 = (y1 - WAD2M_YEARS[0] + 1) * 12
+    fw = np.clip(np.nan_to_num(fw[i0:i1], nan=0.0), 0.0, 1.0)
+    return fw.min(axis=0)[latindex, lonindex], fw.max(axis=0)[latindex, lonindex]
+
 def _check_grid(ds, model_lat, model_lon) -> None:
     """Alignment is asserted, not assumed. See the module docstring."""
     flat = np.asarray(ds["lat"].values, dtype=np.float64)
