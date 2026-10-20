@@ -5713,3 +5713,25 @@ A section with both medians at their bounds would raise the global cropland capa
 FLUXCOM). Next for crops, if wanted before IBIScrop: the refit at the towers' GLASS pixel leaf area (Corn Belt pixels
 3-4 against the cell maximum 1.7), as done for the open types.
 
+## 50. IBIS 3.1, the first global run (s31a; 2026-10-20 03:15)
+
+**The set.** `configs/params/params_31a.yaml` = `params_31_base.yaml` (sections 47-49: tree gate 0.225 / 0.30 with
+fu_min 0.05, the trait-bounded leaf step, the LPJ lower cover 0.5 with fl_min 0.05, the zone-band methane sets, s7's
+crop scales) + a `types:` section from `towers31_types_yaml.py` on the campaign (`t31_s2_merged`: the S2 GPP/ET fits with
+the 147 open towers replaced by their LPJ-cover / pixel-leaf-area refits; `t31_nee`: the 358 night/day NEE fits). 358
+towers, 3298 attributed values; **all 35 natural types carry their own vmax, slope, lt_e0, rgrowth, rroot and
+stressfac** (towers per type: T15 40, G06 39, T16 37, T07 26, T17 24, T08 21 ... T04, T05, T18, S06, S07 one each);
+cold-deciduous phenology for 13 tree types, lower-canopy phenology for 15 shrub and grass types, acclimation for the 6
+evergreen conifer and shrub types; the per-type table with n and inter-quartile ranges is
+`logs/types31a_table.csv`. Vmax by type spans 9-59 umol (at 15 C).
+
+**The run.** `final_validation.sh s31a` with SPINUP_YEARS=200, METHANE=1, KOPPEN (Beck 2023 periods, the type map
+superseding the mask), KOPPEN_TYPES=1, CROPFRAC (ESA CCI 2000): cold spin-up 1701-1900 on 1901-1930 weather at 296 ppm,
+transient 1901-2000, monthly hindcast 2001-2010; `verify_outputs/final_s31a/`, protocol log `$S/s31a_protocol.log`.
+A one-year smoke run of the configuration from the s7 2000 state (`gate_test/types_smoke`, the dry yaml of 02:15) was
+clean: no non-finite cells, GPP 197 vs s7 195 with the same Köppen-group split; NPP 89 vs 72 and a 22 PgC first-year
+sink are the per-type respiration meeting s7's soil, which the spin-up settles. The capacity split
+(`gpp_split_by_capacity`) stays off; it is the on/off experiment after this run. Scoring when the hindcast lands
+(~16:30): the section-47/48 diagnostics (GPP by band and observed land type, leaf area against GLASS/GIMMS, tree
+cover, ET, the 30-50 N season), the budgets, methane by zone band, and the towers re-scored with the 3.1 set.
+
