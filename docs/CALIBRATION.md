@@ -5847,5 +5847,17 @@ the arid and temperate mixed land a flat 1.6-2.5 x (the grass productivity); the
 shoulder-season problem -- summer 1.9-2.3 x but April 5.1, August 3.1, September 5.3, October 22 x, with the model's
 cold-season share only 1 %: the season starts too early and ends too late in the
 forest-tundra and parkland of the D zone. Three causes, three fixes: the tropics are at tower level (reference), the
-temperate and arid grass is capacity (the running refit), the D-zone shoulders are the subarctic phenology.
+temperate and arid grass is capacity (the running refit), the D-zone shoulders are the subarctic phenology -- **corrected
+below: not the shoulders.**
 
+**In absolute terms (PgC, the same cells, monthly).** The D-zone mixed excess (6.8 PgC) is summer: 6.0 in May-September,
+0.6 in April + October (the shoulder ratios of 5-22 x are ratios of near-zero FLUXCOM values); and at the subarctic
+towers the 3.1 set's season is if anything short (the re-score: April + October carry 1 % of the model's GPP against 7 %
+of the towers' for the G07 and G08 grasses, trees 0.8-1.0 x in those months). What the D-zone summer has is a grass layer
+of LAI x cover 4.4 among trees of 2.2. The C-zone mixed land (5.7 PgC) carries a grass layer of LAI x cover 6.5-7.8 in
+every month over trees of 0.4 (model GPP 1.0 PgC in January against FLUXCOM 0.55): the invasion of section 50 at its
+worst, unbounded leaf area. The A-zone mixed land (6.8 PgC) is a flat 1.4 x with plausible canopies (upper 2.8, lower
+2.1-2.5): the tower-level factor. So the mixed class is grass capacity and grass leaf area, and **the per-type maximum
+leaf area of section 46 (Hangkai's choice; C3 grass 2.75, C4 2.5, shrubs 4.0) was never carried into the 3.1 base** --
+the leaf step superseded the cap test without adopting the cap. s31b carries it (`build_s31b.sh`: base = gate on the
+growing-season stress + the cap + the relaxed capacities).
