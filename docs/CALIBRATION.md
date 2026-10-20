@@ -5810,3 +5810,13 @@ that. `params_31a_gs.yaml` = the 3.1 set with stress_accum_tmin 5.0; the thresho
 calendar-mean field and must be re-estimated on the growing-season field (`gate_test/gs_stress1`, one year from the
 s31a 2000 state, queued behind the forest diagnosis).
 
+**The split, confirmed (`gate_test/forest5_{types,types_nogate}`, five years from the s7 2000 state, 10:08).**
+Observed-forest tree cover, July 2001 -> 2005, and the grass LAI under it: s7 (3.0, no gate) tropical 0.85 / temperate
+0.86 / boreal 0.86, grass 0.9 / 1.6 / 1.5; the cover run (3.0, gate) boreal 0.85 -> 0.73; the 3.1 set with the gate
+boreal 0.85 -> 0.76, temperate grass 1.5 -> 3.9; the 3.1 set without the gate boreal 0.85 -> 0.85, temperate grass 1.5
+-> 3.8. So the boreal loss is the gate (the calendar-mean stress) and nothing else, and the temperate grass invasion is
+the 3.1 grass types and not the gate; the trees' loss in the temperate zone is the slow outcome of that competition
+over the spin-up (0.52 by 1750). The boreal fix is the restored growing-season threshold with a re-estimated gate; the
+temperate fix is the grass types' capacity, which 40 % of the C3-grass fits had pinned at the TRY floor (above): the
+bound-relaxed refit.
+
