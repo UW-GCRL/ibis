@@ -32,4 +32,7 @@ D = pd.DataFrame(rows).drop_duplicates('site'); D.to_csv(out, index=False); pd.s
 print(f"\ncrop_vmax_scale median {D.crop_vmax_scale.median():.3f} (IQR {D.crop_vmax_scale.quantile(.25):.2f}-{D.crop_vmax_scale.quantile(.75):.2f}); by pft: " + ', '.join(f'{p} {g.crop_vmax_scale.median():.2f} (n {len(g)})' for p, g in D.groupby('pft')))
 print(f"held-out annual GPP model/tower: median {D.ratio_hold.median():.2f}, within 25 % {np.nanmean(np.abs(D.ratio_hold - 1) <= 0.25):.0%}; monthly r median {D.r_hold.median():.2f}")
 if ybase:
-    import yaml; t = yaml.safe_load(open(ybase)); g = D.groupby('pft').crop_vmax_scale.median(); t['crop'] = {'harvest_index': 0.45, 'vmax_scale_c3': float(g.get('C3', 1.0)), 'vmax_scale_c4': float(g.get('C4', 1.0))}; yaml.safe_dump(t, open(yout, 'w'), sort_keys=False); print('wrote', yout, t['crop'])
+    import yaml; t = yaml.safe_load(open(ybase)); g = D.groupby('pft').crop_vmax_scale.median(); c0 = dict(t.get('crop') or {}); c0.setdefault('harvest_index', 0.45)
+    for pft, key in (('C3', 'vmax_scale_c3'), ('C4', 'vmax_scale_c4')):          # fitted medians only; other keys (c4_share, a PFT without towers) keep the base's
+        if pft in g.index: c0[key] = float(g[pft])
+    t['crop'] = c0; yaml.safe_dump(t, open(yout, 'w'), sort_keys=False); print('wrote', yout, t['crop'])
