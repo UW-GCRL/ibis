@@ -5918,3 +5918,36 @@ grass sward that already holds the ground -- a hysteresis the warm start from s3
 consequence for the final run is a cold spin-up; a 50-year cold spin-up on the s31b set (`gate_test/cold50_s31b`) is
 queued behind s31b to confirm that temperate forests seeded at full cover hold.
 
+**s31b results (18:05; `final_s31b/score/`; 2006-2010; the s31a run as the reference).**
+
+| quantity | s31a | s31b | observed |
+|---|---|---|---|
+| GPP true land, PgC yr-1 (x FLUXCOM) | 174.9 (1.60) | **149.7 (1.37)** | 110-160 |
+| GPP x FLUXCOM: 90S-30N / 30-60N / 60-90N | 1.34 / 2.22 / 3.56 | 1.23 / 1.69 / 2.60 | |
+| by observed type: forest / mixed / grass / shrub / bare / crop | 1.26 / 1.77 / 2.29 / 5.08 / 3.20 / 1.68 | 1.14 / 1.48 / 1.84 / 3.31 / 2.44 / 1.44 | |
+| excess over FLUXCOM, PgC | 66 | **40** | |
+| GPP at the tower cells, model / tower | 1.46 | **1.08** | (tower / FLUXCOM 1.43) |
+| peak LAI x MODIS C5; x GLASS-GIMMS (x ground-corrected) | 3.04; 2.3 | **1.61; 1.59 (1.15)** | 1 |
+| leaf area per unit GPP, model / observed | 1.26 | 0.94 (grasses 0.6-0.7, trees 0.8-1.0) | 1 |
+| season: shape / amplitude / 30-50 N amplitude | 0.0097 / 0.92 / 0.83 | 0.0093 / 0.89 / 0.82 | 0 / 1 / 1 |
+| ET x ensemble | 0.99 | 1.01 | 1 |
+| NPP, PgC yr-1 | 79.6 | 68.6 | 55-60 |
+| vegetation C true land, PgC | 196 | 302 | 450-650 |
+| land sink dC/dt 2001-2010 | +2.26 | +1.54 | GCB 2.78 +- 0.69 |
+| tree cover, natural land (obs 0.39): phantom / forest lost | 0.39: 3.5 % / 9.2 % | 0.50: 6.8 % / 5.7 % | |
+| observed-forest cover (obs 0.87); lower-canopy NPP share in it | 0.68; 0.40 | 0.78; 0.17 | |
+| burned area x GFED5 (rank r) | 1.08 (0.76) | 0.86 (0.74) | 1 |
+| wetland CH4, Tg (90S-30N / 30-60N / 60-90N) | 189 (165 / 14 / 10) | 188 (166 / 12 / 9) | 153 (109 / 32 / 12) |
+
+**Reading.** The three changes did what the diagnosis said: the grass layer is bounded and weaker (its NPP share 0.64 ->
+0.40, 0.17 inside observed forest), the leaf area is at the products' level after the ground correction (1.15 x), the
+towers are matched at their cells (1.08) and the remaining 1.37 x FLUXCOM is, to first order, the plot-versus-cell
+factor (1.43) -- the reference question of section 47, now cleanly separated from the model. Still open, ranked: (1) the
+corrected gate under-gates: trees on mixed and subarctic land (natural-land cover 0.50 against 0.39, 60-90 N 0.52
+against 0.25, phantom 6.8 %) -- the threshold was estimated on s31a's thinned state and must be re-estimated on this one;
+(2) the temperate forests (0.43 of observed-forest cover in the C zone) -- the cold-spin-up test is running; (3) the
+sink is below the budget again (+1.54; NPP - Rh +10.0 with ~8.5 PgC lost to fire, disturbance and harvest), which the
+respiration refit at the new GPP (the NEE cycle) and the disturbance loss must answer; (4) the far north 2.6 x and the
+cropland 1.44 x; (5) the tropical methane band (166 against 109) under the zone-band sets; (6) the season's amplitude
+slipped 0.92 -> 0.89 with the cap. Fire fell to 0.86 x GFED5 with the thinner grass.
+
