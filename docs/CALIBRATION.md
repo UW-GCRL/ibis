@@ -5682,3 +5682,24 @@ best.json, at the tower's GLASS 0.05-degree pixel peak leaf area (`--lai`, 147 t
 evaluations, outputs `site_fit/t31_open_lpj`. The first 3.1 global run uses the open types' S2 capacity until the
 refit lands; the NEE respiration fits of the open towers were made at the S2 GPP and may want a re-check after it.
 
+**The fits were I/O-bound (2026-10-19/20).** The site harness read GSWP3 through the global reader, which decompresses
+the whole 360 x 720 grid of each of the nine variables for every month of every evaluation to keep one cell (~17 GB
+per five-year evaluation; the grid-cell harness had solved this with `fit_carbon.CachedForcing` in September, the site
+harness never used it). `gswp3_cell_cache.py` extracts the campaign's 307 cells for 1996-2010 once (55 MB,
+`inputs/sites/towers31/gswp3_cache/all_towers_ready.npz`); `tower_forcing.CellCacheReader` serves it with the reader's
+contract (and falls back to the global files for a month or cell it lacks); site_fit uses the cache when the file exists
+(`IBIS_GSWP3_LIVE` forces the files, `IBIS_GSWP3_CACHE` names another cache). Same values, same baseline loss (GL-Dsk
+14.6346 both ways). NEE fits 68 -> 20 min (median), memory per fit 18.4 -> 15.3 GB. The reading of "the CPUs are
+saturated" (10-19) was decompression, not model compute.
+
+**A second machine (eridu, the lab's Mac Studio: M2 Ultra, 16P + 8E cores, 128 GB; Hangkai 10-19).** A mirror of the
+inputs the harness needs under ~/nas2 (code with the NAS prefix rewritten, tower files, S2 best.json, the restart, the
+cell cache; 2 GB), a pinned Python 3.12 / JAX 0.11 environment, no core pinning, 4-5 fits at a time under caffeinate.
+Validated on GL-Dsk (baseline 14.6347 vs 14.6346 here, float32 noise). It ran the 147 open-type refits in 3.5 h
+(22:20-01:51, 0 failed; memory peak 17.9 GB per fit, >= 61 GB free) and then the 46 crop fits under the LPJ cover
+(Hangkai 10-20: "yes"; `params_s7_crop_lpjcover.yaml`, 5 at a time). Results are copied to the NAS with rsync
+--inplace --no-perms --no-times: the CIFS share refuses rsync's temp files, which left the first pull loop writing
+empty folders all night (caught at 02:00, recopied and verified). Refit vs S2 capacity (vmax ratio, median): GRA 1.00,
+CSH 1.01, OSH 1.02, WSA 1.06, SAV 1.09 -- the pixel leaf area and the LPJ cover roughly cancel at most open towers;
+savannas gain capacity under the thinner cover.
+

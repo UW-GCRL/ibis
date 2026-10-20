@@ -95,6 +95,7 @@ TARGET = 'gpp'     # 'gpp' (GPP + w_et ET) or 'nee' (night-time + w_day day-time
 NEE_T = None       # the tower day/night NEE targets (tower_nee_daynight.py npz), loaded by main() from --nee-targets
 CH4_T = None       # the tower monthly CH4 targets (ch4_tower_prep.py npz), loaded by setup() from --ch4-targets (CALIBRATION.md 38)
 WAD2M = '/shared/nas2/Hangkai/ibis/inputs/methane/wad2m/WAD2M_wetlands_2000-2020_05deg_Ver2.0.nc'
+GSWP3_CACHE = '/shared/nas2/Hangkai/ibis/inputs/sites/towers31/gswp3_cache/all_towers_ready.npz'   # campaign cell cache (CALIBRATION.md 49), activated by renaming a validated all_towers.npz
 
 
 def misfit_nee(dn, obs, n, years, w_day):
@@ -311,7 +312,15 @@ def setup(a, spin=True, verbose=True):
     C = types.SimpleNamespace(sites=sites, train=train, hold=hold, ns=ns, names=names, z0=z0, decode=decode, obs=obs, lai_src=lai_src)
     if not spin: return C
     # --- spin once with the starting parameters (fixed vegetation: soil water/temperature and seasonal states settle)
-    rd = TowerForcingReader(sites, GSWP3Reader(GSWP3), use_hourly_sw=getattr(a, 'hourly_sw', False)); consts = PhysicalConstants()
+    # GSWP3 at the tower cells from a cell cache (gswp3_cell_cache.py, CALIBRATION.md 49): the global reader decompresses
+    # the whole grid of every variable for every month of every evaluation (~17 GB per 5-year evaluation), which made the
+    # fits I/O-bound. IBIS_GSWP3_CACHE: a cache and nothing else (machines without the NAS); otherwise the campaign cache
+    # when it exists, falling back to the global files for any month or cell it lacks. The values are the same copies.
+    _TF = __import__('tower_forcing')
+    if os.environ.get('IBIS_GSWP3_CACHE'): _g3 = _TF.CellCacheReader(os.environ['IBIS_GSWP3_CACHE'])
+    elif os.path.exists(GSWP3_CACHE) and not os.environ.get('IBIS_GSWP3_LIVE'): _g3 = _TF.CellCacheReader(GSWP3_CACHE, fallback=GSWP3Reader(GSWP3))
+    else: _g3 = GSWP3Reader(GSWP3)
+    rd = TowerForcingReader(sites, _g3, use_hourly_sw=getattr(a, 'hourly_sw', False)); consts = PhysicalConstants()
     from ibis.io.co2 import co2_molmol          # an ARRAY, not a Python float: a float is static under filter_jit and recompiles per value
     site_transient.apply_co2 = (lambda q, y, series=None: eqx.tree_at(lambda z: z.atm.co2conc, q, jnp.asarray(co2_molmol(y) if a.co2 == 'series' else 385.0e-6, jnp.float32)))
     FIN = None                                                                                          # inundated fraction per site (CALIBRATION.md 38)

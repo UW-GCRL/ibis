@@ -133,3 +133,25 @@ class TowerForcingReader:
         for (y, m), gap in self.gap.items():
             for k, v in gap.items(): acc.setdefault(k, []).append(v)
         return {k: float(np.mean(v)) for k, v in acc.items()}
+
+class CellCacheReader:
+    """A GSWP3 reader that serves the months of a cell cache (gswp3_cell_cache.py) instead of the global files, for
+    running the site harness on a machine without the NAS (CALIBRATION.md 49). Same contract as GSWP3Reader.read_month:
+    {variable: (ndays, npoi) float32, 'ndays', 'year', 'month'}; the requested (latindex, lonindex) pairs must be cached."""
+    def __init__(self, path, fallback=None):
+        z = np.load(path, allow_pickle=False)
+        self.variables = tuple(str(v) for v in z['variables'])
+        self._col = {(int(i), int(j)): k for k, (i, j) in enumerate(zip(z['lat_i'], z['lon_j']))}
+        self._z = {k: z[k] for k in z.files}
+        self._fallback = fallback          # a GSWP3Reader for months or cells the cache lacks (None: a KeyError)
+
+    def read_month(self, year, month, latindex, lonindex, fill_value=1e20):
+        try:
+            cols = [self._col[(int(i), int(j))] for i, j in zip(latindex, lonindex)]
+            out = {v: self._z[f'{year}_{month}_{v}'][:, cols].astype(np.float32) for v in self.variables}
+        except KeyError:
+            if self._fallback is None: raise
+            return self._fallback.read_month(year, month, latindex, lonindex, fill_value=fill_value)
+        out.update(ndays=int(self._z[f'{year}_{month}_ndays']), year=year, month=month)
+        return out
+
