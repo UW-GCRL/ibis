@@ -58,11 +58,11 @@ for dcd in dec.index:
 c = '2001-2010' if '2001-2010' in T.columns else T.columns[0]; mm = T[c].drop([i for i in T.index if 'mean' in str(i).lower() or 'sd' in str(i).lower() or 'spread' in str(i).lower()], errors='ignore')
 print(f"  TRENDY-v13 {c}: multi-model mean {mm.mean():.2f}, range {mm.min():.2f} ({mm.idxmin()}) to {mm.max():.2f} ({mm.idxmax()}), IBIS-v13 {T.loc['IBIS', c] if 'IBIS' in T.index else float('nan'):.2f}")
 # --- GMB 2025: bottom-up wetlands
-for per in ('2000-2009', '2010-2019'):
-    f = f'{MIP}/gmb2024/GMB2024_BU_wetlands_{per}_ensemble_stats.csv'
+for pr in ('2000-2009', '2010-2019'):                      # `pr`, not `per`: `per` is the period-mean Series used below
+    f = f'{MIP}/gmb2024/GMB2024_BU_wetlands_{pr}_ensemble_stats.csv'
     if os.path.exists(f):
         E = pd.read_csv(f, index_col=0)
-        print(f"\nGMB 2025 bottom-up wetlands {per} (Tg CH4 yr-1): global {E.loc['mean', 'Global']:.0f} [{E.loc['min', 'Global']:.0f}-{E.loc['max', 'Global']:.0f}]; "
+        print(f"\nGMB 2025 bottom-up wetlands {pr} (Tg CH4 yr-1): global {E.loc['mean', 'Global']:.0f} [{E.loc['min', 'Global']:.0f}-{E.loc['max', 'Global']:.0f}]; "
               + ', '.join(f"{b} {E.loc['mean', b]:.0f} [{E.loc['min', b]:.0f}-{E.loc['max', b]:.0f}]" for b in bands))
 if 'ch4' in D:
     for dcd in dec.index:
