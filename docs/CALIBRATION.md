@@ -5904,3 +5904,17 @@ tower outputs and the `params_31*.yaml` files is an internal working label for t
 model is published, all of it is part of **IBIS 3.0**: the README, the report and any external text say IBIS 3.0; the
 internal labels stay as they are in logs and file names.
 
+**s31b mid-transient (16:20, year 65).** GPP 1956-1965 is 0.86 x s31a's (tropics 0.92, 30-60 N 0.78, 60-90 N 0.75),
+i.e. ~151 PgC on the 2006-2010 basis; ET unchanged. Observed-forest tree cover from the thinned 1900 state: boreal 0.51
+-> 0.83 by 1940 (s7's level: the gate fix works and the boreal forest regrows in 40 years), tropical 0.70 -> 0.78,
+**temperate 0.40 -> 0.43 (s7 0.87): no recovery**; phantom share 2.2 -> 5.4 % (trees re-establishing on marginal land the
+corrected gate now allows; s7 had 15 %). The temperate tree types are not the cause -- their respiration (rgrowth 0.10-
+0.14, rroot 0.5-0.9) sits at or below the base and their capacity above it. Two causes: (1) the temperate C3 grass G06
+keeps a median capacity of 30.2 umol (base 31.1): only its bound-pinned towers were refit (to ~17), the interior-optimum
+towers stayed at ~31 and the median is the upper half -- the towers are split, and the type median hardly moved, so the
+invasion is weakened less than the C3-grass-wide 0.56 suggested; (2) re-establishment: the five-year arms (section 50)
+showed an established temperate forest holding under the 3.1 set, while a thinned forest cannot regrow through a
+grass sward that already holds the ground -- a hysteresis the warm start from s31a's 1900 state cannot escape. The
+consequence for the final run is a cold spin-up; a 50-year cold spin-up on the s31b set (`gate_test/cold50_s31b`) is
+queued behind s31b to confirm that temperate forests seeded at full cover hold.
+
