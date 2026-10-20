@@ -5703,3 +5703,13 @@ empty folders all night (caught at 02:00, recopied and verified). Refit vs S2 ca
 CSH 1.01, OSH 1.02, WSA 1.06, SAV 1.09 -- the pixel leaf area and the LPJ cover roughly cancel at most open towers;
 savannas gain capacity under the thinner cover.
 
+**Crop fits under the LPJ cover: bound-pinned, not adopted (2026-10-20 03:10; `logs/crop_fit_report_t31.csv`,
+`params_31_base_crop.yaml` as the record).** The 46 crop towers refitted under `params_s7_crop_lpjcover.yaml` (same
+protocol as section 41, leaf area the MODIS cell maximum): C3 median 0.30 with 25 of 42 towers at the floor 0.3 (s7: 0.33
+from 16 towers; the fallow season the managed grass does not have), C4 3.00 with all four maize towers at the cap and
+still 0.58-0.83 x their GPP (s7: 1.16): under the thinner cover at a crop LAI of ~1.7 the capacity cannot reach maize.
+A section with both medians at their bounds would raise the global cropland capacity 0.49 -> 0.84 x grass, so the first
+3.1 run keeps s7's crop scales (0.329 / 1.158, already run under the LPJ cover in the cover test: cropland 1.65 x
+FLUXCOM). Next for crops, if wanted before IBIScrop: the refit at the towers' GLASS pixel leaf area (Corn Belt pixels
+3-4 against the cell maximum 1.7), as done for the open types.
+
