@@ -5802,3 +5802,11 @@ rose. A two-arm five-year run from the s7 2000 state (the 3.1 set with and witho
 split; the fixes on offer are the gate's stress averaged over the growing season (a definition change of the gate) and
 the bound-relaxed refit of the grass and shrub types.
 
+**The gate ran on the calendar-year stress (found 10:05).** The accumulator restricts the mean to days warmer than
+`pheno.stress_accum_tmin`; stage (b3) set it to 5 C ("frozen soil reads as fully stressed, so a calendar mean cannot
+tell boreal forest from steppe", section 18), the site-first sets started from the defaults (-100 C, every day) and
+nobody carried it over, so the gate of sections 47-50 has been fed the calendar mean -- the boreal artefact above is
+that. `params_31a_gs.yaml` = the 3.1 set with stress_accum_tmin 5.0; the threshold 0.225 / 0.30 was fitted to the
+calendar-mean field and must be re-estimated on the growing-season field (`gate_test/gs_stress1`, one year from the
+s31a 2000 state, queued behind the forest diagnosis).
+
