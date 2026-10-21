@@ -299,6 +299,11 @@ def timestep_body(
             _mask = jnp.zeros((veg.plai.shape[1],), dtype=_fs.dtype).at[jnp.array(sp.acclim_pfts)].set(1.0)
             acclim_vfac = 1.0 - _mask[jnp.newaxis, :] + _mask[jnp.newaxis, :] * _fs[:, jnp.newaxis]
 
+    if acclim_vfac is not None and sp.frost_on:
+        # frost scalar on the day's mean air temperature (CALIBRATION.md 53), on the acclimated PFTs only
+        _ff = jnp.clip((atm.td - 273.16 - sp.frost_t0) / (sp.frost_t1 - sp.frost_t0), 0.0, 1.0)
+        _mask = jnp.zeros((veg.plai.shape[1],), dtype=acclim_vfac.dtype).at[jnp.array(sp.acclim_pfts)].set(1.0)
+        acclim_vfac = acclim_vfac * (1.0 - _mask[jnp.newaxis, :] + _mask[jnp.newaxis, :] * _ff[:, jnp.newaxis])
     acclim_vfac = crop_vfac(params, acclim_vfac, veg.plai.shape[1])
 
     npoi = soil.tg.shape[0]

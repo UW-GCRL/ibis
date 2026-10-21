@@ -54,7 +54,7 @@ TYPES = (
     ('T04', 'tropical highland broadleaf evergreen tree', 'tree_be', ('C_highland',), 3),
     ('T05', 'hot-arid woodland tree (acacia, mulga)', 'tree_be', ('B_hot',), 2),
     ('T06', 'subtropical broadleaf evergreen tree', 'tree_be', ('C_subtrop',), 3),
-    ('T07', 'subtropical conifer (southern pines)', 'tree_ne', ('C_subtrop', 'C_highland', 'A_humid'), 4),
+    ('T07', 'subtropical conifer (southern pines)', 'tree_ne', ('C_subtrop', 'C_highland'), 4),   # A_humid dropped (CALIBRATION.md 53)
     ('T08', 'subtropical broadleaf deciduous tree', 'tree_bd', ('C_subtrop', 'C_highland'), 5),
     ('T09', 'Mediterranean sclerophyll evergreen tree', 'tree_be', ('C_med',), 3),
     ('T10', 'Mediterranean conifer', 'tree_ne', ('C_med',), 4),

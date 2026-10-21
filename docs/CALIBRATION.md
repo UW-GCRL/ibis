@@ -6061,3 +6061,48 @@ against 2.78) only because the vegetation is still filling (NPP - Rh +12.2; vege
 start under rising CO2) -- not a calibrated number. Next (section 53): gate 0.50 confirmed by a 20-year continuation,
 T07 out of A_humid, the boreal evergreen GDD5 floor 600 and the evergreen cold-season down-regulation, then s31d.
 
+## 53. Stage s31d: the gate on the fixed state, the humid-tropics conifer, the boreal floor, the evergreen winter (2026-10-21)
+
+Two literature briefs were written for this stage (`ibis_local_document/logs/season_length_literature_2026-10-21.md`,
+`far_north_vegetation_literature_2026-10-21.md`); the in-house diagnosis that goes with them:
+
+- 30-60 N season (s31b vs FLUXCOM, 2006-2010): July 1.2x but April 2.2x, October 3.3x, November 5.5x; Nov-Mar 11 % of
+  annual GPP vs 4 %. By month and canopy against GLASS: the forests' upper LAI is 3.3 in January (GLASS 0.5) because
+  the forests are evergreen -- deciduous share of tree biomass 15 % (D_temperate 7 %) against 26 % (32 %) in the CLM
+  PFT map, the conifer type out-competing the deciduous type in every shared zone; GPP per unit leaf area is BELOW the
+  observed value in every month (April 19 vs 52 gC m-2 month-1 per LAI). Open land: grass LAI 2x GLASS and green from
+  March. Cropland: managed grass at LAI 1.0 in January, 3.1 in April (GLASS peaks 2.0 in July) -- left as is: IBIScrop
+  comes in later with Chris (user, 2026-10-21). So the season-length error is leaf area and composition, not rate;
+  the literature (Richardson 2012: Can-IBIS onset 52 d early, autumn +45 d; Bottcher 2016) splits it the same way --
+  deciduous and grass = phenology (photoperiod-gated forcing and senescence), evergreen = the photosynthesis
+  temperature response (winter capacity ~10 % of summer, Kolari 2014; PRELES applies its acclimation factor to the
+  light-use efficiency, not to Vcmax alone), crops = a calendar.
+- 60-90 N (s31b 2010 state): the phantom-tree cells (obs < 0.15, model > 0.4; 13 % of the natural land) have GDD5
+  p10/50/90 = 399/471/575, the real forests 731/938/1172; a GDD5 floor of 600 keeps 97 % of the observed-forest area
+  and removes 94 % of the phantom area (350 removes none; a warmest-month rule separates nothing). The LPJ family uses
+  exactly that split: GDD5 600 for the boreal needleleaf evergreen, 350 for larch and birch (Sitch 2003); IBIS's 350
+  for all boreal trees is the larch value. The briefs' other levers (liquid-only root water -- IBIS already has it;
+  cold mortality; tundra limits; establishment-rate cap) are kept for later.
+
+**The four changes of s31d**, all switches or single numbers:
+
+1. **Gate 0.50** (ramp 0.30; `tree_stress_min`): re-estimated on the s31c state (section 52); the 0.225 continuation
+   had shown the gate's dynamic fixed point is stable, so one offline estimate plus a 20-year continuation suffices
+   (`gate_test/warm20_s31c_gate0.50`, `_0.55`).
+2. **T07 out of A_humid** (`pft_types.TYPES`, `pft_koppen_design.py`): the subtropical conifer was listed in the humid
+   tropics as well and, existing by zone, took half of the humid tropics' wood in s31c. The humid tropics' pines are
+   local and do not belong to the zone as a type; A_humid is T01 / T02 / S07 / G01 again.
+3. **Boreal evergreen GDD5 floor 600** (`pft.boreal_conifer_evergreen.GDD` 350 -> 600 in `params_31d.yaml`): read by
+   the typed-position existence (section 52) for T17; T18/T19 keep 350.
+4. **Evergreen cold-season down-regulation** (`stomata: acclim_light, frost_on, frost_t0, frost_t1`; `stomata.py`,
+   `loops.py`, `physics_params.py`, `tests/test_cold_season.py`): with `acclim_light` the acclimation factor of each
+   big leaf -- the ratio by which the acclimation scaled its nominal Vmax, displayed-LAI-weighted over its PFTs -- also
+   scales the light-limited rate (`farquhar_c3/c4(..., je_fac)`), through every path (plain, sun/shade, capacity-
+   scaled); with `frost_on` a scalar on the day's mean air temperature (0 at <= frost_t0 = -5 C, 1 at >= frost_t1 =
+   +5 C) multiplies the factor of the acclimated PFTs (3, 5, 8: the temperate and boreal evergreen conifers and the
+   evergreen shrub). The fitted per-type acclimation constants are kept. Off: bit-identical (je_fac None).
+
+`params_31d.yaml` = `params_31b_relax.yaml` + 1, 3, 4; change 2 is in the code. Checks before the protocol run: the
+32-tower dynamic-carbon batch under the s31d set (`site_runs/viab4_31d`, against `viab3_31b`: cold-season share and
+GPP ratio), the gate continuations, and a 10-year warm continuation of s31c under the full set (`gate_test/warm10_s31d`).
+

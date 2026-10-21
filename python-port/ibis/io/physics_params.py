@@ -178,6 +178,10 @@ def build_stomata_params(d: dict) -> StomataParams:
         coefm_mix=bool(s.get('coefm_mix', False)),             # CALIBRATION.md 32; off: bit-identical
         coefm_pft=_pft_vector(s.get('coefm_pft'), [float(coefm[_PFT_SLOPE_GROUP[i]]) for i in range(len(PFT_NAMES))]),
         acclim_per_pft=bool(s.get('acclim_per_pft', False)),
+        acclim_light=bool(s.get('acclim_light', False)),            # CALIBRATION.md 53; off: bit-identical
+        frost_on=bool(s.get('frost_on', False)),
+        frost_t0=float(s.get('frost_t0', -5.0)),
+        frost_t1=float(s.get('frost_t1', 5.0)),
         gpp_split_by_capacity=bool(s.get('gpp_split_by_capacity', False)),   # CALIBRATION.md 45.1; off: bit-identical
         acclim_s0_pft=_pft_vector(s.get('acclim_s0_pft'), [float(s.get('acclim_s0', -3.063))] * len(PFT_NAMES)),
         acclim_smax_pft=_pft_vector(s.get('acclim_smax_pft'), [float(s.get('acclim_smax', 17.72))] * len(PFT_NAMES)),
