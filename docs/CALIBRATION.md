@@ -6027,3 +6027,37 @@ s31b types (3.0 set in brackets): T06 1.22 (1.11), T07 0.95 (1.17), T08 1.16 (1.
 sets the leaf level and the fitted capacities give 0.8-1.3x at that level. The outliers are capacity items of the
 tower stage: CN-Din 2.55x, AU-Whr 0.56x (T06); DE-HoH and DK-Sor 0.67-0.71x (T12).
 
+**s31c (cold protocol on the fixed code, s31b set unchanged; 04:36-11:02 2026-10-21; `final_s31c/score/`; 2006-2010).**
+
+| quantity | s31b | **s31c** | observed |
+|---|---|---|---|
+| GPP true land, PgC yr-1 (x FLUXCOM) | 149.7 (1.37) | **161.6 (1.48)** | 110-160 |
+| 90S-30N / 30-60N / 60-90N (x FLUXCOM) | 1.23 / 1.69 / 2.60 | 1.31 / 1.90 / 2.53 | |
+| by observed type: forest / mixed / grass / shrub / crop | 1.14 / 1.48 / 1.84 / 3.31 / 1.44 | 1.21 / 1.66 / 1.99 / 3.42 / 1.55 | |
+| observed-forest cover (obs 0.87); forest lost | 0.78; 5.7 % | **0.92; 1.2 %** | |
+| tree cover on natural land (obs 0.39); phantom | 0.50; 6.8 % | 0.59; 8.5 % | |
+| C_subtrop / C_oceanic / C_med / C_highland natural-land cover (obs) | 0.13 (0.49) / 0.25 (0.59) / 0.13 (0.31) / 0.09 (0.48) | 0.84 / 0.95 / 0.82 / 0.79 | |
+| GPP at the tower cells, model / tower (A / B / C / D) | 1.08 | 1.33 (1.06 / 1.67 / 1.38 / 1.28) | |
+| peak LAI x products (ground-corrected) | 1.61 (1.15) | 1.83 (1.31) | 1 |
+| leaf per GPP: warm BE / temp conifer / temp BD / boreal conifer / boreal BD | | 0.89 / 1.09 / 0.74 / 0.84 / 0.51 | 1 |
+| ET x ensemble; NPP | 1.01; 68.6 | 1.04; 74.9 | 1; 55-60 |
+| vegetation C, PgC | 302 | 373 | 450-650 |
+| sink: pool change 2001-2010 (flux NPP - Rh) | +1.54 (+10.0) | +2.62 (+12.2) | GCB 2.78 |
+| wetland CH4, Tg (bands) | 188 (166/12/9) | 187 (164/14/9) | 153 (109/32/12) |
+| lower-canopy NPP share (in observed forest) | 0.40 (0.17) | 0.31 (0.08) | |
+| gate re-estimate on this state (ramp 0.30) | 0.525 | **0.50** (cover 0.41, phantom 3.6 %, forest lost 2.9 %) | |
+
+The fix did what it should for the forests: observed-forest cover 0.92, forest lost 1.2 %, the C zones' forests back
+with their own types (C_subtrop T06/T07, C_oceanic T13/T14, C_med T10). Two costs, both expected and both outside the
+fix itself: (1) with every typed position existing throughout its zone, the trees spread over the NON-forest natural
+land of the C zones (C_med 0.82 against 0.31, C_subtrop 0.84 against 0.49) and the gate at 0.225 -- estimated on a
+thinned state -- no longer gates anything: re-estimated on this state it is 0.50 (ramp 0.30); (2) a zone-design
+artefact: T07 (subtropical conifer) is assigned to A_humid as well, and once it may exist there it takes half of the
+humid tropics' wood (position 4: 3.82 against T02's 3.22 kgC m-2) -- conifers in the Amazon and the Congo; the humid
+tropics' pines are local (Central America, SE Asian uplands) and do not belong to the zone as a type. GPP rose 12 PgC:
+the recovered forests sit at the leaf-area cap and the C-zone towers now read 1.38x (the stands fitted at prescribed
+leaf area over-produce at the cap), and the trees on open land add the rest. The sink is back on the budget (+2.62
+against 2.78) only because the vegetation is still filling (NPP - Rh +12.2; vegetation C 373 and rising from a cold
+start under rising CO2) -- not a calibrated number. Next (section 53): gate 0.50 confirmed by a 20-year continuation,
+T07 out of A_humid, the boreal evergreen GDD5 floor 600 and the evergreen cold-season down-regulation, then s31d.
+
