@@ -1,4 +1,4 @@
-# IBIS 3.1 set for s31d (CALIBRATION.md 53): params_31b_relax + gate 0.50, boreal evergreen GDD5 floor 600, cold-season down-regulation (acclim_light, frost_on). T07 out of A_humid is in the code (pft_types).
+# IBIS 3.1 set for s31d (CALIBRATION.md 53): params_31b_relax + gate 0.55 (20-year continuations: 0.50 -> cover 0.43, 0.55 -> 0.40 against 0.33, forest lost 3.2 %), boreal evergreen GDD5 floor 600, cold-season down-regulation (acclim_light, frost_on). T07 out of A_humid is in the code (pft_types).
 stomata:
   tau15: 4500.0
   kc15: 0.00015
@@ -244,7 +244,7 @@ pft:
     lai_max: 2.75
   xminlai: 0.01
   woodnorm: 7.5
-  tree_stress_min: 0.5
+  tree_stress_min: 0.55
   tree_stress_ramp: 0.3
   fu_min: 0.05
   cover_k: 0.5
