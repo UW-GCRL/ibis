@@ -5996,3 +5996,26 @@ stay 0, and with `koppen_types` off nothing changes (slot_typed is None: bit-ide
 degree-day limit (T17 below gdd5 350 does not exist), so the far-north question of section 50 is untouched by this.
 Test: `test_typed_positions_exist_by_zone_not_by_the_parents_temperature_band`.
 
+**Checked (10-year global cold runs on the s31b set, `gate_test/czone_box/global_ctl` = the code before the fix,
+`global_fix` = after; observed-forest cells, area-weighted; tower runs `site_runs/viab3_*`).**
+
+| zone | before: cover / upper LAI / upper NPP at year 10 | after | the live positions after |
+|---|---|---|---|
+| C_subtrop | 0.85 / 0.52 / 123 gC m-2 | **0.95 / 4.88 / 938** | T06 leaf 0.113, T07 0.134 kgC and growing; T08 0.024 |
+| C_oceanic | 0.91 / 1.05 / 226 | **0.98 / 5.38 / 1144** | T14 0.112, T13 0.194; T12 0.006 |
+| C_med | 0.92 / 0.43 / 77 | **0.96 / 5.61 / 1031** | T10 0.322; T09 0.045 |
+| C_highland | 0.80 / 0.47 / 86 | **0.92 / 5.46 / 863** | T07 0.280; T04 0.048 |
+| D_temperate | 0.96 / 2.52 / 551 | 0.97 / 2.75 / 660 | unchanged in kind (T16; T15 outcompeted) |
+
+The control reproduces the cold-50 collapse to the digit; with the fix the C-zone forests stand up within five
+years and sit at the leaf-area cap (5.5 / 6.0 per unit cover) from year 5 -- the cap, not the envelope, is now what
+bounds them, and the question of their leaf level moves to the leaf-area stage. At the towers (dynamic carbon, the
+temperate PFTs' `TminU` raised to 18 C so the harness lets them exist; gate off) the same stands that died now
+live: the five T07 pine towers at GPP model/tower 0.84-1.34 (median 0.95) and LAI 5.8 (the cap) under the s31b
+types, 1.17 and LAI 10 under the 3.0 set; CN-Din's T06 at 2.55x (its fitted capacity at the tower's prescribed LAI
+is too high once the leaf area runs to the cap -- a capacity item for the type, not a viability one). The
+deciduous types (T08, T12, T15) lose to the evergreen conifer in every zone they share -- composition, not cover,
+and left for the leaf-area stage. Full suite 765 passed. Next: the closing protocol from a cold start on this code
+(s31c), then the gate re-estimated on its state (the 0.225 continuation `warm20_s31b_gate0.225` showed the gate's
+fixed point is stable: cover 0.446 at 2020 and 2030).
+
