@@ -6106,3 +6106,21 @@ Two literature briefs were written for this stage (`ibis_local_document/logs/sea
 32-tower dynamic-carbon batch under the s31d set (`site_runs/viab4_31d`, against `viab3_31b`: cold-season share and
 GPP ratio), the gate continuations, and a 10-year warm continuation of s31c under the full set (`gate_test/warm10_s31d`).
 
+**Checks (2026-10-21 12:00-13:10).** Gate continuations from the s31c 2010 state (20 years, forcing 1991-2010 cycled):
+0.50 -> natural-land cover 0.43 (2020 and 2030 alike; obs 0.33 on that mask), phantom 4.2 %, forest lost 2.5 %;
+0.55 -> 0.40, 3.5 %, 3.2 % -- the dynamic fixed points sit ~0.03 above the offline estimates; **0.55 adopted**
+(`params_31d.yaml`). Tower batch under the s31d set (`viab4_31d` vs `viab3_31b`, 32 towers, dynamic carbon, gate off):
+EBF and DBF stands unchanged; the 12 ENF stands (mild-winter pines of the SE US and W Europe) GPP 1.12 -> 0.99 and
+Nov-Mar share 0.129 -> 0.098 against 0.134 measured -- at those sites the fitted acclimation had already matched the
+towers' winter share, so the switch is slightly strong there; the boreal conifers (`viab5_*`, 12 towers) are the
+target. 10-year warm continuation of s31c under the full set (`gate_test/warm10_s31d`, gate 0.50, years 2016-2020
+against the s31c hindcast 2006-2010; FLUXCOM 2006-2010 as the reference throughout): GPP 161.6 -> 140.2 PgC (1.48 ->
+1.28x); 30-60 N 45.3 -> 38.5 (1.61x), 60-90 N 8.4 -> 7.0 (2.08x), tropics 101 -> 88.5 (1.12x); by type forest 1.21 ->
+1.13, mixed 1.66 -> 1.32, open 2.26 -> 1.94, crop 1.55 -> 1.26; natural-land tree cover 0.60 -> 0.46 (obs 0.39):
+A_savanna 0.84 -> 0.40 (obs 0.39), C_med 0.82 -> 0.42 (0.31), C_subtrop 0.84 -> 0.66 (0.49), C_oceanic 0.95 -> 0.87
+(0.59), D_subarctic 0.77 -> 0.72 (0.44; the GDD floor acts at establishment, the standing trees decay slowly), E_tundra
+0.21 -> 0.17 (0.07); the humid tropics' position-4 wood 3.82 -> 1.48 and falling. 30-60 N shoulder months: April
+2.6 -> 2.0x, October 3.7 -> 2.9x, November 7.4 -> 5.1x; Nov-Mar share 0.132 -> 0.118 (FLUXCOM 0.039) -- the
+cold-season switch takes a third of the winter excess; the rest is the evergreen composition and the leaf display
+(stage 54, phenology). Cold-start s31d is the real test of the GDD floor and of the far north.
+
