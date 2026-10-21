@@ -6124,3 +6124,14 @@ A_savanna 0.84 -> 0.40 (obs 0.39), C_med 0.82 -> 0.42 (0.31), C_subtrop 0.84 -> 
 cold-season switch takes a third of the winter excess; the rest is the evergreen composition and the leaf display
 (stage 54, phenology). Cold-start s31d is the real test of the GDD floor and of the far north.
 
+**The boreal conifer towers decide against the cold-season switch (13:15).** `viab5_31b` vs `viab5_31d`, 12 T17 towers
+(CA-Man, CA-NS1/3, CA-SCC, CH-Dav, FI-Sod, IT-Ren, SE-Ros, US-GLE, US-NR1; DE-Lkb and FI-Hyy die in the harness under
+the F77 "not too warm" band of PFT 6, gdd5 < 1200, and do not count): under the s31b set the model's Nov-Mar share is
+already 0.015 against 0.019 measured -- the per-type acclimation constants fitted in the campaign had closed the
+September gap (0.12-0.16 vs 0.01-0.06, section 21) at the cold conifers; the switch leaves the winter share where it
+is (0.014) and costs 15 % of annual GPP (median ratio 1.02 -> 0.87, the shoulders), as it cost 12 % at the mild-winter
+pines (1.12 -> 0.99). The towers therefore say the evergreen RATE is right in the 3.1 set, and the 30-60 N shoulder
+excess is leaf display and composition (section 53's diagnosis: upper LAI 3.3 in January, 85 % evergreen). Decision:
+`acclim_light` and `frost_on` stay in the code, OFF in `params_31d.yaml`; s31d carries the gate 0.55, T07 out of
+A_humid and the GDD5 floor 600. The winter item moves whole to the phenology/composition stage.
+
