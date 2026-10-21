@@ -589,7 +589,7 @@ def run_global_simulation(config: IBISConfig) -> None:
         state.vegetation.gdd0, state.vegetation.gdd5,
         pft_params,
         exist_mask=_exist_mask_for(config.time.iyear0), larch_gdd_fix=_larch_fix,
-        slot_parent=params.slot_parent, slot_gate=params.slot_gate,
+        slot_parent=params.slot_parent, slot_gate=params.slot_gate, slot_typed=params.slot_typed,
     )
     state = eqx.tree_at(lambda s: s.vegetation.exist, state, exist_init)
     logger.info("  PFT existence set from climate normals "
@@ -829,7 +829,7 @@ def run_global_simulation(config: IBISConfig) -> None:
             state.vegetation.gdd0, state.vegetation.gdd5,
             pft_params,
             exist_mask=_exist_mask_for(year), larch_gdd_fix=_larch_fix,
-            slot_parent=params.slot_parent, slot_gate=params.slot_gate,
+            slot_parent=params.slot_parent, slot_gate=params.slot_gate, slot_typed=params.slot_typed,
         )
         state = eqx.tree_at(
             lambda s: s.vegetation.exist, state, exist_new,

@@ -71,6 +71,23 @@ def test_existence_takes_the_parent_envelope_and_the_gate():
     assert np.array_equal(np.asarray(e[1]), np.asarray(base[1]))
 
 
+def test_typed_positions_exist_by_zone_not_by_the_parents_temperature_band():
+    # CALIBRATION.md 52: a subtropical cell (coldest month +5 C) -- the F77 bands forbid the temperate PFTs 3/4/5
+    # (they need tcmin < 0), the zone type must exist there; a tundra cell below the degree-day floor stays treeless.
+    pp = build_all_params(3, np.zeros(3))[1]
+    tcmin = jnp.array([5.0, -30.0, 5.0]); tw = jnp.array([28.0, 8.0, 28.0]); gdd0 = jnp.array([6000.0, 300.0, 6000.0]); gdd5 = jnp.array([5000.0, 200.0, 5000.0])
+    z = np.array([P.ZI['C_subtrop'], P.ZI['E_tundra'], P.ZI['none']]); s = P.slot_map(z)
+    kw = dict(slot_parent=P.slot_parent(s), slot_gate=P.slot_gate(s), slot_typed=P.slot_typed(s))
+    e = existence(tcmin, tw, gdd0, gdd5, pp, **kw); base = existence(tcmin, tw, gdd0, gdd5, pp)
+    assert float(base[0, 2]) == 0.0 and float(base[0, 3]) == 0.0 and float(base[0, 4]) == 0.0
+    assert [float(e[0, k]) for k in (2, 3, 4)] == [1.0, 1.0, 1.0]        # T06 / T07 / T08 exist in Cfa
+    assert [float(e[0, k]) for k in (0, 1, 5, 6, 7)] == [0.0] * 5       # OFF positions stay off
+    assert float(e[1, 5]) == 0.0                                          # T17 in tundra below gdd5 350: no
+    old = existence(tcmin, tw, gdd0, gdd5, pp, slot_parent=P.slot_parent(s), slot_gate=P.slot_gate(s))
+    assert float(old[0, 3]) == 0.0                                        # the parent's band alone forbade it
+    assert np.array_equal(np.asarray(e[2]), np.asarray(base[2]))         # unclassified cell: the 12-PFT envelope
+
+
 def test_capacity_shares_conserve_the_big_leaf_and_favour_capacity():
     frac = jnp.array([[0.5, 0.0, 0.0, 0.3, 0.2, 0.0, 0.0, 0.0, 0.6, 0.4, 0.0, 0.0]])
     same = capacity_shares(frac, jnp.full((12,), 40e-6), (0, 1, 2, 4, 6))

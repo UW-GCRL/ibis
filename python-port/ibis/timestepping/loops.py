@@ -121,6 +121,9 @@ class SimParams(eqx.Module):
     slot_habit: Optional[Float[Array, "npoi 12"]] = None
     slot_parent: Optional[Float[Array, "npoi 12"]] = None
     slot_gate: Optional[Float[Array, "npoi 12"]] = None
+    #: 1 where the position holds a zone type: it exists by zone membership, not the parent's temperature bands
+    #: (CALIBRATION.md 52).
+    slot_typed: Optional[Float[Array, "npoi 12"]] = None
     crop: CropParams = eqx.field(default_factory=default_crop_params)
 
     # Thermal-only bedrock below the soil column (docs/BEDROCK.md). Only used

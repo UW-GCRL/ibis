@@ -162,6 +162,11 @@ def slot_gate(slots) -> np.ndarray:
     return (np.asarray(slots) != OFF).astype(np.float32)
 
 
+def slot_typed(slots) -> np.ndarray:
+    """(npoi, 12) 1.0 where the position holds a zone TYPE (its existence is the zone's; climate_analysis.existence)."""
+    return (np.asarray(slots) >= 0).astype(np.float32)
+
+
 def gather(base, slots, overrides: dict | None = None) -> np.ndarray:
     """Per-cell (npoi, 12) parameter from a 12-entry base vector (IBIS PFT order) and per-type overrides.
 
@@ -291,9 +296,9 @@ def apply_types(params, pft_params, zone_idx, overrides: dict | None = None, bas
         else: sp = eqx.tree_at(lambda o: getattr(o, field), sp, val)
     hab = jnp.asarray(slot_habit(zone_idx), dtype=jnp.int32)
     par = jnp.asarray(slot_parent(slots), dtype=jnp.int32)
-    gate = jnp.asarray(slot_gate(slots), dtype=jnp.float32)
+    gate = jnp.asarray(slot_gate(slots), dtype=jnp.float32); typed = jnp.asarray(slot_typed(slots), dtype=jnp.float32)
     p = eqx.tree_at(lambda o: (o.stomata_params, o.bgc_params, o.fire, o.pheno), bp, (sp, bg, fp, ph))
-    p = eqx.tree_at(lambda o: (o.slot_habit, o.slot_parent, o.slot_gate), p, (hab, par, gate),
+    p = eqx.tree_at(lambda o: (o.slot_habit, o.slot_parent, o.slot_gate, o.slot_typed), p, (hab, par, gate, typed),
                     is_leaf=lambda x: x is None)
     return p, pf
 

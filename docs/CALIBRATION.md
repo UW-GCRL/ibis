@@ -5951,3 +5951,48 @@ respiration refit at the new GPP (the NEE cycle) and the disturbance loss must a
 cropland 1.44 x; (5) the tropical methane band (166 against 109) under the zone-band sets; (6) the season's amplitude
 slipped 0.92 -> 0.89 with the cap. Fire fell to 0.86 x GFED5 with the thinner grass.
 
+## 52. The temperate forests: a typed position inherited its parent's temperature band (2026-10-20)
+
+**The finding.** The cold 50-year spin-up on the s31b set (`gate_test/cold50_s31b`; `zone_pools.py`) splits the
+observed forest (CLM tree share > 0.6, cropland < 0.5) by Köppen zone and follows the eight tree positions' pools:
+
+| zone (forest cells) | s31b set, cold: cover yr 1 -> 50; what the positions do | 3.0 set (s7b spin-up) |
+|---|---|---|
+| C_subtrop (1163) | 0.91 -> 0.41; T06/T07/T08 leaf 0.010/0.031/0.007 -> 0.012/0.014/0.000 kgC, wood decays | 0.91 -> 0.96 carried by the TROPICAL PFTs 1/2 (wood 1.0 -> 3.4 and 2.1, LAI 7.5); 3/4/5 decay there too |
+| C_oceanic (761) | 0.91 -> 0.58; T13 leaf flat 0.045 -> 0.040, T14 flat 0.015 | 0.91 -> 0.98, PFT 1 wood 1.4 -> 5.4 (W Europe, NZ, Pacific NW) |
+| C_med (195), C_highland (183) | 0.96 -> 0.46; 0.89 -> 0.38 | 0.97, 0.97: tropical PFTs |
+| D_temperate (3244) | 0.96 -> 0.88, laiu 2.1 -> 4.2: T16 grows (wood 0.73 -> 2.8); T15 is outcompeted | 0.97, PFT 3 + 4 |
+
+The gate is not the cause (survival 1.00 on those cells, stress 0.86-0.94), and the grass layer is not either
+(lower LAI 2.3, its NPP 500 gC m-2 beside the trees' 250 at year 5). The temperate tree PFTs 3/4/5 simply never
+grow in the C zones, from the same cold start, under BOTH sets; in 3.0 the subtropical and oceanic forests were
+tropical trees (the F77 envelope lets PFTs 1/2 in wherever the coldest month is above 0 C) -- phantom tropical forest
+of LAI 7.5 in the SE US, S China, W Europe, part of s7's 30-60 N GPP excess. The 3.1 layout switches 1/2 off in the
+C zones, so the forests collapsed: C-zone forest cover 0.10 at the end of s31a's spin-up, 0.14 in s31b's hindcast
+(sections 50-51 read this as grass invasion and hysteresis; both wrong). Section 20 met the same thing at the
+towers in September ("the prescribed stand dies at 12 of 61": DK-Sor, BE-Bra, FR-Fon, NL-Loo, IT-*, FR-Pue, AU-Tum
+-- oceanic and Mediterranean sites) and the fits moved to prescribed leaf area instead of resolving it.
+
+**The cause** (`climate_analysis.existence`, `tests/test_pft_types.py`). F77's bioclimatic envelope: PFT 3
+(warm-temperate broadleaf evergreen) exists where the coldest month is between -10 and 0 C; PFTs 4/5 (temperate
+conifer / broadleaf deciduous) between -45 and 0 C with gdd5 > 1200; PFTs 1/2 (tropical) above 0 C. A Köppen C
+climate has its coldest month ABOVE 0 C by definition (Beck's boundary), so no temperate PFT can exist in any C
+cell under F77's rule -- IBIS 2 modelled the subtropics with tropical trees and the "warm-temperate" PFT lived in a
+10-degree band that is Köppen D. Section 45.1 gave each typed position "the envelope of the PFT its type descends
+from" (`take_along_axis(exist, slot_parent)`), so T06/T07/T08 in C_subtrop, T13/T14/T12 in C_oceanic, T09-T11 in
+C_med and T04 in C_highland were born with exist = 0: their NPP is zeroed in `biomass_update` (`aynpp_j = exist *
+raw`), the leaf pool can only decay, and the little growth seen is the cells where the GSWP3 climatology's coldest
+month dips below 0 inside a C class. At the towers, `site_transient.one_year` recomputes the same envelope each
+year, so a dynamic-carbon run of a C-zone stand dies in the first cycle whatever its parameters (US-Dk3, CN-Din,
+US-NC1, ...: LAI 4 -> 0.47 -> 0.06 -> 0.01 under both the 3.0 and the s31b sets, gate on or off --
+`site_runs/viab_*`, `viab2_*`).
+
+**The fix.** A position holding a zone type exists by its zone membership -- the Köppen class IS its climate
+envelope -- and keeps only the parent's degree-day floor (gdd5 > 1200 for the temperate parents, > 350 for the
+boreal ones, gdd0 > 100 for shrubs and grasses, the C4 warm-month test): `existence(..., slot_typed=)`, with
+`pft_types.slot_typed` (1 where the position holds a type) carried on `SimParams.slot_typed` by `apply_types` and
+passed by `run_global` at both existence calls. GENERIC positions keep the parent's full envelope, OFF positions
+stay 0, and with `koppen_types` off nothing changes (slot_typed is None: bit-identical). The tundra keeps its
+degree-day limit (T17 below gdd5 350 does not exist), so the far-north question of section 50 is untouched by this.
+Test: `test_typed_positions_exist_by_zone_not_by_the_parents_temperature_band`.
+
