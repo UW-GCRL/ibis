@@ -6019,3 +6019,11 @@ and left for the leaf-area stage. Full suite 765 passed. Next: the closing proto
 (s31c), then the gate re-estimated on its state (the 0.225 continuation `warm20_s31b_gate0.225` showed the gate's
 fixed point is stable: cover 0.446 at 2020 and 2030).
 
+**All 32 temperate forest towers, dynamic carbon with the envelope relaxed (`site_runs/viab3_31b` vs `viab3_30`;
+3 cycles from a seeded stand; gate off).** No stand dies under either set. Median GPP model/tower by type under the
+s31b types (3.0 set in brackets): T06 1.22 (1.11), T07 0.95 (1.17), T08 1.16 (1.20), T12 0.79 (0.77), T13 1.27
+(1.28), T14 0.97 (0.94), T15 1.09 (0.90), T16 1.06 (1.09). Every stand runs to the leaf-area cap (summer LAI
+5.3-5.8 per the per-PFT caps; the 3.0 set without the cap runs to 6-10), so at the forest towers the cap is what
+sets the leaf level and the fitted capacities give 0.8-1.3x at that level. The outliers are capacity items of the
+tower stage: CN-Din 2.55x, AU-Whr 0.56x (T06); DE-HoH and DK-Sor 0.67-0.71x (T12).
+
