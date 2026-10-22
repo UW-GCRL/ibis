@@ -6295,3 +6295,15 @@ G01 2.4, G02 0.5, G03 1.9, G04 0.5, G05 1.1, G06 1.5, G07 1.2, G08 0.55; shrubs 
 S05 1.2, S06 0.55, S07 2.4; generic shrubs 1.2, grasses 1.5; crops 2.5 (GLASS cropland peak 2.0). The upper canopy
 keeps its per-cover cap (fu comes from wood, not from leaf area). Checks rerun.
 
+**Ground caps, 10-year warm check (`warm10_s31f`, 2016-2020 against s31e 2006-2010, FLUXCOM 2006-2010 throughout).**
+GPP 150.4 -> 145.5 PgC (1.38 -> 1.33x); 30-60 N 43.3 -> 38.6 (1.81 -> 1.61x: open land 2.52 -> 2.12, crop 1.92 ->
+1.48, forest 1.59 -> 1.55); 60-90 N 7.2 -> 6.2 (2.15 -> 1.85x: open land 3.19 -> 2.43); tropics unchanged (1.18 ->
+1.19). Open-land peak cell LAI against GLASS by zone: subarctic 1.35 -> 1.23 (1.19), tundra 1.36 -> 0.65 (0.54), cold
+steppe 1.24 -> 0.65 (0.44), hot desert margins 0.69 -> 0.51 (0.44), temperate 2.40 -> 2.33 (1.29), Mediterranean 3.09 ->
+2.67 (1.07), oceanic 4.40 -> 4.36 (2.05), savanna 2.44 -> 3.17 (2.36). The cold and dry open zones are now at the
+products; what stays high on temperate, Mediterranean and oceanic "open" land is not grass but the model's trees there
+(natural-land cover 0.50 and 0.88 against 0.31 and 0.59, the gate at its edge), and the savanna's grass is now above the
+products with its cap at the zone's open-land peak (the products' savanna open land is partly woody). The 30-60 N
+shoulder months moved from 2.5 / 3.6 (April / October) to 1.8 / 2.9; the remainder is the evergreen composition, the
+forest cap level (forest peak LAI 1.3-1.5x the products in the C and D zones) and the cropland calendar.
+
