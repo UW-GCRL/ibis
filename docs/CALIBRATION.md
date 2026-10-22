@@ -6390,3 +6390,18 @@ stands (cold seeds) showed the rule's effect, so the cold protocol run is where 
 (s31e + ground caps from the products by zone + the temperate-grass timing + cap_share_power 2) on the existence-fixed
 code, cold protocol, queued behind the allocation stage's global check; scored against s31a-e.
 
+**v1, 10-year global check (`warm10_31g`, caps off; s31e and the uncapped baseline alongside).** GPP 150 (s31e) /
+184 (uncapped) / **140 (v1; 1.28x)**: 30-60 N 1.82 / 2.24 / 1.29x, 60-90 N 2.16 / 3.24 / 1.12x, tropics 1.18 / 1.40 /
+1.25x. Forest peak LAI by zone (v1 against the products x 1.15): humid tropics 7.3 (5.7), savanna 5.7 (4.9),
+Mediterranean 5.2 (4.1), subtropical 5.7 (4.5), highland 4.8 (3.7), oceanic 6.5 (4.1), temperate 3.6 (4.5),
+subarctic 2.8 (3.4), tundra forest 4.0 (2.3). Open land: tropics 6.7 (2.0: shrub and tree on the "open" cells),
+savanna 3.6 (2.4), cold steppe 0.52 (0.44), Mediterranean 1.5 (1.1), subtropical 3.8 (1.9), oceanic 4.3 (2.1),
+temperate 0.95 (1.29), subarctic 0.12 (1.19), tundra 0.19 (0.54). Wood unchanged in ten years. So the trait-based
+set lands the dry open land and brings the mid-latitudes down to 1.3x, but it over-corrects the cold conifers (the
+temperate conifer k 0.56 and boreal 0.70 take the D-zone forests below the products) and the cold C3 grasses (k 0.23
+with a 0.5-yr leaf residence empties the subarctic and tundra grass, whose single short flush makes peak biomass ~1 x
+annual leaf production), and it under-corrects the tropical (k 1.10) and the C-zone trees. v2 therefore adjusts per
+type, within the trait ranges, by the zone ratios: tropical evergreen x0.75, savanna/subtropical/oceanic types x0.7,
+temperate conifer x1.25, boreal conifer x1.2, cold grasses (G07, G08) tauleaf 1.0 and aleaf 0.35 (x3.5), temperate
+grass x1.3, C4 savanna grass x0.7.
+
