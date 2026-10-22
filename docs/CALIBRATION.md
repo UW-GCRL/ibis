@@ -6307,3 +6307,34 @@ products with its cap at the zone's open-land peak (the products' savanna open l
 shoulder months moved from 2.5 / 3.6 (April / October) to 1.8 / 2.9; the remainder is the evergreen composition, the
 forest cap level (forest peak LAI 1.3-1.5x the products in the C and D zones) and the cropland calendar.
 
+## 55. Min's directive: no leaf-area cap -- calibrate the allocation and LMA coefficients (2026-10-22)
+
+Hangkai, after discussing with Min (12:45): do not cap the leaf area; change the coefficients that turn carbon into
+leaf area (LMA = 1/specla, the leaf allocation aleaf and the leaf residence time) and into wood (awood, tauwood).
+Consequences: the caps of sections 46-54 (per-PFT caps, per-type caps, ground caps, the cap-share composition rule)
+are not the path and s31f with caps is not run; the existence fix, the gate, the GDD floors, the humid-tropics layout
+and the temperate-grass timing stand. The leaf equilibrium in IBIS is LAI = aleaf tauleaf specla NPP / cover, so the
+product aleaf tauleaf specla per type is what sets the leaf level once NPP is what the towers say, and awood tauwood
+sets the wood.
+
+**Biomass references** (ILAMB 0.5-degree grids, `inputs/eval/biomass/ilamb_dl/`): XuSaatchi2021 (annual live woody
+carbon density 2000-2019, MgC/ha), Thurner (temperate/boreal total vegetation carbon), Saatchi2011 (tropical AGB +
+BGB), GEOCARBON, ESA-CCI 2010, NBCD2000. The model's wood (s31e 2010, upper-canopy PFTs, cell mean, kgC m-2) against
+XuSaatchi 2006-2010 on observed-forest cells by zone: humid tropics 8.2 vs 11.5 (0.71x; Saatchi 14.1), savanna 3.9
+vs 8.5 (0.46x), subtropical 6.4 vs 5.9, Mediterranean 7.0 vs 9.7, oceanic 12.1 vs 6.0 (2.0x; Thurner 7.3), temperate
+6.3 vs 4.9 (Thurner 5.7), subarctic 5.2 vs 4.9 (Thurner 4.5). So the vegetation-carbon deficit (276 PgC against the
+450-650 range) is the tropics' and the savannas' -- wood 0.5-0.7x the maps where the leaf area is already at the
+products (humid-forest LAI 5.6 vs 5.0-5.3) -- while the temperate and boreal forests hold about the observed wood
+with 1.3-1.5x the observed leaf area, and the oceanic forests twice the wood. The coefficient changes therefore
+differ by type: tropical trees need more carbon in wood and a longer wood residence time (tauwood 25 yr against the
+40-60 yr of the tropical syntheses), not less leaf; temperate and boreal trees need less leaf per unit NPP (aleaf
+tauleaf specla) at about the same wood; the grasses' tauleaf (1.25-1.5 yr) is 4-9x the TRY leaf lifespan (section 48
+log) and their specla half the TRY value, so their leaf per unit NPP is ~2.5x the trait-based value.
+
+Plan: (1) the uncapped baseline (`gate_test/warm10_nocap`: s31e continued ten years with every cap off); (2) a
+literature brief on NPP partitioning and wood turnover per biome (Malhi 2011/2015, Litton 2007, Luyssaert 2007,
+Galbraith 2013, Carvalhais 2014, Thurner 2017, Yu 2019; CLM5/LPJ/ORCHIDEE allocation tables); (3) per type: aleaf /
+awood / aroot, specla, tauleaf within the observed ranges and tauwood from the turnover syntheses, adjusted to the
+products' peak LAI by zone and the biomass maps by zone at the towers' GPP; (4) tower stands, 10-year global,
+protocol run.
+
