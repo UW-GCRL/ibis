@@ -6361,3 +6361,24 @@ and 7.8) where observed canopies saturate -- and the tower-level excess of the C
 The allocation stage can bring the tropics and the far north to the products with trait values; for the mid-latitude
 forests it will meet the canopy-saturation question, to be measured at the towers first (dynamic carbon, aleaf halved).
 
+**The four-tower probe (caps off, a_leaf halved and moved to wood; `site_runs/alloc_*`).** Halving a_leaf halves the
+equilibrium leaf area -- Tharandt 8.7 -> 4.5, Harvard 7.5 -> 4.0, Guyaflux 6.4 -> 3.6 -- at a 7-8 % cost in GPP (the
+model/tower ratios 1.05-1.11 -> 0.98-1.02) and with wood up 25-35 % in twenty years: at these leaf areas the canopy is
+saturated (GPP elasticity ~0.1, not the 0.29 of section 48 measured between LAI 2.7 and 7.8), so the leaf
+coefficients control LAI almost one to one and the required factors are the leaf ratios themselves (humid tropics
+0.68, temperate 0.53, subtropical 0.47, oceanic 0.37, subarctic 0.67).
+
+**The v1 set (`params_31g.yaml`, Hangkai 2026-10-22: "calibrate this factor to control the LAI without using the
+cap").** Per PFT, caps off: specla = 0.65 x the TRY species mean (the canopy-mean LMA of the brief: tropical and
+warm-temperate evergreen 12.8, broadleaf deciduous 20.9, conifers 6.8, larch 13.7, shrubs 12.2 / 20.8, grasses
+26-27 m2 kgC-1); tauleaf = the TRY lifespan for evergreens (1.4 broadleaf, 3.3 conifer, 1.3 shrub), 1.0 for the
+deciduous (IBIS's annual flush), 0.5 for grasses (peak live biomass ~0.5 of annual leaf production); a_leaf / a_wood
+/ a_root and tauwood0 from the brief's table D (tropical 0.35/0.38/0.27, 40 yr; temperate conifer 0.22/0.45/0.33,
+60; temperate deciduous 0.28/0.45/0.27, 60; boreal conifer 0.28/0.37/0.35, 100 with fire explicit; C3 grass
+0.25/0.75; shrubs tauwood 10). Leaf coefficient k = a_leaf tauleaf specla, new / old: tropical evergreen 1.10,
+tropical deciduous 0.98, warm-temperate evergreen 0.93, temperate conifer 0.56, temperate deciduous 0.78, boreal
+conifer 0.70, boreal deciduous 0.84, larch 0.55, shrubs 0.74-0.75, C4 grass 0.57, C3 grass 0.23; wood a_wood tauwood:
+tropical 12.5 -> 15-16, temperate 15-25 -> 27, boreal 30-50 -> 36-40 NPP-years. The types inherit (no type carries a
+leaf or allocation override). Checks: 18 tower stands (`site_runs/g1_31g`) and a 10-year warm continuation of s31e
+(`gate_test/warm10_31g`).
+
