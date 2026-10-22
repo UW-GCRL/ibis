@@ -6338,3 +6338,26 @@ awood / aroot, specla, tauleaf within the observed ranges and tauwood from the t
 products' peak LAI by zone and the biomass maps by zone at the towers' GPP; (4) tower stands, 10-year global,
 protocol run.
 
+**The uncapped baseline** (`gate_test/warm10_nocap`: s31e continued 2011-2020 with every cap off; 2016-2020 means;
+leaf pools equilibrate within the decade, wood does not). GPP 150 -> 183.5 PgC (1.68x FLUXCOM; 30-60 N 2.24x,
+60-90 N 3.24x, tropics 1.40x). Forest peak cell LAI by zone (products in brackets): humid tropics 8.3 (5.0), savanna
+7.1 (4.3), Mediterranean 11.0 (3.6), subtropical 9.5 (3.9), highland 10.3 (3.2), oceanic 10.9 (3.6), temperate 8.5
+(3.9), subarctic 5.2 (3.0), tundra forest 10.2 (2.0); upper-canopy LAI per unit cover 4.9-10.6. Open land: 3.5-11
+against 0.4-2.4 -- the grass layer runs to 5-11 everywhere it is not water-limited. Wood unchanged in ten years. This
+is the leaf level the current coefficients produce once nothing bounds it, i.e. what sections 46-54 had been holding
+down with the caps: the leaf per unit NPP of every type is 1.7-3 x (trees) and 3-8 x (grasses) what the products
+allow, with the GPP feedback (elasticity 0.29, section 48) included in those ratios.
+
+Leaf-coefficient factors implied by the uncapped baseline (cell peak LAI, model against the products x 1.15, with the
+GPP-leaf feedback at elasticity 0.29, k_new / k = ratio^(-1/0.71), k = aleaf tauleaf specla): humid tropics 0.59
+(T01/T02), savanna 0.60 (T03), Mediterranean 0.25 (T09-T11), subtropical 0.35 (T06-T08), highland 0.24, oceanic 0.25
+(T12-T14), temperate 0.41 (T15/T16), subarctic 0.57 (T17-T19); open land 0.04-0.44 (grasses and shrubs). For the
+tropical trees 0.6 is reachable with traits alone (specla 25 -> 19-20 at TRY's tropical evergreen value is 0.8; aleaf
+0.30 -> 0.25 the rest). For the temperate, subtropical and oceanic trees 0.25-0.4 is NOT: with specla and tauleaf at
+their TRY values (temperate conifer 10.4 m2 kgC-1 and 3.3 yr; broadleaf deciduous 32 and 0.5), aleaf would have to
+fall to ~0.1, below any observed foliage share of NPP (0.2-0.4). Part of their excess is therefore not leaf per unit
+NPP but NPP per unit leaf at high leaf area -- the canopy's GPP keeps rising with LAI (elasticity 0.29 between LAI 2.7
+and 7.8) where observed canopies saturate -- and the tower-level excess of the C and D zones (1.3x at the tower cells).
+The allocation stage can bring the tropics and the far north to the products with trait values; for the mid-latitude
+forests it will meet the canopy-saturation question, to be measured at the towers first (dynamic carbon, aleaf halved).
+
