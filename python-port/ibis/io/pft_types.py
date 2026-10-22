@@ -219,6 +219,7 @@ TYPE_SCALARS = {
     'gdd_thresh_u': ('pheno', 'gdd_thresh_u', 'upper'), 'gdd_ramp_u': ('pheno', 'gdd_ramp_u', 'upper'),
     'sen_ycrit_u': ('pheno', 'sen_ycrit_u', 'upper'),
     'gdd_thresh_l': ('pheno', 'gdd_thresh_l', 'lower'), 'tthresh_l_c': ('pheno', 'tthresh_l_c', 'lower'),
+    'sen_ycrit_l': ('pheno', 'sen_ycrit_l', 'lower'), 'sen_pstart_l': ('pheno', 'sen_pstart_l', 'lower'),   # CALIBRATION.md 54
     'drop_stress_thresh': ('pheno', 'drop_stress_thresh', 'all'), 'stressfac': ('stomata', 'stressfac', 'all'),
 }
 

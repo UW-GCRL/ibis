@@ -6215,8 +6215,10 @@ the September errors (section 20: -30 / +20 d) are gone for the trees; the campa
 `gdd_ramp_u` and `sen_ycrit_u` did that. GRA (4): leaf-out **-51 d** (AT-Neu -20, IT-MBo -30, US-Wkg -24, US-Var -148
 -- the Mediterranean grass greens in autumn and the model in January), senescence **+26 d**. That is the open-land
 green-up seen in the monthly leaf area of section 53 (lower LAI 0.67 in March against GLASS 0.19 at 30-60 N): the
-lower canopy's phenology, which the campaign never fitted (`gdd_thresh_l`, `gdd_ramp_l`, `tthresh_l_c`;
-`sen_ycrit_l` 300 and `sen_pstart_l` 14 h as set in section 22, untouched since).
+lower canopy's phenology. The grass types' `gdd_thresh_l` (53-103 degree-days) and `tthresh_l_c` (-4 to +6 C) were
+fitted in the campaign on the towers' GPP, not on timing, and came out so small that the lower canopy greens on the
+first warm spell; `sen_ycrit_l` 300 and `sen_pstart_l` 14 h are the section-22 settings, never fitted. Timing has to
+be the constraint: the tower GPP transition dates (97 grassland towers) and the five grass cameras.
 
 **Composition: the conifer wins by a ~10 % per-leaf advantage that the layer cap turns into winner-takes-all**
 (`site_runs/comp_31e`, `comp3_31e`: both temperate types prescribed, dynamic carbon, 4 cycles, per-PFT leaf, wood and
@@ -6239,4 +6241,32 @@ BELOW the products in the humid open zones (savanna 1.31 vs 2.36, subtropical 1.
 GPP on that land: tundra 3.5x, cold steppe 3.3x, Mediterranean 2.4x, subarctic 2.5x, oceanic 2.3x, temperate 2.2x,
 savanna 1.1x. The grass leaf area is cap-limited, not NPP-limited, and the single cap per PFT cannot be right for the
 tundra and the savanna at once -- the grass types (G04-G08) need their own caps and their own season.
+
+**The grasses' timing, fitted offline (`scratchpad/grass_timing_fit.py`).** An emulator of `pheno()`'s lower-canopy
+triggers (a10td, agddl on the base gthresh_l_c = -5 C, templ's ramp and 1/15-day decay, the photoperiod-gated
+senescence sum) driven by each grassland tower's daily air temperature, timed with the PhenoCam tool's 25 % crossings
+and scored against the towers' own GPP transition dates (northern summer-growing seasons; it reproduces the model's
+AT-Neu dates to within a week). Grid search per type over tthresh_l_c, gdd_thresh_l, sen_ycrit_l, sen_pstart_l:
+
+| type | tower-years | current (tthresh / gdd) | fitted | onset bias | offset bias |
+|---|---|---|---|---|---|
+| G06 temperate grass | 294 at 41 towers | 3.0 C / 59 | **2 C / 700; sen_ycrit_l 200, sen_pstart_l 15 h** | -51 -> +1 d | +26 -> +10 d |
+| G07 subarctic grass | 88 at 11 | 5.4 / 63 | **8 C / 50; 400, 14 h** | +7 d | +6 d |
+| G08 tundra grass | 45 at 7 | 0.4 / 74 | **4 C / 150; 400, 14 h** | +6 d | -8 d |
+| G04 cold steppe | 62 at 11 | 0.8 / 79 | no temperature fit (-44 / +20 d at best) | | |
+| G03 subtropical | 49 at 10 | -2.0 / 53 | no temperature fit (-11 / +57 d) | | |
+
+The steppe, subtropical and Mediterranean grasses green with the rain, not the temperature; their season is the
+drought trigger's (`drop_stress_thresh`), left for the water stage. `sen_ycrit_l` and `sen_pstart_l` are now per-type
+scalars (`pft_types.TYPE_SCALARS`).
+
+**The grasses' leaf area at the towers runs the other way.** Dynamic-leaf runs at the grass cameras' towers
+(`site_runs/grass_31e`): the C3 grass settles at plai 1.35 (the cap times the cover) and under-produces at the
+mown and fertilised meadows (AT-Neu 0.30, IT-MBo 0.44, IT-Tor 0.54 of the tower GPP; US-Var 0.95, US-SRG 1.30,
+US-Wkg 0.41). The grassland towers are the productive end of open land; the products are the open land at large,
+and on open land the cap binds everywhere. Per-type caps from the products' open-land peak LAI by zone (cell LAI =
+L (1 - e^-0.5L) solved for L): G01 3.2, G02 1.2, G03 2.75, G04 1.2, G05 2.0, G06 2.5, G07 2.1, G08 1.35 -- raised for
+the savanna and the subtropics, halved for the tundra, the steppes and the Mediterranean. `params_31f.yaml` =
+`params_31e` + these caps + the G06/G07/G08 phenology; a 10-year warm check from the s31e state is
+`gate_test/warm10_s31f`.
 
