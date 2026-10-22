@@ -6434,3 +6434,10 @@ productive meadows (AT-Neu 8.2, IT-MBo 6.9, US-Var 3.4 against 0.5-1.2 in v1), a
 water-limited steppe (US-Wkg 0.16, 0.20x) is the drought trigger's, as before. `params_31g4.yaml` is the set queued
 for the global check and the s31g protocol.
 
+**v4 at the towers (`g4_31g4`):** trees as intended -- tropical 5.1-5.8 (1.03x), C-zone conifers 4.1-4.5 (Duke
+0.89x, Loobos 1.24x), D-zone conifers 5.2 (Tharandt 1.04x, Turkey Point 1.15x), boreal 3.4-3.8 (Niwot 1.02x,
+Sodankyla 1.42x), deciduous 5.9-6.8 (Harvard 1.03x, Morgan-Monroe 1.17x, Hainich 1.33x); grasses stable and plausible
+-- AT-Neu 4.1 (0.63x the mown meadow's GPP), IT-MBo 3.3 (0.84x), US-Var 2.0 (1.08x), US-SRG 1.1 (1.40x), the steppe
+US-Wkg 0.2 (0.20x, water-limited, as before). No stand collapses and none runs away. v4 goes to the global check and
+the s31g protocol.
+
