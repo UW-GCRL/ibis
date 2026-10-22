@@ -6135,3 +6135,45 @@ excess is leaf display and composition (section 53's diagnosis: upper LAI 3.3 in
 `acclim_light` and `frost_on` stay in the code, OFF in `params_31d.yaml`; s31d carries the gate 0.55, T07 out of
 A_humid and the GDD5 floor 600. The winter item moves whole to the phenology/composition stage.
 
+**s31d (cold protocol, 14:42-21:04 2026-10-21; `final_s31d/score/`; 2006-2010).**
+
+| quantity | s31c | **s31d** | observed |
+|---|---|---|---|
+| GPP true land, PgC yr-1 (x FLUXCOM) | 161.6 (1.48) | **146.8 (1.34)** | 110-160 |
+| 90S-30N / 30-60N / 60-90N (x) | 1.31 / 1.90 / 2.53 | 1.17 / 1.78 / 2.40 | |
+| by type: forest / mixed / grass / shrub / crop | 1.21 / 1.66 / 1.99 / 3.42 / 1.55 | 1.18 / 1.34 / 1.67 / 3.20 / 1.45 | |
+| excess over FLUXCOM, PgC | 52 | 38 | |
+| tree cover on natural land (obs 0.39); phantom; forest lost | 0.59; 8.5 %; 1.2 % | **0.42; 3.2 %; 4.4 %** | |
+| observed-forest cover (obs 0.87) | 0.92 | 0.79 | |
+| by zone: savanna / Med / subtrop / oceanic / D_temp / subarctic / tundra (obs) | 0.85 / 0.82 / 0.84 / 0.95 / 0.76 / 0.77 / 0.21 | 0.36 (0.39) / 0.41 (0.31) / 0.57 (0.49) / 0.85 (0.59) / 0.60 (0.56) / 0.64 (0.44) / 0.11 (0.07) | |
+| GPP at the tower cells, model / tower (A / B / C / D) | 1.33 (1.06/1.67/1.38/1.28) | 1.28 (0.82/1.66/1.28/1.25) | |
+| peak LAI x products (ground-corrected) | 1.83 (1.31) | 1.51 (1.09) | 1 |
+| ET x ensemble; NPP | 1.04; 74.9 | 1.02; 70.2 | 1; 55-60 |
+| vegetation C, PgC | 373 | 267 | 450-650 |
+| sink: pool change 2001-2010 (NPP - Rh) | +2.62 (+12.2) | +2.34 (+15.3) | 2.78 |
+| wetland CH4, Tg | 187 | 179 (158/12/8) | 153 |
+| lower-canopy NPP share (in observed forest) | 0.31 (0.08) | 0.42 (0.13) | |
+
+The cover target is met (0.42 against 0.39, phantom 3.2 %) and the humid tropics' conifer is gone; GPP 147 (1.34x),
+leaf area 1.51x the products (1.09 ground-corrected). Two things the cold start exposed: (1) **the larch took the
+evergreen's place**: 52 % of the remaining phantom area is D_subarctic at gdd5 ~490, carried by position 8 (T19,
+GDD floor still 350; wood 6.2 kgC m-2) in all three regions (N America, Europe/W Siberia, E Siberia); the real
+subarctic forests have gdd5 p10 578-756, so the floor 600 belongs to all three boreal tree types; (2) **forest lost
+4.4 %** (s31c 1.2 %): the gate 0.55 and the parents' degree-day floors cost real forest -- split by the diagnostic
+below. Vegetation C fell to 267 with the thinning (the sink +2.34 is still the filling of a cold start).
+
+**Lost forests, split (s31d 2010; `aystressu` 2006-2010 mean against the gate; `exist` from the restart).** In the
+tropics and subtropics (A_humid 273 cells, A_savanna 312, B_hot 239, C_subtrop 175) every lost cell may hold a tree
+type; their growing-season stress is 0.58-0.75 (median) against 0.85-0.98 in the standing forests, so the gate at
+0.55 with ramp 0.30 (full survival only above 0.85) thins the seasonal tropical forests year after year -- the price
+of 0.55 over 0.50. In D_temperate (494 cells) 64 % of the lost cells may hold NO tree type: their gdd5 is 977-1172
+(median) and both temperate types carry their parents' floor of 1200, while the boreal types are not in the zone --
+the Dfb cold edge (Canada, Scandinavia, Russia) is a hole in the layout. LPJ gives the temperate needleleaf evergreen
+900 and the temperate summergreen 1200 (Sitch 2003). In D_subarctic (262 cells) the stress is 0.81 (slow thinning) and
+gdd5 p10 580 (the floor's edge).
+
+**Therefore s31e** (`params_31e.yaml`): gate back to 0.50; GDD5 floor 600 for all three boreal tree types (the T19
+larch, floor 350, had simply taken the excluded evergreen's place at gdd5 ~490 in all three regions; the real
+subarctic forests have gdd5 p10 578-756); temperate conifer floor 1200 -> 900. Stage 54 (phenology and composition)
+is developed alongside and goes into the run after.
+
