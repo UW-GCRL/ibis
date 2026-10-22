@@ -208,6 +208,10 @@ def main():
         for yr in YEARS:
             st, key, d = one_year(st, key, yr, ctx, 0); st = hold(st)
         print(f'  spin cycle {c + 1}/{a.cycles} done: annual GPP {np.round(d["aygpptot"], 2)} kgC/m2, LAI {np.round(np.asarray(st.vegetation.plai).sum(1), 2)}', flush=True)
+        _pl = np.asarray(st.vegetation.plai); _cw = np.asarray(st.vegetation.cbiow)
+        print('  per-PFT plai: ' + '; '.join(f'{sites[n]} ' + ' '.join(f'{PFT_NAMES[p]}={_pl[n, p]:.2f}(w{_cw[n, p]:.1f})' for p in range(12) if mask[n, p] > 0) for n in range(len(sites))), flush=True)
+        _an = np.asarray(st.summary.ayanpp); _al = np.asarray(pft.aleaf) + np.asarray(pft.awood); _al = _al if _al.ndim == 1 else _al[0]
+        print('  per-PFT NPP (kgC m-2 yr-1, from ayanpp / (aleaf + awood)): ' + '; '.join(f'{sites[n]} ' + ' '.join(f'{PFT_NAMES[p]}={_an[n, p] / max(_al[p], 1e-6):.3f}' for p in range(12) if mask[n, p] > 0) for n in range(len(sites))), flush=True)
     REC.clear(); GM = []; EM = []; LL = []; LU = []; GD = []; NM = []; NEM = []; EP = []; DN = []
     for yr in YEARS:
         st, key, d = one_year(st, key, yr, ctx, 0); st = hold(st); GM.append(d['gpp_monthly'] * 1000); EM.append(d['aet_monthly']); NM.append(d['npp_monthly'] * 1000); NEM.append(d['nee_monthly'] * 1000); EP.append(d['et_parts_monthly'] if 'et_parts_monthly' in d else np.full((12, 4, len(sel)), np.nan)); DN.append(d['nee_daynight_monthly'] * 1000 if 'nee_daynight_monthly' in d else np.full((12, 2, len(sel)), np.nan))

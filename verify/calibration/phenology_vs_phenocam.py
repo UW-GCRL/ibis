@@ -48,7 +48,7 @@ def cam_dates(tower, igbp, years, matches, all_years=False):
 
 
 def tower_gpp_dates(site, years):
-    f = glob.glob(f'{FX}/FLX_{site}_FLUXNET2015_FULLSET_DD_*.csv')
+    f = glob.glob(f'{FX}/FLX_{site}_FLUXNET2015_FULLSET_DD_*.csv') or glob.glob(f'/shared/nas2/Hangkai/ibis/inputs/sites/towers31/compact/FLX_{site}_FLUXNET2015_FULLSET_DD_*_31.csv')
     if not f: return {}, 0
     d = pd.read_csv(f[0], usecols=['TIMESTAMP', 'GPP_NT_VUT_REF']); t = pd.to_datetime(d['TIMESTAMP'].astype(str), format='%Y%m%d'); d['y'] = t.dt.year
     g = d['GPP_NT_VUT_REF'].where(d['GPP_NT_VUT_REF'] > -9000)
@@ -63,11 +63,14 @@ def tower_gpp_dates(site, years):
 
 def main():
     run = sys.argv[1]; out_png = sys.argv[2] if len(sys.argv) > 2 else f'{run}/phenology_vs_phenocam.png'
-    z = np.load(f'{run}/site_runs.npz', allow_pickle=True); meta = json.load(open(f'{run}/site_runs.json'))
-    sites = [str(s) for s in z['sites']]; years = [int(y) for y in z['years']]; gd = z['gpp_daily']; lat = None
+    # one multi-site run dir, or a parent dir of per-tower run dirs (each with its own years; CALIBRATION.md 54)
+    runs = [run] if os.path.exists(f'{run}/site_runs.npz') else sorted(os.path.dirname(f) for f in glob.glob(f'{run}/*/site_runs.npz'))
     matches = pd.read_csv(f'{C}/phenocam_tower_matches.csv')
-    rows = []
-    for n, s in enumerate(sites):
+    rows = []; yr_all = []
+    for rdir in runs:
+      z = np.load(f'{rdir}/site_runs.npz', allow_pickle=True); meta = json.load(open(f'{rdir}/site_runs.json'))
+      sites = [str(s) for s in z['sites']]; years = [int(y) for y in z['years']]; gd = z['gpp_daily']; yr_all += years
+      for n, s in enumerate(sites):
         igbp = meta['notes'][s]['igbp']
         acc = {'r25': [], 'f25': [], 'r50': [], 'f50': []}
         for yi, y in enumerate(years):
@@ -87,7 +90,7 @@ def main():
                          leafout25_model=mod['r25'], leafout25_cam=cam['r25'], leafout25_towerGPP=tow.get('r25', np.nan),
                          senesc25_model=mod['f25'], senesc25_cam=cam['f25'], senesc25_towerGPP=tow.get('f25', np.nan),
                          leafout50_model=mod['r50'], leafout50_cam=cam['r50'], senesc50_model=mod['f50'], senesc50_cam=cam['f50']))
-    df = pd.DataFrame(rows)
+    df = pd.DataFrame(rows); years = [min(yr_all), max(yr_all)]
     for k in ('leafout25', 'senesc25'):
         df[f'{k}_model_minus_cam'] = df[f'{k}_model'] - df[f'{k}_cam']; df[f'{k}_model_minus_towerGPP'] = df[f'{k}_model'] - df[f'{k}_towerGPP']; df[f'{k}_towerGPP_minus_cam'] = df[f'{k}_towerGPP'] - df[f'{k}_cam']
     df.to_csv(f'{run}/phenology_vs_phenocam.csv', index=False)

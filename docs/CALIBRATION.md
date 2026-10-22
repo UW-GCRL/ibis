@@ -6202,3 +6202,41 @@ cover right: what remains is leaf display and composition (30-60 N 1.82x; sectio
 far-north leaf area (60-90 N 2.16x with the cover right: LAI 1.54x), the open-land grass (1.71x) and the cap level of
 the forests (tower cells 1.30x). **s31e is the baseline for stage 54.**
 
+## 54. Stage 54 on the s31e baseline: season, composition, open-land leaf area (2026-10-22)
+
+Three tower diagnostics under the s31e set, all with the per-tower type yamls (types at their parent positions, gate
+off, the temperate envelope relaxed for the harness):
+
+**Phenology timing is right for the trees and wrong for the grasses** (`site_runs/pc_31e`, 28 PhenoCam-matched
+towers, fixed leaf area, `phenology_vs_phenocam.py` now reading per-tower run dirs; table in
+`ibis_local_document/logs/phenology_vs_phenocam_s31e_2026-10-22.csv`). Summer-growing towers with a camera (n 19):
+leaf-out model minus camera -11 d, senescence 0 d; by class, DBF (5) +1 / -5 d, ENF (7) -3 / -17 d, MF (2) +6 / -10 d --
+the September errors (section 20: -30 / +20 d) are gone for the trees; the campaign's per-type `gdd_thresh_u`,
+`gdd_ramp_u` and `sen_ycrit_u` did that. GRA (4): leaf-out **-51 d** (AT-Neu -20, IT-MBo -30, US-Wkg -24, US-Var -148
+-- the Mediterranean grass greens in autumn and the model in January), senescence **+26 d**. That is the open-land
+green-up seen in the monthly leaf area of section 53 (lower LAI 0.67 in March against GLASS 0.19 at 30-60 N): the
+lower canopy's phenology, which the campaign never fitted (`gdd_thresh_l`, `gdd_ramp_l`, `tthresh_l_c`;
+`sen_ycrit_l` 300 and `sen_pstart_l` 14 h as set in section 22, untouched since).
+
+**Composition: the conifer wins by a ~10 % per-leaf advantage that the layer cap turns into winner-takes-all**
+(`site_runs/comp_31e`, `comp3_31e`: both temperate types prescribed, dynamic carbon, 4 cycles, per-PFT leaf, wood and
+NPP printed by `site_run.py`). At DE-Hai the deciduous starts ahead (NPP 0.75 vs 0.56 kgC m-2 yr-1, LAI 3.5 vs 2.4) and
+loses every cycle (0.46 vs 0.83 after four); at US-Ha1 LAI 3.1 -> 1.3, at US-UMB 2.2 -> 0.3, at the conifer towers the
+deciduous is gone within three cycles. The layer is at the cap from the first year (2.4 + 3.5 = 5.84), so the two
+compete for a fixed leaf area; the conifer's NPP per unit leaf is ~10 % higher (its March-April and October-November
+photosynthesis, which the towers confirm as real), and under a fixed total that compounds to exclusion. In the global
+run the deciduous share of 30-90 N forest wood is 0.17 (observed 0.26): C_subtrop 0.01 (0.43), C_oceanic 0.02
+(0.34), D_temperate 0.13 (0.32), D_subarctic 0.28 (0.17). The GPP stake is small (the conifers' shoulder-season GPP
+at observed deciduous share: ~ -0.3 PgC); the stake is the seasonal amplitude and the winter leaf display. IBIS has
+no process that lets a deciduous tree hold its ground against an evergreen of equal summer rate (no frost damage,
+no succession, no light competition by height), so this is a rule to choose, not a parameter.
+
+**Open land: the grass caps bind everywhere.** s31e, cells with tree < 0.1 and crop < 0.5, by zone: the lower
+canopy's LAI per unit cover at the summer peak is 2.6-3.3 (the caps 2.5 / 2.75 for grass, 4.0 for shrubs) in 77-98 %
+of the cells of every zone, with the LPJ cover 0.43-0.59, so the cell LAI is 1.2-1.9 everywhere: 2.4-2.8x the
+products in the tundra, cold steppe and Mediterranean (0.44-0.54 observed), 1.4-1.8x in the temperate zones, and
+BELOW the products in the humid open zones (savanna 1.31 vs 2.36, subtropical 1.54 vs 1.88, oceanic 1.56 vs 2.05).
+GPP on that land: tundra 3.5x, cold steppe 3.3x, Mediterranean 2.4x, subarctic 2.5x, oceanic 2.3x, temperate 2.2x,
+savanna 1.1x. The grass leaf area is cap-limited, not NPP-limited, and the single cap per PFT cannot be right for the
+tundra and the savanna at once -- the grass types (G04-G08) need their own caps and their own season.
+
