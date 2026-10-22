@@ -6405,3 +6405,16 @@ type, within the trait ranges, by the zone ratios: tropical evergreen x0.75, sav
 temperate conifer x1.25, boreal conifer x1.2, cold grasses (G07, G08) tauleaf 1.0 and aleaf 0.35 (x3.5), temperate
 grass x1.3, C4 savanna grass x0.7.
 
+**v1 at the towers (`site_runs/g1_31g`, 18 stands, dynamic carbon, caps off, four cycles).** Trees settle where the
+global check put them: tropical evergreen 6.3-7.2 (Guyaflux, Santarem; GPP 1.06x), temperate conifer 5.2-6.3
+(Tharandt 1.04x, Loobos 1.29x, Duke 0.95x, Metolius 3.6 at 0.70x), temperate deciduous 5.9-6.8 (Harvard 1.03x,
+Morgan-Monroe 1.17x, Hainich 1.33x), boreal conifer 3.4-3.8 (Niwot 1.02x, Sodankyla 1.42x) -- so with the leaf
+coefficients free the stands are 10-30 % above the products' leaf area and 1.0-1.3x the towers' GPP, and the wood
+is rising (12-21 kgC m-2 at the temperate stands after twenty years, above the maps' 5-7: a_wood tau_wood 27
+NPP-years is too much for the maps' managed and young forests -- tau_wood 60 for the temperate types will come down).
+The grasses collapse: C3 at AT-Neu 1.2 (0.27x the tower GPP), IT-MBo 0.5 (0.20x), US-Var 0.1 (0.10x); C4 at US-Wkg
+0.04 (0.05x); only the savanna-type US-SRG holds (1.55, 1.54x). A leaf residence of 0.5 yr with a_leaf 0.25 does not
+let a grass that greens once a year build a canopy in IBIS's annual-pool formulation (peak leaf = a_leaf tauleaf NPP,
+and with the season short the displayed leaf cannot carry the NPP it needs): the grasses keep tauleaf 1.0 (as the
+deciduous trees do) and take the reduction through a_leaf (0.25-0.30) and specla -- v3, built on the v2 tower batch.
+
