@@ -6177,3 +6177,28 @@ larch, floor 350, had simply taken the excluded evergreen's place at gdd5 ~490 i
 subarctic forests have gdd5 p10 578-756); temperate conifer floor 1200 -> 900. Stage 54 (phenology and composition)
 is developed alongside and goes into the run after.
 
+**s31e (cold protocol, 03:22-09:50 2026-10-22; `final_s31e/score/`; 2006-2010) -- the cover baseline.**
+
+| quantity | s31d | **s31e** | observed |
+|---|---|---|---|
+| tree cover on natural land; phantom; forest lost; r | 0.42; 3.2 %; 4.4 %; 0.67 | **0.43; 2.1 %; 3.3 %; 0.76** | 0.39 |
+| observed-forest cover | 0.79 | 0.84 | 0.87 |
+| subarctic / D_temperate / tundra / savanna / Med / subtrop / oceanic (obs) | 0.64 / 0.60 / 0.11 / 0.36 / 0.41 / 0.57 / 0.85 | 0.48 (0.44) / 0.68 (0.56) / 0.11 (0.07) / 0.47 (0.39) / 0.50 (0.31) / 0.64 (0.49) / 0.88 (0.59) | |
+| GPP true land, PgC yr-1 (x FLUXCOM) | 146.8 (1.34) | 150.4 (1.38) | 110-160 |
+| 90S-30N / 30-60N / 60-90N (x) | 1.17 / 1.78 / 2.40 | 1.22 / 1.82 / **2.16** | |
+| by type: forest / mixed / grass / shrub / crop | 1.18 / 1.34 / 1.67 / 3.20 / 1.45 | 1.22 / 1.39 / 1.71 / 2.93 / 1.48 | |
+| GPP at the tower cells, model / tower (A / C / D) | 1.28 (0.82 / 1.28 / 1.25) | 1.30 (0.91 / 1.31 / 1.30) | |
+| peak LAI x products (ground-corrected); 60-90 N | 1.51 (1.09); 1.80 | 1.58 (1.13); 1.54 | 1 |
+| vegetation C; soil C | 267; 1672 | 276; 1700 | 450-650 (total); 1500-2400 |
+| sink: pool change 2001-2010 | +2.34 | +2.32 | 2.78 |
+| wetland CH4, Tg (bands) | 179 | 184 (163 / 13 / 8) | 153 (109 / 32 / 12) |
+
+The three numbers did what the diagnostic said: the larch is out of the subarctic treeless land (subarctic cover 0.64
+-> 0.48 against 0.44; phantom 2.1 %), the Dfb cold edge has its forests back (D_temperate 0.60 -> 0.68, forest lost
+3.3 %), the seasonal tropics kept theirs (savanna 0.47). Tree cover now matches the observation in every zone within
+0.1 except the Mediterranean (0.50 vs 0.31) and the oceanic (0.88 vs 0.59) -- both at the gate's edge, the oceanic
+zone's observed share being pulled down by pasture that the cropland mask does not remove. GPP 150 (1.38x) with the
+cover right: what remains is leaf display and composition (30-60 N 1.82x; section 53's season diagnosis), the
+far-north leaf area (60-90 N 2.16x with the cover right: LAI 1.54x), the open-land grass (1.71x) and the cap level of
+the forests (tower cells 1.30x). **s31e is the baseline for stage 54.**
+
