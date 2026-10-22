@@ -6270,3 +6270,13 @@ the savanna and the subtropics, halved for the tundra, the steppes and the Medit
 `params_31e` + these caps + the G06/G07/G08 phenology; a 10-year warm check from the s31e state is
 `gate_test/warm10_s31f`.
 
+**A composition rule that works: the dominant pays the layer's excess** (`PFTParams.cap_share_power`; `comp4_31e`).
+With the layer cap shared in proportion to plai^2 instead of plai, the deciduous type holds 45-47 % of the leaf area
+at the deciduous towers and the stand is stable by the third cycle (DE-Hai 2.74 vs 3.10, US-Ha1 2.48 vs 3.36, US-MMS
+2.55 vs 3.29, US-UMB 1.29 vs 4.54, US-WCr 1.91 vs 3.94), while the conifer towers stay conifer (DE-Tha 0.28, CA-TP4
+0.09, US-Me2 0.01); the GPP ratios do not move. The capacity-weighted GPP split (`gpp_split_by_capacity`) changes
+nothing, as the two types sit in different big leaves. The rule has an ecological reading -- the dominant's crowding
+cost rises with its own density, the LPJ family's FPC crowding -- and no parameter besides the exponent; 1 is
+bit-identical to the proportional cap (test). `params_31f_cs2.yaml` = `params_31f` + cap_share_power 2;
+10-year warm checks of both from the s31e state are `gate_test/warm10_s31f` and `warm10_s31f_cs2`.
+
