@@ -6418,3 +6418,19 @@ let a grass that greens once a year build a canopy in IBIS's annual-pool formula
 and with the season short the displayed leaf cannot carry the NPP it needs): the grasses keep tauleaf 1.0 (as the
 deciduous trees do) and take the reduction through a_leaf (0.25-0.30) and specla -- v3, built on the v2 tower batch.
 
+**v2 was never tested at the towers** -- the per-tower yaml builder carried vmax, slopes, acclimation, respiration and
+the phenology scalars of a type to its parent position but not a_leaf / a_wood / a_root / specla / tauleaf, so the
+"v2" batch re-ran v1 (identical numbers; fixed: `verify/calibration/tower_type_yaml.py`; the global run applies the
+types through `apply_types` and was never affected). **v3 at the towers** (`g3_31g3`: v2's tree factors, grasses at
+tauleaf 1.0 and a_leaf 0.25-0.35): the tropical stands come to the products (Santarem 7.2 -> 5.8, Guyaflux 6.3 ->
+5.1, GPP 1.03x), the C-zone conifers too (Loobos 6.3 -> 4.5, Duke 5.9 -> 4.1); the D-zone trees, which the zone
+means had asked to raise (x1.1-1.25), go from 5.2 to 6.5 at Turkey Point and Tharandt and from 3.8 to 4.7 at
+Sodankyla (1.50x the tower GPP) -- the zone means and the tower stands disagree on the D-zone level, the zone
+including the cold edge and the mixed cells, the stands being the dense sites; the trait set (v1) already had the
+stands at or above the products, so the D-zone types return to it. The grasses at tauleaf 1.0 overshoot at the
+productive meadows (AT-Neu 8.2, IT-MBo 6.9, US-Var 3.4 against 0.5-1.2 in v1), as the standing peak of a grass is
+0.5-0.7 of its annual leaf production (Scurlock 2002), not all of it: **v4** keeps a_leaf 0.25-0.35 with tauleaf
+0.6 (temperate) / 0.7 (warm, dry) / 1.0 (subarctic, tundra, where the single short flush stands whole). The
+water-limited steppe (US-Wkg 0.16, 0.20x) is the drought trigger's, as before. `params_31g4.yaml` is the set queued
+for the global check and the s31g protocol.
+
