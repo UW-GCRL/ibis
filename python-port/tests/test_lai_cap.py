@@ -103,3 +103,25 @@ def test_yaml_and_types():
     m = np.asarray(T.slot_map(zi)) == 0
     assert np.asarray(pf.lai_max).shape == (len(zi), 12) and np.allclose(np.asarray(pf.lai_max)[m], 5.5)
     assert np.isinf(np.asarray(pf.lai_max)[~m]).all()
+
+
+def test_cap_share_power_keeps_the_subordinate_and_is_identical_at_one():
+    """CALIBRATION.md 54: with cap_share_power 2 the dominant PFT gives up most of the layer's excess; at 1 the
+    proportional per-layer scaling is returned bit for bit."""
+    import numpy as np, jax.numpy as jnp, equinox as eqx
+    from ibis.physics.vegetation_dynamics import cap_leaf_area
+    from ibis.io.physics_params import build_all_params
+    pp = build_all_params(1, np.zeros(1))[1]
+    pp = eqx.tree_at(lambda o: o.lai_max, pp, jnp.full((12,), 6.0), is_leaf=lambda x: x is None)
+    specla = np.asarray(pp.specla); cbiol = np.zeros((1, 12)); cbiol[0, 3] = 6.0 / specla[3]; cbiol[0, 4] = 2.0 / specla[4]   # conifer LAI 6 + deciduous LAI 2 on fu 1
+    cbiow = np.zeros((1, 12)); cbior = np.zeros((1, 12)); fu = jnp.ones(1); fl_of = lambda L: jnp.ones_like(L)
+    l1, _, _, _ = cap_leaf_area(jnp.asarray(cbiol), jnp.asarray(cbiow), jnp.asarray(cbior), pp, fu, fl_of)
+    pp2 = eqx.tree_at(lambda o: o.cap_share_power, pp, 2.0)
+    l2, _, _, _ = cap_leaf_area(jnp.asarray(cbiol), jnp.asarray(cbiow), jnp.asarray(cbior), pp2, fu, fl_of)
+    lai1 = np.asarray(l1)[0] * specla; lai2 = np.asarray(l2)[0] * specla
+    assert np.isclose(lai1[3] + lai1[4], 6.0) and np.isclose(lai2[3] + lai2[4], 6.0)        # both at the cap
+    assert np.isclose(lai1[4] / lai1[3], 2.0 / 6.0)                                          # proportional: shares kept
+    assert lai2[4] > lai1[4] and lai2[3] < lai1[3]                                           # dominant pays more
+    pp1 = eqx.tree_at(lambda o: o.cap_share_power, pp, 1.0)
+    l1b, _, _, _ = cap_leaf_area(jnp.asarray(cbiol), jnp.asarray(cbiow), jnp.asarray(cbior), pp1, fu, fl_of)
+    assert np.array_equal(np.asarray(l1), np.asarray(l1b))

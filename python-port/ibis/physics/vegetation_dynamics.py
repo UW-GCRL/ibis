@@ -201,6 +201,16 @@ def cap_leaf_area(cbiol, cbiow, cbior, pft_params, fu, fl_of, crop_c=None, crop_
         lo, hi = jnp.where(ok, mid, lo), jnp.where(ok, hi, mid)
     sl = jnp.where(ll > cl * fl_of(ll), lo / jnp.maximum(ll, 1e-12), 1.0)
     scale = jnp.concatenate([jnp.broadcast_to(su[:, None], (n, 8)), jnp.broadcast_to(sl[:, None], (n, 4))], axis=1)
+    # Sharing of the excess among the layer's PFTs (cap_share_power; CALIBRATION.md 54): proportional (1) is the
+    # per-layer scale above; otherwise each PFT gives up excess x plai^p / sum(plai^p), bounded by its own leaf area.
+    pw = jnp.asarray(pft_params.cap_share_power, dtype=plai.dtype)
+    def shared(sl_, tot, target):
+        w = jnp.where(plai[:, sl_] > 0.0, jnp.power(jnp.maximum(plai[:, sl_], 1e-12), pw), 0.0)
+        ex = jnp.maximum(tot - target, 0.0)[:, None] * w / jnp.maximum(jnp.sum(w, axis=1, keepdims=True), 1e-12)
+        ex = jnp.minimum(ex, plai[:, sl_])
+        return jnp.where(plai[:, sl_] > 0.0, 1.0 - ex / jnp.maximum(plai[:, sl_], 1e-12), 1.0)
+    scale_p = jnp.concatenate([shared(slice(0, 8), lu, jnp.minimum(lu, cu * fu)), shared(slice(8, 12), ll, jnp.where(ll > cl * fl_of(ll), lo, ll))], axis=1)
+    scale = jnp.where(pw == 1.0, scale, scale_p)
     excess = cbiol * (1.0 - scale)
     aw = jnp.broadcast_to(pft_params.awood, cbiol.shape)
     ar = jnp.broadcast_to(pft_params.aroot, cbiol.shape)

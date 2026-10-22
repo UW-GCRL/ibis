@@ -286,6 +286,7 @@ def build_pft_params(d: dict) -> PFTParams:
         xminlai=s.get('xminlai', defaults.xminlai),
         woodnorm=s.get('woodnorm', defaults.woodnorm),
         cover_k=float(s.get('cover_k', defaults.cover_k)),
+        cap_share_power=float(s.get('cap_share_power', defaults.cap_share_power)),
         fl_min=float(s.get('fl_min', defaults.fl_min)),
         fu_min=float(s.get('fu_min', defaults.fu_min)),
         fu_k=float(s.get('fu_k', defaults.fu_k)),

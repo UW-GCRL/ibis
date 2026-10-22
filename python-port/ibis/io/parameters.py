@@ -53,6 +53,11 @@ class PFTParams(eqx.Module):
     #: linear rule by fl = 1 - exp(-cover_k * totlail); 0.0 keeps F77.
     cover_k: float = 0.0
     fl_min: float = 0.25
+    #: How a layer's leaf-area cap (lai_max) is shared when the layer exceeds it (CALIBRATION.md 54): the excess is
+    #: taken from each PFT in proportion to plai^cap_share_power. 1 (default) = proportional, every PFT scaled alike
+    #: (F77-like, the winner takes all under a fixed total); 2 = the dominant pays its square share, which keeps a
+    #: subordinate with a slightly lower rate per leaf in the canopy.
+    cap_share_power: float = 1.0
     fu_min: float = 0.25
     #: Wood-to-cover scale for the upper canopy: fu = (1 - exp(-wood / fu_k)) /
     #: (1 - exp(-woodnorm / fu_k)). F77 is fu_k = 1.0, which puts trees with
