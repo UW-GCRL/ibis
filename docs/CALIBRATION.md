@@ -6382,3 +6382,11 @@ tropical 12.5 -> 15-16, temperate 15-25 -> 27, boreal 30-50 -> 36-40 NPP-years. 
 leaf or allocation override). Checks: 18 tower stands (`site_runs/g1_31g`) and a 10-year warm continuation of s31e
 (`gate_test/warm10_31g`).
 
+**Two roads, both to be finished (Hangkai, 14:05): the cap road as proposed in section 54, the allocation road of
+section 55 alongside; the choice is made once both are on the table.** The composition rule's ground-cap check
+(`warm10_s31f_cs2` vs `warm10_s31f`): GPP 144.8 vs 145.5, cover and phantom alike, deciduous share of 30-90 N forest
+wood 0.16 in both -- a ten-year warm continuation cannot move a wood composition set by 50-100-year pools; the tower
+stands (cold seeds) showed the rule's effect, so the cold protocol run is where it tells. **s31f** = `params_31f_cs2`
+(s31e + ground caps from the products by zone + the temperate-grass timing + cap_share_power 2) on the existence-fixed
+code, cold protocol, queued behind the allocation stage's global check; scored against s31a-e.
+
