@@ -1,4 +1,4 @@
-# IBIS 3.1 set for stage 54 (+ cap_share_power 2: the dominant PFT pays the layer excess) (CALIBRATION.md 54): params_31e + per-type grass caps from the products' open-land peak LAI by zone + lower-canopy phenology per grass type from the tower-timing fit (G06/G07/G08).
+# IBIS 3.1 set for stage 54 (CALIBRATION.md 54): params_31e + lower-canopy cap on the GROUND leaf area (lai_cap_lower_ground) with per-type grass and shrub caps from the products' open-land peak LAI by zone + temperate-grass timing (G06) from the tower fit + cap_share_power 2 (the dominant pays the layer excess).
 stomata:
   tau15: 4500.0
   kc15: 0.00015
@@ -202,7 +202,7 @@ pft:
     aleaf: 0.45
     aroot: 0.4
     awood: 0.15
-    lai_max: 4.0
+    lai_max: 1.2
   deciduous_shrub:
     TminL: 9999.0
     TminU: 9999.0
@@ -215,7 +215,7 @@ pft:
     aleaf: 0.45
     aroot: 0.35
     awood: 0.2
-    lai_max: 4.0
+    lai_max: 1.2
   c4_grass:
     TminL: 9999.0
     TminU: 9999.0
@@ -228,7 +228,7 @@ pft:
     aleaf: 0.45
     aroot: 0.55
     awood: 0.0
-    lai_max: 2.5
+    lai_max: 1.5
   c3_grass:
     TminL: 9999.0
     TminU: 9999.0
@@ -241,7 +241,7 @@ pft:
     aleaf: 0.45
     aroot: 0.55
     awood: 0.0
-    lai_max: 2.75
+    lai_max: 1.5
   xminlai: 0.01
   woodnorm: 7.5
   tree_stress_min: 0.5
@@ -250,6 +250,7 @@ pft:
   cover_k: 0.5
   cap_share_power: 2.0
   fl_min: 0.05
+  lai_cap_lower_ground: true
 veg_rad:
   rhoveg:
   - - 0.1
@@ -432,7 +433,7 @@ crop:
   vmax_scale_c3: 0.3292926944425464
   vmax_scale_c4: 1.1582642996411432
   c4_share: 0.2
-  lai_max: 5.0
+  lai_max: 2.5
 types:
   T01:
     coefm: 7.075081532336933
@@ -638,6 +639,7 @@ types:
     stressfac: -4.74910262317437
     tthresh_l_c: 0.28903565334891557
     vmax: 3.257358184782788e-05
+    lai_max: 0.5
   S02:
     coefm: 5.6944630331214245
     drop_stress_thresh: 0.06211642378542921
@@ -648,6 +650,7 @@ types:
     stressfac: -6.3015966859636965
     tthresh_l_c: 0.6437689913582272
     vmax: 3.271308378316462e-05
+    lai_max: 0.5
   S03:
     coefm: 3.1532392100630435
     drop_stress_thresh: 0.6130606266266013
@@ -658,6 +661,7 @@ types:
     stressfac: -5.653255012444251
     tthresh_l_c: -3.7428627596755684
     vmax: 4.497647569223773e-05
+    lai_max: 1.1
   S04:
     coefm: 3.1303831306871714
     drop_stress_thresh: 0.2309438642414678
@@ -668,6 +672,7 @@ types:
     stressfac: -3.7392959322175203
     tthresh_l_c: 4.477784909467477
     vmax: 3.3652453566901386e-05
+    lai_max: 1.5
   S05:
     coefm: 3.5868584273049366
     drop_stress_thresh: 0.7617674084275312
@@ -678,6 +683,7 @@ types:
     stressfac: -3.005493277655874
     tthresh_l_c: 6.342376839329302
     vmax: 1.5608208286721492e-05
+    lai_max: 1.2
   S06:
     coefm: 12.12837085936635
     drop_stress_thresh: 0.1092201788487192
@@ -688,6 +694,7 @@ types:
     stressfac: -9.090287814895085
     tthresh_l_c: -1.4259070299392511
     vmax: 7.578061922686175e-05
+    lai_max: 0.55
   S07:
     coefm: 3.0081436556716716
     drop_stress_thresh: 0.1288179911424263
@@ -698,6 +705,7 @@ types:
     stressfac: -2.5048894257391385
     tthresh_l_c: 6.230521338175748
     vmax: 2.5353987439302728e-05
+    lai_max: 2.4
   G01:
     coefm: 3.755588735702863
     drop_stress_thresh: 0.2284502819962642
@@ -708,7 +716,7 @@ types:
     stressfac: -4.1448961672054345
     tthresh_l_c: 3.6318114854305943
     vmax: 8.914329555409495e-06
-    lai_max: 3.2
+    lai_max: 2.4
   G02:
     coefm: 5.391754392484435
     drop_stress_thresh: 0.2334311698363932
@@ -719,7 +727,7 @@ types:
     stressfac: -2.889540346097252
     tthresh_l_c: 0.6133595095332267
     vmax: 1.984386472031474e-05
-    lai_max: 1.2
+    lai_max: 0.5
   G03:
     coefm: 5.165884253449885
     drop_stress_thresh: 0.328676637139755
@@ -730,7 +738,7 @@ types:
     stressfac: -3.72039232100429
     tthresh_l_c: -2.00825764818678
     vmax: 1.0545602890488226e-05
-    lai_max: 2.75
+    lai_max: 1.9
   G04:
     coefm: 10.750944606012531
     drop_stress_thresh: 0.6213924695132037
@@ -741,7 +749,7 @@ types:
     stressfac: -3.603603259173208
     tthresh_l_c: 0.7554857975505671
     vmax: 5.917008456890471e-05
-    lai_max: 1.2
+    lai_max: 0.5
   G05:
     coefm: 4.397634735490995
     gdd_thresh_l: 71.58918819226501
@@ -751,7 +759,7 @@ types:
     stressfac: -2.6059554037673873
     tthresh_l_c: 2.2945161465647885
     vmax: 3.278721487731673e-05
-    lai_max: 2.0
+    lai_max: 1.1
   G06:
     coefm: 4.808991720030633
     gdd_thresh_l: 700.0
@@ -761,30 +769,26 @@ types:
     stressfac: -3.4193021125228915
     tthresh_l_c: 2.0
     vmax: 3.023468889296055e-05
-    lai_max: 2.5
+    lai_max: 1.5
     sen_ycrit_l: 200.0
     sen_pstart_l: 15.0
   G07:
     coefm: 5.452771026200386
-    gdd_thresh_l: 50.0
     lt_e0: 322.59510473022476
     rgrowth: 0.20596081018447876
     rroot: 1.5601043015144482
     stressfac: -4.172515104897017
-    tthresh_l_c: 8.0
     vmax: 2.325240166101139e-05
-    lai_max: 2.1
-    sen_ycrit_l: 400.0
-    sen_pstart_l: 14.0
+    lai_max: 1.2
+    tthresh_l_c: 5.38331681791515
+    gdd_thresh_l: 62.91295774312434
   G08:
     coefm: 5.465852551515223
-    gdd_thresh_l: 150.0
     lt_e0: 527.2610026231553
     rgrowth: 0.1422807433794107
     rroot: 1.021067636668546
     stressfac: -4.012761709260435
-    tthresh_l_c: 4.0
     vmax: 3.3334425097564235e-05
-    lai_max: 1.35
-    sen_ycrit_l: 400.0
-    sen_pstart_l: 14.0
+    lai_max: 0.55
+    tthresh_l_c: 0.3777296256798368
+    gdd_thresh_l: 74.0613059782679

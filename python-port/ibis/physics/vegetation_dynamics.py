@@ -194,12 +194,16 @@ def cap_leaf_area(cbiol, cbiow, cbior, pft_params, fu, fl_of, crop_c=None, crop_
     if crop_c is not None and crop_lai_max is not None:
         cl = (1.0 - crop_c) * cl + crop_c * crop_lai_max
     su = jnp.where(lu > cu * fu, cu * fu / jnp.maximum(lu, 1e-12), 1.0)
-    lo, hi = jnp.zeros_like(ll), ll
-    for _ in range(30):
-        mid = 0.5 * (lo + hi)
-        ok = mid <= cl * fl_of(mid)
-        lo, hi = jnp.where(ok, mid, lo), jnp.where(ok, hi, mid)
-    sl = jnp.where(ll > cl * fl_of(ll), lo / jnp.maximum(ll, 1e-12), 1.0)
+    if bool(pft_params.lai_cap_lower_ground):
+        # the lower cap on the ground leaf area itself (CALIBRATION.md 54)
+        lo = jnp.minimum(ll, cl); sl = jnp.where(ll > cl, cl / jnp.maximum(ll, 1e-12), 1.0)
+    else:
+        lo, hi = jnp.zeros_like(ll), ll
+        for _ in range(30):
+            mid = 0.5 * (lo + hi)
+            ok = mid <= cl * fl_of(mid)
+            lo, hi = jnp.where(ok, mid, lo), jnp.where(ok, hi, mid)
+        sl = jnp.where(ll > cl * fl_of(ll), lo / jnp.maximum(ll, 1e-12), 1.0)
     scale = jnp.concatenate([jnp.broadcast_to(su[:, None], (n, 8)), jnp.broadcast_to(sl[:, None], (n, 4))], axis=1)
     # Sharing of the excess among the layer's PFTs (cap_share_power; CALIBRATION.md 54): proportional (1) is the
     # per-layer scale above; otherwise each PFT gives up excess x plai^p / sum(plai^p), bounded by its own leaf area.
@@ -209,7 +213,7 @@ def cap_leaf_area(cbiol, cbiow, cbior, pft_params, fu, fl_of, crop_c=None, crop_
         ex = jnp.maximum(tot - target, 0.0)[:, None] * w / jnp.maximum(jnp.sum(w, axis=1, keepdims=True), 1e-12)
         ex = jnp.minimum(ex, plai[:, sl_])
         return jnp.where(plai[:, sl_] > 0.0, 1.0 - ex / jnp.maximum(plai[:, sl_], 1e-12), 1.0)
-    scale_p = jnp.concatenate([shared(slice(0, 8), lu, jnp.minimum(lu, cu * fu)), shared(slice(8, 12), ll, jnp.where(ll > cl * fl_of(ll), lo, ll))], axis=1)
+    scale_p = jnp.concatenate([shared(slice(0, 8), lu, jnp.minimum(lu, cu * fu)), shared(slice(8, 12), ll, jnp.minimum(ll, lo) if bool(pft_params.lai_cap_lower_ground) else jnp.where(ll > cl * fl_of(ll), lo, ll))], axis=1)
     scale = jnp.where(pw == 1.0, scale, scale_p)
     excess = cbiol * (1.0 - scale)
     aw = jnp.broadcast_to(pft_params.awood, cbiol.shape)

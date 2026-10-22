@@ -6280,3 +6280,18 @@ cost rises with its own density, the LPJ family's FPC crowding -- and no paramet
 bit-identical to the proportional cap (test). `params_31f_cs2.yaml` = `params_31f` + cap_share_power 2;
 10-year warm checks of both from the s31e state are `gate_test/warm10_s31f` and `warm10_s31f_cs2`.
 
+**The first global checks of the stage-54 set found a defect in the cap's semantics for the lower canopy.** A 10-year
+warm continuation of s31e (`warm10_s31f`, first version) gave GPP 150 -> 143 (1.31x), 30-60 N 1.81 -> 1.61, open
+land 1.93 -> 1.55 -- and the subarctic and tundra open land collapsed (cell LAI 1.35 -> 0.29 and 1.36 -> 0.30 against
+GLASS 1.19 and 0.54; 60-90 N open land 0.52x). First read as the subarctic/tundra timing fit not transferring north
+(it was fitted at alpine meadows), their s31e timing was restored; the collapse stayed. The cause is the cap itself:
+the lower layer's cap is a leaf area PER UNIT COVER, and with the LPJ cover fl = 1 - e^(-kL) a per-cover cap c admits
+at most the ground leaf area solving L = c fl(L), which is zero for c <= 2/k and tiny just above it (c 2.1 at k 0.5:
+L = 0.2; c 2.75: 1.35 -- the fixed point every open zone sat at in s31b-e, which is why the grass caps looked bound
+everywhere). The per-cover caps I derived from the products (1.2-2.1 for the cold and dry zones) were therefore
+collapsing caps. Fix: `PFTParams.lai_cap_lower_ground` (CALIBRATION.md 54; off = bit-identical) puts the lower cap on
+the ground leaf area, and the lower types' caps are now the products' open-land peak cell LAI by zone directly: grass
+G01 2.4, G02 0.5, G03 1.9, G04 0.5, G05 1.1, G06 1.5, G07 1.2, G08 0.55; shrubs S01 0.5, S02 0.5, S03 1.1, S04 1.5,
+S05 1.2, S06 0.55, S07 2.4; generic shrubs 1.2, grasses 1.5; crops 2.5 (GLASS cropland peak 2.0). The upper canopy
+keeps its per-cover cap (fu comes from wood, not from leaf area). Checks rerun.
+

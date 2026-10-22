@@ -58,6 +58,11 @@ class PFTParams(eqx.Module):
     #: (F77-like, the winner takes all under a fixed total); 2 = the dominant pays its square share, which keeps a
     #: subordinate with a slightly lower rate per leaf in the canopy.
     cap_share_power: float = 1.0
+    #: Lower-canopy cap on the GROUND leaf area (cell LAI) instead of the leaf area per unit cover (CALIBRATION.md 54).
+    #: With the LPJ cover rule fl = 1 - exp(-k L) a per-cover cap c admits at most the ground LAI solving L = c fl(L),
+    #: which is ~0 for c <= 2/k and tiny just above it (c 2.1, k 0.5: 0.2), so per-cover caps below ~2.75 empty the
+    #: grass layer. True: the lower layer's cap is on the ground LAI directly. False (default): the per-cover rule.
+    lai_cap_lower_ground: bool = False
     fu_min: float = 0.25
     #: Wood-to-cover scale for the upper canopy: fu = (1 - exp(-wood / fu_k)) /
     #: (1 - exp(-woodnorm / fu_k)). F77 is fu_k = 1.0, which puts trees with

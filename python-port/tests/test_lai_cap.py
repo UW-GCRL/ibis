@@ -125,3 +125,20 @@ def test_cap_share_power_keeps_the_subordinate_and_is_identical_at_one():
     pp1 = eqx.tree_at(lambda o: o.cap_share_power, pp, 1.0)
     l1b, _, _, _ = cap_leaf_area(jnp.asarray(cbiol), jnp.asarray(cbiow), jnp.asarray(cbior), pp1, fu, fl_of)
     assert np.array_equal(np.asarray(l1), np.asarray(l1b))
+
+
+def test_lower_cap_on_ground_leaf_area():
+    """CALIBRATION.md 54: with lai_cap_lower_ground the lower layer is held to the cap as a ground LAI; off, the per-cover
+    rule with the LPJ cover admits only the fixed point L = c fl(L) (tiny for caps near 2/k)."""
+    import numpy as np, jax.numpy as jnp, equinox as eqx
+    from ibis.physics.vegetation_dynamics import cap_leaf_area
+    from ibis.io.physics_params import build_all_params
+    pp = build_all_params(1, np.zeros(1))[1]
+    pp = eqx.tree_at(lambda o: o.lai_max, pp, jnp.array([8.0] * 8 + [4.0, 4.0, 1.0, 1.0]), is_leaf=lambda x: x is None)
+    specla = np.asarray(pp.specla); cbiol = np.zeros((1, 12)); cbiol[0, 11] = 3.0 / specla[11]           # C3 grass ground LAI 3
+    z = np.zeros((1, 12)); fl_of = lambda L: 1.0 - jnp.exp(-0.5 * L)
+    l_cov, _, _, _ = cap_leaf_area(jnp.asarray(cbiol), jnp.asarray(z), jnp.asarray(z), pp, jnp.ones(1), fl_of)
+    pg = eqx.tree_at(lambda o: o.lai_cap_lower_ground, pp, True)
+    l_gnd, _, _, _ = cap_leaf_area(jnp.asarray(cbiol), jnp.asarray(z), jnp.asarray(z), pg, jnp.ones(1), fl_of)
+    assert float(l_cov[0, 11] * specla[11]) < 0.05                       # per-cover cap 1.0 with k 0.5: the layer collapses
+    assert np.isclose(float(l_gnd[0, 11] * specla[11]), 1.0)              # ground cap 1.0: LAI 1.0
