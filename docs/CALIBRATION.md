@@ -4,6 +4,12 @@ Started 2026-09-09, after the fire and methane modules were re-validated on the
 corrected carbon cycle. Order set by Hangkai: carbon, then ET, then the smaller
 parts. Methane is evaluated against FLUXNET-CH4 (Chenchen's processing).
 
+**Current stage (2026-10-23): ongoing.** The zone-type set from the 356-tower campaign (sections 45, 50-54) is being
+carried down two roads to a candidate final run: road A, per-type leaf-area caps (s31f, `params_31f_cs2.yaml`); road B,
+allocation and leaf-mass coefficients without a cap (s31g, `params_31g5.yaml`; section 55). Both verdicts are in section 56;
+the tower re-score on the towers' own soil pools (section 57) showed that the shared respiration is right at the towers and
+that the open carbon item is the global soil stock. The table below is the September state and is kept as the record.
+
 
 ## State of the calibration (updated 2026-09-21 14:45; phenology clock fixed -- all parameters to be refit on the corrected model)
 

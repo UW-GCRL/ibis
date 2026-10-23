@@ -4,6 +4,15 @@ IBIS 3.0 is the Integrated Biosphere Simulator (IBIS 2.6b4; Foley et al. 1996, K
 
 `main` is the calibrated IBIS 3.0 of 12 October 2026. Its parameter set is [`params_s7_crop.yaml`](python-port/configs/params/params_s7_crop.yaml); the full record of how it was built is [`docs/CALIBRATION.md`](docs/CALIBRATION.md).
 
+> **Branch `calibration-s1`: ongoing calibration stage (status 23 October 2026).** This branch is work in progress after
+> `main`'s 12 October release and is not a release. It holds the tower campaign (356 flux towers fitted one by one), per-type
+> parameters built from the towers of each Köppen zone, the tree-cover gate, and two candidate ways to set leaf area that are
+> both being carried to a final run: road A bounds leaf area with per-type caps
+> ([`params_31f_cs2.yaml`](python-port/configs/params/params_31f_cs2.yaml)); road B sets it through the allocation and
+> leaf-mass coefficients with no cap ([`params_31g5.yaml`](python-port/configs/params/params_31g5.yaml)). Global GPP is
+> 140-144 PgC yr⁻¹ on both roads; soil carbon (1091-1339 PgC) is the open carbon item. The results tables below are still
+> `main`'s. Current state and next steps: [`docs/CALIBRATION.md`](docs/CALIBRATION.md), sections 50-57.
+
 ## Results at a glance (12 October 2026)
 
 **Towers** — monthly values at 62 FLUXNET2015 towers, 2009–2012, on each tower's own meteorology; "held-out" scores are on a year the fit never saw. "Within 25 %" is the share of towers whose annual model/tower ratio lies between 0.75 and 1.25.
