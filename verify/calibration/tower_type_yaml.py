@@ -22,7 +22,8 @@ for s in towers:
             if key in v: bg[key][SHORT[p]] = float(v[key])
         for key in ('aleaf', 'awood', 'aroot', 'specla', 'tauleaf', 'tauroot', 'tauwood0', 'lai_max'):     # allocation stage (CALIBRATION.md 55)
             if key in v: y['pft'][LONG[p]][key] = float(v[key])
-        for key in ('gdd_thresh_u', 'gdd_ramp_u', 'sen_ycrit_u', 'gdd_thresh_l', 'tthresh_l_c', 'drop_stress_thresh', 'stressfac'):
+        for key in ('gdd_thresh_u', 'gdd_ramp_u', 'sen_ycrit_u', 'gdd_thresh_l', 'tthresh_l_c', 'sen_ycrit_l', 'sen_pstart_l',   # lower-canopy senescence: CALIBRATION.md 54
+                    'drop_stress_thresh', 'stressfac'):
             if key in v: scal.setdefault(key, []).append(float(v[key]))
     for key, vals in scal.items(): (st if key == 'stressfac' else ph)[key] = float(np.mean(vals))
     with open(f'{ydir}/{s}.yaml', 'w') as fo:

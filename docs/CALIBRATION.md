@@ -6518,3 +6518,27 @@ Köppen zone, eight typical towers), monthly fitted series for GPP / NEE / ET / 
 LAI and biomass, cover by zone), methane and fire, scorecard, open issues and next steps. Figures, scripts and tables:
 `ibis_local_document/figures/meeting_2026-10-23/` (the methane tower summary `LOCAL_ONLY_ch4_towers.png` stays local:
 the tower data are unpublished). **Next: Hangkai chooses the road; the NEE cycle runs on it.**
+
+## 57. The tower respiration finding was the soil: shared sets re-scored on the towers' own pools (2026-10-23)
+
+The meeting deck's tower numbers for the shared type set (respiration 1.23x, NEE bias +240 gC m-2 yr-1; own fits 1.01,
++25) came from `t31_rescore`, which ran **without `--start-state`**: all 358 runs used the grid cell's soil pools and
+litterfall, while all 358 own NEE fits (`t31_nee`) started from the towers' equilibrated pools (`t31_pools`). Controlled
+re-score, one change (the pools): `t31_rescore_pools` (same yamls + `--start-state t31_pools/<window>`; GPP/ET loss
+identical, e.g. DE-Tha 8.6172 vs 8.6171). Road A at the towers: `t31_yaml_31f_cs2` (per-tower yamls; `tower_type_yaml.py`
+now carries sen_ycrit_l / sen_pstart_l, which it had dropped) on the same pools, `t31_score_31f_cs2` (run on eridu, code
+mirror `ibis-port-1023`). Road B (`t31_score_31g5`) running on the box. Scripts `$S/nee_cycle/`.
+
+| 356 towers, median | own fit | shared, grid soil (deck v1) | shared, tower soil | road A, tower soil (331) |
+|---|---|---|---|---|
+| GPP amount / ET amount | 0.97 / 1.06 | 0.98 / 1.02 | 0.98 / 1.02 | 0.90 / 1.04 |
+| respiration amount | 1.01 | 1.23 | **1.11** | 1.06 |
+| NEE bias, gC m-2 yr-1 | +25 | +240 | **+124** | +153 |
+
+Half the deck's NEE bias was the grid soil. The rest is the towers' sink: median tower NEE -156 (77 % sinks; Reco/GPP 0.87),
+by zone A -272, C -218, D -140, B -57, E -107, and the shared-set bias follows it (A +195, C +156, D +145, B +30, E +31). A
+soil in equilibrium is near neutral; the own fits reach the sink only through som_scale (median 0.54, IQR 0.19-1.04),
+a per-tower disequilibrium the global model has no equivalent of. **The planned tower respiration refit (the "NEE cycle")
+is therefore not indicated**; the open carbon item is the global soil stock (1339 / 1091 PgC vs 1500-2400; k_scale is 1
+globally, section 37). Road A costs GPP at grass towers (0.79, Rollesbroich 3.6 measured LAI capped at 1.5). Deck
+corrected (Version 17) before the 2026-10-23 13:00 meeting.
