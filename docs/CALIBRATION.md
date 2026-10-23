@@ -6463,3 +6463,12 @@ land leaf area the litter input falls and soil C drops 1700 -> 1339 PgC (its own
 The cover, the forests and the tropics are as in s31e. This is the cap road's number: GPP 144 (1.31x), LAI 1.06x the
 ground-corrected products, tower cells 1.17x.
 
+**v4, 10-year global check (`warm10_31g4`; s31e and s31f alongside).** GPP 146.2 (1.34x): 30-60 N 1.52x (s31f 1.61),
+tropics 1.20x, but 60-90 N 2.48x (s31f 1.95): the cold grasses at tauleaf 1.0 / a_leaf 0.35 run the tundra's open
+land to 3.2 (products 0.54; v1 had 0.19) and the subarctic to 1.9 (1.19) -- at low leaf area the tundra canopy is far
+from saturated, so its leaf equilibrium is very sensitive to the coefficient (k x3.5 between v1 and v4 moved the LAI
+x17). Forests: tropics 6.3 (5.7), C zones 4.2-4.8 (4.1-4.5), temperate 3.7 (4.5), subarctic 3.1 (3.4); open land
+temperate 1.18 (1.29), Mediterranean 1.5 (1.1), savanna 2.9 (2.4). **v5**: G07 a_leaf 0.28 / tauleaf 0.8, G08 0.28 /
+0.7; T16 x1.15, T17 x1.1; T01 x0.9. The s31g protocol that had started on v4 at 21:34 was stopped at its tenth
+spin-up year and relaunched on v5 (`final_s31g`; the v4 start kept as `final_s31g_v4_aborted`).
+
