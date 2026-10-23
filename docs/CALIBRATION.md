@@ -6441,3 +6441,25 @@ Sodankyla 1.42x), deciduous 5.9-6.8 (Harvard 1.03x, Morgan-Monroe 1.17x, Hainich
 US-Wkg 0.2 (0.20x, water-limited, as before). No stand collapses and none runs away. v4 goes to the global check and
 the s31g protocol.
 
+**s31f -- the cap road's protocol run (params_31f_cs2, cold, 13:50-21:00 2026-10-22; `final_s31f/score/`; 2006-2010).**
+
+| quantity | s31e | **s31f (caps)** | observed |
+|---|---|---|---|
+| GPP, PgC yr-1 (x FLUXCOM); 90S-30N / 30-60N / 60-90N | 150.4 (1.38); 1.22 / 1.82 / 2.16 | **143.6 (1.31)**; 1.20 / 1.61 / 1.95 | 110-160 |
+| by type: forest / mixed / grass / shrub / bare / crop | 1.22 / 1.39 / 1.71 / 2.93 / 2.43 / 1.48 | 1.22 / 1.37 / 1.54 / 2.36 / 1.88 / 1.27 | |
+| tree cover on natural land; phantom; forest lost | 0.43; 2.1 %; 3.3 % | 0.43; 2.2 %; 3.4 % | 0.39 |
+| deciduous share of 30-90 N forest wood (subtrop / oceanic / D_temp) | 0.17 (0.01 / 0.02 / 0.13) | **0.21 (0.27 / 0.11 / 0.18)** | 0.26 (0.43 / 0.34 / 0.32) |
+| GPP at the tower cells, model / tower (A / C / D / E) | 1.30 (0.91 / 1.31 / 1.30 / 1.38) | 1.17 (0.96 / 1.22 / 1.17 / 0.62) | |
+| peak LAI x products (ground-corrected) | 1.58 (1.13) | 1.48 (1.06) | 1 |
+| lower-canopy NPP share | 0.40 | 0.35 | |
+| vegetation C; soil C | 276; 1700 | 279; **1339** | 450-650 (total); 1500-2400 |
+| sink 2001-2010 (pool change) | +2.32 | +2.52 | 2.78 |
+| wetland CH4, Tg | 184 | 178 (159 / 12 / 7) | 153 |
+
+The ground caps and the temperate-grass timing take 7 PgC (open land 1.71 -> 1.54, cropland 1.48 -> 1.27, bare 2.43
+-> 1.88); the composition rule, given a cold start, does move the composition (deciduous share 0.17 -> 0.21; the
+subtropical zone from 0.01 to 0.27). The cost appears in the soil: with the grass layer capped at the products' open-
+land leaf area the litter input falls and soil C drops 1700 -> 1339 PgC (its own stage, the NEE cycle, will see it).
+The cover, the forests and the tropics are as in s31e. This is the cap road's number: GPP 144 (1.31x), LAI 1.06x the
+ground-corrected products, tower cells 1.17x.
+
