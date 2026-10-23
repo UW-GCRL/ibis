@@ -6472,3 +6472,49 @@ temperate 1.18 (1.29), Mediterranean 1.5 (1.1), savanna 2.9 (2.4). **v5**: G07 a
 0.7; T16 x1.15, T17 x1.1; T01 x0.9. The s31g protocol that had started on v4 at 21:34 was stopped at its tenth
 spin-up year and relaunched on v5 (`final_s31g`; the v4 start kept as `final_s31g_v4_aborted`).
 
+
+## 56. s31g, the allocation road's protocol run, and the two roads side by side (2026-10-23)
+
+**s31g -- Min's road (no cap; `params_31g5.yaml`: specla 0.65x TRY, tauleaf TRY, a_leaf / a_wood / a_root and
+tauwood from the literature log `allocation_turnover_literature_2026-10-22.md`, v5 type adjustments; cold, relaunched
+21:40 2026-10-22; `final_s31g/score/`; 2006-2010 unless noted).**
+
+| quantity | s31f (caps, road A) | **s31g (allocation, road B)** | observed |
+|---|---|---|---|
+| GPP, PgC yr-1 (x FLUXCOM); 90S-30N / 30-60N / 60-90N | 143.6 (1.31); 1.20 / 1.61 / 1.95 | **140.4 (1.28)**; 1.23 / 1.45 / 1.52 | 110-160 |
+| by type: forest / mixed / grass / shrub / bare / crop | 1.22 / 1.37 / 1.54 / 2.36 / 1.88 / 1.27 | 1.21 / 1.37 / 1.59 / 1.88 / 1.74 / 1.17 | |
+| GPP at the tower cells, model / tower (all; A / C / D / E) | 1.17 (0.96 / 1.22 / 1.17 / 0.62) | 1.11 (0.95 / 1.19 / 1.03 / 0.83) | |
+| peak LAI x MODIS (x ground-corrected, MODIS/ground 0.72) | 1.48 (1.06) | 1.34 (0.97) | 1 |
+| ET x five-product ensemble | 1.02 | 1.01 | 1 |
+| tree cover on natural land; phantom; forest lost | 0.43; 2.2 %; 3.4 % | 0.43; 2.6 %; 3.6 % | 0.39 |
+| deciduous share of forest wood (subtrop / oceanic / D_temp) | 0.27 / 0.11 / 0.18 | **0.04 / 0.02 / 0.10** | 0.43 / 0.34 / 0.32 |
+| wood C, PgC (map cells) | 288 | 334 | 362 |
+| vegetation C; soil C (2001-2010) | 279; 1339 | 332; **1091** | 450-650 (total); 1500-2400 |
+| sink 2001-2010 (pool change) | +2.52 | +2.27 | 2.78 (sd 0.69) |
+| wetland CH4, Tg (90S-30N / 30-60N / 60-90N) | 181 (162 / 12 / 7) | 190 (173 / 11 / 6) | 153 (109 / 32 / 12) |
+| burned area x GFED5; rank r | 0.67; 0.66 | 0.64; 0.65 | 1 |
+
+**Verdict.** Both roads land the global GPP inside the defensible range and ET on the ensemble; they differ in where the
+leaf goes. Road B is closer on the north (30-60 N 1.45x against 1.61x; 60-90 N 1.52x against 1.95x), on leaf area
+(0.97x the ground-corrected products) and on wood (334 of 362 PgC). Road A keeps soil carbon higher (1339 against
+1091; both below 1500-2400), the sink closer (+2.52 against +2.27) and, through the dominant-pays rule, the deciduous
+share in the temperate forests (0.11-0.27 against 0.02-0.10; observed 0.32-0.43) -- road B would need its own mixing
+rule. Methane and fire are the same on both (the carbon supply moves the tropical band by 11 Tg).
+
+**At the towers the road does not matter** (the shared type set is the same): GPP 0.98x and ET 1.02x with the shared
+set; respiration 1.23x and the NEE bias +240 gC m-2 yr-1 (own fit +25) -- the NEE cycle's work, on whichever road. At
+the tower level the excess winter GPP of the 30-60 N grid (12-14 % of the year in Nov-Mar against FLUXCOM 4 %) is
+absent: the 30-60 N evergreen needleleaf towers have 14 % with the shared set against 15 % observed, deciduous 1 %
+against 3 %, grassland 11 % against 12 %, so the grid excess sits in how much evergreen leaf the mid-latitude cells
+carry, not in a rate. Savannas lose GPP when the shared set replaces each tower's own fit (SAV 0.74x, WSA 0.76x against
+0.91x / 1.00x own); tropical evergreen broadleaf timing r median 0.52 (19 towers).
+
+**One NaN cell on road B**: 54.75 N, 127.75 W (D_subarctic, British Columbia) is NaN from spin-up year 1754 onward;
+the extraction for the deck used road A's land order (95333 cells; road B 95332 finite). It does not move the totals
+but must be traced before a road-B final.
+
+**The meeting deck (2026-10-23, Hangkai and Min):** 25 slides, both roadmaps, tower metrics (campaign, by class, by
+Köppen zone, eight typical towers), monthly fitted series for GPP / NEE / ET / respiration, global maps (GPP, NEE, ET,
+LAI and biomass, cover by zone), methane and fire, scorecard, open issues and next steps. Figures, scripts and tables:
+`ibis_local_document/figures/meeting_2026-10-23/` (the methane tower summary `LOCAL_ONLY_ch4_towers.png` stays local:
+the tower data are unpublished). **Next: Hangkai chooses the road; the NEE cycle runs on it.**
