@@ -6548,3 +6548,7 @@ a per-tower disequilibrium the global model has no equivalent of. **The planned 
 is therefore not indicated**; the open carbon item is the global soil stock (1339 / 1091 PgC vs 1500-2400; k_scale is 1
 globally, section 37). Road A costs GPP at grass towers (0.79, Rollesbroich 3.6 measured LAI capped at 1.5). Deck
 corrected (Version 17) before the 2026-10-23 13:00 meeting.
+
+**Road B at the towers (13:17, `t31_score_31g5`, box and eridu meeting in the middle; 330 towers):** GPP 0.97, ET 1.04,
+respiration 1.12, NEE bias +122 gC m-2 yr-1 (road A 0.90 / 1.04 / 1.06 / +153). Grassland towers: B 1.04, A 0.79 (the
+ground cap); forest classes within 0.03 between the roads. Deck scorecard filled (Version 20).
