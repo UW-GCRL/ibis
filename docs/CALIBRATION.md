@@ -6893,3 +6893,66 @@ grew into the shoulder seasons the corrected snow opened; road A's open-land cap
 scaling (G07, G08, S05, S06 x0.77) touched the wrong types and moved 60-90 N GPP 9.4 -> 9.1 only. Corrected: road B's
 `pft.deciduous_shrub.aleaf` 0.4 -> 0.2 and S06 aleaf 0.2 (x0.5 from LAI ~ k^2.3 and the 0.2x target), the grasses and
 S05 left alone; `check10_31m` rerun (the first kept as `check10_31m_v1`). Road A needs nothing more: s31l launched 15:25.
+
+## 66. The humid damping floor: sweep against GFED5, trap test, and the reruns (2026-10-26 15:40-16:35)
+
+**Question (Hangkai, on the 0.64 % a year of section 65): "So currently is too low right? Any way to calibrate it?"** Yes
+on both counts. The floor is `FireParams.closed_canopy_fu` (yaml `fire: closed_canopy_fu`), and because the damping in
+the Af / Am cells no longer depends on the state, it can be swept offline on a finished run's states and fire counters.
+
+**Sweep** (`verify/calibration/diagnostics/fire_f7_fit.py --closed-zones A_humid --fixed 0.85,0.05,0.44`, final_s31j
+hindcast states 2003-2005 against GFED5 Norm 2003-2005; burned fraction in % a year, ratios model / GFED5):
+
+| closed_canopy_fu | floor | humid zone (GFED5 2.61) | Amazon | Congo | SE Asia |
+|---|---|---|---|---|---|
+| 0.975 (section 65) | 0.08 | 0.50 | 0.31 | 0.18 | 0.56 |
+| 0.93 | 0.17 | 1.10 | 0.69 | 0.40 | 1.23 |
+| 0.90 | 0.27 | 1.75 | 1.10 | 0.63 | 1.97 |
+| 0.89 | 0.31 | 2.01 | 1.27 | 0.73 | 2.26 |
+| 0.86 | 0.45 | 2.91 | 1.83 | 1.05 | 3.27 |
+
+The savanna and dry zones do not move (7.22 and 1.83 at every floor): the floor touches the Af / Am cells only. One
+knob cannot fit the three humid regions: at the floor that puts the Amazon on GFED5 (0.27), the Congo sits at 0.63x and
+Southeast Asia at 1.97x. That is a pattern problem for the fire refit, not the floor -- GFED5's Congo fire is largely
+the forest-savanna mosaic and clearing fire at the forest edge, and Southeast Asia's monsoon dry season gives the model
+more fire than the wet-forest observations show. Chosen: 0.90 (floor 0.27), the Amazon on GFED5, the zone at two thirds.
+The sweep is in `$N/fire_closed_fu_sweep.txt` (tables/ of the final figures folder).
+
+**Trap test (`check10_31l_fu090`, 15:47-16:25):** the check10_31l protocol (ten years from the s31f 2000 state, in which
+the Amazon trap cells are still open) with params_31l + closed_canopy_fu 0.90. Humid Amazon 2.25 % a year (GFED5 1.89,
+rank r 0.06), zone cover 0.92 (0.93 at the old floor); Congo 2.17 (4.19), Southeast Asia 1.18 (0.67). The cells that
+matter, by their cover at the start (`verify/calibration/diagnostics/audit_2026-10-26/trap_cells.py`; fu, burn % a year,
+upper LAI, wood kgC m-2, area means; floor 0.08 run first, 0.27 second):
+
+| start cover | share of zone | 2000 | 2010 at floor 0.08 | 2010 at floor 0.27 |
+|---|---|---|---|---|
+| open (fu < 0.5) | 5.7 % | 0.32 / 8.7 / 1.7 / 0.7 | 0.63 / 1.0 / 3.5 / 1.8 | 0.61 / 3.6 / 3.3 / 1.7 |
+| half-open (0.5-0.8) | 10.9 % | 0.66 / 9.5 / 4.1 / 2.7 | 0.81 / 0.9 / 5.0 / 4.1 | 0.79 / 3.2 / 4.8 / 3.9 |
+| closed (>= 0.8) | 83.4 % | 0.97 / 0.8 / 6.7 / 10.5 | 0.97 / 0.6 / 6.6 / 10.9 | 0.96 / 2.0 / 6.6 / 10.4 |
+
+The open cells close at almost the same pace under the higher floor (cover 0.32 -> 0.61 against 0.63; the decade's
+recovery slows by 3 %), the closed canopy stays closed at 2 % a year. The 97 cells above 5 % a year in 2010 (4.8 % of
+the area, 12 % of the zone's fire, none above 10 %) are cells still closing (cover 0.61 -> 0.83), not the trap's 10-20 %.
+Globally nothing else moves (GPP 153.0 vs 153.1, wood 319 vs 323 PgC after ten years, live residual +0.08 as before).
+Verdict: safe. Hangkai: "do as you planned, sounds reasonable" -> adopted for both roads' final runs.
+
+**Road B's allocation leak, found by the closure check.** The corrected check10_31m (deciduous shrub aleaf 0.2, section 65)
+closed its far north (60-90 N GPP 9.4 -> 5.5) but its live-pool residual was -0.21 PgC a year against +0.08 on road A
+and -0.02 before the change. Cause: `pft.deciduous_shrub` aleaf 0.2 + aroot 0.45 + awood 0.15 = 0.80, so a fifth of the
+shrub's NPP was allocated nowhere; the builder had halved aleaf without moving the share. Fix: aroot 0.65 (tundra shrubs
+allocate half or more below ground), the one position-10 type with its own leaf and wood fractions (S04) pinned at its
+fitted aroot 0.45, and `build_params_31lm.py` now asserts that every base PFT and every type (overrides over its position's
+base) sums to one; road A's file was already clean. The leak run is kept as `check10_31m_leak`. Rerun (15:47-16:25):
+live residual +0.10, 60-90 N GPP 5.3 (1.5x FLUXCOM; road A 2.0x), 30-60 N 36.4; 60-90 N leaf area 2.21 -> 0.85 (the
+deciduous shrub 1.45 -> 0.07, tundra cell LAI 2.53 -> 0.58, subarctic 2.73 -> 1.68); fire, water and GPP elsewhere as
+s31k. The decade's sink in that check is only +0.1 to +0.5 PgC a year because the shrub pools of the s31g start state
+collapse to litter (soil residual -2.1 in 2009) -- a transient of the warm start that the cold protocol will not carry.
+
+**The reruns (commit d078a27):** params_31l / params_31m rebuilt with `closed_canopy_fu: 0.90` (the only change on road A).
+s31l was 80 spin-up years in at the old floor; killed and relaunched 16:34 (the partial run kept as
+`final_s31l_fu0975_partial`); s31m launched 16:28. Both are the cold closing protocol, scored automatically. Operational
+note: the relaunch script's `pgrep -f` matched the calling shell twice (the heredoc that wrote the script was in the
+shell's command line), so it now ignores its own ancestors -- the same family of mistake as the `pkill -f` rule.
+
+**Open after these runs:** the fire refit proper (Congo 0.5x, Southeast Asia 1.8x, the African savanna 0.2x and the
+savanna zone 0.3x, k_b), the methane bands, the 30-60 N winter GPP, and the road decision.
