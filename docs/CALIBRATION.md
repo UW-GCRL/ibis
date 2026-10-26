@@ -6735,3 +6735,35 @@ tower harness (`site_transient.py`) still runs the old fire (no counter reset, n
 site checks differ from the globe until it is wired; the offline predictor reads year-Y `fu` / `plai` where the model read
 year Y-1's (harmless near equilibrium, the 1.003 ratio); `broadleaf_share` returns 1 for a leafless stand; the
 emissions diagnostic uses default mortality, not `params.fire`.
+
+## 63. "Fix them all": the audit fixes, the parameter files, and the check before the final runs (2026-10-26 02:45-)
+
+Hangkai: "fix them all! And then do another round of check before final running." s31h / s31i stopped at spin-up year
+~1740 (kept as `final_s31[hi]_gatefixed_aborted`). Commit d490c28; every fix behind a switch whose off state is F77.
+
+| finding (section) | fix | switch (production value) |
+|---|---|---|
+| soilh2o water pump (62) | linearisation point with the matrix's interpolation weights | `soil.h2o_consistent_weights` (true) |
+| annual pool booking, ~3 PgC yr-1 (61) | litterfall = c (1 - e) + a N (1 - tau (1 - e)); pools unchanged | `pft.exact_litterfall` (true) |
+| shrub NPP on the cropland share (60) | added to `cdisturb` with the harvest (diag `crop_shrub_npp`) | always |
+| tree gate carbon (60-61) | removed trees to litter | `pft.tree_kill_to_litter` (true; commit 95fee1b) |
+| vmax priority pick (60-61) | leaf-area-weighted capacity per big leaf | `stomata.vmax_mix` (true) |
+| dead-position type fits (60) | vmax := what the leaves ran at: T03, T18 base temp_bl_dec 33.8; T19 T17's 25.0; S02 / S04 / S06 generic evergreen shrub 25.3 (S06 was 75.8) | types |
+| humid tropics 92-99.8 % T02 (61) | T02 takes T01's vmax, rgrowth, rroot, lt_e0 (3 towers, dead position; it won on respiration); keeps its drought-deciduous habit, so T01 wins where it is wet and T03 in the savanna zone | types |
+| fire damping floor 0.22 (62) | `fire.fu_width` 0.05 (floor 0.08 at the 0.975 cover cap; zone RMS equal) | fire |
+| leafless stand damped as closed canopy (62) | `broadleaf_share` 0 where no tree leaf | always |
+| spin-up acceleration to the end (60) | last 50 spin-up years at 1x | `physics.soilcspin_tail_years` (50) |
+| tower harness on the old fire (62) | counters reset yearly, fire parameters passed (`site_transient.py`) | always |
+
+Not changed, with reasons: `deltat` = 0 (needs an absolute-minimum temperature dataset; only the 286 'none' cells read it
+under the types); decomposition factors from the end-of-day state (size unmeasured, in the shared kernel; its own check);
+methane on the last day's Rh (diagnostic phase only); the per-zone scalar medians (design); the tower-harness position
+and pool mismatches (next tower campaign); C4 vmax bound conversion (towers). T04 (C_highland, one live tower, 10.0 umol)
+is kept but flagged. Parameter files `params_31j.yaml` (road A) and `params_31k.yaml` (road B); tests
+`test_audit_fixes_2026_10_26.py` (pump reproduced and removed on synthetic columns; exact booking closes the live budget
+in both update paths and equals F77 at equilibrium; cropland closure; leafless stands; wiring).
+
+**Check before the protocol runs:** 10-year runs 2001-2010 from the s31f / s31g 2000 states with the new sets
+(`check10_31j`, `check10_31k`; soil at 1x) -- carbon and water closure, fire by region, tropical composition, and the
+section-50 scores against s31f / s31g; a second adversarial review of the diff and an audit of the energy / water /
+phenology / methane / output paths run in parallel (results below).
