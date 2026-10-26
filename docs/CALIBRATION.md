@@ -6552,3 +6552,37 @@ corrected (Version 17) before the 2026-10-23 13:00 meeting.
 **Road B at the towers (13:17, `t31_score_31g5`, box and eridu meeting in the middle; 330 towers):** GPP 0.97, ET 1.04,
 respiration 1.12, NEE bias +122 gC m-2 yr-1 (road A 0.90 / 1.04 / 1.06 / +153). Grassland towers: B 1.04, A 0.79 (the
 ground cap); forest classes within 0.03 between the roads. Deck scorecard filled (Version 20).
+
+## 58. The Amazon: fire five times GFED5 on both roads, and the wood follows the fire (2026-10-25, Hangkai)
+
+Hangkai, from the 10-23 deck: "the fire is overestimated in Amazon, and the total carbon in Amazon looks strange". Humid
+Amazon = Köppen Af/Am in South America (5.9 Mkm2); 2010 state of each protocol run (`$S/nee_cycle/amazon_extract.py`,
+figure `ibis_local_document/figures/meeting_2026-10-23/amazon.png`).
+
+| humid Amazon | IBIS 3.0 (s7_crop) | s31a | s31e | road A (s31f) | road B (s31g) | observed |
+|---|---|---|---|---|---|---|
+| burned area, % yr-1 | 10.3 | 10.3 | 9.4 | 9.6 | 9.9 | 1.9 (GFED5 2001-05) |
+| wood C, kgC m-2 / PgC | 5.4 / 32 | 5.7 / 34 | 7.9 / 47 | 7.7 / 45 | 8.1 / 48 | 11.5 / 68 (Xu & Saatchi) |
+| soil C, kgC m-2 | 10.6 | 12.2 | 14.3 | 14.3 | 14.4 | |
+
+Inherited from IBIS 3.0, not from either road. Within the humid Amazon the model's wood follows its own fire (cell rank
+correlation -0.67 road A, -0.80 road B), not the map (-0.06, -0.10); model fire vs GFED5 0.04 / 0.09. Most-burned quarter
+(16 % yr-1): wood 5.0 kgC m-2 where the map has 12.6; least-burned quarter (4.5 %): 10.5 against 9.0 -- the pattern is
+upside down. Road B's longer wood residence adds only 2 PgC here: fire sets the turnover.
+
+Why (terms of `fire_seasonlength` from the 2010 state, s31f; burned = 1 - exp(-0.5 fseason dry fuel vd)):
+
+| region | GFED5 % | model % | fseason | dryness | fuel | vd (LAI/4) |
+|---|---|---|---|---|---|---|
+| Amazon humid | 1.9 | 9.6 | 0.36 | 0.59 | 0.99 | 0.96 |
+| Congo humid | 3.6 | 10.2 | 0.36 | 0.60 | 1.00 | 0.98 |
+| SE Asia humid | 0.8 | 7.4 | 0.29 | 0.54 | 1.00 | 0.99 |
+| S. America savanna | 6.8 | 10.0 | 0.45 | 0.64 | 0.89 | 0.84 |
+| Africa savanna | 42.2 | 9.6 | 0.51 | 0.66 | 0.82 | 0.76 |
+
+The VPD season and dryness are lower in the rainforests, as they should be, but the fuel term (legacy min(1, totlit/0.2);
+rainforest totlit 1.4-1.7) and the vegetation-density term are saturated there and lower in the savannas, so they cancel the
+weather contrast: every tropical region lands at 7-10 % (rainforests 3-9x GFED5, African savannas 4x low). The F2 fine-fuel
+term (off) would not separate them alone (rainforest above-ground litter 1.3-1.5 > ufuel 0.65; savanna 0.26-0.39 below it).
+Missing: a damping term for closed, moist forest (fuel moisture or canopy closure). It belongs before any Amazon carbon
+calibration, since the wood there is set by the fire. Deck: slides `amazon`, `fire-why` (Version 24); fire slide retitled.
