@@ -206,7 +206,7 @@ pft:
     tauwood0: 10.0
     specla: 20.8
     aleaf: 0.2   # 2026-10-26: x0.5, the far-north run-away under the corrected snow (CALIBRATION.md 65) (was 0.4)
-    aroot: 0.65   # 2026-10-26: takes the halved leaf share so the allocation sums to one (was 0.45; the 0.8 sum leaked 0.2 PgC/yr in check10_31m)
+    aroot: 0.65   # 2026-10-26: takes the halved leaf share so the allocation sums to one (was 0.45)
     awood: 0.15
   c4_grass:
     TminL: 9999.0
@@ -839,13 +839,14 @@ types:
     aroot: 0.72
     tauleaf: 0.7
 
-# F7 fire fix (CALIBRATION.md 59, 2026-10-26) + the audit fixes of CALIBRATION.md 62-63 + the closed-canopy climate rule of 65: road B (allocation, params_31g5) + closed-canopy damping on the broadleaf share of the canopy,
+# F7 fire fix (CALIBRATION.md 59, 2026-10-26) + the audit fixes of CALIBRATION.md 62-63 + the closed-canopy climate rule of 65 (humid floor of 66): road B (allocation, params_31g5) + closed-canopy damping on the broadleaf share of the canopy,
 # fitted offline on road A's 2003-2005 states with the annual fire-counter reset against GFED5 Norm 2003-2005
 # (verify/calibration/diagnostics/fire_f7_fit.py --kb-free; zone log-RMS 0.74 -> 0.68, rank 0.74 -> 0.75,
 # humid Amazon 4.2 -> 1.5 x GFED5, boreal 1.27 -> 1.10).
 fire:
   use_canopy_damping: true
   closed_canopy_zones: [A_humid]   # 2026-10-26: humid-tropics climate damps fire as a closed canopy whatever the cover (CALIBRATION.md 65)
+  closed_canopy_fu: 0.9   # 2026-10-26: humid damping floor 0.27 (0.08 at the 0.975 cover cap burned the humid zone at a third of GFED5; CALIBRATION.md 66)
   damp_broadleaf_only: true
   fu_half: 0.85
   fu_width: 0.05                 # 2026-10-26: damping floor 0.08 at the 0.975 cover cap (was 0.22 at 0.10)
