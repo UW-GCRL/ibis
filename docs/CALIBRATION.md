@@ -6629,3 +6629,39 @@ Left open: the African savannas (0.2x; grass fuel and human ignition, F3 is off)
 and deforestation fire, 0.7 % yr-1). Parameter files `params_31h.yaml` (road A + F7) and `params_31i.yaml` (road B +
 F7); commit 26b43da. Cold protocol runs s31h and s31i launched side by side 2026-10-26 00:26 (GPU, MEM_FRACTION .3
 each); auto-scored (`score_s31h.sh` vs s31f, `score_s31i.sh` vs s31g).
+
+## 60. Audit after the fire defects (2026-10-26, Hangkai: "do a double check for other part, any suspicious things?")
+
+Three read-only code audits (production driver vs the reference loops and F77; parameter wiring; tower harness vs global
+setup) and a budget check of the s31f / s31g outputs. Nothing changed yet; findings ranked by likely impact.
+
+1. **The tree-establishment gate deletes carbon** (`vegetation_dynamics.py` dynaveg, tree pools x `tree_surv`; the
+   removed share goes to neither litter nor `cdisturb`). Carbon budget of s31f 2006-2010: the live compartment loses
+   6.2-8.9 PgC yr-1 that is not litterfall or booked disturbance (s31g 5.4-7.8); litter + soil close to -0.2. The gate
+   removes ~3-5 PgC yr-1 (s31f 2008 3.2, 2010 5.5; an independent estimate 4.2-4.8); reported NEE overstates the
+   sink by that much and the soil misses the dead wood. Remainder candidate: shrub NPP on the cropland share counted in
+   `aynpptot` but not allocated. Affects s31h / s31i.
+2. **Phantom drainage** in ~5 600 dry cells: a dry layer 4 (wsoi exactly 0) above wet layers 5-6 that never deplete
+   (0.71 / 0.86 at many sites) and drain ~690 mm yr-1 (= bperm x saturated conductivity); global P - ET - R - D =
+   -11 to -14 % of P (hot arid -354 mm yr-1). Mechanism not pinned (the zero floor after transpiration recreating water
+   the solve removes is the suspect). These cells transpire ~P or more: possibly feeding dryland GPP. IBIS 3.0's water
+   accounting differs (drainage ~0 in wet regions) and needs its own check.
+3. **`vmax_mix` is absent from every 3.x parameter file** (default False = F77 priority pick, also on the sun/shade
+   path, `stomata.py:828`). Section 51 found it inert at four single-PFT towers; in mixed cells it is not: the evergreen
+   type's vmax replaces the deciduous type's fit (C_oceanic T12 40.0 -> T14 32.6; C_med T11 46.8 -> 30.2; C_subtrop
+   T08 38.7 -> 31.5; C_highland 38.7 -> 10.0 from one tower; T02, T18, T19, S02/S04/S06 never read). Turning it on would
+   make values that were flat at their towers live (T18, T19, T03 at SAV, position-9 shrubs).
+4. **Tower runs vs global cells**: 72 of 358 towers run a type at a position other than its parent (habit differs:
+   T09 cold-deciduous at towers, evergreen globally; shrubs swapped evergreen/deciduous); per-cell scalars are tower
+   means vs zone medians (stressfac differs at 310 towers, median 0.56); pools for 345 NEE fits equilibrated on the base
+   set (group spin-ups ignore per-tower parameters); towers have no fire or disturbance; `fu` not held at towers (SAV /
+   WSA run at ~0.975 cover); C4 vmax bounds converted with the C3 temperature ratio (~11 % high).
+5. **F77 divergences**: `deltat` zeroed, so `tcmin` is the coldest monthly mean, not the absolute minimum (climate.f:56,
+   144; warm bias 5-30 K; matters for the generic envelope, i.e. IBIS 3.0 and 'none' cells -- section 52's "phantom
+   tropical forest" attribution to the F77 envelope is partly this); spin-up at 10x soil acceleration to the end with
+   no ramp (litter drops 115 -> 103 PgC in 1901-05; early transient only); decomposition factors from the end-of-day
+   state instead of the previous day's mean (size unmeasured).
+6. **Smaller**: TYPE_SCALARS reduce per-type phenology / stress to one zone median (shrub `gdd_thresh_l`, most
+   `*_u` scalars dead -- by design); `soil.rhosoi_val` / `csoi_mineral_val` dead; methane uses the last day's Rh; yaml
+   sections other than types / pheno / methane / crop / fire accept unknown keys silently; s31g NaN cell (54.75 N,
+   127.75 W) from 1754.
