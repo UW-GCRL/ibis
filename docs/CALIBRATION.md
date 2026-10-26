@@ -7013,3 +7013,5 @@ wood toward the map, and it would raise Europe's surplus, which is the 30-60 N G
 (25 / 35 yr) is short against observations and only balanced by the excess NPP; the wood refit should move production
 and residence together, not the stock alone. Neither is in the running s31l / s31m; both are the next stage after the
 road decision (one decision at a time).
+**Decision (Hangkai, 18:45): queued as the first item after the road decision -- the gate redesigned as a cover limit, with the
+tropical wood-turnover refit alongside it so production and residence move together instead of the stock alone.**
