@@ -6767,3 +6767,29 @@ in both update paths and equals F77 at equilibrium; cropland closure; leafless s
 (`check10_31j`, `check10_31k`; soil at 1x) -- carbon and water closure, fire by region, tropical composition, and the
 section-50 scores against s31f / s31g; a second adversarial review of the diff and an audit of the energy / water /
 phenology / methane / output paths run in parallel (results below).
+
+**Second review round (03:00-03:20), what it found and what changed before the check runs.**
+- *Exact booking was exact only for positive NPP of existing PFTs.* NEE is formed from the raw `aynpptot`, while the
+  pools receive max(0, exist x NPP). Under `exact_litterfall` the two discarded parts are now booked: NPP fixed by a
+  PFT with exist = 0 goes to leaf litter; negative NPP (respiration beyond assimilation) is paid from the PFT's own
+  pools, wood first (the pool trajectory changes only there). Test: closure against the raw total with negative NPP,
+  exist = 0 trees and cropland.
+- *The harvest could destroy carbon:* it was c / tau of the grass leaf pool while the leaf litter it is taken from is
+  now the exact term; after a good year the harvest exceeded the grass litter and `max(falll - harvest, 0)` ate other
+  PFTs' litter. Now a share of the grass leaf litter as booked (identical under F77 booking).
+- *Spin-up tail:* `spinup_nsoilcall` keeps a run shorter than the tail accelerated throughout (a 30-year check went
+  silently to 1x).
+- *`vmax_mix` alone gives a type no competitive edge:* each PFT's GPP share stayed its leaf-area share, so a higher
+  fitted capacity raised the canopy total but not the type's own share, and composition was still decided by
+  respiration. `stomata.gpp_split_by_capacity` (section 45.1, built then, off) is on in both files: GPP share = leaf
+  area x own capacity.
+- *Snow constants were not F77's* (state/snow.py vs initial.f:409-416): hsnomin 0.01 (F77 0.15), fimin 0.02 (4e-5),
+  z0sno 0.005 (0.0005). With hsnomin 0.01 a 2.5 kg m-2 snowfall covered a cell completely (15x F77), switching off the
+  lower canopy's transpiration and NPP (smask = 1 - fi) and raising the albedo under any dusting, and a new pack's lower
+  layers were initialised with negative thickness. Set to F77's; these are static fields, so a loaded restart takes
+  them too. Size unmeasured before the check runs; expected to matter for mid- and high-latitude grass and shrub GPP.
+- *Output:* `aycdisturb` and `aycropshrub` written yearly; `cveg` relabelled (it is wood carbon only); NEE sign and the
+  monthly / yearly difference (no cdisturb monthly) stated in the attribute.
+- Left: ice-sheet cells losing 36-112 mm yr-1 (float32 snow rescaling, unproven); boreal/tundra water creation of ~9 mm
+  yr-1 from the port's own floors (transpiration, sublimation, puddle); `fu` written after dynaveg (next year's cover)
+  while `laiu` is the 31 December displayed value; CH4 band fixed to the first Köppen period in a transient.
