@@ -6624,7 +6624,9 @@ of log(model / GFED5) of the 11 vegetated zone means, k_b free; checks: cell ran
 | global total | 0.72 | 0.53 |
 
 The width 0.10 rather than the best-RMS 0.06: the fit is on the over-burned vegetation (humid Amazon fu 0.85; observed
-0.92); with less fire the canopy closes and the damping tightens, so the Amazon should settle near GFED5, not at 1.5x.
+0.92). Correction (review, 02:40): `dynaveg` caps fu at 0.975, so with fu_half 0.85 / width 0.10 the damping bottoms out at
+0.22 -- a closed Amazon canopy still burns at 22 % of the undamped rate, and 1.5x GFED5 is near the floor, not a transient.
+A tighter floor needs fu_half fitted against the 0.975 cap (e.g. 0.80 / 0.05 gives 0.03); left for the fire refit.
 Left open: the African savannas (0.2x; grass fuel and human ignition, F3 is off) and Southeast Asia (Norm excludes peat
 and deforestation fire, 0.7 % yr-1). Parameter files `params_31h.yaml` (road A + F7) and `params_31i.yaml` (road B +
 F7); commit 26b43da. Cold protocol runs s31h and s31i launched side by side 2026-10-26 00:26 (GPU, MEM_FRACTION .3
@@ -6702,3 +6704,34 @@ lower fitted respiration (rroot 0.52 against T01's 1.28, rgrowth 0.118 / 0.127, 
 T01 everywhere. The Amazon's wood, soil and dry-season behaviour are therefore T02's, and T01's calibration is unused. A
 composition rule for the humid tropics (as the dominant-pays rule was for the temperate deciduous share) or the mixed
 capacity with a competition check is needed before any Amazon carbon work.
+
+## 62. The phantom drainage is a water pump in soilh2o, inherited from F77 (2026-10-26 02:50)
+
+**Mechanism** (traced read-only, reproduced on real columns, `audit_2026-10-26/soil_pump_column.py`). In `soilh2o` the
+explicit linearisation point of each interface is `wsoim = weim * wsoi[k-1] + weip * wsoi[k]` (soil_physics.py; F77
+soil.f:625) with `weip = 0.5 hsoi[k] / hsoim`, while the tridiagonal matrix weights the same interface as
+`weip * wsoi[k-1] + weim * wsoi[k]` (soil.f:760, 785) -- the geometrically right interpolation (each layer weighted by the
+other's half thickness). The two agree for equal layers; IBIS's layers double with depth, so at a dry-over-wet contrast
+the Newton step is evaluated at the wrong point and the scheme flux at interface 4/5 points DOWN out of the dry layer
+(+0.079 mm h-1 where the physical flux is -0.033). The column sits at a fixed point: layers 5-6 stationary at the
+soil-class attractor (0.711 / 0.864, identical in 4 909 cells), layer 4 debited water it does not have, returned by the
+solve as -3e-4 and set to 0 by `wadjust` (the "exactly 0.0" fingerprint, 39 852 cells), the difference booked in `gadjust`
+which nothing writes out, and the bottom draining at hydraul x bperm x w6^13 = 692 mm yr-1 (Tarim, Turkmenistan, Texas,
+Atacama within 1 mm of aytdrain); 7 108 cells have run the pump to a saturated bottom (Sahara 23.75 N 3.75 E: 4 625 mm
+yr-1, exactly hydraul x bperm x 1). Column test, 480 hourly steps with no inputs: as is, drainage 693 / created 694 /
+store +1 mm yr-1 (a perpetual pump); with the two weights put the matrix's way round, created 0, drainage from the store
+(layers 5-6 deplete, 0.71 -> 0.61); the wet Amazon column and a normal Sahara column unchanged. Globally the pump is the
+P - ET - R - D = -11 to -14 % of P of section 60; these cells transpire ~P or more, so part of dryland GPP stands on it.
+The pattern is fully formed in the spin-up, so a fix needs a re-spin-up. F77 2.6b4 has the same attractor; the port adds
+two unbooked floors of its own (the transpiration floor in the daily step, the puddle floor) and does not compute F77's
+`wtot` / `aydwtot` conservation check. Not changed: it breaks the F77 lockstep bit-exactness, so it goes behind a switch,
+and the decision is Hangkai's.
+
+**Review of the two fixes (adversarial, read-only):** no crash-class defect; the gate kill is booked once, before fire,
+from the post-growth pools, `cdisturb` and `fu` consistent, litter in the right units, dynaveg once a year, the fire
+counters read in the year they accumulate and saved in that year's restart (nytimes 8760 / 8784), `plai` is the potential
+leaf area so deciduous stands are damped at year end, no new state leaves. Found: the 0.22 damping floor (above); the
+tower harness (`site_transient.py`) still runs the old fire (no counter reset, no fire parameters) -- the dynamic-carbon
+site checks differ from the globe until it is wired; the offline predictor reads year-Y `fu` / `plai` where the model read
+year Y-1's (harmless near equilibrium, the 1.003 ratio); `broadleaf_share` returns 1 for a leafless stand; the
+emissions diagnostic uses default mortality, not `params.fire`.
