@@ -6956,3 +6956,60 @@ shell's command line), so it now ignores its own ancestors -- the same family of
 
 **Open after these runs:** the fire refit proper (Congo 0.5x, Southeast Asia 1.8x, the African savanna 0.2x and the
 savanna zone 0.3x, k_b), the methane bands, the 30-60 N winter GPP, and the road decision.
+
+## 67. Wood carbon by world chunk: the survival gate is the missing wood outside the humid tropics (2026-10-26 17:30-18:40)
+
+**Hangkai: "divide the world into several chunks and compare its wood carbon" -> "dig deeper into this".** Tree wood of the
+2010 state (cbiow of the eight upper-canopy positions) against Xu & Saatchi 2021 live biomass carbon (2006-2010 mean), by
+Köppen group x continent (`wood_regions.py`, figure `wood_regions_s31j_s31k.png`); the error decomposed into cover,
+density per unit cover, upper-canopy NPP and implied residence time (`wood_decomp.py`); and a wood budget per chunk --
+production 0.5 x NPP_u, the survival gate's kill cbiow (1 - ts) / ts, fire disturbf x mort_j x cbiow_j, turnover
+cbiow_j / tauwood0_j (`wood_budget_chunks.py`; all three in `diagnostics/audit_2026-10-26/`, tables in the final figures
+folder). The map holds leaves, roots and shrubs too, so a model ratio near 0.8 is like-for-like parity.
+
+**The chunks (PgC; map / s31j / s31k):** humid Amazon 68 / 58 / 79; Congo 23 / 11 / 15; humid Asia 25 / 24 / 31;
+African savanna 43 / 13 / 15; S American savanna 21 / 18 / 20; temperate Europe 17 / 30 / 43; temperate N America
+19 / 24 / 31; temperate Asia 14 / 17 / 23; boreal Asia 37 / 19 / 34; boreal N America 15 / 13 / 15; boreal Europe
+8 / 15 / 14; subtropical Asia 19 / 28 / 29; global 362 / 320 / 402. Cell rank correlation inside a chunk 0.4-0.7;
+global 0.70, carried by the biome contrast.
+
+**Cover is right almost everywhere; density is not.** Model upper-canopy cover fu matches the tree-cover product to a
+few hundredths in the Amazon (0.91 / 0.91), the African savanna (0.13 / 0.13), temperate Europe (0.47 / 0.42) and
+Siberia (0.46 / 0.40). The wood per unit cover is what is off: African savanna 3.3 vs 11.4 kgC m-2 of cover, Siberia
+4.1 vs 8.9 (road A), Congo 8.8 vs 16.4, Europe 9.7 vs 6.1 (A) and 13.4 (B). And the implied wood residence time
+wood / (0.5 NPP_u) is far below tauwood0 in every chunk: tropics 13-17 yr (tauwood0 25), savannas 5-10 (25),
+temperate 15-20 (50), boreal 13-28 (100). Stocks match the map only where the excess GPP (1.2x FLUXCOM in the tropics,
+1.6x temperate, 1.8-2.0x boreal) cancels the excess loss: the Amazon and boreal North America are right for the wrong
+reasons (Amazon wood production 3.5 PgC yr-1 against 1.7-2.2 from Malhi et al. 2011's 0.3-0.4 kgC m-2 yr-1; residence
+25 yr against the 40-60 observed, Galbraith et al. 2013).
+
+**The loss is the water-stress survival gate (section 14).** ts = clip((aystressu - 0.5) / 0.3, 0, 1) multiplies the
+standing tree pools every year: ts = 0 (trees eliminated) on 31 % of the land, 0 < ts < 1 (a fixed share of the
+standing trees killed every year) on another 30 %. `gate_kill.py`: 3.4-7.0 PgC of tree carbon a year (2008 / 2010),
+of which 4.4 PgC yr-1 is wood in both runs -- half the size of natural turnover (8.9 / 8.0) and 1.5x fire (2.8). By
+chunk the gate is the largest wood loss where the deficits are: African savanna gate 0.96 vs turnover 0.52 and fire 0.17
+PgC yr-1 (58 % of the area at ts = 0, 36 % partial), S American savanna 0.59 vs 0.69, subtropical N America 0.40 vs
+0.31, Siberia on road A 0.26 + fire 0.25 vs turnover 0.19 (road B 0.09: its lower leaf area stresses less, which is the
+whole A / B difference there, 0.52x vs 0.92x). In the humid tropics the gate is nil (0.05 of production); Europe's gate
+is 0.39 but its surplus is production (1.70 PgC yr-1 against 0.66 turnover; GPP 1.63x FLUXCOM, no harvest).
+Equilibrium without the gate's mortality at today's production and cover (eq-gate / eq): African savanna x2.4, S American
+savanna x1.7, subtropics x1.6-2.9, Europe x1.4, Siberia x1.6 (A) / x1.15 (B) -- the savanna deficit is the gate's
+kill, to within the map. The gate was built to stop the phantom forest in dry cells, and it does that through the same
+mortality that strips the wood from the trees it lets live: the savanna's 13 % cover is right because a third of its
+trees die each year, not because long-lived trees stand sparsely. In seasonal climates a yearly-mean stress factor of
+0.5-0.8 is the normal state of a healthy forest.
+
+**The Congo is a different case.** Gate 0.06, fire 0.12, turnover 0.45 PgC yr-1; 16 % of its area is still open (the
+trap, section 65 -- the reruns close it) but that holds only 7 % of the map's wood. The closed cells carry 9-12 kgC m-2
+per unit cover against the map's 16.4 -- higher than the Amazon's 12.4, as Lewis et al. 2013 found for African forests
+(fewer, larger trees, longer residence). One humid type T01 for both basins cannot carry that; an African humid type
+with a longer tauwood (or the Congo accepted at 0.65x) is a design choice for Min.
+
+**What this means for the calibration.** (1) The gate should limit tree cover (establishment), not kill a fixed share of
+the standing trees every year: e.g. a water-limited maximum cover with only the excess removed, or a mortality rate
+(1 - ts) x r with r ~ 0.05-0.1 yr-1 like a drought-mortality term, with competition setting the cover. That is a shared
+rule, so it moves both roads alike; it leaves the humid tropics untouched and raises savanna, subtropical and Siberian
+wood toward the map, and it would raise Europe's surplus, which is the 30-60 N GPP item. (2) tauwood0 in the tropics
+(25 / 35 yr) is short against observations and only balanced by the excess NPP; the wood refit should move production
+and residence together, not the stock alone. Neither is in the running s31l / s31m; both are the next stage after the
+road decision (one decision at a time).
