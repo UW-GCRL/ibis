@@ -6810,3 +6810,39 @@ BR-Ji3, CN-Dzo, PR-xGU (Aw) and CD-Ygb (Af); T01's eleven are Af / Am. **T02 is 
 T02 and the savanna tree T03; T02 keeps its own fitted respiration and takes T01's capacity for its dead-position vmax.
 Full suite 792 passed after the second round (one comment-string test fixed). Parameter files rebuilt by
 `verify/calibration/build_params_31jk.py`. Protocol runs s31j (A) and s31k (B) launched next.
+
+## 64. The final runs with every fix: s31j (road A) and s31k (road B) (2026-10-26 03:51-11:35; scored 13:29)
+
+Cold protocol, `params_31j.yaml` / `params_31k.yaml`, code 4d6fcd5. No NaN cell on either road (road B's 1754 cell is gone).
+Budgets, 2006-2010: live-pool residual +0.08 / +0.10 PgC yr-1, soil -0.26 (the litter lag); water P - ET - R - D = +2.5 /
++2.4 % of P, all of it ice-sheet accumulation; 19 cells below -500 mm yr-1 (5 671 before).
+
+| 2006-2010 | s31f (23 Oct) | **s31j road A + fixes** | s31g (23 Oct) | **s31k road B + fixes** | observed |
+|---|---|---|---|---|---|
+| GPP, PgC yr-1 (x FLUXCOM); 90S-30N / 30-60N / 60-90N | 143.6 (1.31); 1.20 / 1.61 / 1.95 | 149.1 (1.36); 1.25 / 1.65 / 2.04 | 140.4 (1.28); 1.23 / 1.45 / 1.52 | 150.4 (1.38); 1.27 / 1.57 / **2.72** | 110-160 |
+| GPP at the tower cells, model / tower | 1.17 | 1.18 | 1.11 | 1.14 (E zone 2.05) | 1 |
+| peak LAI x MODIS (x ground-corrected) | 1.48 (1.06) | 1.55 (1.10) | 1.34 (0.97) | 1.43 (1.01); 60-90N 1.92 | 1 |
+| ET x ensemble | 1.02 | 1.02 | 1.01 | 1.04 | 1 |
+| wood C, PgC (above-ground, mip) | 279 | 311 | 332 | 400 | 450-650 total |
+| soil C, PgC | 1339 | **1527** | 1091 | **1508** | 1500-2400 |
+| sink 2001-2010, PgC yr-1 | +2.52 | +2.52 | +2.27 | +2.92 | 2.78 +- 0.69 |
+| wetland CH4, Tg (90S-30N / 30-60N / 60-90N) | 181 (162 / 12 / 7) | 190 (169 / 13 / 8) | 190 (173 / 11 / 6) | 187 (166 / 13 / 8) | 153 (109 / 32 / 12) |
+| humid Amazon: burned % yr-1; wood PgC | 9.6; 45 | **2.31; 56** | 9.9; 48 | **2.25; 77** | 2.1 (GFED5); 68 |
+| fire x GFED5: Congo / SE Asia / Africa savanna / boreal / global | 2.4 / 8 / 0.23 / 1.3 / 0.67 | 0.73 / 3.5 / 0.18 / 1.16 / 0.54 | | 0.60 / 3.6 / 0.16 / 0.99 / 0.49 | 1 |
+| humid-tropics canopy: T01 share | 0.08 | **1.00** | 0.00 | **1.00** | |
+| towers (road's own set, tower soil): GPP / Reco / NEE bias | 0.90 / 1.06 / +153 | 0.91 / 1.06 / +170 | 0.97 / 1.12 / +122 | 1.01 / 1.13 / +131 | 1 / 1 / 0 |
+
+**Verdict.** Both roads now close their budgets, hold soil carbon inside the literature range (1527 / 1508 PgC; the
+exact litterfall, the gate litter and the 1x tail did it), keep the sink inside the budget's sigma, and burn the Amazon at
+GFED5's rate with the Amazon wood at 56 (A) and 77 (B) against the map's 68. The capacity mixing, the snow constants and
+the booked litter add 5-10 PgC of GPP: 149 / 150, 1.36-1.38x FLUXCOM, with the tower cells at 1.18 / 1.14.
+**Road B's far north ran away** (60-90N GPP 1.52 -> 2.72x, LAI 0.97 -> 1.92x MODIS, observed shrubland 1.88 -> 3.63x,
+polar tower cells 2.05x): with F77's snow constants a dusting no longer covers the cell and blanks the lower canopy,
+and road B's uncapped cold grasses and shrubs (v5 a_leaf / tau_leaf, tuned under the old snow) grow into the opening;
+road A's open-land caps hold its north at 2.04x. Road B's cold types (G07, G08, S05, S06) need re-tuning under the
+corrected snow before it is comparable; everything else on road B is at least as good as road A (GPP tower cells 1.14,
+wood 400, sink 2.92, grass towers 1.05 against road A's 0.78). Still open on both: the savanna zone is 93-95 % the
+seasonal forest T02 (the savanna tree T03 at 33.8 loses on capacity; savanna towers 0.70-0.78); fire in the Congo
+(0.6-0.7x), Southeast Asia (3.5x) and the African savannas (0.17x); the methane bands; 30-60 N GPP 1.6x.
+Outputs: `final_s31j/`, `final_s31k/` (scores in `score/`), figures `ibis_local_document/figures/final_2026-10-26/`,
+tower sets `site_fit/t31_score_31j`, `t31_score_31k`, comparison `cmp_final_*.csv`.
