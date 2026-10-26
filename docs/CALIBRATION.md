@@ -6846,3 +6846,35 @@ seasonal forest T02 (the savanna tree T03 at 33.8 loses on capacity; savanna tow
 (0.6-0.7x), Southeast Asia (3.5x) and the African savannas (0.17x); the methane bands; 30-60 N GPP 1.6x.
 Outputs: `final_s31j/`, `final_s31k/` (scores in `score/`), figures `ibis_local_document/figures/final_2026-10-26/`,
 tower sets `site_fit/t31_score_31j`, `t31_score_31k`, comparison `cmp_final_*.csv`.
+
+## 65. The Amazon fire trap and the closed-canopy climate rule (2026-10-26 14:30-)
+
+Hangkai, from the final-run deck: the Amazon wood is wrong and the fire looks like the cause. In s31j the humid Amazon's
+mean burned fraction is right (2.31 % against GFED5's 1.9-2.1) but 8 % of its area burns 10-20 % a year and carries 52 %
+of the zone's fire, with 1.4 kgC m-2 of wood where the map has 11.4 (`audit_2026-10-26/amazon_hotspot.py`); the cell rank
+correlation with GFED5 inside the zone is 0.26. **The mechanism is a fire trap of the cold start**: the damping of section
+59 keys on the cell's own cover, these cells seeded at fu 0.62, burned 3.7 % in year two, fell to fu 0.2 by year 20 and
+stayed undamped (damping 0.99) at 7-15 % a year for 280 years; the quiet 80 % closed in the first years and stayed damped
+(0.10). The hot cells are the central and eastern basin (9 S-7 N), whose VPD fire season (0.59 of the year) is twice the
+quiet cells' -- the climate alone puts them in the savanna regime, which the closed canopy would prevent.
+
+**Background research (Hangkai: "do a background research first to see if this is a doable plan").** (1) CLM5 excludes
+natural (non-peat, non-crop) fire from tropical closed forest altogether -- cells with tropical tree cover above 60 % --
+and burns them only through deforestation fire (Li et al. 2012 Biogeosciences; CLM5 technical note, Fire). (2) SIMFIRE
+(Knorr et al. 2014) scales burned area by a dominant-land-cover multiplier fitted per class. (3) Fire separates savanna
+from forest in the 1000-2000 mm band; above it forest is the single stable state (Staver, Archibald & Levin 2011
+Science); JSBACH-SPITFIRE shows the same initial-condition trap in a global model, confined to the transition zones
+(Lasslop et al. 2016 GRL). Köppen Af / Am is the climate space above that band, so a trap inside it is a cold-start
+artefact. (4) Closed humid forest resists surface fire because its understory fuels stay moist, and loses that only when
+the canopy is opened by logging or a first fire (Cochrane et al. 1999 Science; Ray et al. 2005, 2010; Uhl & Kauffman
+1990); intact interior forest burns only in extreme droughts -- 2.8 % of the southern Amazon forest in 1999-2010, about
+0.25 % a year (Morton et al. 2013), which the rule will under-represent. Verdict: doable, with precedent.
+
+**The rule** (commit above): `FireParams.closed_canopy_zones` (static zone names; yaml `fire: closed_canopy_zones:
+[A_humid]`) -> `apply_types` sets `closed_canopy_cell` (npoi,) -> `canopy_damping(..., closed=)` uses the cover cap 0.975
+in those cells instead of the cell's cover, so the damping is a closed canopy's (0.08 at width 0.05) whatever the state.
+Elsewhere the cover decides, as before. Expected: the hot cells from 15 to ~1.3 % a year, the canopy closes over the
+spin-up, the wood recovers. Road B's far north (section 64): the cold open-land types' leaf allocation x0.77 (G07, G08
+explicit; S05, S06 as 0.77 of their parent shrubs), from LAI ~ k^2.3 at low leaf area (section 55) and the 1.92x target.
+Parameter files `params_31l.yaml` (A) / `params_31m.yaml` (B), builder `verify/calibration/build_params_31lm.py`; tests in
+`test_fire_canopy_damping.py`. 10-year checks `check10_31l` / `check10_31m` from the s31j / s31k 2000 states first.
