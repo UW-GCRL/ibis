@@ -78,6 +78,12 @@ class PFTParams(eqx.Module):
     #: reproduces the runs before that date, in which the removed carbon left the model unbooked (3-5 PgC yr-1 in
     #: s31f / s31g, section 60).
     tree_kill_to_litter: bool = True
+    #: Exact litterfall booking (CALIBRATION.md 61, 63). The annual pool update decays a pool by c (1 - e^(-1/tau)) and
+    #: grows it by a tau N (1 - e^(-1/tau)), but F77 books litterfall as c / tau and the NEE accounting assumes a N
+    #: allocated: exact only at equilibrium (~3 PgC yr-1 of sink in s31f that no pool received). True books the
+    #: litterfall as what actually left plus the allocated carbon that decayed within the year, c (1 - e) +
+    #: a N (1 - tau (1 - e)), which conserves carbon exactly and leaves the pool trajectory unchanged. False = F77.
+    exact_litterfall: bool = False
     #: Per-type maximum canopy leaf area, m2 of leaf per m2 of the layer's cover (docs/CALIBRATION.md 46). Each year
     #: the leaf carbon of a canopy layer is held to the layer's leaf-area-weighted mean cap; the excess goes to wood
     #: and roots in the awood:aroot ratio (ORCHIDEE's lai_max rule). None (default) leaves the pools as F77 has them.

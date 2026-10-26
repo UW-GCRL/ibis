@@ -53,6 +53,10 @@ class PhysicsSection:
     #: millennium timescales, so 200 years at 1x does not equilibrate it. Costs
     #: GPU kernel size and compile time proportionally.
     nsoilcall: int = 1
+    #: Last years of an accelerated spin-up (soilcspin=1) run at 1x, so the fast pools settle before the transient
+    #: (F77 main.f:353-391 ramps 40x down and ends with ~50 years at 1x; without it litter dropped 115 -> 103 PgC in
+    #: 1901-05 of s31f, CALIBRATION.md 60). 0 = no tail (runs before 2026-10-26).
+    soilcspin_tail_years: int = 50
 
     #: Fire scheme selector, read by run_global when isimveg > 0. Mirrors
     #: RunConfig.fire_scheme (docs/FIRE.md). This and enable_fire_emissions

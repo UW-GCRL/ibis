@@ -101,6 +101,8 @@ def one_year(state, key, year, ctx, isimveg=1):
     dn_prev = _dn(state); dn_m = []
     fin = c.get("f_inund"); ch4_m = []                     # inundated fraction per site: None, (npoi,) or (12, npoi) (CALIBRATION.md 38)
     zwo = c.get("zwt_obs")                                  # observed water-table depth per site and month, (12, npoi), NaN = model's (CALIBRATION.md 42)
+    from ibis.physics.fire import zero_fire_accumulators                 # F77 stats.f:956, as run_global (CALIBRATION.md 59)
+    state = eqx.tree_at(lambda s: s.vegetation, state, zero_fire_accumulators(state.vegetation))
     for im in range(12):
         raw = c["reader"].read_month(year, im, c["i"], c["j"])
         tmean.append(np.nanmean(raw["tas"], axis=0) - 273.16)
@@ -166,7 +168,7 @@ def one_year(state, key, year, ctx, isimveg=1):
         from ibis.state.stress_accum import tree_survival
         nv, nc, ns = dynaveg(state.vegetation, state.carbon, state.summary,
                              c["pft"], 1, c["consts"].epsilon,
-                             fire_scheme="seasonlength",
+                             fire_scheme="seasonlength", fire_params=c["sp"].fire,   # the yaml fire section, as run_global
                              tree_surv=tree_survival(state, c["pft"]))
     else:
         nv, nc, ns = biomass_update(state.vegetation, state.carbon,

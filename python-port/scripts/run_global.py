@@ -717,7 +717,10 @@ def run_global_simulation(config: IBISConfig) -> None:
         # timescales, so 200 years at 1x leaves it far from equilibrium. It is
         # also why physics.soilcspin -- documented as "0=no spinup,
         # 1=acceleration" -- was a dead flag, read nowhere in the codebase.
-        nsoilcall = p.nsoilcall if p.soilcspin else 1
+        _tail = int(getattr(p, 'soilcspin_tail_years', 0))
+        nsoilcall = p.nsoilcall if (p.soilcspin and iyear_offset < t.nrun - _tail) else 1
+        if p.soilcspin and _tail and iyear_offset == t.nrun - _tail:
+            logger.info("  soil acceleration off for the last %d years (soilcspin_tail_years)", _tail)
 
         # Inline month loop so we can snapshot accumulators for monthly output
         leap = is_leap_year(forcing_year)

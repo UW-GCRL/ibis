@@ -92,6 +92,9 @@ class SimParams(eqx.Module):
     wpudmax: float = 10.0             # Maximum puddle water (kg/m2)
     zwpmax: float = 0.5               # Maximum puddle coverage fraction
     bperm: float = 0.04               # Bottom permeability factor
+    #: soilh2o linearisation point with the matrix's interpolation weights (CALIBRATION.md 62). False = F77 verbatim,
+    #: which pumps water out of a dry layer over a wet one; the production parameter files set it true.
+    h2o_consistent_weights: bool = eqx.field(static=True, default=False)
 
     # Soil mineral properties (constant, independent of sand/clay)
     #: Density of the soil solid phase, kg/m3. Same provenance as above.
@@ -1059,6 +1062,7 @@ def timestep_body(
         soil.hydraul, soil.suction, soil.bex, soil.hsoi[:nsoilay],
         fwtop, fwpud, wpud_w,
         params.bperm, dtime, c.rhow, c.epsilon,
+        consistent_weights=bool(params.h2o_consistent_weights),
     )
 
     # --- Issue 18: Update c1pud after soilh2o ---

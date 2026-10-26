@@ -519,11 +519,12 @@ BROADLEAF_POSITIONS = (0, 1, 2, 4, 6)
 
 
 def broadleaf_share(plai: Float[Array, "npoi npft"]) -> Float[Array, "npoi"]:
-    """Broadleaf share of the upper-canopy (positions 0-7) leaf area; 1 where there is no tree leaf."""
+    """Broadleaf share of the upper-canopy (positions 0-7) leaf area; 0 where there is no tree leaf (a leafless stand
+    keeps its wood and cover for decades and must not be damped as a closed broadleaf canopy)."""
     up = jnp.maximum(plai[:, :8], 0.0)
     tot = jnp.sum(up, axis=1)
     bl = jnp.sum(up[:, jnp.asarray(BROADLEAF_POSITIONS)], axis=1)
-    return jnp.where(tot > 1e-9, bl / jnp.maximum(tot, 1e-9), 1.0)
+    return jnp.where(tot > 1e-9, bl / jnp.maximum(tot, 1e-9), 0.0)   # no tree leaf: no closed broadleaf canopy to damp
 
 
 def canopy_damping(

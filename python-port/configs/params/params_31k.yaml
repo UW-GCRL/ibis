@@ -1,0 +1,848 @@
+# IBIS 3.1 set v5 of the allocation stage (CALIBRATION.md 55): v4 + cold grasses G07 0.28/0.8 and G08 0.28/0.7 (between v1 collapse and v4 tundra 3.2), T16 x1.15, T17 x1.1, T01 x0.9; caps off.
+stomata:
+  tau15: 4500.0
+  kc15: 0.00015
+  ko15: 0.25
+  cimax: 0.002
+  o2conc: 0.209
+  alpha3: 0.08
+  theta3: 0.95
+  beta3: 0.99
+  alpha4: 0.05
+  theta4: 0.97
+  beta4: 0.8
+  stressfac: -3.339435378791719
+  ball_berry:
+    broadleaf:
+      gamma: 0.015
+      coefm: 10.0
+      coefb: 0.01
+      gsmin: 1.0e-05
+    conifer:
+      gamma: 0.015
+      coefm: 6.0
+      coefb: 0.01
+      gsmin: 1.0e-05
+    shrub:
+      gamma: 0.015
+      coefm: 9.0
+      coefb: 0.01
+      gsmin: 1.0e-05
+    c4_grass:
+      gamma: 0.03
+      coefm: 4.0
+      coefb: 0.04
+      gsmin: 1.0e-05
+    c3_grass:
+      gamma: 0.015
+      coefm: 9.0
+      coefb: 0.01
+      gsmin: 1.0e-05
+  vmax:
+    tropical_broadleaf_evergreen: 3.951837970816996e-05
+    tropical_broadleaf_deciduous: 6.5e-05
+    warm_temperate_broadleaf_evergreen: 2.8906828447361477e-05
+    temperate_conifer_evergreen: 2.9255461413413286e-05
+    temperate_broadleaf_deciduous: 3.379043482709676e-05
+    boreal_conifer_evergreen: 2.548940756241791e-05
+    boreal_broadleaf_deciduous: 3.496862791507738e-05
+    boreal_conifer_deciduous: 3.0e-05
+    evergreen_shrub: 2.532568214519415e-05
+    deciduous_shrub: 2.7134821721119806e-05
+    c4_grass: 8.627913302916568e-06
+    c3_grass: 3.106717122136615e-05
+  acclim_on: true
+  acclim_pfts:
+  - 3
+  - 5
+  - 8
+  acclim_tau: 10.93
+  acclim_s0: -3.063
+  acclim_smax: 17.72
+  sunshade_u: true
+  sunshade_l: true
+  cap_kn: 0.15
+  coefm_mix: true
+  vmax_mix: true          # 2026-10-26: each type's leaves at its own capacity (CALIBRATION.md 63)
+  acclim_per_pft: true
+  acclim_light: false
+  frost_on: false
+  frost_t0: -5.0
+  frost_t1: 5.0
+  acclim_s0_pft:
+    boreal_con_ever: -6.605008539061032
+    temp_con_ever: -8.594074099316897
+  acclim_smax_pft:
+    boreal_con_ever: 29.761092750574143
+    temp_con_ever: 24.20244012475597
+  coefm_pft:
+    boreal_bl_dec: 10.379262155439477
+    boreal_con_ever: 4.367369183017934
+    c3_grass: 7.681441528496794
+    c4_grass: 3.159928628206834
+    dec_shrub: 8.987020958470636
+    ever_shrub: 5.130632626654376
+    temp_bl_dec: 7.61115526464377
+    temp_con_ever: 7.634652875034636
+    trop_bl_ever: 4.857781745507882
+    warm_bl_ever: 5.914173241532264
+pft:
+  tropical_broadleaf_evergreen:
+    TminL: 0.0
+    TminU: 9999.0
+    Twarm: 9999.0
+    GDD: 9999.0
+    tauleaf: 1.4
+    tauroot: 1.0
+    tauwood0: 40.0
+    specla: 12.8
+    aleaf: 0.35
+    aroot: 0.27
+    awood: 0.38
+  tropical_broadleaf_deciduous:
+    TminL: 0.0
+    TminU: 9999.0
+    Twarm: 9999.0
+    GDD: 9999.0
+    tauleaf: 1.0
+    tauroot: 1.0
+    tauwood0: 35.0
+    specla: 20.9
+    aleaf: 0.3
+    aroot: 0.25
+    awood: 0.45
+  warm_temperate_broadleaf_evergreen:
+    TminL: -10.0
+    TminU: 0.0
+    Twarm: 9999.0
+    GDD: 9999.0
+    tauleaf: 1.4
+    tauroot: 1.0
+    tauwood0: 50.0
+    specla: 12.8
+    aleaf: 0.32
+    aroot: 0.33
+    awood: 0.35
+  temperate_conifer_evergreen:
+    TminL: -45.0
+    TminU: 0.0
+    Twarm: 9999.0
+    GDD: 900.0
+    tauleaf: 3.3
+    tauroot: 1.0
+    tauwood0: 60.0
+    specla: 6.8
+    aleaf: 0.22
+    aroot: 0.33
+    awood: 0.45
+  temperate_broadleaf_deciduous:
+    TminL: -45.0
+    TminU: 0.0
+    Twarm: 9999.0
+    GDD: 1200.0
+    tauleaf: 1.0
+    tauroot: 1.0
+    tauwood0: 60.0
+    specla: 20.9
+    aleaf: 0.28
+    aroot: 0.27
+    awood: 0.45
+  boreal_conifer_evergreen:
+    TminL: -57.5
+    TminU: -45.0
+    Twarm: 9999.0
+    GDD: 600.0
+    tauleaf: 3.3
+    tauroot: 1.0
+    tauwood0: 100.0
+    specla: 6.8
+    aleaf: 0.28
+    aroot: 0.35
+    awood: 0.37
+  boreal_broadleaf_deciduous:
+    TminL: -57.5
+    TminU: -45.0
+    Twarm: 9999.0
+    GDD: 600.0
+    tauleaf: 1.0
+    tauroot: 1.0
+    tauwood0: 80.0
+    specla: 20.9
+    aleaf: 0.3
+    aroot: 0.2
+    awood: 0.5
+  boreal_conifer_deciduous:
+    TminL: 9999.0
+    TminU: -45.0
+    Twarm: 9999.0
+    GDD: 600.0
+    tauleaf: 1.0
+    tauroot: 1.0
+    tauwood0: 80.0
+    specla: 13.7
+    aleaf: 0.3
+    aroot: 0.25
+    awood: 0.45
+  evergreen_shrub:
+    TminL: 9999.0
+    TminU: 9999.0
+    Twarm: 9999.0
+    GDD: 100.0
+    tauleaf: 1.3
+    tauroot: 1.0
+    tauwood0: 10.0
+    specla: 12.2
+    aleaf: 0.4
+    aroot: 0.35
+    awood: 0.25
+  deciduous_shrub:
+    TminL: 9999.0
+    TminU: 9999.0
+    Twarm: 9999.0
+    GDD: 100.0
+    tauleaf: 1.0
+    tauroot: 1.0
+    tauwood0: 10.0
+    specla: 20.8
+    aleaf: 0.4
+    aroot: 0.45
+    awood: 0.15
+  c4_grass:
+    TminL: 9999.0
+    TminU: 9999.0
+    Twarm: 22.0
+    GDD: 100.0
+    tauleaf: 1.0
+    tauroot: 1.0
+    tauwood0: 999.0
+    specla: 26.1
+    aleaf: 0.3
+    aroot: 0.7
+    awood: 0.0
+  c3_grass:
+    TminL: 9999.0
+    TminU: 9999.0
+    Twarm: 9999.0
+    GDD: 100.0
+    tauleaf: 1.0
+    tauroot: 1.0
+    tauwood0: 999.0
+    specla: 27.2
+    aleaf: 0.3
+    aroot: 0.7
+    awood: 0.0
+  xminlai: 0.01
+  woodnorm: 7.5
+  tree_stress_min: 0.5
+  tree_stress_ramp: 0.3
+  exact_litterfall: true         # 2026-10-26: carbon-conserving litterfall booking (CALIBRATION.md 63)
+  fu_min: 0.05
+  cover_k: 0.5
+  fl_min: 0.05
+veg_rad:
+  rhoveg:
+  - - 0.1
+    - 0.1
+  - - 0.6
+    - 0.4
+  tauveg:
+  - - 0.07
+    - 0.05
+  - - 0.25
+    - 0.2
+  oriev:
+  - 0.5
+  - 0.0
+  orieh:
+  - 0.0
+  - 0.0
+canopy:
+  cleaf: 0.01
+  cstem: 0.01
+  cgrass: 0.01
+  dleaf:
+  - 0.1
+  - 0.1
+  dstem:
+  - 0.1
+  - 0.1
+  alaiml: 8.0
+  alaimu: 8.0
+  chu: 8436.0
+  chs: 210900.0
+  chl: 8436.0
+interception:
+  wliqumax: 0.2
+  wliqsmax: 0.4
+  wliqlmax: 0.2
+  wsnoumax: 2.0
+  wsnosmax: 4.0
+  wsnolmax: 2.0
+  tdripu: 7200.0
+  tdrips: 7200.0
+  tdripl: 7200.0
+  tblowu: 43200.0
+  tblows: 43200.0
+  tblowl: 43200.0
+  fmax: 0.25
+soil:
+  wpudmax: 10.0
+  zwpmax: 0.5
+  bperm: 0.04
+  h2o_consistent_weights: true   # 2026-10-26: soilh2o linearisation pump fixed (CALIBRATION.md 62)
+  rhosoi_val: 2650.0
+  csoi_mineral_val: 870.0
+bgc:
+  lig_frac: 0.5
+  fbsom: 0.017
+  effac: 0.4
+  fmax: 0.45
+  rconst: 1200.0
+  cnleaf: 40.0
+  cnroot: 60.0
+  cnwood: 200.0
+  cnr:
+    microbial_biomass: 8.0
+    passive_soc: 15.0
+    protected_slow_soc: 10.0
+    nonprotected_slow_soc: 15.0
+    resistant_litter: 100.0
+    structural_litter: 150.0
+    metabolic_litter: 6.0
+    woody_biomass: 250.0
+  klm: 0.15
+  kls: 0.01
+  kll: 0.01
+  krm: 0.1
+  krs: 0.005
+  krl: 0.005
+  kwm: 0.001
+  kws: 0.001
+  kwl: 0.001
+  kbn: 0.045
+  kbp: 0.005
+  knb: 0.001
+  kns: 1.0e-06
+  kpb: 0.0001
+  kps: 1.0e-06
+  ksb: 8.0e-07
+  ylm: 0.4
+  yls: 0.3
+  yll: 1.0
+  yrm: 0.4
+  yrs: 0.3
+  yrl: 1.0
+  ywm: 0.4
+  yws: 0.3
+  ywl: 1.0
+  ybn: 1.0
+  ybp: 1.0
+  yps: 1.0
+  yns: 1.0
+  ysb: 0.2
+  ypb: 0.2
+  ynb: 0.25
+  lt_e0:
+    temp_con_ever: 368.9768979338093
+    boreal_con_ever: 368.9768979338093
+    boreal_con_dec: 368.9768979338093
+    temp_bl_dec: 222.21824765592083
+    boreal_bl_dec: 222.21824765592083
+    trop_bl_ever: 311.7295001576849
+    warm_bl_ever: 311.7295001576849
+    trop_bl_dec: 311.7295001576849
+    c3_grass: 309.0383435637133
+    c4_grass: 309.0383435637133
+    dec_shrub: 305.52780305348244
+    ever_shrub: 305.52780305348244
+  rgrowth:
+    temp_con_ever: 0.15656937610028432
+    boreal_con_ever: 0.15656937610028432
+    boreal_con_dec: 0.15656937610028432
+    temp_bl_dec: 0.146987816181275
+    boreal_bl_dec: 0.146987816181275
+    trop_bl_ever: 0.20070413733662515
+    warm_bl_ever: 0.20070413733662515
+    trop_bl_dec: 0.20070413733662515
+    c3_grass: 0.20596081191536186
+    c4_grass: 0.20596081191536186
+    dec_shrub: 0.373787219975607
+    ever_shrub: 0.373787219975607
+  rroot:
+    temp_con_ever: 0.7793798846433811
+    boreal_con_ever: 0.7793798846433811
+    boreal_con_dec: 0.7793798846433811
+    temp_bl_dec: 1.0579537193495434
+    boreal_bl_dec: 1.0579537193495434
+    trop_bl_ever: 1.6428147274105689
+    warm_bl_ever: 1.6428147274105689
+    trop_bl_dec: 1.6428147274105689
+    c3_grass: 1.6929704221939186
+    c4_grass: 1.6929704221939186
+    dec_shrub: 0.6674251741327041
+    ever_shrub: 0.6674251741327041
+pheno:
+  sen_photoperiod_u: true
+  sen_pstart_u: 14.0
+  sen_tb_u: 20.0
+  sen_ycrit_u: 148.06638290671148
+  sen_photoperiod_l: true
+  sen_pstart_l: 14.0
+  sen_tb_l: 20.0
+  sen_ycrit_l: 300.0
+  drop_stress_thresh: 0.13537658523463447
+  gdd_ramp_u: 75.83037406930552
+  gdd_thresh_l: 73.65148335274642
+  gdd_thresh_u: 412.54506131427974
+  tthresh_l_c: 2.438753794167722
+  stress_accum_tmin: 5.0
+methane:
+  r_ch4: 0.1383982364306608
+  q10p: 2.0231523148850714
+  z_tau: 0.6929843344567566
+  tau_oxid: 0.1540533626059316
+methane_bands:
+  boreal:
+    r_ch4: 0.1429423502971796
+    q10p: 1.646461835109554
+    z_tau: 0.7282381097915979
+    tau_oxid: 0.1383746965949963
+  temperate:
+    r_ch4: 0.1264571294041385
+    q10p: 2.388144649929381
+    z_tau: 0.6434287837402356
+    tau_oxid: 0.16438471193668464
+  tropical:
+    r_ch4: 0.139294386203153
+    q10p: 1.9210449974957946
+    z_tau: 0.6595780242030262
+    tau_oxid: 0.10674664246076959
+crop:
+  harvest_index: 0.45
+  vmax_scale_c3: 0.3292926944425464
+  vmax_scale_c4: 1.1582642996411432
+  c4_share: 0.2
+types:
+  T01:
+    coefm: 7.075081532336933
+    lt_e0: 173.8632199934343
+    rgrowth: 0.12697801865052097
+    rroot: 1.2839512269935898
+    stressfac: -5.215559570992336
+    vmax: 4.397245356813073e-05
+    aleaf: 0.236
+    tauleaf: 1.4
+    awood: 0.494
+  T02:
+    coefm: 5.538487932837075
+    gdd_ramp_u: 36.40821772459502
+    gdd_thresh_u: 895.5749581847883
+    lt_e0: 173.863219993434   # 2026-10-26: T01's; T02 unconstrained at its 3 towers (dead position 1) and out-competing T01 on respiration (was 254.9395354937707)
+    rgrowth: 0.126978018650521   # 2026-10-26: T01's; T02 unconstrained at its 3 towers (dead position 1) and out-competing T01 on respiration (was 0.11797617486920836)
+    rroot: 1.28395122699359   # 2026-10-26: T01's; T02 unconstrained at its 3 towers (dead position 1) and out-competing T01 on respiration (was 0.5153431009949614)
+    sen_ycrit_u: 241.1126175589036
+    stressfac: -4.271456323882812
+    vmax: 4.39724535681307e-05   # 2026-10-26: T01's; T02 unconstrained at its 3 towers (dead position 1) and out-competing T01 on respiration (was 3.758409366128035e-05)
+    aleaf: 0.255
+    tauleaf: 1.0
+    awood: 0.495
+  T03:
+    coefm: 8.667127591500357
+    drop_stress_thresh: 0.619930279281192
+    gdd_ramp_u: 28.1105166280286
+    gdd_thresh_u: 346.8207160699392
+    lt_e0: 207.81022208769411
+    rgrowth: 0.1377116551961921
+    rroot: 0.6364457783237141
+    sen_ycrit_u: 1035.0650420670063
+    stressfac: -3.903070081576983
+    vmax: 3.37904348270968e-05   # 2026-10-26: base temp_bl_dec, what its leaves ran at (9 of 12 towers dead position 1) (was 4.391110269352794e-05)
+    aleaf: 0.225
+    tauleaf: 1.0
+    awood: 0.525
+  T04:
+    coefm: 15.941698503387627
+    lt_e0: 363.2237757257037
+    rgrowth: 0.14258059732532966
+    rroot: 0.6357318323546124
+    stressfac: -9.236951605832367
+    vmax: 9.962184776668437e-06
+  T05:
+    coefm: 9.018589809524777
+    lt_e0: 361.5584109843643
+    rgrowth: 0.10893778243734961
+    rroot: 3.1820219424785066
+    stressfac: -9.064798971036533
+    vmax: 3.8800386391812935e-05
+  T06:
+    coefm: 15.42173400798212
+    lt_e0: 255.72037126428
+    rgrowth: 0.23116846952616177
+    rroot: 1.2037230550767022
+    stressfac: -7.506502719915271
+    vmax: 3.148023461108096e-05
+    aleaf: 0.224
+    tauleaf: 1.4
+    awood: 0.446
+  T07:
+    acclim_s0: -1.4540850111676153
+    acclim_smax: 28.019512860782903
+    coefm: 7.341687004032153
+    gdd_ramp_u: 52.80982546884931
+    gdd_thresh_u: 643.072174083607
+    lt_e0: 338.0698027670213
+    rgrowth: 0.153477493746588
+    rroot: 0.552874803076097
+    sen_ycrit_u: 123.37728729899648
+    stressfac: -4.394910788316976
+    vmax: 3.163469591527246e-05
+    aleaf: 0.154
+    tauleaf: 3.3
+    awood: 0.516
+  T08:
+    coefm: 7.125903187645158
+    gdd_ramp_u: 62.00604006741109
+    gdd_thresh_u: 634.678679736074
+    lt_e0: 209.36707116161205
+    rgrowth: 0.18080134170684367
+    rroot: 0.6047800104276908
+    sen_ycrit_u: 100.55197178354732
+    stressfac: -4.157289262356491
+    vmax: 3.8663751183776185e-05
+    aleaf: 0.196
+    tauleaf: 1.0
+    awood: 0.534
+  T09:
+    coefm: 4.543935478669352
+    drop_stress_thresh: 0.44136489907442544
+    gdd_ramp_u: 41.34152757248757
+    gdd_thresh_u: 668.9132141561264
+    lt_e0: 154.12800832714925
+    rgrowth: 0.1185742643275507
+    rroot: 0.9301166047463298
+    sen_ycrit_u: 127.68991313455258
+    stressfac: -3.6251129911404494
+    vmax: 3.0178508495737333e-05
+    aleaf: 0.272
+    tauleaf: 1.4
+    awood: 0.398
+  T10:
+    acclim_s0: -7.094938014321466
+    acclim_smax: 20.882447803905382
+    coefm: 6.8282891087372946
+    lt_e0: 237.32349597976636
+    rgrowth: 0.12895182401494126
+    rroot: 0.48960193938271096
+    stressfac: -4.276366672806484
+    vmax: 4.457194881979376e-05
+    aleaf: 0.187
+    tauleaf: 3.3
+    awood: 0.483
+  T11:
+    coefm: 4.300255280713112
+    gdd_ramp_u: 43.94206382735811
+    gdd_thresh_u: 557.8073416080423
+    lt_e0: 239.7308119346642
+    rgrowth: 0.11356529635246884
+    rroot: 0.4848565097308692
+    sen_ycrit_u: 223.31275451006763
+    stressfac: -6.604385825272219
+    vmax: 4.675390118791256e-05
+    aleaf: 0.238
+    tauleaf: 1.0
+    awood: 0.492
+  T12:
+    coefm: 7.517880754567244
+    gdd_ramp_u: 89.85468849190005
+    gdd_thresh_u: 575.9267117295922
+    lt_e0: 279.66284356056445
+    rgrowth: 0.10173906245769805
+    rroot: 1.37935776494422
+    sen_ycrit_u: 170.30402475920746
+    stressfac: -5.65029683794243
+    vmax: 4.004398579127155e-05
+    aleaf: 0.196
+    tauleaf: 1.0
+    awood: 0.534
+  T13:
+    acclim_s0: -5.913297970029234
+    acclim_smax: 19.134450362930103
+    coefm: 8.02036582300015
+    gdd_ramp_u: 63.391251492769484
+    gdd_thresh_u: 862.4078053494516
+    lt_e0: 353.38245622314963
+    rgrowth: 0.10250604372939062
+    rroot: 0.7762144669354298
+    sen_ycrit_u: 129.08562311578586
+    stressfac: -3.1791070450946215
+    vmax: 3.014000139955897e-05
+    aleaf: 0.154
+    tauleaf: 3.3
+    awood: 0.516
+  T14:
+    coefm: 6.205880621803054
+    lt_e0: 365.6673652369547
+    rgrowth: 0.20248574145496318
+    rroot: 0.5926264866012522
+    stressfac: -5.4090340986493555
+    vmax: 3.2562035812588874e-05
+    aleaf: 0.224
+    tauleaf: 1.4
+    awood: 0.446
+  T15:
+    coefm: 8.19759612103589
+    gdd_ramp_u: 64.97773199427667
+    gdd_thresh_u: 354.88467027270724
+    lt_e0: 316.39354552450095
+    rgrowth: 0.13657836621495262
+    rroot: 0.8602724045464847
+    sen_ycrit_u: 167.9709875730222
+    stressfac: -5.053445322729338
+    vmax: 4.320151128922589e-05
+  T16:
+    acclim_s0: -6.364119095729507
+    acclim_smax: 25.60184425249298
+    coefm: 5.784148870164998
+    gdd_ramp_u: 59.79262140069621
+    gdd_thresh_u: 553.3473149908717
+    lt_e0: 360.13772873923335
+    rgrowth: 0.13916409381673708
+    rroot: 0.8048864986723244
+    sen_ycrit_u: 97.90998226521621
+    stressfac: -3.515405730850688
+    vmax: 3.376545646460727e-05
+    aleaf: 0.253
+    awood: 0.417
+    tauleaf: 3.3
+  T17:
+    acclim_s0: -8.615101627760005
+    acclim_smax: 27.336405407149623
+    coefm: 5.347176877774972
+    lt_e0: 340.71326954423535
+    rgrowth: 0.1528718789803556
+    rroot: 0.9308658516512118
+    stressfac: -3.340826884780071
+    vmax: 2.5038373678398784e-05
+    aleaf: 0.308
+    awood: 0.342
+    tauleaf: 3.3
+  T18:
+    coefm: 6.706497086834155
+    gdd_ramp_u: 81.27761794564825
+    gdd_thresh_u: 154.02623093330354
+    lt_e0: 230.0632077825806
+    rgrowth: 0.20873840278017522
+    rroot: 3.0561375480523916
+    sen_ycrit_u: 72.13202576435556
+    stressfac: -4.636937222238329
+    vmax: 3.37904348270968e-05   # 2026-10-26: base temp_bl_dec (dead position 6 at its tower) (was 3.126494266325608e-05)
+  T19:
+    coefm: 15.992538954290584
+    gdd_ramp_u: 62.96697043162432
+    gdd_thresh_u: 53.87942093448055
+    lt_e0: 315.00372044186895
+    rgrowth: 0.11757005654587077
+    rroot: 0.3484809228737592
+    sen_ycrit_u: 731.6130859443946
+    stressfac: -5.520256505521697
+    vmax: 2.50383736783988e-05   # 2026-10-26: T17's (larch leaves ran at the picked conifer vmax; dead position 7) (was 2.9020655347267166e-05)
+  T21:
+    acclim_s0: -9.677301351315371
+    acclim_smax: 16.80030859644955
+    coefm: 3.3537853236027324
+    drop_stress_thresh: 0.05588135739969089
+    gdd_ramp_u: 90.79528257566001
+    gdd_thresh_u: 292.3314755984359
+    lt_e0: 199.89967069806426
+    rgrowth: 0.10017122038548287
+    rroot: 0.7754893936151255
+    sen_ycrit_u: 906.8455085569676
+    stressfac: -7.573192676746849
+    vmax: 8.543201693100855e-05
+  S01:
+    coefm: 7.441929366491972
+    drop_stress_thresh: 0.249042040592562
+    gdd_thresh_l: 91.17649685440657
+    lt_e0: 204.12523244687233
+    rgrowth: 0.2163010515116769
+    rroot: 0.8541805777351692
+    stressfac: -4.74910262317437
+    tthresh_l_c: 0.28903565334891557
+    vmax: 3.257358184782788e-05
+  S02:
+    coefm: 5.6944630331214245
+    drop_stress_thresh: 0.06211642378542921
+    gdd_thresh_l: 80.46923813927837
+    lt_e0: 264.4145238731164
+    rgrowth: 0.12675845343852468
+    rroot: 1.3864939958299356
+    stressfac: -6.3015966859636965
+    tthresh_l_c: 0.6437689913582272
+    vmax: 2.53256821451942e-05   # 2026-10-26: generic evergreen shrub (the shrub big leaf reads position 8; dead position 9) (was 3.271308378316462e-05)
+  S03:
+    coefm: 3.1532392100630435
+    drop_stress_thresh: 0.6130606266266013
+    gdd_thresh_l: 102.91543558386212
+    lt_e0: 161.77492111629846
+    rgrowth: 0.1808964882054116
+    rroot: 0.9411976093174244
+    stressfac: -5.653255012444251
+    tthresh_l_c: -3.7428627596755684
+    vmax: 4.497647569223773e-05
+  S04:
+    coefm: 3.1303831306871714
+    drop_stress_thresh: 0.2309438642414678
+    gdd_thresh_l: 54.638221804457984
+    lt_e0: 251.5296178933463
+    rgrowth: 0.18217528460151075
+    rroot: 0.702551749076895
+    stressfac: -3.7392959322175203
+    tthresh_l_c: 4.477784909467477
+    vmax: 2.53256821451942e-05   # 2026-10-26: generic evergreen shrub (the shrub big leaf reads position 8; dead position 9) (was 3.3652453566901386e-05)
+    aleaf: 0.32
+    tauleaf: 1.0
+    awood: 0.23
+  S05:
+    coefm: 3.5868584273049366
+    drop_stress_thresh: 0.7617674084275312
+    gdd_thresh_l: 75.10387468330899
+    lt_e0: 281.0616985531673
+    rgrowth: 0.3369702916453406
+    rroot: 1.1626896936803577
+    stressfac: -3.005493277655874
+    tthresh_l_c: 6.342376839329302
+    vmax: 1.5608208286721492e-05
+  S06:
+    coefm: 12.12837085936635
+    drop_stress_thresh: 0.1092201788487192
+    gdd_thresh_l: 58.0825911585738
+    lt_e0: 160.3137949967161
+    rgrowth: 0.13718934060135785
+    rroot: 0.6839290093749592
+    stressfac: -9.090287814895085
+    tthresh_l_c: -1.4259070299392511
+    vmax: 2.53256821451942e-05   # 2026-10-26: generic evergreen shrub (the shrub big leaf reads position 8; dead position 9) (was 7.578061922686175e-05)
+  S07:
+    coefm: 3.0081436556716716
+    drop_stress_thresh: 0.1288179911424263
+    gdd_thresh_l: 63.791848691365985
+    lt_e0: 276.25130408338964
+    rgrowth: 0.27573967715925923
+    rroot: 0.3120960404024551
+    stressfac: -2.5048894257391385
+    tthresh_l_c: 6.230521338175748
+    vmax: 2.5353987439302728e-05
+    aleaf: 0.24
+    tauleaf: 1.3
+    awood: 0.41
+  G01:
+    coefm: 3.755588735702863
+    drop_stress_thresh: 0.2284502819962642
+    gdd_thresh_l: 59.6625935122637
+    lt_e0: 258.09125161135285
+    rgrowth: 0.1896120772332694
+    rroot: 0.5453308118359842
+    stressfac: -4.1448961672054345
+    tthresh_l_c: 3.6318114854305943
+    vmax: 8.914329555409495e-06
+    aleaf: 0.25
+    tauleaf: 0.7
+    aroot: 0.75
+  G02:
+    coefm: 5.391754392484435
+    drop_stress_thresh: 0.2334311698363932
+    gdd_thresh_l: 87.88130803704209
+    lt_e0: 160.69168116339333
+    rgrowth: 0.17173157853949608
+    rroot: 0.7200387010671689
+    stressfac: -2.889540346097252
+    tthresh_l_c: 0.6133595095332267
+    vmax: 1.984386472031474e-05
+    aleaf: 0.25
+    aroot: 0.75
+    tauleaf: 0.7
+  G03:
+    coefm: 5.165884253449885
+    drop_stress_thresh: 0.328676637139755
+    gdd_thresh_l: 52.851450706911045
+    lt_e0: 367.754849888156
+    rgrowth: 0.16452112481376852
+    rroot: 0.578480226388669
+    stressfac: -3.72039232100429
+    tthresh_l_c: -2.00825764818678
+    vmax: 1.0545602890488226e-05
+    aleaf: 0.25
+    tauleaf: 0.7
+    aroot: 0.75
+  G04:
+    coefm: 10.750944606012531
+    drop_stress_thresh: 0.6213924695132037
+    gdd_thresh_l: 79.34347788932084
+    lt_e0: 309.2621985974464
+    rgrowth: 0.15518583163227637
+    rroot: 0.7381391633186969
+    stressfac: -3.603603259173208
+    tthresh_l_c: 0.7554857975505671
+    vmax: 5.917008456890471e-05
+    aleaf: 0.25
+    aroot: 0.75
+    tauleaf: 0.7
+  G05:
+    coefm: 4.397634735490995
+    gdd_thresh_l: 71.58918819226501
+    lt_e0: 169.32889767754713
+    rgrowth: 0.1318206070552396
+    rroot: 0.6255635269463415
+    stressfac: -2.6059554037673873
+    tthresh_l_c: 2.2945161465647885
+    vmax: 3.278721487731673e-05
+    aleaf: 0.25
+    aroot: 0.75
+    tauleaf: 0.7
+  G06:
+    coefm: 4.808991720030633
+    gdd_thresh_l: 58.69646212876787
+    lt_e0: 381.7145844354327
+    rgrowth: 0.16370601364669335
+    rroot: 1.0233812706810852
+    stressfac: -3.4193021125228915
+    tthresh_l_c: 3.0495631308388376
+    vmax: 3.023468889296055e-05
+    aleaf: 0.3
+    tauleaf: 0.6
+    aroot: 0.7
+  G07:
+    coefm: 5.452771026200386
+    gdd_thresh_l: 62.91295774312434
+    lt_e0: 322.59510473022476
+    rgrowth: 0.20596081018447876
+    rroot: 1.5601043015144482
+    stressfac: -4.172515104897017
+    tthresh_l_c: 5.38331681791515
+    vmax: 2.325240166101139e-05
+    aleaf: 0.28
+    aroot: 0.72
+    tauleaf: 0.8
+  G08:
+    coefm: 5.465852551515223
+    gdd_thresh_l: 74.0613059782679
+    lt_e0: 527.2610026231553
+    rgrowth: 0.1422807433794107
+    rroot: 1.021067636668546
+    stressfac: -4.012761709260435
+    tthresh_l_c: 0.3777296256798368
+    vmax: 3.3334425097564235e-05
+    aleaf: 0.28
+    aroot: 0.72
+    tauleaf: 0.7
+
+# F7 fire fix (CALIBRATION.md 59, 2026-10-26) + the audit fixes of CALIBRATION.md 62-63: road B (allocation, params_31g5) + closed-canopy damping on the broadleaf share of the canopy,
+# fitted offline on road A's 2003-2005 states with the annual fire-counter reset against GFED5 Norm 2003-2005
+# (verify/calibration/diagnostics/fire_f7_fit.py --kb-free; zone log-RMS 0.74 -> 0.68, rank 0.74 -> 0.75,
+# humid Amazon 4.2 -> 1.5 x GFED5, boreal 1.27 -> 1.10).
+fire:
+  use_canopy_damping: true
+  damp_broadleaf_only: true
+  fu_half: 0.85
+  fu_width: 0.05                 # 2026-10-26: damping floor 0.08 at the 0.975 cover cap (was 0.22 at 0.10)
+  k_b: 0.44

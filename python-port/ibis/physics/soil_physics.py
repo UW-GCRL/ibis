@@ -210,6 +210,7 @@ def soilh2o(
     rhow: float,
     epsilon: float,
     ftrans: Float[Array, "npoi nsoilay"] | None = None,
+    consistent_weights: bool = False,
 ) -> Soilh2oResult:
     """Implicit soil moisture solver.
 
@@ -250,7 +251,14 @@ def soilh2o(
         m_k = 2 * jnp.floor(zbex + 0.5).astype(jnp.int32) + 3
         n_k = jnp.floor(zbex + 0.5).astype(jnp.int32) + 2
 
-        wsoim = weim * wsoi[:, k - 1] + weip * wsoi[:, k]
+        if consistent_weights:
+            # CALIBRATION.md 62: the interpolation the matrix rows below use (each layer weighted by the OTHER layer's
+            # half thickness). F77 soil.f:625 has the weights the other way round, so at a dry-over-wet contrast the
+            # Newton step is taken at the wrong point and pumps water out of the dry layer (690 mm yr-1 created by
+            # wadjust in ~5 600 dry cells). Off = F77 verbatim.
+            wsoim = weip * wsoi[:, k - 1] + weim * wsoi[:, k]
+        else:
+            wsoim = weim * wsoi[:, k - 1] + weip * wsoi[:, k]
         wsoia = jnp.minimum(wsoim, 1.0)
         wsoib = jnp.minimum(wsoim, 1.0)
 

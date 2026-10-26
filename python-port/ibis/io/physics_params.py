@@ -294,6 +294,7 @@ def build_pft_params(d: dict) -> PFTParams:
         tree_stress_min=float(s.get('tree_stress_min', defaults.tree_stress_min)),
         tree_stress_ramp=float(s.get('tree_stress_ramp', defaults.tree_stress_ramp)),
         tree_kill_to_litter=bool(s.get('tree_kill_to_litter', defaults.tree_kill_to_litter)),
+        exact_litterfall=bool(s.get('exact_litterfall', defaults.exact_litterfall)),
         lai_max=_lai_max(s),
     )
 
@@ -470,6 +471,7 @@ def build_sim_params(
         wpudmax=ss.get('wpudmax', 10.0),
         zwpmax=ss.get('zwpmax', 0.5),
         bperm=ss.get('bperm', 0.04),
+        h2o_consistent_weights=bool(ss.get('h2o_consistent_weights', False)),
         # Defaults from ibis.io.soil_init, which derives both from FORGANIC so
         # the two cannot drift apart. They were 2650.0/870.0 here, which drops
         # the organic correction F77 applies in initial.f:715-724.

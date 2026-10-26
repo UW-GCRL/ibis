@@ -169,6 +169,21 @@ def vegmap(
     return vegtype0
 
 
+def _litterfall_terms(cl, cr, cw, npp, al, ar, aw, tl, tr, tw, exact):
+    """Litterfall of one PFT for the annual update c_new = c e + a tau N (1 - e), e = exp(-1/tau).
+
+    F77 (exact=False): c / tau. Exact: c (1 - e) + a N (1 - tau (1 - e)) -- the carbon that left the pool plus the
+    allocated carbon that decayed inside the year -- so that c_new - c = a N - litterfall holds to round-off
+    (CALIBRATION.md 63). The two agree at equilibrium c = a tau N.
+    """
+    if not exact:
+        return cl / tl, cr / tr, cw / tw
+    def one(c, a, tau):
+        e = jnp.exp(-1.0 / tau)
+        return c * (1.0 - e) + a * npp * (1.0 - tau * (1.0 - e))
+    return one(cl, al, tl), one(cr, ar, tr), one(cw, aw, tw)
+
+
 def cap_leaf_area(cbiol, cbiow, cbior, pft_params, fu, fl_of, crop_c=None, crop_lai_max=None):
     """Per-type maximum canopy leaf area (docs/CALIBRATION.md 46), applied to the year's leaf pools.
 
@@ -269,10 +284,15 @@ def biomass_update(
         # Use tauwood0 (no exist-dependent acceleration — that's for dynaveg)
         tauwood_j = tauwood0[..., j]
 
-        # Litterfall
-        falll = falll + cbiol[:, j] / tauleaf[..., j]
-        fallr = fallr + cbior[:, j] / tauroot[..., j]
-        fallw = fallw + cbiow[:, j] / tauwood_j
+        # Litterfall: F77 books c / tau; `exact_litterfall` books what the exponential update below actually removes
+        # plus the allocated carbon that decays within the year (CALIBRATION.md 63), so pools + litter + NEE close.
+        _fl, _fr, _fw = _litterfall_terms(cbiol[:, j], cbior[:, j], cbiow[:, j], jnp.maximum(0.0, aynpp_j),
+                                          aleaf[..., j], aroot[..., j], awood[..., j],
+                                          tauleaf[..., j], tauroot[..., j], tauwood_j,
+                                          bool(getattr(pft_params, 'exact_litterfall', False)))
+        falll = falll + _fl
+        fallr = fallr + _fr
+        fallw = fallw + _fw
 
         # Biomass pool update: exponential relaxation toward NPP-driven equilibrium
         exp_leaf = jnp.exp(-1.0 / tauleaf[..., j])
@@ -448,9 +468,11 @@ def dynaveg(
     # shrubs (PFTs 8, 9) grow on the natural share: their NPP is scaled by (1 - c), so their pools equilibrate at
     # (1 - c) of the natural density; the trees get the sub-grid cover rule below; the grasses are the crops.
     _crop_c = None if cropfrac is None else jnp.clip(cropfrac, 0.0, 1.0)
+    _crop_shrub = jnp.zeros_like(veg.fu)      # shrub NPP on the cropland share: counted in aynpptot, not grown (CALIBRATION.md 63)
     for j in range(npft):
         aynpp_j = exist[:, j] * raw_aynpp[:, j]
         if _crop_c is not None and j in (8, 9):
+            _crop_shrub = _crop_shrub + jnp.maximum(0.0, aynpp_j) * _crop_c
             aynpp_j = aynpp_j * (1.0 - _crop_c)
         ayanpp_j = (aleaf[..., j] + awood[..., j]) * aynpp_j
         local_ayanpp = local_ayanpp.at[:, j].set(ayanpp_j)
@@ -458,9 +480,14 @@ def dynaveg(
         taufin = tauwood0[..., j] / 2.0
         tauwood_j = tauwood0[..., j] - (tauwood0[..., j] - taufin) * (1.0 - exist[:, j])
 
-        falll = falll + cbiol[:, j] / tauleaf[..., j]
-        fallr = fallr + cbior[:, j] / tauroot[..., j]
-        fallw = fallw + cbiow[:, j] / tauwood_j
+        # Litterfall: F77 c / tau, or the exact booking (CALIBRATION.md 63; see biomass_update)
+        _fl, _fr, _fw = _litterfall_terms(cbiol[:, j], cbior[:, j], cbiow[:, j], jnp.maximum(0.0, aynpp_j),
+                                          aleaf[..., j], aroot[..., j], awood[..., j],
+                                          tauleaf[..., j], tauroot[..., j], tauwood_j,
+                                          bool(getattr(pft_params, 'exact_litterfall', False)))
+        falll = falll + _fl
+        fallr = fallr + _fr
+        fallw = fallw + _fw
 
         exp_leaf = jnp.exp(-1.0 / tauleaf[..., j])
         cbiol_j = (cbiol[:, j] * exp_leaf +
@@ -623,9 +650,11 @@ def dynaveg(
         for j in (10, 11):
             _harvest = _harvest + _crop_c * _cp.harvest_index * veg.cbiol[:, j] / tauleaf[..., j]  # from the pre-growth leaf pool, as falll was
         falll = jnp.maximum(falll - _harvest, 0.0)
-        cdisturb = cdisturb + _harvest
+        # The shrub NPP discarded on the cropland share leaves with the harvest: it was counted in aynpptot (NEE) but
+        # no pool received it (~1 PgC yr-1 unbooked before 2026-10-26).
+        cdisturb = cdisturb + _harvest + _crop_shrub
         if diag is not None:
-            diag["harvest"] = _harvest; diag["clearing"] = jnp.zeros_like(_harvest)
+            diag["harvest"] = _harvest; diag["clearing"] = jnp.zeros_like(_harvest); diag["crop_shrub_npp"] = _crop_shrub
 
     plai = veg.plai
     biomass = veg.biomass
