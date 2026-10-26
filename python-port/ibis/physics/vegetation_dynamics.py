@@ -489,6 +489,14 @@ def dynaveg(
     if tree_surv is not None:
         ts = tree_surv[:, None]
         m8 = (jnp.arange(npft) < 8)[None, :]
+        # The removed share is dead trees: with tree_kill_to_litter (default) it joins this year's litterfall, which
+        # soilbgc decomposes next year like any other. Before 2026-10-26 it left the model unbooked -- neither litter
+        # nor cdisturb -- 3-5 PgC yr-1 in s31f / s31g (CALIBRATION.md 60-61).
+        if getattr(pft_params, 'tree_kill_to_litter', False):
+            kill = jnp.where(m8, 1.0 - ts, 0.0)
+            falll = falll + jnp.sum(cbiol * kill, axis=1)
+            fallw = fallw + jnp.sum(cbiow * kill, axis=1)
+            fallr = fallr + jnp.sum(cbior * kill, axis=1)
         cbiol = jnp.where(m8, cbiol * ts, cbiol)
         cbiow = jnp.where(m8, cbiow * ts, cbiow)
         cbior = jnp.where(m8, cbior * ts, cbior)

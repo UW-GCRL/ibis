@@ -73,6 +73,11 @@ class PFTParams(eqx.Module):
     #: 0, 1). -1.0 never binds: F77 has no water limit on where trees grow.
     tree_stress_min: float = -1.0
     tree_stress_ramp: float = 0.2
+    #: Where the tree carbon the survival gate removes goes (CALIBRATION.md 61). True (default since 2026-10-26): to
+    #: that year's leaf / wood / root litter, so the soil receives the dead trees and carbon is conserved. False
+    #: reproduces the runs before that date, in which the removed carbon left the model unbooked (3-5 PgC yr-1 in
+    #: s31f / s31g, section 60).
+    tree_kill_to_litter: bool = True
     #: Per-type maximum canopy leaf area, m2 of leaf per m2 of the layer's cover (docs/CALIBRATION.md 46). Each year
     #: the leaf carbon of a canopy layer is held to the layer's leaf-area-weighted mean cap; the excess goes to wood
     #: and roots in the awood:aroot ratio (ORCHIDEE's lai_max rule). None (default) leaves the pools as F77 has them.

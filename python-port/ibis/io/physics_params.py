@@ -293,6 +293,7 @@ def build_pft_params(d: dict) -> PFTParams:
         fu_k=float(s.get('fu_k', defaults.fu_k)),
         tree_stress_min=float(s.get('tree_stress_min', defaults.tree_stress_min)),
         tree_stress_ramp=float(s.get('tree_stress_ramp', defaults.tree_stress_ramp)),
+        tree_kill_to_litter=bool(s.get('tree_kill_to_litter', defaults.tree_kill_to_litter)),
         lai_max=_lai_max(s),
     )
 
