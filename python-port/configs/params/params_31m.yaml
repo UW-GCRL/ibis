@@ -206,7 +206,7 @@ pft:
     tauwood0: 10.0
     specla: 20.8
     aleaf: 0.2   # 2026-10-26: x0.5, the far-north run-away under the corrected snow (CALIBRATION.md 65) (was 0.4)
-    aroot: 0.45
+    aroot: 0.65   # 2026-10-26: takes the halved leaf share so the allocation sums to one (was 0.45; the 0.8 sum leaked 0.2 PgC/yr in check10_31m)
     awood: 0.15
   c4_grass:
     TminL: 9999.0
@@ -703,6 +703,7 @@ types:
     aleaf: 0.32
     tauleaf: 1.0
     awood: 0.23
+    aroot: 0.45   # 2026-10-26: pinned to its own fit (the parent deciduous shrub now carries 0.65) so S04 keeps summing to one
   S05:
     coefm: 3.5868584273049366
     drop_stress_thresh: 0.7617674084275312

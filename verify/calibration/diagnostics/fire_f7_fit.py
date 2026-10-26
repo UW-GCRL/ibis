@@ -13,7 +13,7 @@ import sys, os, argparse, numpy as np, warnings
 warnings.filterwarnings('ignore')
 R = '/shared/nas2/Hangkai/ibis-port'
 sys.path[:0] = [f'{R}/python-port', R, f'{R}/verify/fire', f'{R}/verify/calibration']
-import jax.numpy as jnp
+import jax.numpy as jnp, equinox as eqx
 from scipy.stats import spearmanr
 import evaluate_gfed5 as eg
 from ibis.physics.fire import FireParams
@@ -22,6 +22,8 @@ from ibis.io.pft_types import zones_from_classes, ZONES
 
 ap = argparse.ArgumentParser(); ap.add_argument('run'); ap.add_argument('--years', type=int, nargs=2, default=[2003, 2005])
 ap.add_argument('--gfed-years', type=int, nargs=2, default=None); ap.add_argument('--out', default=''); ap.add_argument('--kb-free', action='store_true'); ap.add_argument('--all-canopies', action='store_true')
+ap.add_argument('--closed-zones', default='', help='comma-separated zones damped as a closed canopy; sweeps closed_canopy_fu (CALIBRATION.md 65)')
+ap.add_argument('--fixed', default='', help='fu_half,fu_width,k_b to hold fixed in the closed-canopy sweep, e.g. 0.85,0.05,0.44')
 a = ap.parse_args()
 years = range(a.years[0], a.years[1] + 1); gy = range(*(a.gfed_years or a.years)) if a.gfed_years else years
 if a.gfed_years: gy = range(a.gfed_years[0], a.gfed_years[1] + 1)
@@ -87,6 +89,25 @@ if '--kb-free' in sys.argv:
     fit_kb = fit_kb_zone; print('k_b fitted to the zone log-RMS (--kb-free)')
 rows = []
 s = skill(pred0); rows.append(('current (k_b 0.5, no damping)', 0.5, None, None, s))
+if a.closed_zones:
+    zc = tuple(a.closed_zones.split(',')); flag = jnp.asarray(np.isin(zone, [Z[z] for z in zc]).astype(np.float32))
+    fh, fw, kb0 = (float(x) for x in a.fixed.split(',')) if a.fixed else (0.85, 0.05, 0.44)
+    print(f'\nclosed-canopy zones {zc}: {int(np.asarray(flag).sum())} cells; fu_half {fh} width {fw} k_b {kb0}; sweep of closed_canopy_fu')
+    for cfu in (0.975, 0.95, 0.93, 0.92, 0.91, 0.90, 0.89, 0.88, 0.86):
+        P_ = FireParams(use_canopy_damping=True, damp_broadleaf_only=not a.all_canopies, fu_half=fh, fu_width=fw, k_b=kb0, closed_canopy_zones=zc, closed_canopy_fu=cfu)
+        P_ = eqx.tree_at(lambda q: q.closed_canopy_cell, P_, flag, is_leaf=lambda x: x is None)
+        d = 1.0 / (1.0 + np.exp((cfu - fh) / fw))
+        rows.append((f'closed-canopy fu {cfu:.3f} (floor {d:.2f})', kb0, fh, fw, skill(predict(P_))))
+    import sys as _s; cols_ = ['total', 'zlog', 'nmse', 'rank', 'rank_b'] + list(REG)
+    print(f"{'configuration':38s} {'k_b':>6s} " + ' '.join(f'{c[:9]:>9s}' for c in cols_))
+    for name, kb, fh_, fw_, s_ in rows: print(f'{name:38s} {kb:6.2f} ' + ' '.join(f'{s_[c]:9.2f}' for c in cols_))
+    for name, kb, fh_, fw_, s_ in rows[1:]:
+        pass
+    print('\nzone means, % per year (zone, GFED5, then each closed_canopy_fu in the sweep order):')
+    preds = [predict(eqx.tree_at(lambda q: q.closed_canopy_cell, FireParams(use_canopy_damping=True, damp_broadleaf_only=not a.all_canopies, fu_half=fh, fu_width=fw, k_b=kb0, closed_canopy_zones=zc, closed_canopy_fu=cfu), flag, is_leaf=lambda x: x is None)) for cfu in (0.975, 0.95, 0.93, 0.92, 0.91, 0.90, 0.89, 0.88, 0.86)]
+    for z in ('A_humid', 'A_savanna', 'B_hot'):
+        m = zone == Z[z]; print(f'  {z:10s} {100 * wm(obs, m):6.2f} | ' + ' '.join(f'{100 * wm(pp, m):5.2f}' for pp in preds))
+    _s.exit(0)
 kb = fit_kb({}); s = skill(predict(FireParams(k_b=kb))); rows.append((f'no damping, k_b to total', kb, None, None, s))
 for fh in (0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.85):
     for fw in (0.03, 0.06, 0.10):

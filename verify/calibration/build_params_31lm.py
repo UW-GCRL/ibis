@@ -15,6 +15,11 @@ for src, dst, road in (('params_31j', 'params_31l', 'A'), ('params_31k', 'params
         blk = re.search(r'(\n  deciduous_shrub:\n(?:    .*\n)+)', t); assert blk; b = blk.group(1)
         m = re.search(r'\n    aleaf: ([^\n#]+)', b); assert m
         t = t.replace(b, b.replace(f'\n    aleaf: {m.group(1)}', f'\n    aleaf: {V(0.5 * base)}   # 2026-10-26: x0.5, the far-north run-away under the corrected snow (CALIBRATION.md 65) (was {m.group(1).strip()})', 1), 1)
+        mr = re.search(r'\n    aroot: ([^\n#]+)', b); assert mr   # the halved leaf share goes to roots: allocation must sum to one
+        # types in the deciduous-shrub position with their own aleaf/awood keep their own fit: pin aroot to the parent's old value
+        for code in ('S04',):
+            i = t.index(f'\n  {code}:\n'); j = t.index('\n  ', t.index('\n    awood:', i) + 1); t = t[:j] + f'\n    aroot: {mr.group(1).strip()}   # 2026-10-26: pinned to its own fit so {code} keeps summing to one' + t[j:]
+        t = t.replace(f'\n    aroot: {mr.group(1)}', f'\n    aroot: {V(float(mr.group(1)) + 0.5 * base)}   # 2026-10-26: takes the halved leaf share so the allocation sums to one (was {mr.group(1).strip()})', 1)
         blk = re.search(r'(\n  S06:\n(?:    .*\n)+)', t); assert blk; b = blk.group(1)
         t = t.replace(b, b.rstrip('\n') + f'\n    aleaf: {V(0.5 * base)}   # 2026-10-26: x0.5 of the parent deciduous shrub ({base}), far north under the corrected snow (CALIBRATION.md 65)\n', 1)
     t = t.replace('+ the audit fixes of CALIBRATION.md 62-63:', '+ the audit fixes of CALIBRATION.md 62-63 + the closed-canopy climate rule of 65:', 1)
