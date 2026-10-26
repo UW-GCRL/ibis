@@ -6665,3 +6665,40 @@ setup) and a budget check of the s31f / s31g outputs. Nothing changed yet; findi
    `*_u` scalars dead -- by design); `soil.rhosoi_val` / `csoi_mineral_val` dead; methane uses the last day's Rh; yaml
    sections other than types / pheno / methane / crop / fire accept unknown keys silently; s31g NaN cell (54.75 N,
    127.75 W) from 1754.
+
+## 61. The gate fix, its verification, and what the double check found (2026-10-26 02:00-03:00; Hangkai: "yes do it", "double check again")
+
+**Gate fix** (commit 95fee1b): `dynaveg` adds the tree carbon the survival gate removes to that year's leaf / wood / root
+litterfall (`pft.tree_kill_to_litter`, default true; false reproduces the earlier runs). Unit test: live + litterfall +
+disturbance unchanged by the gate. s31h / s31i were stopped at spin-up year 1801 (kept as `final_s31h_gateleak_aborted`,
+`final_s31i_gateleak_aborted`) and relaunched 02:17 on the fixed code; the full suite passes (780).
+
+**Verified on matched cold-start years** (old vs new gate, `audit_2026-10-26/gate_matched.py`): litterfall rises by
+exactly the kill (1702: 43.65 -> 61.20 PgC, kill estimate 13.5; 1703: 36.72 -> 49.92, kill 11.9) and the live-pool residual
+shrinks by the same amount (-27.7 -> -10.3; -22.6 -> -9.3). **Fire fix verified live**: at spin-up year 1801 of the aborted
+runs (annual counters, damping on) the humid Amazon burns 2.4 % yr-1 (GFED5 2.1; was 9.4), Congo 3.0 (4.2), boreal 0.78
+(0.80), S Am savanna 6.3 (6.8); still open SE Asia 3.1 (0.7) and Africa savanna 6.3 (40.8); global 2.2 (4.5). The yearly
+restarts of the new runs carry nytimes 8760 (one year), not 2.7 million.
+
+**The leak that remains is IBIS's own annual pool scheme.** `dynaveg` books litterfall as c / tau but decays the pool by
+c (1 - e^(-1/tau)), and grows it by a tau N (1 - e^(-1/tau)) where the NEE accounting assumes a N: exact only at the
+equilibrium c = a tau N (F77 vegetation.f, unchanged). Estimated on the states (`discretization.py`): -2.7 / -3.1 PgC yr-1
+in s31f 2008 / 2010 (leaf -3.4, root +0.6-0.8, wood -0.2), which is the hindcast remainder (live residual 6.2-8.9 minus the
+gate 3.2-5.5); -4.5 of the -9.3 at cold-start year 1703. Road A's leaf cap holds the leaf pools below equilibrium, so for it
+this term never vanishes. The reported sink therefore carries ~3 PgC yr-1 that no pool receives; an exact booking (litter
+= the decayed share, growth = the allocated share) would remove it. Not changed: it is F77's scheme and the decision is
+Hangkai's. The remaining ~1 PgC yr-1 candidate is shrub NPP on the cropland share (counted in aynpptot, not allocated).
+
+**The capacity pick, quantified** (`vmax_pick_vs_mix.py`, s31f 2010 state; leaf-area-weighted mixed / picked vmax):
+A_humid 0.87 (92 % of broadleaf leaf area affected), A_savanna 0.88, B_hot 1.11, C_subtrop 1.09, C_med 1.07, C_oceanic
+1.03, D_subarctic 0.93 (broadleaf) and 1.03 (conifer: larch runs at T17's 25.0, its own 29.0); zero elsewhere. The
+tropics run ~13-15 % above their types' fitted capacity, the C zones 3-9 % below.
+
+**The tropical composition is wrong in every run** (`vmax_detail.py`): the humid-tropics tree leaf area is 91.5 % (s31f),
+99.8 % (s31g) and 96 % (s31e) the tropical seasonal semi-deciduous type T02 at position 1, and 0.2-8 % the rainforest
+evergreen T01 (11 towers). The savanna zone is 82 % T02 (T03 18 %), the hot-arid zone 78 % T03 (T05 22 %): whichever type
+sits at position 1 wins. Both types photosynthesise at the picked vmax (T01's 44 in the humid zone) while T02 pays the
+lower fitted respiration (rroot 0.52 against T01's 1.28, rgrowth 0.118 / 0.127, 3 towers against 11), so it out-competes
+T01 everywhere. The Amazon's wood, soil and dry-season behaviour are therefore T02's, and T01's calibration is unused. A
+composition rule for the humid tropics (as the dominant-pays rule was for the temperate deciduous share) or the mixed
+capacity with a competition check is needed before any Amazon carbon work.
