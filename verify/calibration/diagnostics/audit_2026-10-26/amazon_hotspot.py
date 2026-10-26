@@ -45,4 +45,5 @@ for y in ((2001, 2003, 2005, 2007, 2010) if tag.startswith('check10_') else (170
     s = eg._load(f); vv = s.vegetation; fu_y = np.asarray(vv.fu, float); d_y = np.asarray(vv.disturbf, float); pl = np.asarray(vv.plai, float)
     cd_y = np.asarray(canopy_damping(jnp.asarray(fu_y), P, jnp.asarray(pl), closed=closed))
     print(f'  {y}  {wm(fu_y, hot):.2f}  {100 * wm(d_y, hot):6.1f} %  {wm(cd_y, hot):.2f}  {wm(pl[:, :8].sum(1), hot):.1f}      | quiet: fu {wm(fu_y, quiet):.2f} burn {100 * wm(d_y, quiet):.1f} %')
-hi = np.where(hot)[0]; print('\n  hot-cell centroid', round(float(np.mean(lat[hi])), 1), round(float(np.mean(lon[hi])), 1), '; lat range', round(float(lat[hi].min()), 1), round(float(lat[hi].max()), 1), 'lon', round(float(lon[hi].min()), 1), round(float(lon[hi].max()), 1))
+hi = np.where(hot)[0]
+if len(hi): print('\n  hot-cell centroid', round(float(np.mean(lat[hi])), 1), round(float(np.mean(lon[hi])), 1), '; lat range', round(float(lat[hi].min()), 1), round(float(lat[hi].max()), 1), 'lon', round(float(lon[hi].min()), 1), round(float(lon[hi].max()), 1))

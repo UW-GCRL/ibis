@@ -308,6 +308,10 @@ class FireParams(eqx.Module):
     #: forest-savanna bistability sits at 1000-2000 mm (Staver 2011), below the Af / Am climate. Names from
     #: pft_types.ZONES, e.g. ('A_humid',); `apply_types` turns them into `closed_canopy_cell`.
     closed_canopy_zones: tuple = eqx.field(static=True, default=())
+    #: The upper-canopy cover the damping is evaluated at in those cells: 0.975 = dynaveg's cover cap, the floor of
+    #: the logistic (0.08 at width 0.05); a lower value leaves more fire in the humid zone (0.93 -> 0.17, 0.90 -> 0.27)
+    #: at the price of a weaker guard against the trap. Fittable with the fire refit.
+    closed_canopy_fu: float = 0.975
     #: (npoi,) 1 where the cell's zone is in `closed_canopy_zones`; None until the types are applied.
     closed_canopy_cell: Float[Array, "npoi"] | None = None
 
@@ -521,7 +525,7 @@ def vegetation_density(
                     0.0, 1.0)
 
 
-#: The upper-canopy cover a closed-canopy climate is damped at: dynaveg's cover cap.
+#: dynaveg's upper-canopy cover cap; the default of FireParams.closed_canopy_fu.
 CLOSED_CANOPY_FU = 0.975
 
 #: Upper-canopy broadleaf positions (0-based): tropical evergreen, tropical
@@ -553,7 +557,7 @@ def canopy_damping(
     (F7, CALIBRATION.md 59).
     """
     if closed is not None:                      # closed-canopy climate: the cover the climate supports, not today's
-        fu = jnp.where(closed > 0.5, CLOSED_CANOPY_FU, fu)
+        fu = jnp.where(closed > 0.5, params.closed_canopy_fu, fu)
     d = 1.0 / (1.0 + jnp.exp((jnp.clip(fu, 0.0, 1.0) - params.fu_half)
                             / jnp.maximum(params.fu_width, 1e-6)))
     if params.damp_broadleaf_only and plai is not None:
