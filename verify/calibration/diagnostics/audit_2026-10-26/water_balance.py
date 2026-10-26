@@ -21,7 +21,7 @@ for y in yrs:
 m = np.isfinite(np.asarray(xr.open_dataset(f'{run}/out/ibis_yearly_{yrs[-1]}.nc')['ayprcp'].values))
 res = acc['P'] - acc['E'] - acc['R'] - acc['D']
 K = lambda x, mm: float((x * area * mm).sum() / 1e12)
-print(f'{run}: {yrs[0]}-{yrs[-1]} means; 10^3 km3/yr: P {K(acc["P"], m):.1f} ET {K(acc["E"], m):.1f} R {K(acc["R"], m):.1f} D {K(acc["D"], m):.1f}  P-ET-R-D {K(res, m):+.2f} ({100 * K(res, m) / K(acc["P"], m):+.1f} % of P)')
+print(f'{run}: {yrs[0]}-{yrs[-1]} means; km3/yr: P {K(acc["P"], m):.1f} ET {K(acc["E"], m):.1f} R {K(acc["R"], m):.1f} D {K(acc["D"], m):.1f}  P-ET-R-D {K(res, m):+.2f} ({100 * K(res, m) / K(acc["P"], m):+.1f} % of P)')
 print(f'  cells with residual < -50 mm/yr: {int((m & (res < -50)).sum())}; < -500: {int((m & (res < -500)).sum())}; ayaet < 0: {int((m & (acc["E"] < 0)).sum())}')
 print(f"  {'zone':12s} {'P':>7s} {'ET':>7s} {'R+D':>7s} {'resid':>7s}   mm/yr")
 for i, z in enumerate(ZONES):

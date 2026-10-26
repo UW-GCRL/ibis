@@ -64,6 +64,7 @@ stomata:
   cap_kn: 0.15
   coefm_mix: true
   vmax_mix: true          # 2026-10-26: each type's leaves at its own capacity (CALIBRATION.md 63)
+  gpp_split_by_capacity: true   # 2026-10-26: each PFT's GPP share = leaf area x its own capacity, so capacity competes (CALIBRATION.md 63)
   acclim_per_pft: true
   acclim_light: false
   frost_on: false

@@ -207,7 +207,7 @@ class DiagnosticWriter:
         self._add_2d(ds, "ayanpptot", state.summary.ayanpptot, "kgC/m2/yr",
                      "Annual above-ground NPP")
         self._add_2d(ds, "ayneetot", state.summary.ayneetot, "kgC/m2/yr",
-                     "Annual NEE")
+                     "Annual NEE = NPP - Rh - cdisturb, positive = sink (the monthly amneetot has no cdisturb)")
         self._add_2d(ds, "ayprcp", state.summary.ayprcp, "mm/yr",
                      "Annual precipitation")
         self._add_2d(ds, "ayaet", state.summary.ayaet, "mm/yr", "Annual AET")
@@ -245,7 +245,7 @@ class DiagnosticWriter:
         import jax.numpy as jnp
         cveg = jnp.sum(state.vegetation.cbiow, axis=1)
         self._add_2d(ds, "cveg", cveg, "kgC/m2",
-                     "Above-ground biomass C")
+                     "Wood carbon, sum of cbiow over the PFTs (leaf and root carbon not included)")
 
         # Carbon pools — compute from components to avoid stale diagnostic fields
         c = state.carbon

@@ -58,6 +58,7 @@ class PhysicsSection:
     #: 1901-05 of s31f, CALIBRATION.md 60). 0 = no tail (runs before 2026-10-26).
     soilcspin_tail_years: int = 50
 
+
     #: Fire scheme selector, read by run_global when isimveg > 0. Mirrors
     #: RunConfig.fire_scheme (docs/FIRE.md). This and enable_fire_emissions
     #: were READ by scripts/run_global.py but never declared here, so every
@@ -119,6 +120,16 @@ class PhysicsSection:
     #: photosynthesis responds to it directly, so a historical run validated
     #: against towers needs this on. See ibis/io/co2.py for provenance.
     transient_co2: bool = False
+
+
+
+def spinup_nsoilcall(nsoilcall: int, soilcspin: int, iyear_offset: int, nrun: int, tail_years: int) -> int:
+    """soilbgc calls for this year of a run: accelerated while soilcspin, 1x for the last `tail_years` (only when the
+    run is longer than the tail; a short accelerated check keeps its acceleration throughout)."""
+    if not soilcspin or nsoilcall <= 1:
+        return 1
+    tail = tail_years if nrun > tail_years else 0
+    return nsoilcall if iyear_offset < nrun - tail else 1
 
 
 @dataclass

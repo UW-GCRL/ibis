@@ -143,3 +143,46 @@ def test_spinup_tail_and_tower_harness_wiring():
     assert 'soilcspin_tail_years' in (root / 'scripts' / 'run_global.py').read_text()
     st = (root.parent / 'verify' / 'calibration' / 'site_transient.py').read_text()
     assert 'zero_fire_accumulators(state.vegetation)' in st and 'fire_params=c["sp"].fire' in st
+
+
+def test_snow_constants_are_f77s():
+    """initial.f:409-416: hsnomin = max(0.15, nsnolay hsnotop), fimin = 2e-5 (dtime/1800)(0.15/hsnomin), z0sno = 0.0005."""
+    from ibis.state.snow import create_snow_state
+    s = create_snow_state(3, 3)
+    assert s.hsnomin == pytest.approx(0.15) and s.fimin == pytest.approx(4e-5) and s.z0sno == pytest.approx(5e-4)
+    assert s.hsnomin >= 3 * s.hsnotop - 1e-9                            # vadapt's requirement
+
+
+def test_spinup_tail_keeps_short_checks_accelerated():
+    from ibis.io.config_reader import spinup_nsoilcall
+    assert [spinup_nsoilcall(10, 1, i, 200, 50) for i in (0, 149, 150, 199)] == [10, 10, 1, 1]
+    assert [spinup_nsoilcall(10, 1, i, 30, 50) for i in (0, 29)] == [10, 10]
+    assert spinup_nsoilcall(10, 0, 0, 200, 50) == 1 and spinup_nsoilcall(1, 1, 0, 200, 50) == 1
+
+
+def test_exact_booking_closes_with_negative_npp_dead_pfts_and_cropland():
+    """The review's two cases: negative NPP (paid from the pools) and exist = 0 PFTs with positive NPP (to litter)."""
+    pp = eqx.tree_at(lambda p: p.exact_litterfall, default_pft_params(), True)
+    veg, carbon, summary = _state()
+    rng = np.random.default_rng(1); npp = np.asarray(summary.aynpp).copy(); npp[:, [1, 5]] = -0.08
+    ex = np.ones((5, 12), np.float32); ex[1:3, :8] = 0.0
+    veg = _set(veg, exist=jnp.asarray(ex)); summary = _set(summary, aynpp=jnp.asarray(npp, jnp.float32))
+    crop = jnp.asarray([0.0, 0.3, 0.0, 0.6, 0.0], jnp.float32)
+    for fn, args, kw in ((biomass_update, [1e-12], {}), (dynaveg, [1, 1e-12], {'cropfrac': crop})):
+        nv, nc, _ = fn(veg, carbon, summary, pp, *args, **kw)
+        d = np.asarray(nv.cbiol + nv.cbiow + nv.cbior).sum(1) - np.asarray(veg.cbiol + veg.cbiow + veg.cbior).sum(1)
+        b = npp.sum(1) - np.asarray(nc.falll + nc.fallw + nc.fallr) - np.asarray(nc.cdisturb)   # against the RAW total, as NEE counts it
+        np.testing.assert_allclose(d, b, atol=3e-4)
+
+
+def test_harvest_never_exceeds_the_grass_leaf_litter_under_exact_booking():
+    from ibis.io.parameters import CropParams
+    pp = eqx.tree_at(lambda p: p.exact_litterfall, default_pft_params(), True)
+    veg, carbon, summary = _state()
+    veg = _set(veg, cbiol=jnp.asarray(np.asarray(veg.cbiol) * np.r_[np.ones(10), 6.0, 6.0][None, :], jnp.float32))   # leaf pools far above equilibrium
+    crop = jnp.full((5,), 0.9, jnp.float32); diag = {}
+    nv, nc, _ = dynaveg(veg, carbon, summary, pp, 1, 1e-12, cropfrac=crop, crop_params=CropParams(harvest_index=0.9), diag=diag)
+    assert np.all(np.asarray(nc.falll) >= -1e-7)
+    d = np.asarray(nv.cbiol + nv.cbiow + nv.cbior).sum(1) - np.asarray(veg.cbiol + veg.cbiow + veg.cbior).sum(1)
+    b = np.asarray(summary.aynpp).sum(1) - np.asarray(nc.falll + nc.fallw + nc.fallr) - np.asarray(nc.cdisturb)
+    np.testing.assert_allclose(d, b, atol=3e-4)

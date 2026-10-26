@@ -311,6 +311,13 @@ def biomass_update(
         cbior_j = (cbior[:, j] * exp_root +
                    aroot[..., j] * tauroot[..., j] * jnp.maximum(0.0, aynpp_j) *
                    (1.0 - exp_root))
+        if bool(getattr(pft_params, 'exact_litterfall', False)):      # as in dynaveg (CALIBRATION.md 63)
+            falll = falll + jnp.maximum(0.0, raw_aynpp[:, j]) * (1.0 - exist[:, j])
+            _def = jnp.maximum(0.0, -raw_aynpp[:, j])
+            _pay = jnp.minimum(_def, cbiow_j); cbiow_j = cbiow_j - _pay; _def = _def - _pay
+            _pay = jnp.minimum(_def, cbior_j); cbior_j = cbior_j - _pay; _def = _def - _pay
+            _pay = jnp.minimum(_def, cbiol_j); cbiol_j = cbiol_j - _pay
+            cbiol = cbiol.at[:, j].set(cbiol_j); cbiow = cbiow.at[:, j].set(cbiow_j)
         cbior = cbior.at[:, j].set(cbior_j)
 
     # Update plai (prognostic LAI) and biomass from new cbiol
@@ -469,6 +476,7 @@ def dynaveg(
     # (1 - c) of the natural density; the trees get the sub-grid cover rule below; the grasses are the crops.
     _crop_c = None if cropfrac is None else jnp.clip(cropfrac, 0.0, 1.0)
     _crop_shrub = jnp.zeros_like(veg.fu)      # shrub NPP on the cropland share: counted in aynpptot, not grown (CALIBRATION.md 63)
+    _exact = bool(getattr(pft_params, 'exact_litterfall', False)); _fl_grass = {}
     for j in range(npft):
         aynpp_j = exist[:, j] * raw_aynpp[:, j]
         if _crop_c is not None and j in (8, 9):
@@ -488,23 +496,35 @@ def dynaveg(
         falll = falll + _fl
         fallr = fallr + _fr
         fallw = fallw + _fw
+        if j in (10, 11):
+            _fl_grass[j] = _fl                    # the harvest below is a share of this (CALIBRATION.md 63)
 
         exp_leaf = jnp.exp(-1.0 / tauleaf[..., j])
         cbiol_j = (cbiol[:, j] * exp_leaf +
                    aleaf[..., j] * tauleaf[..., j] * jnp.maximum(0.0, aynpp_j) *
                    (1.0 - exp_leaf))
-        cbiol = cbiol.at[:, j].set(cbiol_j)
 
         exp_wood = jnp.exp(-1.0 / tauwood_j)
         cbiow_j = (cbiow[:, j] * exp_wood +
                    awood[..., j] * tauwood_j * jnp.maximum(0.0, aynpp_j) *
                    (1.0 - exp_wood))
-        cbiow = cbiow.at[:, j].set(cbiow_j)
 
         exp_root = jnp.exp(-1.0 / tauroot[..., j])
         cbior_j = (cbior[:, j] * exp_root +
                    aroot[..., j] * tauroot[..., j] * jnp.maximum(0.0, aynpp_j) *
                    (1.0 - exp_root))
+
+        if _exact:
+            # What F77 discards although aynpptot (hence NEE) counts it (CALIBRATION.md 63): NPP fixed by a PFT that may
+            # not grow here (exist = 0) dies as leaf litter; respiration beyond assimilation (negative NPP) is paid
+            # from the PFT's own pools, wood first. A deficit no pool can pay is the only remainder.
+            falll = falll + jnp.maximum(0.0, raw_aynpp[:, j]) * (1.0 - exist[:, j])
+            _def = jnp.maximum(0.0, -raw_aynpp[:, j])
+            _pay = jnp.minimum(_def, cbiow_j); cbiow_j = cbiow_j - _pay; _def = _def - _pay
+            _pay = jnp.minimum(_def, cbior_j); cbior_j = cbior_j - _pay; _def = _def - _pay
+            _pay = jnp.minimum(_def, cbiol_j); cbiol_j = cbiol_j - _pay
+        cbiol = cbiol.at[:, j].set(cbiol_j)
+        cbiow = cbiow.at[:, j].set(cbiow_j)
         cbior = cbior.at[:, j].set(cbior_j)
 
         # Accumulate wood for upper canopy PFTs (1-8)
@@ -648,7 +668,7 @@ def dynaveg(
         _cp = crop_params if crop_params is not None else _dcp()
         _harvest = jnp.zeros_like(_crop_c)
         for j in (10, 11):
-            _harvest = _harvest + _crop_c * _cp.harvest_index * veg.cbiol[:, j] / tauleaf[..., j]  # from the pre-growth leaf pool, as falll was
+            _harvest = _harvest + _crop_c * _cp.harvest_index * _fl_grass[j]   # a share of the grass leaf litter as booked (F77: c / tau)
         falll = jnp.maximum(falll - _harvest, 0.0)
         # The shrub NPP discarded on the cropland share leaves with the harvest: it was counted in aynpptot (NEE) but
         # no pool received it (~1 PgC yr-1 unbooked before 2026-10-26).

@@ -717,9 +717,10 @@ def run_global_simulation(config: IBISConfig) -> None:
         # timescales, so 200 years at 1x leaves it far from equilibrium. It is
         # also why physics.soilcspin -- documented as "0=no spinup,
         # 1=acceleration" -- was a dead flag, read nowhere in the codebase.
+        from ibis.io.config_reader import spinup_nsoilcall
         _tail = int(getattr(p, 'soilcspin_tail_years', 0))
-        nsoilcall = p.nsoilcall if (p.soilcspin and iyear_offset < t.nrun - _tail) else 1
-        if p.soilcspin and _tail and iyear_offset == t.nrun - _tail:
+        nsoilcall = spinup_nsoilcall(p.nsoilcall, p.soilcspin, iyear_offset, t.nrun, _tail)
+        if nsoilcall == 1 and iyear_offset > 0 and spinup_nsoilcall(p.nsoilcall, p.soilcspin, iyear_offset - 1, t.nrun, _tail) > 1:
             logger.info("  soil acceleration off for the last %d years (soilcspin_tail_years)", _tail)
 
         # Inline month loop so we can snapshot accumulators for monthly output
@@ -942,7 +943,9 @@ def run_global_simulation(config: IBISConfig) -> None:
             _extra = {}
             if p.isimveg > 0 and params.cropfrac is not None and _veg_diag:
                 _extra = {"ayharvest": (_veg_diag["harvest"], "kgC/m2/yr", "Crop harvest removed from the cropland share"),
-                          "ayclearing": (_veg_diag["clearing"], "kgC/m2/yr", "Tree carbon cleared to keep trees off the cropland share")}
+                          "ayclearing": (_veg_diag["clearing"], "kgC/m2/yr", "Tree carbon cleared to keep trees off the cropland share"),
+                          "aycropshrub": (_veg_diag.get("crop_shrub_npp", jnp.zeros_like(_veg_diag["harvest"])), "kgC/m2/yr", "Shrub NPP on the cropland share, removed with the harvest (CALIBRATION.md 63)"),
+                          "aycdisturb": (state.carbon.cdisturb, "kgC/m2/yr", "Carbon removed from the ecosystem this year: fire combustion, background disturbance, harvest and the cropland shrub NPP (NEE = NPP - Rh - this)")}
                 logger.info("  cropland: harvest %.4f, clearing %.4f kgC/m2 (land-point means)", float(jnp.mean(_veg_diag["harvest"])), float(jnp.mean(_veg_diag["clearing"])))
             # diagnostics of the canopy structure (CALIBRATION.md 47): the tree gate's input and the NPP of each canopy
             if state.stress is not None:
