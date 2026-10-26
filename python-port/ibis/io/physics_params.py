@@ -323,6 +323,26 @@ def build_methane_params(d: dict):
     return MethaneParams(**{k: float(v) for k, v in s.items()})
 
 
+def build_fire_params(d: dict):
+    """FireParams from the optional 'fire' section (CALIBRATION.md 59); unknown fields are an error.
+
+    Floats for the parameters, booleans for the `use_*` switches, a 12-list for `mort`. Absent section = the defaults
+    every run before 2026-10-25 used (the global runner did not pass fire parameters).
+    """
+    from ibis.physics.fire import FireParams
+    import dataclasses
+    s = d.get('fire', {}) or {}
+    fields = {f.name: f for f in dataclasses.fields(FireParams)}
+    bad = [k for k in s if k not in fields]
+    if bad: raise KeyError(f'unknown fire parameters {bad}; fields: {sorted(fields)}')
+    kw = {}
+    for k, v in s.items():
+        if isinstance(fields[k].default, bool): kw[k] = bool(v)          # the static switches (use_*, damp_broadleaf_only)
+        elif k == 'mort': kw[k] = jnp.asarray([float(x) for x in v])
+        else: kw[k] = float(v)
+    return FireParams(**kw)
+
+
 def build_bgc_params(d: dict) -> BGCParams:
     """Build BGCParams from the 'bgc' section of a params dict."""
     s = d.get('bgc', {})
@@ -458,6 +478,7 @@ def build_sim_params(
         methane=build_methane_params(d),
         cropfrac=None if cropfrac is None else jnp.asarray(cropfrac, dtype=jnp.float32),
         crop=build_crop_params(d),
+        fire=build_fire_params(d),
         forganic=None if forganic is None else jnp.asarray(forganic, dtype=jnp.float32),
     )
 

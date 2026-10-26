@@ -278,6 +278,30 @@ class FireParams(eqx.Module):
     #: applies under the "seasonlength" scheme; "legacy" is untouched.
     use_vpd_danger: bool = eqx.field(static=True, default=True)
 
+    # --- F7: closed-canopy damping (CALIBRATION.md 59) ----------------------
+    #: Upper-canopy cover `fu` at which the closed-forest damping halves the
+    #: burn. Savanna fire spreads through a continuous grass layer and stops
+    #: where the tree canopy closes and the fuel under it stays moist (the
+    #: fire-spread threshold of Staver et al. 2011, Archibald et al. 2009).
+    fu_half: float = 0.6
+    #: Width of the logistic in `fu` (0.08: from 0.9 to 0.1 of the undamped
+    #: burn over fu_half -/+ 0.18).
+    fu_width: float = 0.08
+    #: Multiply the burn by :func:`canopy_damping`. Without it the fuel and
+    #: vegetation-density terms are saturated in rainforest and cancel the
+    #: weather contrast: the humid Amazon, Congo and Southeast Asia burned
+    #: 7-10 % a year against 1-4 % in GFED5, African savannas 10 % against 42 %.
+    #: Default False keeps every earlier run bit-identical.
+    use_canopy_damping: bool = eqx.field(static=True, default=False)
+    #: Weight the damping by the broadleaf share of the upper-canopy leaf area
+    #: (positions 0, 1, 2, 4, 6), so closed conifer stands keep their fire. A
+    #: closed broadleaf canopy holds moist, compact litter and does not carry
+    #: surface fire (tropical rainforest; deciduous stands as fire breaks in the
+    #: boreal zone), while closed conifer forest burns as crown fire. Damping
+    #: every closed canopy took boreal fire from 1.27 to ~0.5 x GFED5 in the
+    #: 2003-2005 offline fit (CALIBRATION.md 59).
+    damp_broadleaf_only: bool = eqx.field(static=True, default=True)
+
     # --- combustion completeness -------------------------------------------
     #: Fraction of *killed* leaf / wood / above-ground litter carbon that is
     #: actually combusted. The remainder is killed but not burned, and becomes
@@ -486,6 +510,57 @@ def vegetation_density(
     """
     return jnp.clip(jnp.sum(jnp.maximum(plai, 0.0), axis=1) / params.lai_ref_vd,
                     0.0, 1.0)
+
+
+#: Upper-canopy broadleaf positions (0-based): tropical evergreen, tropical
+#: drought-deciduous, warm-temperate evergreen, temperate and boreal deciduous.
+#: Zone types keep the leaf form of their position (pft_types.zone_slots).
+BROADLEAF_POSITIONS = (0, 1, 2, 4, 6)
+
+
+def broadleaf_share(plai: Float[Array, "npoi npft"]) -> Float[Array, "npoi"]:
+    """Broadleaf share of the upper-canopy (positions 0-7) leaf area; 1 where there is no tree leaf."""
+    up = jnp.maximum(plai[:, :8], 0.0)
+    tot = jnp.sum(up, axis=1)
+    bl = jnp.sum(up[:, jnp.asarray(BROADLEAF_POSITIONS)], axis=1)
+    return jnp.where(tot > 1e-9, bl / jnp.maximum(tot, 1e-9), 1.0)
+
+
+def canopy_damping(
+    fu: Float[Array, "npoi"], params: FireParams,
+    plai: Float[Array, "npoi npft"] | None = None,
+) -> Float[Array, "npoi"]:
+    """Closed-canopy damping in (0, 1): 1 under open canopies, ~0 under closed broadleaf forest.
+
+    A logistic in the upper-canopy cover `fu`, 0.5 at ``params.fu_half``. With
+    ``params.damp_broadleaf_only`` (default) and `plai` given, it acts on the
+    broadleaf share of the canopy only: d = 1 - b (1 - logistic), so a closed
+    conifer stand keeps its fire. Applied annually with vegetation density
+    (F7, CALIBRATION.md 59).
+    """
+    d = 1.0 / (1.0 + jnp.exp((jnp.clip(fu, 0.0, 1.0) - params.fu_half)
+                            / jnp.maximum(params.fu_width, 1e-6)))
+    if params.damp_broadleaf_only and plai is not None:
+        d = 1.0 - broadleaf_share(plai) * (1.0 - d)
+    return d
+
+
+def zero_fire_accumulators(veg):
+    """The vegetation state with the annual fire counters cleared.
+
+    F77 clears `nytimes` at the first step of each year (stats.f:956) and the
+    season-length counters follow it. `loops.run_year` did this; the GSWP3
+    production driver (`scripts/run_global.py`) did not, so before 2026-10-25
+    every year's fire read the counters accumulated since the first spin-up
+    year (CALIBRATION.md 59).
+    """
+    return eqx.tree_at(
+        lambda v: (v.nytimes, v.nfirestep, v.sdry, v.nfirestep_vpd, v.sdry_vpd),
+        veg,
+        (jnp.zeros_like(veg.nytimes), jnp.zeros_like(veg.nfirestep),
+         jnp.zeros_like(veg.sdry), jnp.zeros_like(veg.nfirestep_vpd),
+         jnp.zeros_like(veg.sdry_vpd)),
+    )
 
 
 def update_fire_accumulators_vpd(

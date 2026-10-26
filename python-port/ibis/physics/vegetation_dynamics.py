@@ -19,7 +19,7 @@ from ibis.state.summary import SummaryState
 from ibis.io.parameters import PFTParams
 from ibis.physics.fire import (
     LEGACY, SEASONLENGTH, FireParams, default_fire_params, fine_fuel_fraction,
-    fire_legacy, fire_seasonlength, vegetation_density,
+    fire_legacy, fire_seasonlength, vegetation_density, canopy_damping,
 )
 
 
@@ -534,6 +534,10 @@ def dynaveg(
         else:
             _nfs, _sd = veg.nfirestep, veg.sdry
             _vd = None
+        # F7: closed-canopy damping (CALIBRATION.md 59). Static switch, off by default.
+        if _fp.use_canopy_damping:
+            _cd = canopy_damping(veg.fu, _fp, veg.plai)
+            _vd = _cd if _vd is None else _vd * _cd
         _disturbf = fire_seasonlength(
             _nfs, _sd, veg.nytimes, carbon.totlit, _fp,
             fuel=_fuel, popd=_popd, vd=_vd,
@@ -629,7 +633,9 @@ def dynaveg(
     if _use_mort:
         _w = jnp.maximum(veg.plai, 0.0)
         _wsum = jnp.maximum(jnp.sum(_w, axis=1), 1e-12)
-        _mort_mean = jnp.sum(_w * _mort[None, :], axis=1) / _wsum
+        # (12,) from FireParams, or (npoi, 12) once the Köppen types have gathered it per cell (pft_types.apply_types);
+        # the runner passes params.fire since 2026-10-25 (CALIBRATION.md 59), so both reach here.
+        _mort_mean = jnp.sum(_w * (_mort if _mort.ndim == 2 else _mort[None, :]), axis=1) / _wsum
         disturb_total = disturbf_val * _mort_mean + disturbo_val
     else:
         disturb_total = disturbf_val + disturbo_val

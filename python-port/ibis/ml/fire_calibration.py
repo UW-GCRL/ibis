@@ -24,7 +24,7 @@ from jaxtyping import Array, Float
 
 from ibis.physics.fire import (
     FireParams, fine_fuel_fraction, fire_seasonlength, legacy_fuel_fraction,
-    vegetation_density,
+    vegetation_density, canopy_damping,
 )
 
 
@@ -43,6 +43,7 @@ class FireBatch(NamedTuple):
     cbiol: Float[Array, "n npft"]     # live leaf carbon, kgC m-2
     plai: Float[Array, "n npft"]      # per-PFT leaf area
     popd: Float[Array, "n"]           # population density, ind/km2
+    fu: Float[Array, "n"] | None = None   # upper-canopy cover (F7 canopy damping)
 
 
 def predict_burned_fraction(
@@ -58,6 +59,11 @@ def predict_burned_fraction(
     # VD and fuel together (+0.618), and markedly better among burning cells
     # (0.403 vs 0.329). Do not activate both.
     vd = vegetation_density(batch.plai, params) if params.use_vpd_danger else None
+    if params.use_canopy_damping:                                   # F7, as in dynaveg
+        if batch.fu is None:
+            raise ValueError("use_canopy_damping needs FireBatch.fu")
+        cd = canopy_damping(batch.fu, params, batch.plai)
+        vd = cd if vd is None else vd * cd
     return fire_seasonlength(
         batch.nfirestep, batch.sdry, batch.nytimes, batch.totlit, params,
         fuel=fuel, popd=popd, vd=vd,
@@ -169,6 +175,8 @@ PARAM_BOUNDS: dict[str, tuple[float, float]] = {
     "a_ig":         (1e-4, 0.5),
     "lai_ref_vd":   (1.0, 12.0),    # LAI at which vegetation density saturates
     "ign_span":     (0.05, 9.0),    # ign_max = ig0 + span
+    "fu_half":      (0.30, 0.95),   # F7: tree cover at which closed-canopy damping halves the burn
+    "fu_width":     (0.02, 0.30),   # F7: logistic width in tree cover
 }
 
 #: Not fitted -- see the note above. `vpd_ref` and `d_crit_vpd` join `d_crit`

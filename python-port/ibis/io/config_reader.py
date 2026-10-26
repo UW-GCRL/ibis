@@ -61,6 +61,11 @@ class PhysicsSection:
     #: is why the 200-year spin-ups went through verify/ rather than the
     #: production runner.
     fire_scheme: str = "seasonlength"
+    #: Clear the annual fire counters (nytimes, nfirestep, sdry and the VPD pair) at the start of each year, as F77
+    #: does (stats.f:956). Default True since 2026-10-25 (CALIBRATION.md 59); the production runner never cleared
+    #: them before, so every year's fire read the counters accumulated since the first spin-up year. False
+    #: reproduces runs made before that date.
+    fire_annual_reset: bool = True
     #: Route fire-killed carbon to emissions rather than litter. Requires
     #: isimfire == 1.
     enable_fire_emissions: bool = False

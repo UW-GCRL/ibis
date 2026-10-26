@@ -680,6 +680,9 @@ def run_global_simulation(config: IBISConfig) -> None:
         t0 = time.time()
         logger.info("Year %d (%d/%d) ...", year, iyear_offset + 1, t.nrun)
         params, pft_params = _apply_types_for(year, params, pft_params)       # new Köppen period: new type map
+        if getattr(p, 'fire_annual_reset', True):                             # F77 stats.f:956 (CALIBRATION.md 59)
+            from ibis.physics.fire import zero_fire_accumulators
+            state = eqx.tree_at(lambda s: s.vegetation, state, zero_fire_accumulators(state.vegetation))
 
         # Map to forcing year (cycle spinup period, or use actual year)
         if spinup:
@@ -859,7 +862,7 @@ def run_global_simulation(config: IBISConfig) -> None:
             new_veg, new_carbon, new_summary = dynaveg(
                 state.vegetation, state.carbon, state.summary,
                 pft_params, p.isimfire, consts.epsilon,
-                fire_scheme=p.fire_scheme,
+                fire_scheme=p.fire_scheme, fire_params=params.fire,         # the yaml 'fire' section (CALIBRATION.md 59)
                 tree_surv=tree_survival(state, pft_params),
                 cropfrac=params.cropfrac, crop_params=params.crop, diag=_veg_diag,
             )
