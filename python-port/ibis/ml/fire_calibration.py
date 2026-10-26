@@ -62,7 +62,7 @@ def predict_burned_fraction(
     if params.use_canopy_damping:                                   # F7, as in dynaveg
         if batch.fu is None:
             raise ValueError("use_canopy_damping needs FireBatch.fu")
-        cd = canopy_damping(batch.fu, params, batch.plai)
+        cd = canopy_damping(batch.fu, params, batch.plai, closed=getattr(params, 'closed_canopy_cell', None))
         vd = cd if vd is None else vd * cd
     return fire_seasonlength(
         batch.nfirestep, batch.sdry, batch.nytimes, batch.totlit, params,

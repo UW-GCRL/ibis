@@ -135,3 +135,39 @@ def test_fire_section_of_the_parameter_file():
     assert build_fire_params({'fire': {'damp_broadleaf_only': False}}).damp_broadleaf_only is False
     with pytest.raises(KeyError):
         build_fire_params({'fire': {'kb': 1.0}})
+
+
+def test_closed_canopy_climate_damps_whatever_the_cover():
+    """CALIBRATION.md 65: in a closed-canopy climate zone the damping is that of a closed canopy, so an open cell
+    (the cold-start fire trap) is damped too; elsewhere the cover decides."""
+    from ibis.physics.fire import canopy_damping, CLOSED_CANOPY_FU
+    p = FireParams(use_canopy_damping=True)
+    fu = jnp.asarray([0.2, 0.2, 0.95]); plai = jnp.full((3, 12), 0.5) * BL[None, :]
+    closed = jnp.asarray([1.0, 0.0, 0.0])
+    d = np.asarray(canopy_damping(fu, p, plai, closed=closed))
+    d_closed = float(canopy_damping(jnp.asarray([CLOSED_CANOPY_FU]), p, plai[:1])[0])
+    assert d[0] == pytest.approx(d_closed) and d[1] > 0.99 and d[2] < 0.05            # flagged open cell = closed; unflagged open cell undamped
+    np.testing.assert_allclose(np.asarray(canopy_damping(fu, p, plai)), np.asarray(canopy_damping(fu, p, plai, closed=None)))
+
+
+def test_closed_canopy_zones_reach_the_cells_through_apply_types():
+    from ibis.io.physics_params import build_fire_params, build_all_params
+    from ibis.io.pft_types import apply_types, ZONES
+    p = build_fire_params({'fire': {'closed_canopy_zones': ['A_humid'], 'use_canopy_damping': True}})
+    assert p.closed_canopy_zones == ('A_humid',) and p.closed_canopy_cell is None
+    with pytest.raises(KeyError):
+        bad, badp, _ = build_all_params(2, jnp.zeros(2), {'fire': {'closed_canopy_zones': ['A_wet']}}); apply_types(bad, badp, jnp.asarray([0, 1]))
+    params, pft, _ = build_all_params(4, jnp.zeros(4), {'fire': {'closed_canopy_zones': ['A_humid'], 'use_canopy_damping': True}})
+    zone = jnp.asarray([ZONES.index('A_humid'), ZONES.index('A_savanna'), ZONES.index('D_temperate'), ZONES.index('A_humid')])
+    sp, _ = apply_types(params, pft, zone)
+    np.testing.assert_array_equal(np.asarray(sp.fire.closed_canopy_cell), [1.0, 0.0, 0.0, 1.0])
+    assert sp.fire.closed_canopy_zones == ('A_humid',)
+
+
+def test_dynaveg_damps_an_open_cell_in_a_closed_canopy_climate():
+    veg, carbon, summary = _burning_state([0.3, 0.3, 0.3, 0.3])
+    p0 = FireParams(use_canopy_damping=True)
+    p1 = eqx.tree_at(lambda q: q.closed_canopy_cell, p0, jnp.asarray([1.0, 0.0, 1.0, 0.0]), is_leaf=lambda x: x is None)
+    a = np.asarray(dynaveg(veg, carbon, summary, default_pft_params(), 1, 1e-12, fire_scheme=SEASONLENGTH, fire_params=p0)[0].disturbf)
+    b = np.asarray(dynaveg(veg, carbon, summary, default_pft_params(), 1, 1e-12, fire_scheme=SEASONLENGTH, fire_params=p1)[0].disturbf)
+    assert b[0] < 0.15 * a[0] and b[2] < 0.15 * a[2] and b[1] == pytest.approx(a[1]) and b[3] == pytest.approx(a[3])

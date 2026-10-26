@@ -277,6 +277,12 @@ def apply_types(params, pft_params, zone_idx, overrides: dict | None = None, bas
             raise ValueError(f'{obj}.{field} is already per cell; pass the 12-entry base via `base=`')
         new[(obj, field)] = jnp.asarray(gather(np.broadcast_to(b, (NSLOT,)), slots, overrides.get(key)))
     sp = bp.stomata_params; bg = bp.bgc_params; fp = bp.fire
+    zones_cc = tuple(getattr(fp, 'closed_canopy_zones', ()) or ())
+    if zones_cc:                                      # closed-canopy climate flag per cell (CALIBRATION.md 65)
+        bad = [z for z in zones_cc if z not in ZI]
+        if bad: raise KeyError(f'unknown closed_canopy_zones {bad}; zones: {ZONES}')
+        flag = np.isin(np.asarray(zone_idx, dtype=np.int64), [ZI[z] for z in zones_cc]).astype(np.float32)
+        fp = eqx.tree_at(lambda o: o.closed_canopy_cell, fp, jnp.asarray(flag), is_leaf=lambda x: x is None)
     for (obj, field), v in new.items():
         if obj == 'stomata': sp = eqx.tree_at(lambda o: getattr(o, field), sp, v)
         elif obj == 'bgc': bg = eqx.tree_at(lambda o: getattr(o, field), bg, v, is_leaf=lambda x: x is None)

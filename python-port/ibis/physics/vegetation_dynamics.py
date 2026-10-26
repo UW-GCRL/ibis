@@ -591,7 +591,7 @@ def dynaveg(
             _vd = None
         # F7: closed-canopy damping (CALIBRATION.md 59). Static switch, off by default.
         if _fp.use_canopy_damping:
-            _cd = canopy_damping(veg.fu, _fp, veg.plai)
+            _cd = canopy_damping(veg.fu, _fp, veg.plai, closed=getattr(_fp, 'closed_canopy_cell', None))
             _vd = _cd if _vd is None else _vd * _cd
         _disturbf = fire_seasonlength(
             _nfs, _sd, veg.nytimes, carbon.totlit, _fp,

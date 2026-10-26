@@ -341,6 +341,8 @@ def build_fire_params(d: dict):
     for k, v in s.items():
         if isinstance(fields[k].default, bool): kw[k] = bool(v)          # the static switches (use_*, damp_broadleaf_only)
         elif k == 'mort': kw[k] = jnp.asarray([float(x) for x in v])
+        elif k == 'closed_canopy_zones': kw[k] = tuple(str(x) for x in (v or []))   # zone names (CALIBRATION.md 65)
+        elif k == 'closed_canopy_cell': raise KeyError('closed_canopy_cell is set by apply_types, not the yaml')
         else: kw[k] = float(v)
     return FireParams(**kw)
 

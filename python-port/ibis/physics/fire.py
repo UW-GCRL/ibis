@@ -301,6 +301,15 @@ class FireParams(eqx.Module):
     #: every closed canopy took boreal fire from 1.27 to ~0.5 x GFED5 in the
     #: 2003-2005 offline fit (CALIBRATION.md 59).
     damp_broadleaf_only: bool = eqx.field(static=True, default=True)
+    #: Köppen zones whose climate supports a closed broadleaf canopy whatever the cell's current cover (CALIBRATION.md
+    #: 65): there the damping is applied as for a closed canopy (cover at the 0.975 cap). Without it a cell that starts
+    #: open burns, stays open and never closes -- the fire trap of the cold start (8 % of the humid Amazon carried 52 %
+    #: of its fire at 15 % a year). Precedent: CLM5 excludes natural fire from tropical closed forest altogether; the
+    #: forest-savanna bistability sits at 1000-2000 mm (Staver 2011), below the Af / Am climate. Names from
+    #: pft_types.ZONES, e.g. ('A_humid',); `apply_types` turns them into `closed_canopy_cell`.
+    closed_canopy_zones: tuple = eqx.field(static=True, default=())
+    #: (npoi,) 1 where the cell's zone is in `closed_canopy_zones`; None until the types are applied.
+    closed_canopy_cell: Float[Array, "npoi"] | None = None
 
     # --- combustion completeness -------------------------------------------
     #: Fraction of *killed* leaf / wood / above-ground litter carbon that is
@@ -512,6 +521,9 @@ def vegetation_density(
                     0.0, 1.0)
 
 
+#: The upper-canopy cover a closed-canopy climate is damped at: dynaveg's cover cap.
+CLOSED_CANOPY_FU = 0.975
+
 #: Upper-canopy broadleaf positions (0-based): tropical evergreen, tropical
 #: drought-deciduous, warm-temperate evergreen, temperate and boreal deciduous.
 #: Zone types keep the leaf form of their position (pft_types.zone_slots).
@@ -530,6 +542,7 @@ def broadleaf_share(plai: Float[Array, "npoi npft"]) -> Float[Array, "npoi"]:
 def canopy_damping(
     fu: Float[Array, "npoi"], params: FireParams,
     plai: Float[Array, "npoi npft"] | None = None,
+    closed: Float[Array, "npoi"] | None = None,
 ) -> Float[Array, "npoi"]:
     """Closed-canopy damping in (0, 1): 1 under open canopies, ~0 under closed broadleaf forest.
 
@@ -539,6 +552,8 @@ def canopy_damping(
     conifer stand keeps its fire. Applied annually with vegetation density
     (F7, CALIBRATION.md 59).
     """
+    if closed is not None:                      # closed-canopy climate: the cover the climate supports, not today's
+        fu = jnp.where(closed > 0.5, CLOSED_CANOPY_FU, fu)
     d = 1.0 / (1.0 + jnp.exp((jnp.clip(fu, 0.0, 1.0) - params.fu_half)
                             / jnp.maximum(params.fu_width, 1e-6)))
     if params.damp_broadleaf_only and plai is not None:
