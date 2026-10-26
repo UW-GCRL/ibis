@@ -475,7 +475,7 @@ def dynaveg(
     # shrubs (PFTs 8, 9) grow on the natural share: their NPP is scaled by (1 - c), so their pools equilibrate at
     # (1 - c) of the natural density; the trees get the sub-grid cover rule below; the grasses are the crops.
     _crop_c = None if cropfrac is None else jnp.clip(cropfrac, 0.0, 1.0)
-    _crop_shrub = jnp.zeros_like(veg.fu)      # shrub NPP on the cropland share: counted in aynpptot, not grown (CALIBRATION.md 63)
+    _crop_shrub = jnp.zeros_like(veg.fu)      # shrub NPP on the cropland share: counted in the NPP total, not grown (CALIBRATION.md 63)
     _exact = bool(getattr(pft_params, 'exact_litterfall', False)); _fl_grass = {}
     for j in range(npft):
         aynpp_j = exist[:, j] * raw_aynpp[:, j]
@@ -515,7 +515,7 @@ def dynaveg(
                    (1.0 - exp_root))
 
         if _exact:
-            # What F77 discards although aynpptot (hence NEE) counts it (CALIBRATION.md 63): NPP fixed by a PFT that may
+            # What F77 discards although the NPP total (hence NEE) counts it (CALIBRATION.md 63): NPP fixed by a PFT that may
             # not grow here (exist = 0) dies as leaf litter; respiration beyond assimilation (negative NPP) is paid
             # from the PFT's own pools, wood first. A deficit no pool can pay is the only remainder.
             falll = falll + jnp.maximum(0.0, raw_aynpp[:, j]) * (1.0 - exist[:, j])
@@ -670,7 +670,7 @@ def dynaveg(
         for j in (10, 11):
             _harvest = _harvest + _crop_c * _cp.harvest_index * _fl_grass[j]   # a share of the grass leaf litter as booked (F77: c / tau)
         falll = jnp.maximum(falll - _harvest, 0.0)
-        # The shrub NPP discarded on the cropland share leaves with the harvest: it was counted in aynpptot (NEE) but
+        # The shrub NPP discarded on the cropland share leaves with the harvest: it was counted in the NPP total (NEE) but
         # no pool received it (~1 PgC yr-1 unbooked before 2026-10-26).
         cdisturb = cdisturb + _harvest + _crop_shrub
         if diag is not None:

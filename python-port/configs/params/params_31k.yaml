@@ -438,12 +438,12 @@ types:
     coefm: 5.538487932837075
     gdd_ramp_u: 36.40821772459502
     gdd_thresh_u: 895.5749581847883
-    lt_e0: 173.863219993434   # 2026-10-26: T01's; T02 unconstrained at its 3 towers (dead position 1) and out-competing T01 on respiration (was 254.9395354937707)
-    rgrowth: 0.126978018650521   # 2026-10-26: T01's; T02 unconstrained at its 3 towers (dead position 1) and out-competing T01 on respiration (was 0.11797617486920836)
-    rroot: 1.28395122699359   # 2026-10-26: T01's; T02 unconstrained at its 3 towers (dead position 1) and out-competing T01 on respiration (was 0.5153431009949614)
+    lt_e0: 254.9395354937707
+    rgrowth: 0.11797617486920836
+    rroot: 0.5153431009949614
     sen_ycrit_u: 241.1126175589036
     stressfac: -4.271456323882812
-    vmax: 4.39724535681307e-05   # 2026-10-26: T01's; T02 unconstrained at its 3 towers (dead position 1) and out-competing T01 on respiration (was 3.758409366128035e-05)
+    vmax: 4.39724535681307e-05   # 2026-10-26: T01's; dead position 1 at its EBF towers, whose leaves ran at the fitted evergreen capacity; T02 now A_savanna only (was 3.758409366128035e-05)
     aleaf: 0.255
     tauleaf: 1.0
     awood: 0.495
@@ -457,7 +457,7 @@ types:
     rroot: 0.6364457783237141
     sen_ycrit_u: 1035.0650420670063
     stressfac: -3.903070081576983
-    vmax: 3.37904348270968e-05   # 2026-10-26: base temp_bl_dec, what its leaves ran at (9 of 12 towers dead position 1) (was 4.391110269352794e-05)
+    vmax: 3.37904348270968e-05   # 2026-10-26: base temp_bl_dec, what its leaves ran at (SAV/WSA towers prescribe no position 0/2/4) (was 4.391110269352794e-05)
     aleaf: 0.225
     tauleaf: 1.0
     awood: 0.525

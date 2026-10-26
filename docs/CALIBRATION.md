@@ -6793,3 +6793,20 @@ phenology / methane / output paths run in parallel (results below).
 - Left: ice-sheet cells losing 36-112 mm yr-1 (float32 snow rescaling, unproven); boreal/tundra water creation of ~9 mm
   yr-1 from the port's own floors (transpiration, sublimation, puddle); `fu` written after dynaveg (next year's cover)
   while `laiu` is the 31 December displayed value; CH4 band fixed to the first Köppen period in a transient.
+
+**The check runs (check10_31j / 31k, 2001-2010 from the s31f / s31g 2000 states; 03:30-03:43).** Carbon: the live-pool
+residual is +0.09 / +0.10 PgC yr-1 (s31f 2006-2010: -6.2 to -8.9), the soil residual -0.2 as before; the budget closes
+apart from the litterfall lag. Water: P - ET - R - D = +1.9 / +2.0 % of P (was -14 %), the positive part ice-sheet
+accumulation (E_ice +173 mm yr-1); drainage 287 -> 168 mm yr-1 (the pumped state of 2000 draining down; 1 600 / 2 266
+pump-fingerprint cells left from 5 600; a cold start will have none); cells with residual < -500 mm yr-1 5 671 -> 18.
+Fire, 2010 state: humid Amazon 2.30 / 2.21 % yr-1 (GFED5 2.10), S Am savanna 6.4 / 6.7 (6.8), temperate 3.2 / 2.6 (3.5),
+boreal 0.95 / 0.52 (0.80); still open: Congo 2.5-2.7 (4.2), SE Asia 2.3 (0.7), Africa savanna 6.5-7.2 (40.8), hence
+global 2.2-2.5 (4.5). Fluxes against the s31f / s31g hindcasts: GPP 147.1 -> 150.7 (A), 143.8 -> 148.6 (B); NPP 67.9 ->
+66.5 / 66.6 -> 66.2; Rh 52.0 -> 54.4 / 51.5 -> 53.5 (the booked kills and dead NPP reach the soil); ET 476 -> 477 mm;
+wood 288 -> 295 / 335 -> 345 PgC; soil 1344 -> 1356 / 1097 -> 1111. Composition in ten warm years barely moves
+(A_humid 90 / 99.7 % at position 1), so the tropical fix is settled by the tower list instead: T02's four towers are
+BR-Ji3, CN-Dzo, PR-xGU (Aw) and CD-Ygb (Af); T01's eleven are Af / Am. **T02 is now an A_savanna type only**
+(`pft_types.TYPES`, design script): the humid zone's trees are T01 (11 towers), the savanna zone's the seasonal forest
+T02 and the savanna tree T03; T02 keeps its own fitted respiration and takes T01's capacity for its dead-position vmax.
+Full suite 792 passed after the second round (one comment-string test fixed). Parameter files rebuilt by
+`verify/calibration/build_params_31jk.py`. Protocol runs s31j (A) and s31k (B) launched next.

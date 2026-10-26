@@ -49,7 +49,7 @@ CLASS_TO_ZONE = np.array([ZI['none']] + [ZI[CLASS_ZONE[KOPPEN_LEGEND[c]]] for c 
 # id, name, form, zones, parent IBIS PFT (1-based) -- the list of verify/calibration/pft_koppen_design.py
 TYPES = (
     ('T01', 'tropical humid broadleaf evergreen tree', 'tree_be', ('A_humid',), 1),
-    ('T02', 'tropical seasonal semi-deciduous tree', 'tree_bd', ('A_humid', 'A_savanna'), 2),
+    ('T02', 'tropical seasonal semi-deciduous tree', 'tree_bd', ('A_savanna',), 2),   # A_humid dropped 2026-10-26: its towers are Aw (CALIBRATION.md 63)
     ('T03', 'tropical savanna tree (drought-deciduous, fire-adapted)', 'tree_bd', ('A_savanna', 'B_hot'), 2),
     ('T04', 'tropical highland broadleaf evergreen tree', 'tree_be', ('C_highland',), 3),
     ('T05', 'hot-arid woodland tree (acacia, mulga)', 'tree_be', ('B_hot',), 2),

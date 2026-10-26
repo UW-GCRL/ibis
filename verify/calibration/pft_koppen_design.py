@@ -27,7 +27,7 @@ ZONE = {'Af':'A_humid','Am':'A_humid','Aw':'A_savanna','BWh':'B_hot','BSh':'B_ho
 # id, name, form, zones, parent IBIS PFT, canopy
 PFTS = [
  ('T01','tropical humid broadleaf evergreen tree','tree_be',['A_humid'],1,'upper'),
- ('T02','tropical seasonal semi-deciduous tree','tree_bd',['A_humid','A_savanna'],2,'upper'),
+ ('T02','tropical seasonal semi-deciduous tree','tree_bd',['A_savanna'],2,'upper'),   # A_humid dropped 2026-10-26 (CALIBRATION.md 63)
  ('T03','tropical savanna tree (drought-deciduous, fire-adapted)','tree_bd',['A_savanna','B_hot'],2,'upper'),
  ('T04','tropical highland broadleaf evergreen tree','tree_be',['C_highland'],3,'upper'),
  ('T05','hot-arid woodland tree (acacia, mulga)','tree_be',['B_hot'],2,'upper'),
