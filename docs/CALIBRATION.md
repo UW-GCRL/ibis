@@ -6586,3 +6586,46 @@ weather contrast: every tropical region lands at 7-10 % (rainforests 3-9x GFED5,
 term (off) would not separate them alone (rainforest above-ground litter 1.3-1.5 > ufuel 0.65; savanna 0.26-0.39 below it).
 Missing: a damping term for closed, moist forest (fuel moisture or canopy closure). It belongs before any Amazon carbon
 calibration, since the wood there is set by the fire. Deck: slides `amazon`, `fire-why` (Version 24); fire slide retitled.
+
+## 59. F7: the fire fix -- annual counters, closed broadleaf canopies damp fire (2026-10-26; Hangkai: "We need to fix that")
+
+**Two defects found before fitting anything.**
+1. *The production runner never reset the fire counters.* F77 clears `nytimes` at the first step of each year
+   (stats.f:956) and the season-length counters follow it; `loops.run_year` did this, `scripts/run_global.py` (the GSWP3
+   driver every protocol run uses) did not. The 2010 restarts carry `nytimes` = 2 717 376 = 310 years of hourly steps:
+   every year's burned fraction since IBIS 3.0 read the fire season accumulated since the first spin-up year (mostly
+   1901-1930 weather), with no interannual variability and a damped warming trend. Fixed: `fire.zero_fire_accumulators`
+   at the start of each year in `run_global`, switch `physics.fire_annual_reset` (default true; false reproduces earlier
+   runs).
+2. *The runner never passed fire parameters.* `dynaveg` was called without `fire_params`, so every run used the code
+   defaults, and the Köppen-type gathering of `FireParams.mort` (per cell) never reached it. Fixed: the parameter file's
+   optional `fire:` section (`physics_params.build_fire_params`) -> `params.fire` -> `dynaveg`; `dynaveg` accepts the
+   (npoi, 12) mortality the types produce (the first 2003 rerun crashed on it).
+
+**The damping.** `fire.canopy_damping`: a logistic in the upper-canopy cover `fu` (0.5 at `fu_half`, width `fu_width`),
+applied to the broadleaf share of the canopy only (`damp_broadleaf_only`, positions 0, 1, 2, 4, 6): a closed broadleaf
+canopy keeps its fuel moist and does not carry surface fire; closed conifer forest burns as crown fire (damping every
+closed canopy took boreal fire to ~0.5 x GFED5). Multiplies the burn with vegetation density. Off by default.
+
+**The fit** (`verify/calibration/diagnostics/fire_f7_fit.py`): road A rerun 2003-2005 from its 2002 state with the
+annual reset (`verify_outputs/fire_cal/a_2003_2005`; yearly restarts hold each year's own counters; the offline
+predictor reproduces the states' own disturbf, ratio 1.003, r 0.999). Target GFED5 Norm 2003-2005 (4.51 % yr-1).
+Forcing the global total to GFED5 is the wrong constraint: the scheme cannot make the African savannas' 41 % (largely
+human-set grass fire), so a matched total overburns every other zone (Mediterranean 8.9 % against 1.2). Objective: RMS
+of log(model / GFED5) of the 11 vegetated zone means, k_b free; checks: cell rank, NMSE, regions.
+
+| 2003-2005, x GFED5 Norm | annual counters, k_b 0.5, no damping | F7: fu_half 0.85, width 0.10, k_b 0.44 |
+|---|---|---|
+| zone log-RMS / cell rank / NMSE | 0.74 / 0.74 / 0.82 | 0.68 / 0.75 / 0.85 |
+| Amazon / Congo / SE Asia humid | 4.18 / 2.49 / 8.05 | 1.52 / 1.05 / 4.30 |
+| S Am / Africa / Australia savanna | 1.17 / 0.23 / 0.38 | 0.82 / 0.18 / 0.33 |
+| boreal / temperate | 1.27 / 1.06 | 1.10 / 0.86 |
+| humid-tropics zone, % yr-1 (GFED5 2.61) | 6.81 | 2.94 |
+| global total | 0.72 | 0.53 |
+
+The width 0.10 rather than the best-RMS 0.06: the fit is on the over-burned vegetation (humid Amazon fu 0.85; observed
+0.92); with less fire the canopy closes and the damping tightens, so the Amazon should settle near GFED5, not at 1.5x.
+Left open: the African savannas (0.2x; grass fuel and human ignition, F3 is off) and Southeast Asia (Norm excludes peat
+and deforestation fire, 0.7 % yr-1). Parameter files `params_31h.yaml` (road A + F7) and `params_31i.yaml` (road B +
+F7); commit 26b43da. Cold protocol runs s31h and s31i launched side by side 2026-10-26 00:26 (GPU, MEM_FRACTION .3
+each); auto-scored (`score_s31h.sh` vs s31f, `score_s31i.sh` vs s31g).
