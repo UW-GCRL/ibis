@@ -6878,3 +6878,18 @@ spin-up, the wood recovers. Road B's far north (section 64): the cold open-land 
 explicit; S05, S06 as 0.77 of their parent shrubs), from LAI ~ k^2.3 at low leaf area (section 55) and the 1.92x target.
 Parameter files `params_31l.yaml` (A) / `params_31m.yaml` (B), builder `verify/calibration/build_params_31lm.py`; tests in
 `test_fire_canopy_damping.py`. 10-year checks `check10_31l` / `check10_31m` from the s31j / s31k 2000 states first.
+
+**The 10-year checks (check10_31l / 31m, from the s31j / s31k 2000 states, 14:45-15:05).** The trap is gone on both roads:
+no humid-Amazon cell above 5 % a year (167 above 10 % in s31j), the former hot cells' cover 0.65 -> 0.93 in ten years,
+every budget unchanged (live residual +0.08 / -0.02). The price: the whole humid zone now burns 0.64 % a year against
+GFED5's 1.9 (Amazon), the Congo 0.62 against 4.2 and Southeast Asia 0.33 against 0.67 -- the damping floor (0.08 at the
+0.975 cap) applied to every Af / Am cell. `FireParams.closed_canopy_fu` (default 0.975) makes the floor tunable for the
+fire refit (0.93 -> 0.17, 0.90 -> 0.27) against the trap risk; left at the cap for the reruns, since humid-zone fire is a
+second-order flux (0.1 PgC yr-1 between 0.64 and 2 %) and the trap is not.
+**Road B's far north, diagnosed** (`north_breakdown.py`, 60-90 N cell leaf area by position): the run-away is the
+deciduous shrub alone -- 0.19 (s31g) -> 1.45 (s31k), with the tundra at 0.80 -> 2.22; the grasses (0.05 -> 0.00), the
+evergreen shrub and the trees did not move. The generic position-9 shrub (no type in D_subarctic) and the tundra type S06
+grew into the shoulder seasons the corrected snow opened; road A's open-land cap holds it at 0.05-0.15. The first
+scaling (G07, G08, S05, S06 x0.77) touched the wrong types and moved 60-90 N GPP 9.4 -> 9.1 only. Corrected: road B's
+`pft.deciduous_shrub.aleaf` 0.4 -> 0.2 and S06 aleaf 0.2 (x0.5 from LAI ~ k^2.3 and the 0.2x target), the grasses and
+S05 left alone; `check10_31m` rerun (the first kept as `check10_31m_v1`). Road A needs nothing more: s31l launched 15:25.

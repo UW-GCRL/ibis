@@ -205,7 +205,7 @@ pft:
     tauroot: 1.0
     tauwood0: 10.0
     specla: 20.8
-    aleaf: 0.4
+    aleaf: 0.2   # 2026-10-26: x0.5, the far-north run-away under the corrected snow (CALIBRATION.md 65) (was 0.4)
     aroot: 0.45
     awood: 0.15
   c4_grass:
@@ -713,7 +713,6 @@ types:
     stressfac: -3.005493277655874
     tthresh_l_c: 6.342376839329302
     vmax: 1.5608208286721492e-05
-    aleaf: 0.308   # 2026-10-26: x0.77 of the parent evergreen_shrub (0.4), far north under the corrected snow (CALIBRATION.md 65)
   S06:
     coefm: 12.12837085936635
     drop_stress_thresh: 0.1092201788487192
@@ -724,7 +723,7 @@ types:
     stressfac: -9.090287814895085
     tthresh_l_c: -1.4259070299392511
     vmax: 2.53256821451942e-05   # 2026-10-26: generic evergreen shrub (the shrub big leaf reads position 8; dead position 9) (was 7.578061922686175e-05)
-    aleaf: 0.308   # 2026-10-26: x0.77 of the parent deciduous_shrub (0.4), far north under the corrected snow (CALIBRATION.md 65)
+    aleaf: 0.2   # 2026-10-26: x0.5 of the parent deciduous shrub (0.4), far north under the corrected snow (CALIBRATION.md 65)
   S07:
     coefm: 3.0081436556716716
     drop_stress_thresh: 0.1288179911424263
@@ -823,7 +822,7 @@ types:
     stressfac: -4.172515104897017
     tthresh_l_c: 5.38331681791515
     vmax: 2.325240166101139e-05
-    aleaf: 0.2156   # 2026-10-26: x0.77, far north under the corrected snow (CALIBRATION.md 65) (was 0.28)
+    aleaf: 0.28
     aroot: 0.72
     tauleaf: 0.8
   G08:
@@ -835,7 +834,7 @@ types:
     stressfac: -4.012761709260435
     tthresh_l_c: 0.3777296256798368
     vmax: 3.3334425097564235e-05
-    aleaf: 0.2156   # 2026-10-26: x0.77, far north under the corrected snow (CALIBRATION.md 65) (was 0.28)
+    aleaf: 0.28
     aroot: 0.72
     tauleaf: 0.7
 
