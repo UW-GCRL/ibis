@@ -7015,3 +7015,55 @@ and residence together, not the stock alone. Neither is in the running s31l / s3
 road decision (one decision at a time).
 **Decision (Hangkai, 18:45): queued as the first item after the road decision -- the gate redesigned as a cover limit, with the
 tropical wood-turnover refit alongside it so production and residence move together instead of the stock alone.**
+
+## 68. Final reruns scored: road A unchanged outside the humid tropics, road B over-corrected in the cold open lands (2026-10-27 00:23)
+
+**Setup.** s31l = params_31j + the closed-canopy climate rule (`closed_canopy_zones: [A_humid]`) at `closed_canopy_fu` 0.90
+(humid floor 0.27, section 66). s31m = params_31k + the same fire rule + the section 65 cold-shrub change
+(`pft.deciduous_shrub.aleaf` 0.4 -> 0.2 with `aroot` 0.45 -> 0.65 so the allocation sums to one; S06 aleaf 0.2; S04 aroot
+pinned at 0.45). `diff` of the two parameter files and of the spin-up/hindcast configs: nothing else differs. Both runs: cold
+spin-up 1703-1900, transient 1901-2000, hindcast 2001-2010, 0 tracebacks, ~2 min/yr side by side. Carbon closure (live
++0.08 to +0.11, soil -0.22/-0.26 PgC/yr) and water balance (+2.5 % of P) as in s31j/s31k. Score tables
+`$V/final_s31{l,m}/score/`; post-run analysis `after_final_lm.log` (shipped to `figures/final_2026-10-26/tables/`).
+
+**Fire, 2010 (% yr-1; GFED5 Norm 2003-05 in brackets).** Amazon humid 2.25 / 2.24 [2.10]; Congo 2.17 / 2.14 [4.19];
+SE Asia 1.18 / 1.18 [0.67]; S American savanna 6.26 / 6.47 [6.77]; African savanna 7.17 / 6.39 [40.8]; boreal 0.93 / 0.51
+[0.80]; temperate 3.22 / 2.54 [3.50]; global 2.34 / 2.09 [4.51] (A / B). The humid floor landed where the offline sweep
+said (section 66): Amazon 1.07x, Congo 0.52x, SE Asia 1.76x. What the floor changed in the Amazon is the pattern, not the
+zone total: s31j burned 2.31 %/yr with 14 % of the area in trap cells above 5 %/yr (wood 2.0 vs map 10.6 kgC/m2) and 81 %
+of the area below 2 %/yr; s31l burns 2.30 %/yr with 5 % of the area above 5 %/yr (wood 3.7 vs map 13.7, GFED5 there
+2.8 %) and 52 % below 2 %/yr. The quiet cells match the map where quiet (A 10.7 vs 10.6; B 14.3 vs 10.6 kgC/m2). The
+5 % of the area still at 5-10 %/yr is the dry edge of the zone, where the floor 0.27 leaves a steady over-burn: a fire-refit
+item (pattern), not a floor item.
+
+**Wood vs Xu & Saatchi (PgC, model/map; `wood_regions_s31l_s31m.txt`).** Humid tropics A 93 (0.79x; s31j 0.81), B 121
+(1.02x; s31k 1.08): Amazon A 53 (0.78x), B 69 (1.02x); Congo 0.49x / 0.63x; humid Asia 1.03x / 1.34x. The floor costs the
+Amazon 8 % (A) and 12 % (B) of its wood, as estimated. Outside the humid tropics road A is s31j to the decimal (savanna
+0.44x, temperate 1.57x, boreal 0.80x, global 0.88x); road B: savanna 0.50x, temperate 2.16x, boreal 1.09x (boreal Asia 0.92
+-> 0.96), global 1.10x. Nothing in section 67 changes.
+
+**Road B's cold open lands over-corrected.** The one non-fire change in s31m halved the deciduous-shrub leaf allocation
+to stop the far-north run-away of s31k (section 65: dec_shrub leaf area 60-90 N 1.45, E_tundra 2.22). At aleaf 0.2 the
+shrub does not persist: `north_breakdown.py` on the 2010 restarts gives dec_shrub 0.00 in 60-90 N, D_subarctic and
+E_tundra (s31k 1.45 / 1.11 / 2.22; road A 0.13 / 0.15 / 0.05), with C3 grass taking the tundra (0.58). Band and box means
+look right (60-90 N GPP 2.64x -> 1.54x FLUXCOM, road A 2.04x; High Arctic >70 N 3.21x -> 1.05x; Tibetan Plateau polar
+cells 1.80x -> 1.04x) but the productive cells where the towers sit died: Tibetan alpine meadows (CN-HaM, CN-Jng, CN-You,
+CN-Dsh) 8-75 gC/m2/yr against towers at 270-830, high-Arctic wet tundra (GL-ZaF, GL-ZaH, US-Atq) 6-8 against 110-210;
+Koppen E tower median model/tower 2.05 (s31k) -> 0.32 (road A 0.67). 60-70 N lower-canopy cover 0.47 -> 0.10 (road A
+0.31), lower-canopy NPP 231 -> 40 gC/m2/yr. Soil carbon followed the litter at the spin-up equilibrium: 60-90 N 367 -> 183
+PgC, 30-60 N 576 -> 519, global 1501 -> 1269 (road A 1531; literature 1500-2400 to 1 m). `cold_boxes.py`,
+`soil_bands.py` (audit_2026-10-26/) hold the tables. Tierra del Fuego is unchanged by the change and still runs away in
+both road B runs (2.86x FLUXCOM, lower LAI 4-7, a C_oceanic shrub thicket; road A 1.48x).
+
+**Elsewhere road B's rerun improved**: tower GPP model/tower 1.13 (s31k 1.14, road A 1.18); DBF 1.03, ENF 1.11, GRA 1.06,
+Koppen D 1.04 (road A 1.15 / 1.17 / 1.17 / 1.17); shrubland GPP 3.63x -> 1.99x FLUXCOM; global GPP 1.38x -> 1.32x FLUXCOM
+(road A 1.37x); peak LAI 1.43x -> 1.30x MODIS (road A 1.55x).
+
+**Verdict.** Road A final (s31l) is s31j plus the fire rule and nothing else moved; its Amazon wood is 0.78x the map and
+its far north 2.0x FLUXCOM with a live tundra. Road B's rerun (s31m) has the better tower ratios and the Amazon wood on the
+map (1.02x), but the cold shrub went from run-away (aleaf 0.4) to extinction (0.2): the shrub's persistence threshold in
+the cold open land lies between the two values, so road B is not yet a stable final. The value in between (0.3, aroot 0.55,
+S06 0.3) is the obvious next run; whether to make it before the road decision is the user's call (pending).
+
+**Deck numbers (plot_amazon):** humid-Amazon fire % yr-1 / wood PgC: road A final 2.30 / 51.8, road B final 2.29 / 67.7,
+observed 1.92 / 67.5 (road A + fixes 2.31 / 56.3, road B + fixes 2.25 / 76.9).
