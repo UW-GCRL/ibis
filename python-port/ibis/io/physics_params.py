@@ -294,6 +294,10 @@ def build_pft_params(d: dict) -> PFTParams:
         tree_stress_min=float(s.get('tree_stress_min', defaults.tree_stress_min)),
         tree_stress_ramp=float(s.get('tree_stress_ramp', defaults.tree_stress_ramp)),
         tree_kill_to_litter=bool(s.get('tree_kill_to_litter', defaults.tree_kill_to_litter)),
+        tree_cover_limit=bool(s.get('tree_cover_limit', defaults.tree_cover_limit)),
+        tree_cover_min=float(s.get('tree_cover_min', defaults.tree_cover_min)),
+        tree_cover_ramp=float(s.get('tree_cover_ramp', defaults.tree_cover_ramp)),
+        tree_cover_power=float(s.get('tree_cover_power', defaults.tree_cover_power)),
         exact_litterfall=bool(s.get('exact_litterfall', defaults.exact_litterfall)),
         lai_max=_lai_max(s),
     )

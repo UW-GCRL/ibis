@@ -412,6 +412,7 @@ def dynaveg(
     fire_params: FireParams | None = None,
     popd: Float[Array, "npoi"] | None = None,
     tree_surv=None,
+    tree_cover_max=None,
     cropfrac=None,
     crop_params=None,
     diag=None,
@@ -533,8 +534,15 @@ def dynaveg(
     # Water-limited tree establishment (docs/CALIBRATION.md 14): an annual
     # survival factor on the upper-canopy PFTs from the year's mean soil-water
     # stress. None (default) leaves the pools exactly as F77 computes them.
-    if tree_surv is not None:
-        ts = tree_surv[:, None]
+    # Cover-limit form (CALIBRATION.md 70): `tree_cover_max` caps the cover in `_fu_of` below instead; the pools
+    # are not thinned, and trees are eliminated only where the maximum cover is 0 (booked to litter as the gate's).
+    _ts_gate = None
+    if tree_cover_max is not None:
+        _ts_gate = (tree_cover_max > 0.0).astype(cbiow.dtype)
+    elif tree_surv is not None:
+        _ts_gate = tree_surv
+    if _ts_gate is not None:
+        ts = _ts_gate[:, None]
         m8 = (jnp.arange(npft) < 8)[None, :]
         # The removed share is dead trees: with tree_kill_to_litter (default) it joins this year's litterfall, which
         # soilbgc decomposes next year like any other. Before 2026-10-26 it left the model unbooked -- neither litter
@@ -547,7 +555,7 @@ def dynaveg(
         cbiol = jnp.where(m8, cbiol * ts, cbiol)
         cbiow = jnp.where(m8, cbiow * ts, cbiow)
         cbior = jnp.where(m8, cbior * ts, cbior)
-        wood = wood * tree_surv
+        wood = wood * _ts_gate
 
     # --- Apply disturbances ---
     disturbf_val = jnp.full_like(veg.fu, 0.005)
@@ -680,7 +688,9 @@ def dynaveg(
     biomass = veg.biomass
     for j in range(npft):
         cbiol_min = exist[:, j] * xminlai / specla[..., j]
-        if tree_surv is not None and j < 8:
+        if tree_cover_max is not None and j < 8:
+            cbiol_min = cbiol_min * (tree_cover_max > 0.0)
+        elif tree_surv is not None and j < 8:
             cbiol_min = cbiol_min * (tree_surv > 0.0)
         cbiol = cbiol.at[:, j].set(jnp.maximum(cbiol_min, cbiol[:, j]))
 
@@ -704,6 +714,8 @@ def dynaveg(
         else:
             fu = (1.0 - jnp.exp(-wood / pft_params.fu_k)) / (1.0 - jnp.exp(-woodnorm / pft_params.fu_k))
         fu = fu * (1.0 - disturb_total)
+        if tree_cover_max is not None:        # water-limited maximum cover (CALIBRATION.md 70)
+            fu = jnp.minimum(fu, tree_cover_max)
         return jnp.maximum(pft_params.fu_min, jnp.minimum(0.975, fu))
 
     def _fl_of(totlail):

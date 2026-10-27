@@ -78,6 +78,17 @@ class PFTParams(eqx.Module):
     #: reproduces the runs before that date, in which the removed carbon left the model unbooked (3-5 PgC yr-1 in
     #: s31f / s31g, section 60).
     tree_kill_to_litter: bool = True
+    #: Cover-limit form of the gate (CALIBRATION.md 70). True: the annual-mean stress sets a water-limited MAXIMUM
+    #: upper-canopy cover, fu_max = clip((stress - tree_cover_min) / tree_cover_ramp, 0, 1) ** tree_cover_power, that
+    #: fu may not exceed; trees are eliminated (to litter) only where fu_max is 0 and the standing pools are never
+    #: thinned, so wood accumulates to what production and turnover give at that cover. False (default): the survival
+    #: factor multiplies the standing tree pools every year (section 14), which in its partial range kills a fixed
+    #: share of the trees annually and holds savanna and dry-forest wood at a third of the map (section 67). The
+    #: default ramp is the CLM product's mean tree cover against the model's annual stress in the tropics (s31n).
+    tree_cover_limit: bool = False
+    tree_cover_min: float = 0.30
+    tree_cover_ramp: float = 0.65
+    tree_cover_power: float = 1.75
     #: Exact litterfall booking (CALIBRATION.md 61, 63). The annual pool update decays a pool by c (1 - e^(-1/tau)) and
     #: grows it by a tau N (1 - e^(-1/tau)), but F77 books litterfall as c / tau and the NEE accounting assumes a N
     #: allocated: exact only at equilibrium (~3 PgC yr-1 of sink in s31f that no pool received). True books the

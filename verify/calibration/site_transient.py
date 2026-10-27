@@ -165,11 +165,12 @@ def one_year(state, key, year, ctx, isimveg=1):
         diag["et_parts"] = ep_prev                          # (4, npoi) annual
 
     if isimveg > 0:
-        from ibis.state.stress_accum import tree_survival
+        from ibis.state.stress_accum import tree_survival, tree_cover_max
         nv, nc, ns = dynaveg(state.vegetation, state.carbon, state.summary,
                              c["pft"], 1, c["consts"].epsilon,
                              fire_scheme="seasonlength", fire_params=c["sp"].fire,   # the yaml fire section, as run_global
-                             tree_surv=tree_survival(state, c["pft"]))
+                             tree_surv=tree_survival(state, c["pft"]),
+                             tree_cover_max=tree_cover_max(state, c["pft"]))
     else:
         nv, nc, ns = biomass_update(state.vegetation, state.carbon,
                                     state.summary, c["pft"],

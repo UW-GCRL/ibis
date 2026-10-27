@@ -42,3 +42,17 @@ def tree_survival(state, pft_params):
         return None
     mean_u = state.stress.aystressu / jnp.maximum(state.stress.nday, 1.0)
     return jnp.clip((mean_u - pft_params.tree_stress_min) / pft_params.tree_stress_ramp, 0.0, 1.0)
+
+
+def tree_cover_max(state, pft_params):
+    """Water-limited maximum upper-canopy cover (CALIBRATION.md 70): clip((annual-mean upper-canopy stress -
+    tree_cover_min) / tree_cover_ramp, 0, 1) ** tree_cover_power.
+
+    None unless pft_params.tree_cover_limit is set and the accumulator is present, so every caller without the
+    switch keeps the survival-factor path (tree_survival) bit-exact.
+    """
+    if state.stress is None or not bool(getattr(pft_params, 'tree_cover_limit', False)):
+        return None
+    mean_u = state.stress.aystressu / jnp.maximum(state.stress.nday, 1.0)
+    x = jnp.clip((mean_u - pft_params.tree_cover_min) / pft_params.tree_cover_ramp, 0.0, 1.0)
+    return x ** pft_params.tree_cover_power

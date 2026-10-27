@@ -373,7 +373,8 @@ def run_global_simulation(config: IBISConfig) -> None:
     # built before build_all_params runs below.
     _pd_gate = load_physics_params(config.params_file) if config.params_file else None
     _tsm = float(((_pd_gate or {}).get('pft') or {}).get('tree_stress_min', -1.0))
-    gate_on = _tsm >= 0.0
+    _tcl = bool(((_pd_gate or {}).get('pft') or {}).get('tree_cover_limit', False))
+    gate_on = _tsm >= 0.0 or _tcl          # the cover-limit form needs the accumulator too (CALIBRATION.md 70)
     et_on = bool(getattr(p, "et_components", False))
     _st_sec = ((_pd_gate or {}).get('stomata') or {}); _ph_sec = ((_pd_gate or {}).get('pheno') or {})
     seas_on = bool(_st_sec.get('acclim_on', False)) or bool(_ph_sec.get('sen_photoperiod_u', False)) \
@@ -388,6 +389,11 @@ def run_global_simulation(config: IBISConfig) -> None:
         logger.info("Tree-establishment gate ACTIVE (tree_stress_min=%.2f, ramp=%.2f): "
                     "state carries StressAccum; dynaveg gets tree_surv", _tsm,
                     float(_pd_gate['pft'].get('tree_stress_ramp', 0.2)))
+        if _tcl:
+            _pg = _pd_gate['pft']
+            logger.info("  as a COVER LIMIT (tree_cover_limit): fu_max = clip((stress - %.2f) / %.2f, 0, 1) ^ %.2f, "
+                        "no yearly thinning, elimination only at fu_max = 0 (CALIBRATION.md 70)",
+                        float(_pg.get('tree_cover_min', 0.30)), float(_pg.get('tree_cover_ramp', 0.65)), float(_pg.get('tree_cover_power', 1.75)))
     else:
         logger.info("Tree-establishment gate inactive (tree_stress_min < 0)")
 
@@ -859,7 +865,7 @@ def run_global_simulation(config: IBISConfig) -> None:
         )
 
         from ibis.physics.vegetation_dynamics import biomass_update, dynaveg
-        from ibis.state.stress_accum import tree_survival, reset_stress_accum
+        from ibis.state.stress_accum import tree_survival, tree_cover_max, reset_stress_accum
         from ibis.state.et_parts import reset_et_parts
         if p.isimveg > 0:
             _veg_diag = {}
@@ -868,6 +874,7 @@ def run_global_simulation(config: IBISConfig) -> None:
                 pft_params, p.isimfire, consts.epsilon,
                 fire_scheme=p.fire_scheme, fire_params=params.fire,         # the yaml 'fire' section (CALIBRATION.md 59)
                 tree_surv=tree_survival(state, pft_params),
+                tree_cover_max=tree_cover_max(state, pft_params),
                 cropfrac=params.cropfrac, crop_params=params.crop, diag=_veg_diag,
             )
         else:
