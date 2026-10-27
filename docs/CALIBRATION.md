@@ -7164,3 +7164,20 @@ the right direction for road B's soil carbon (section 69).
 params_31n + the cover limit; `check10_31q` = 31p + the tropical refit; the switch logged as active in both. Then the
 cold protocols s31p / s31q against s31n, so the gate's effect and the refit's are read separately (the controlled
 comparison the review standard asks for). Every allocation in both files sums to one (12 base PFTs, 40 types).
+
+**Expected equilibria before the runs (`gate_expect.py`, s31n 2008/2010 state; table `gate_expect_s31n.txt`).** Per
+cell the new cover is fu_max(u) where the gate was partial (0 where fu_max is 0, today's cover where the limit does not
+bind), wood production scales with the cover and the new awood, and the loss rate is fire x mortality + 1 / tauwood0
+per PFT; eq = production / loss, PgC: humid tropics map 118, now 120, eq at today's rules 176, under the limit 177,
+under the limit + refit 127 (Amazon 68 / 69 / 96 / 94 / 67; Congo 23 / 15 / 23 / 24 / 17); savanna + hot dry 75 / 37 /
+68 / 111 / 84; subtropical 46 / 54 / 101 / 131 / 131; temperate 54 / 117 / 186 / 205 / 205; boreal 60 / 64 / 125 / 116
+/ 116; global 362 / 397 / 663 / 751 / 674. Two consequences. (1) With T03 (the savanna tree, A_savanna + B_hot) left at
+awood 0.525 the savanna would equilibrate at 1.5x the map under the limit, since its cover rises to the product's
+(0.16 -> 0.22) and nothing kills the trees any more; so the refit covers all three tropical trees: T03 awood 0.525 ->
+0.35, aroot 0.425 (`params_31q`; `check10_31q` ran on the T02-only version, kept as `params_31q_check10.yaml` and
+named in its cfg). (2) At today's production even s31n's own rules would equilibrate at 663 PgC of wood against 362
+on the map and 397 in the 2010 state: the stock is still filling after 300 protocol years (the transient CO2 raised the
+production), which is a large part of the 2.9 PgC yr-1 sink. The refit removes the tropical surplus (176 -> 127); the
+subtropical and temperate equilibria (131 + 205 against 100) are production, GPP 1.5-1.6x FLUXCOM at 30-60 N with no
+harvest -- the 30-60 N item, not this step. The limit alone also raises the subtropics (101 -> 131) by freeing cover
+in the Mediterranean and highland cells (0.39 -> 0.50, product 0.56).

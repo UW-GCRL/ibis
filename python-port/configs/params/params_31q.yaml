@@ -107,7 +107,7 @@ pft:
     GDD: 9999.0
     tauleaf: 1.0
     tauroot: 1.0
-    tauwood0: 40.0   # 2026-10-27: was 35 (T02 and T03 share this parent; T03's allocation is untouched)
+    tauwood0: 40.0   # 2026-10-27: was 35 (T02 and T03 share this parent)
     specla: 20.9
     aleaf: 0.3
     aroot: 0.25
@@ -466,7 +466,8 @@ types:
     vmax: 3.37904348270968e-05   # 2026-10-26: base temp_bl_dec, what its leaves ran at (SAV/WSA towers prescribe no position 0/2/4) (was 4.391110269352794e-05)
     aleaf: 0.225
     tauleaf: 1.0
-    awood: 0.525
+    awood: 0.35    # 2026-10-27: was 0.525; the savanna tree too (gate_expect.py: at 0.525 the savanna would equilibrate 1.5x the map under the cover limit)
+    aroot: 0.425   # takes the freed share
   T04:
     coefm: 15.941698503387627
     lt_e0: 363.2237757257037
