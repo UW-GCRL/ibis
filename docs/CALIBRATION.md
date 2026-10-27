@@ -7181,3 +7181,23 @@ production), which is a large part of the 2.9 PgC yr-1 sink. The refit removes t
 subtropical and temperate equilibria (131 + 205 against 100) are production, GPP 1.5-1.6x FLUXCOM at 30-60 N with no
 harvest -- the 30-60 N item, not this step. The limit alone also raises the subtropics (101 -> 131) by freeing cover
 in the Mediterranean and highland cells (0.39 -> 0.50, product 0.56).
+
+**check10_31p (cover limit alone, 2001-2010 from the s31n 2000 state; 12:09, 0 tracebacks).** Carbon closes as before
+(live residual +0.09, soil -0.22 PgC yr-1); the live pools now gain 6.0 PgC yr-1 (s31n 2.5) because nothing kills the
+trees: wood 399 -> 427 PgC in ten years, and in the control's partial-gate cells (25.5 % of natural land, product
+cover 0.30, map wood 70 PgC) wood 22 -> 38 PgC with cover 0.21 -> 0.24. Cover moved toward the product where the
+limit binds or frees: savanna 0.16 -> 0.18 (product 0.20), subtropical 0.51 -> 0.54 (0.56), boreal 0.50 -> 0.45 (0.44;
+boreal Asia 0.51 -> 0.44 against 0.41), humid tropics 0.89 -> 0.86 (0.95: the u 0.8-0.9 cells are capped to 0.68 where
+the product has 0.70, as fitted). In the tropics by stress bin the cover now follows the product's curve (u 0.6-0.7:
+0.10 -> 0.23 against 0.32; 0.5-0.6: 0.05 -> 0.09 against 0.19, still filling). GPP 150.6 -> 149.9, NPP 68.9 -> 67.4,
+Rh 59.2 -> 56.3 PgC yr-1 (the dead-tree litter is gone: soil C 1299 -> 1287 and will fall further, a cost on road B's
+soil stock to carry to the soil stage); ET unchanged; Amazon fire 2.23 % yr-1 unchanged, African savanna 6.4 -> 8.5
+(more fuel), temperate 2.5 -> 2.7. Wood by chunk after ten years (x map): humid 1.02 -> 1.05, savanna 0.50 -> 0.66,
+subtropical 1.19 -> 1.45 (N America 0.66 -> 0.99, Europe 1.24 -> 1.72, Africa 0.67 -> 1.05), temperate 2.16 -> 2.28,
+boreal 1.07 -> 1.08, global 1.10 -> 1.20 -- the expected direction everywhere, with the subtropical overshoot of the
+expectation table already visible. `cover_wood_check.py` (gate_2026-10-27/).
+
+**check10_31q** OOMed in its first year (CUDA graph instantiation; it had the 5.5 GB left after check10_31p's default
+75 % preallocation -- the protocol script sets PREALLOCATE=false / MEM_FRACTION .3, the ad-hoc launcher did not); rerun
+alone at 12:15 on `params_31q` (with T03). **Cold protocols s31p / s31q launched 12:14** (`launch_s31pq.sh`: run +
+score side by side, scored against s31n).
