@@ -7071,3 +7071,36 @@ observed 1.92 / 67.5 (road A + fixes 2.31 / 56.3, road B + fixes 2.25 / 76.9).
 `aleaf` 0.30 / `aroot` 0.55 (S06 0.30), s31o at 0.25 / 0.60 (S06 0.25); every base PFT and all 40 types verified to sum to
 one (`params_31n.yaml`, `params_31o.yaml`). LAI ~ k^2.3 (section 65) predicts tundra shrub leaf area 1.15 at 0.30 and 0.75
 at 0.25 from s31k's 2.22, if the shrub persists; 0.20 went extinct. Cold closing protocol as s31l/s31m; scored against s31m.
+
+## 69. Road B cold-shrub bracket: 0.30 persists, 0.25 goes extinct; s31n is road B's final (2026-10-27 09:24)
+
+**Result.** s31o (`aleaf` 0.25) reproduces s31m to the decimal: dec_shrub leaf area 0.03 in 60-90 N, 0 in E_tundra (C3
+grass 0.58), Koppen E tower median 0.32, soil C 1271 PgC. s31n (`aleaf` 0.30) keeps the shrub: 60-90 N 0.40, D_subarctic
+0.26, E_tundra 0.85 with the grass pushed back to 0.04 (s31k 1.45 / 1.11 / 2.22; road A 0.13 / 0.15 / 0.05). The
+persistence threshold of the deciduous shrub in the cold open land lies between 0.25 and 0.30; the LAI ~ k^2.3 scaling of
+section 65 does not hold near it (predicted 1.15 at 0.30, got 0.85; predicted 0.75 at 0.25, got 0). Everything south of
+60 N is s31m to the decimal (Amazon fire 1.07x, Amazon wood 1.02x, wood by chunk, closure, water). Tables:
+`cold_boxes_bracket.txt`, `wood_regions_s31n_s31o.txt`, `after_final_no.log` in figures/final_2026-10-26/tables.
+
+**s31n's far north vs road A (s31l) and s31k**: 60-90 N GPP 1.96x FLUXCOM (A 2.04, s31k 2.64, s31m 1.54); peak LAI 1.18x
+MODIS (A 1.41, s31k 1.92); High Arctic >70 N 1.47x (A 1.53, s31k 3.21); 60-70 N 1.88x (A 1.94, s31k 2.54), lower-canopy
+cover 0.21 (A 0.31, s31k 0.47); Tibetan Plateau polar cells 1.06x (A 1.44). Koppen E tower median 1.04 (A 0.67), but the
+median hides a scatter road A does not have: Tibetan meadows CN-Jng 657 / 402, CN-You 179 / 268, CN-HaM 129 / 831, CN-Dsh
+8 / 609 (model / tower, gC/m2/yr); the high-Arctic wet tundra cells GL-ZaF, GL-ZaH, US-Atq at 7-8 against 110-210 in every
+road B run including s31k (road A 110-115); Tierra del Fuego 1900 against 300-660 (road A 380); IT-NiG 1409 / 611. Road
+A's Koppen E cells sit at 0.3-1.3x the towers, road B's at 0.02-6x. The far-north soil carbon does not come back with the
+shrub: 60-90 N 198 PgC (s31m 183, s31k 367, road A 341); s31k's 367 was built on the run-away canopy. Road B's soil C is
+lower than road A's in every band outside the tropics at similar NPP (30-60 N 530 vs 651): a road B property (litter
+partition under Min's allocation), global 1288 vs 1523 PgC, literature 1500-2400 to 1 m. Not touched here; it belongs to
+the soil-carbon stage (after litterfall closure).
+
+**Road B final = s31n.** Verdict table for the road decision (A = s31l, B = s31n; obs ratios, 2001-2010 unless noted):
+tower GPP model/tower, 435 towers: A 1.18, B 1.13 (DBF 1.15 / 1.03, ENF 1.17 / 1.11, GRA 1.17 / 1.11, EBF 0.95 / 1.00,
+Koppen D 1.17 / 1.06, Koppen E 0.67 / 1.04 with the scatter above); global GPP x FLUXCOM 1.37 / 1.35; peak LAI x MODIS
+1.55 / 1.34; 60-90 N GPP 2.04 / 1.96; wood x Xu & Saatchi global 0.88 / 1.10 (Amazon 0.78 / 1.02, Congo 0.49 / 0.63,
+savanna 0.44 / 0.50, temperate 1.57 / 2.16 with Europe 1.81 / 2.60, boreal 0.80 / 1.09); soil C 1523 / 1288 PgC; land
+sink 2001-2010 2.53 / 2.87 (GCB 2.78); wetland CH4 190 / 185 Tg (GMB 153-159); Amazon fire 1.07x both; Tierra del Fuego
+1.5x / 2.7x FLUXCOM; shrubland GPP 2.46x / 2.44x. The queued gate redesign (section 67) adds wood wherever the gate kills
+(savanna, boreal Asia, dry temperate edges): it moves A's 0.88x toward one and B's 1.10x further above it, so under road
+B the tropical wood-turnover refit has to carry the temperate overshoot too.
+**Decision: pending (the road).**
