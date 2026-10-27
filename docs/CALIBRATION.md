@@ -7067,3 +7067,7 @@ S06 0.3) is the obvious next run; whether to make it before the road decision is
 
 **Deck numbers (plot_amazon):** humid-Amazon fire % yr-1 / wood PgC: road A final 2.30 / 51.8, road B final 2.29 / 67.7,
 observed 1.92 / 67.5 (road A + fixes 2.31 / 56.3, road B + fixes 2.25 / 76.9).
+**Bracket launched (2026-10-27 00:55, GPU idle overnight; kill on the user's word):** s31n = params_31m with the cold shrub at
+`aleaf` 0.30 / `aroot` 0.55 (S06 0.30), s31o at 0.25 / 0.60 (S06 0.25); every base PFT and all 40 types verified to sum to
+one (`params_31n.yaml`, `params_31o.yaml`). LAI ~ k^2.3 (section 65) predicts tundra shrub leaf area 1.15 at 0.30 and 0.75
+at 0.25 from s31k's 2.22, if the shrub persists; 0.20 went extinct. Cold closing protocol as s31l/s31m; scored against s31m.
