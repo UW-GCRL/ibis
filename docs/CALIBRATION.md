@@ -7201,3 +7201,18 @@ expectation table already visible. `cover_wood_check.py` (gate_2026-10-27/).
 75 % preallocation -- the protocol script sets PREALLOCATE=false / MEM_FRACTION .3, the ad-hoc launcher did not); rerun
 alone at 12:15 on `params_31q` (with T03). **Cold protocols s31p / s31q launched 12:14** (`launch_s31pq.sh`: run +
 score side by side, scored against s31n).
+
+**check10_31q (cover limit + tropical refit, rerun alone; 12:44, 0 tracebacks).** Closure as 31p (live +0.09, soil
+-0.22). The refit does what it was set to do and one thing more. Wood: humid tropics 121 -> 106 PgC in ten years
+(0.89x the map; Amazon 69.4 -> 60.5, 0.89x; Congo 0.55x; humid Asia 1.17x) as production falls from 3.36 to ~2.0
+PgC yr-1 against losses of 2.4 -- the stock is on its way to the expected equilibrium (67 PgC) from above; the
+savanna rises more slowly than under the limit alone (0.50 -> 0.53x against 0.66x) with T03's wood share at 0.35;
+subtropical, temperate and boreal are the limit's numbers to the decimal (the refit touches only the three tropical
+trees); global 398 -> 405 PgC (limit 433). The thing more: the freed share went to fine roots (aroot 0.27 -> 0.46 for
+T01), whose maintenance respiration lowers tropical NPP by 8 % at the same GPP (90S-30N NPP 45.1 -> 41.5 PgC yr-1,
+global 68.9 -> 65.0), and road B's leaf pool follows its NPP, so the humid-tropics upper LAI per unit cover falls from
+5.6 to 4.6 and GPP 106.8 -> 104.9 (tropical GPP 1.24x -> 1.22x FLUXCOM; peak LAI there was 1.35x MODIS, so the direction
+is right, but it is a side effect of the partition, not a fitted leaf change). Amazon fire 2.13 % yr-1 (fu 0.85).
+Rh 59.2 -> 57.0 (the gate's dead-tree litter gone, partly replaced by the root litter); soil C 1299 -> 1288 as 31p.
+Table `cover_wood_check10_pq.txt` (figures/final_2026-10-26/tables). The cold protocols carry the verdict: s31p / s31q
+at ~50 s per spin-up year side by side (three processes until 12:44), expected scored ~18:00.
