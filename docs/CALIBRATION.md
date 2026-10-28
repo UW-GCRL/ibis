@@ -7548,3 +7548,64 @@ lowest ratio at 0.59, so nothing argues for the milder set; the sink stays insid
 at 12.4 kgC m-2 (0.62) with the boreal at 0.49. Whichever is chosen becomes the final's parameter file (params_31r +
 the chosen som_k_scale set); the methane bands are refit on it next (10-yr hindcast reruns, flux ∝ Rh), then the
 deck and the IBIS 3.0 documents.
+
+**Decision (Hangkai, 2026-10-28 14:45): strong.** s31t is the final state of the calibration: `params_31s_soil_strong.yaml`
+(= params_31r + som_k_scale strong) is the production parameter file, `final_s31t/` the production protocol run. The
+methane bands are read on it next (section 73).
+
+## 73. Methane bands on the final state: the decomposition, and no refit (2026-10-28 15:00)
+
+**The question.** The production hindcast's wetland CH4 by GMB band sits at 1.39 / 0.36 / 0.53 of the GMB 2025
+bottom-up ensemble (90S-30N / 30-60N / 60-90N; Saunois et al. 2025, the 22-run wetland ensemble, 2000-2009) with the
+global total inside the range (170 against 153 [116-189] Tg yr-1). Section 71 deferred the bands to after the soil
+stage because the flux is proportional to Rh; the soil decision left Rh at its equilibrium value (56.1 PgC yr-1) and
+CH4 at 170, so the question is now exact: which factor carries each band's departure, and is there a change that is
+not a scaling to the budget. The rule of section 71 stands: the tower-fitted band rates (section 38.1) are not scaled
+to a budget.
+
+**Tool (`verify/calibration/diagnostics/methane_2026-10-28/ch4_bands_production.py`; tables `ch4_bands_s31t.txt`,
+`ch4_bands_s31n.txt`).** Per month and cell, from the hindcast's own monthly output (amch4, amco2mic, tsoi, wsoi) and
+the WAD2M climatology, the flux is rebuilt factor by factor with the band parameters the run used (params `methane` +
+`methane_bands`, band = wetland type W01/W02/W03 of the Köppen zone) -- F = f_inund x Rh x f_anaer x r_ch4 x Q10f x
+unfrozen x f_surv -- and summed by GMB band, sub-band, wetland type and GCP region against the ensemble's mean
+[min-max]; the water table is recomputed from the monthly liquid moisture (exact in thawed months, which carry the
+flux). The reconstruction reproduces the model's own flux within 2-3 % in every band, so the factor means below are
+the run's.
+
+| band | WAD2M area Mkm2 | model Tg | GMB 2000-09 mean [min-max] | x | g CH4 m-2 yr-1 model / GMB | Rh gC m-2 d-1 | f_anaer | Q10f | f_surv | zwt m |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 90S-30N | 1.99 | 152.4 | 109.5 [66-146] | 1.39 | 76.5 / 55.0 | 1.85 | 0.85 | 1.46 | 0.45 | 0.11 |
+| 30N-60N | 0.94 | 11.6 | 32.1 [16-60] | 0.36 | 12.3 / 34.0 | 1.26 | 0.79 | 0.43 | 0.37 | 0.16 |
+| 60N-90N | 0.38 | 6.3 | 11.7 [3.6-28] | 0.53 | 16.6 / 31.0 | 1.56 | 0.84 | 0.39 | 0.42 | 0.13 |
+| global | 3.31 | 170.3 | 153.3 [116-189] | 1.11 | 51.4 / 46.2 | 1.65 | 0.83 | 1.04 | 0.42 | 0.13 |
+
+(factors are inundated-area-weighted means over 2001-2010; the unfrozen share is 0.98-1.00 on that weighting.)
+
+**Reading.** Rh is not the deficit: the inundated cells of the north respire 1.26-1.56 gC m-2 d-1 against the
+tropics' 1.85. The anaerobic share is uniform (0.8) and the surviving fraction varies little (0.37-0.45; water table
+0.11-0.16 m). The factor that separates the bands is the Q10 term against the single reference temperature of 295.15
+K: 1.46 in the tropics, 0.43 and 0.39 in the north, so the effective CH4:CO2 production ratio r_ch4 x Q10f is 0.203 /
+0.054 / 0.056 -- 3.7x higher in the tropics. That is by construction of the tower fits (section 38.1 held t_ref fixed
+and fitted r_ch4 and q10p per band at the band's own temperature), not a double count: the same product reproduced
+the held-out year at the towers at 0.73-0.83 (temperate / boreal) and 0.76 (tropical). Per unit of the same WAD2M
+area the model emits 76 / 12 / 17 g CH4 m-2 yr-1, the GMB ensemble 55 / 34 / 31, and the FLUXNET-CH4 towers of
+section 38 (annual budgets, medians; data local) tropical 25 (n 10), temperate 9 (n 38; 26 at 30-45 N, 2 at 45-60 N
+where the zero-budget EuroFlux sites of 38.1 sit), boreal 9 (n 18). In the north, then, the model emits per unit area
+what the towers emit and a third of what the ensemble emits: the departure from GMB is the tower-versus-ensemble
+tension, which the rule settles on the towers' side. In the tropics the model exceeds both the ensemble (1.39x) and
+the tower median (3x): the inundated cells of the Amazon, Congo and Southeast Asia carry Rh 2.4-2.6 gC m-2 d-1 and a
+water table at 0.06-0.07 m (f_surv 0.60-0.65), where the ten tropical towers (seven wetland sites, no fitted
+seasonality) are a thin constraint. By GCP region the pattern is the same: USA 0.38, Canada 0.38, Europe 0.27, Russia
+0.64, China 0.25 against the ensemble mean; Brazil 1.36, Southeast Asia 1.61, Equatorial Africa 1.59, northern and
+south-western South America 1.9. Seasonality by band matches the GCP prior climatology (peak month 7 in both northern
+bands, max/min 10.4 against 11.0 in 30-60 N; the tropics flat in both). The stage change s31n -> s31t (185 -> 170
+Tg) is all tropical (166 -> 152, inundated Rh 2.00 -> 1.85 gC m-2 d-1 with s31r's lower humid-tropical litter); the
+north is unchanged (12.1 -> 11.6, 6.8 -> 6.3).
+
+**Recommendation (the user's call): no methane parameter change for the final.** The three candidates and why not:
+scaling the tropical r_ch4 by 1 / 1.39 is a scaling to the budget; a per-band reference temperature (METHANE.md 5q's
+`biome_tref`) is an identity under rates fitted at a fixed t_ref; a frozen-season production floor (the boreal towers
+keep ~0.4 gC m-2 month-1 from November to April where the module emits nothing, 38.1) would add ~1 Tg north of 60 N
+and ~2 Tg in 45-60 N -- real, and a new process rather than a calibration, so a post-release item. The release
+records: IBIS 3.0 wetland CH4 170 Tg yr-1 (GMB 153 [116-189]), 1.39x the ensemble in the tropics, 0.36x in 30-60 N
+and 0.53x north of 60 N, with the band split following the FLUXNET-CH4 towers rather than the wetland-model ensemble.
