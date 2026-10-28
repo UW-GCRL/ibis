@@ -103,3 +103,30 @@ def test_cover_limit_ramp_and_wiring():
     pl = (root / "ibis" / "io" / "physics_params.py").read_text()
     for k in ("tree_cover_limit", "tree_cover_min", "tree_cover_ramp", "tree_cover_power"):
         assert f"'{k}'" in pl, k
+
+
+def test_cover_limit_ramp_per_zone_through_the_types():
+    """CALIBRATION.md 71: a zone's tree types may carry tree_cover_min / ramp / power; apply_types turns them into
+    per-cell arrays (zones without values keep the base ramp) and tree_cover_max uses them."""
+    from ibis.io import pft_types as P
+    from ibis.io.physics_params import build_all_params
+    from ibis.state.stress_accum import tree_cover_max
+    from ibis.state.model_state import create_ibis_state
+    from ibis.dimensions import GridConfig
+    params, pp, _ = build_all_params(3, np.zeros(3))
+    z = np.array([P.ZI['D_temperate'], P.ZI['A_humid'], P.ZI['B_hot']])
+    over = P.parse_type_overrides({'T16': {'tree_cover_min': 0.72, 'tree_cover_ramp': 0.18, 'tree_cover_power': 1.0},
+                                   'T01': {'tree_cover_min': 0.34, 'tree_cover_ramp': 0.32, 'tree_cover_power': 2.5}})
+    _, pf = P.apply_types(params, pp, z, over)
+    np.testing.assert_allclose(np.asarray(pf.tree_cover_min), [0.72, 0.34, 0.30], rtol=1e-6)      # B_hot: the base
+    np.testing.assert_allclose(np.asarray(pf.tree_cover_ramp), [0.18, 0.32, 0.65], rtol=1e-6)
+    np.testing.assert_allclose(np.asarray(pf.tree_cover_power), [1.0, 2.5, 1.75], rtol=1e-6)
+    pf = eqx.tree_at(lambda p: p.tree_cover_limit, pf, True)
+    st = create_ibis_state(GridConfig(npoi=3, nbedrock=3), with_stress=True)
+    st = eqx.tree_at(lambda s: (s.stress.aystressu, s.stress.nday), st, (jnp.asarray([0.81, 0.70, 0.81]) * 50.0, jnp.full((3,), 50.0)))
+    got = np.asarray(tree_cover_max(st, pf))
+    want = [0.5, 1.0, ((0.81 - 0.30) / 0.65) ** 1.75]
+    np.testing.assert_allclose(got, want, rtol=1e-4)
+    # the scalar path is untouched: no overrides -> scalars stay scalars
+    _, pf0 = P.apply_types(params, pp, z, {})
+    assert np.ndim(np.asarray(pf0.tree_cover_min)) == 0

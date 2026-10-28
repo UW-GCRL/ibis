@@ -544,6 +544,13 @@ def run_global_simulation(config: IBISConfig) -> None:
         logger.info("Köppen-zone types (period %d-%d): %d types with own parameters %s; land points per zone %s",
                     int(_koppen["period_start"][k]), int(_koppen["period_end"][k]),
                     len({t for v in _type_over.values() for t in v}), sorted(_type_over), _pt.type_area_summary(_zones[k]))
+        if any(key in _type_over for key in ('tree_cover_min', 'tree_cover_ramp', 'tree_cover_power')):   # CALIBRATION.md 71
+            _ramps = {}
+            for z in _pt.ZONES:
+                if z in ('none', 'E_ice'): continue
+                vals = tuple(_pt.zone_scalar(z, _type_over.get(key, {}), 'all') for key in ('tree_cover_min', 'tree_cover_ramp', 'tree_cover_power'))
+                if any(v is not None for v in vals): _ramps[z] = vals
+            logger.info("  cover-limit ramp per zone (min, ramp, power; None = base): %s", _ramps)
         return params, pft_params
 
     params, pft_params = _apply_types_for(config.time.iyear0, params, pft_params)

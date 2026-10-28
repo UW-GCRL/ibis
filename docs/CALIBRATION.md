@@ -7287,3 +7287,71 @@ the NPP does not fall) is the next try, inside the same item. On the scorecard n
 as the stage final (s31n better on global wood 1.10 vs 1.39 / 1.18, soil C, sink, phantom forest; tied on GPP,
 towers, LAI, ET, fire; worse on savanna wood and lost forest). The limit stays built and tested, switch off by
 default.
+
+## 71. The production item with the cover limit folded in: s31r (2026-10-28 00:30-)
+
+**Decision (2026-10-28 00:30, Hangkai: "do that for 1 right now").** After the section-70 verdict the choice put was (1)
+fold the cover limit into the 30-60 N production item and do that item next, before the fire refit, methane bands
+and the soil stage (the gate sets the litter flux the soil stage would be fitted to), or (2) park the limit and go on
+with s31n. Hangkai chose (1). s31n stays the stage final until s31r is scored against it.
+
+**Why the extratropical wood is production, read from the type table.** The leaf-allocation calibration of section
+45-55 cut `aleaf` on the subtropical and temperate tree types (T06 0.224, T07 0.154, T08 0.196, T10 0.187, T12 0.196,
+T13 0.154, T16 0.253 against parents at 0.22-0.32) and, with the sum fixed at one and `aroot` left at the parent's,
+the cut went into wood: `awood` 0.42-0.53 against parents at 0.35-0.45 and against 0.25-0.35 of NPP in the forest
+allocation literature (Litton et al. 2007, GCB 13: 2089; Malhi et al. 2011 for the tropics). The survival gate's
+yearly thinning hid this (section 67: 4.4 PgC yr-1 killed); the cover limit removed the thinning and the stocks went
+to their production equilibrium (section 70: subtropical 1.94x, temperate 2.59x the map). Residence: the parents'
+tauwood0 (50-60 yr) are mature-stand values (Yu et al. 2023, GEB: 99 yr temperate, 74 boreal in mature forests);
+at landscape scale management halves the biomass turnover time (Erb et al. 2016, Nature Geoscience 9: 674) and the
+Thurner et al. 2016/2017 biomass-over-NPP maps put temperate forests well below mature-stand values. The model has
+no harvest, so the landscape residence is the honest parameter.
+
+**The ramp per zone (`ramp_fit_zones.py`, s31n 2008/2010 state, natural land = crop < 0.3; table
+`ramp_fit_zones_s31n.txt`).** The product's tree cover against the model's annual stress differs by zone, and
+section 70's single tropical ramp (fitted to the p75 envelope of the pooled tropics) was wrong in four places:
+(i) A_humid: the product is 1.0 (p50) at every u above 0.66 and the mean 0.89-0.94 at u 0.7-0.9, where the tropical
+ramp caps at 0.48-0.82, so s31p capped humid cells below the product; (ii) A_savanna: the pooled p75 ramp sits
+above the zone's median (mean cover under it 0.49 against the product's 0.45, s31p zone cover 0.55 vs 0.40);
+(iii) D_temperate: no trees in the product below u 0.70 (prairie and steppe: p75 0.00-0.16 at u 0.55-0.70) where the
+tropical ramp allows 0.23-0.39, and B_cold the same (product 0.00-0.03 at every u; tropical ramp 0.08-0.47); (iv) the
+C zones' median follows a lower, straighter line. The fits (to the product's MEDIAN by stress bin, area-weighted;
+the p75 fits give too much cover everywhere it was checked): A_humid a 0.34 b 0.32 p 2.5 (fu_max 1 above u 0.66);
+A_savanna 0.30 / 0.62 / 2.5 (mean cover 0.43 vs product 0.45); C zones 0.46 / 0.58 / 1.0 (0.63 vs 0.59; the tropical
+ramp gave 0.69); D_temperate 0.72 / 0.18 / 1.0 (0.76 vs 0.67; the p75 fit, rms 0.007, gives 0.86); B_cold 0.70 / 0.20
+/ 1.0 (the cold-group p75 fit: trees eliminated below u 0.70, cover 0.004 vs product 0.015). B_hot, D_subarctic,
+D_extreme and E_tundra keep the base tropical ramp: in B_hot it lies between the p50 and p75 fits (mean 0.06 vs
+product 0.09), and in the subarctic and tundra the product's cover is limited by cold, not water (fits rms 0.18-0.21),
+and the ramp does not bind there (s31p subarctic cover 0.49 vs product 0.44). The C_oceanic and C_med excess in wet
+cells (model 0.86-0.93 at u > 0.9 against a product mean of 0.69-0.80 with p50 0.78-0.91) is land use, outside a
+water ramp; recorded, not fitted.
+
+**Built.** `pft_types.TYPE_SCALARS` gains `tree_cover_min` / `tree_cover_ramp` / `tree_cover_power` as per-cell
+scalars on the `pft` object ('all': the median over the zone's types that carry a value; a zone with none keeps the
+base ramp), `apply_types` reads the base from the scalar PFTParams and sets the (npoi,) arrays on the typed one;
+`tree_cover_max` broadcasts them unchanged. run_global logs "cover-limit ramp per zone" from the overrides.
+Test `test_cover_limit_ramp_per_zone_through_the_types` (per-cell arrays per zone, base where no type carries a
+value, the numeric maximum, scalars untouched without overrides); the cover-limit and type files: 18 passed; full
+suite running.
+
+**params_31r = params_31n +** (a) the cover limit (`tree_cover_limit: true`, base ramp 0.30 / 0.65 / 1.75) with the
+zone ramps above carried by the zones' tree types (A_humid on T01; A_savanna on T02 only, since T03 is also in B_hot;
+C zones on T04, T06-T14; D_temperate on T16 only, since T15 is also in B_cold; B_cold on T21); (b) the C/D-zone
+allocation refit: `awood` 0.35 on T06-T16 and T21 (T04 is at the parent's 0.35 already), `aleaf` unchanged (the LAI
+calibration stands), `aroot` takes the difference (0.37-0.50; the conifers T07/T13 reach 0.50 because their leaf
+share is 0.15); boreal T17-T19 untouched (boreal wood 1.10x the map); (c) residence: temperate_conifer_evergreen and
+temperate_broadleaf_deciduous tauwood0 60 -> 45, warm_temperate_broadleaf_evergreen 50 -> 40; (d) the tropical refit
+at half strength: T01 awood 0.494 -> 0.40, aroot 0.364, parent tauwood0 40 -> 50; T02 awood 0.495 -> 0.42, aroot
+0.325, parent tauwood0 35 -> 40 (T03 and T05 share it and keep their allocation: the African savanna's wood is at
+0.67x the map under the limit with fire at a quarter of GFED5, so its trees need more wood per cover, not less).
+Every allocation sums to one (12 base PFTs, 40 types); the zone ramps resolve as intended for all twelve zones.
+Expected from s31p's 2010 state, scaled by the equilibrium ratios and the protocol's lag: humid tropics 1.12 -> ~0.95x
+the map (Amazon 1.07 -> ~0.9, Congo 0.71 -> ~0.6), subtropical 1.94 -> ~1.1-1.3, temperate 2.59 -> ~1.4-1.7 (Europe
+stays high: no harvest), savanna 0.86 -> ~0.9, boreal unchanged; NPP down 3-5 % in the C/D zones (root respiration)
+with the leaf area following it toward MODIS (30-60 N peak LAI 1.38x); phantom forest back toward s31n's 2.9 %
+(prairie, steppe and cold-steppe cells eliminated under the D_temperate and B_cold ramps).
+
+**check10_31r launched 01:28** (2001-2010 from the s31n 2000 state, GPU with PREALLOCATE=false / MEM_FRACTION .3;
+`run_check10_r.sh`), analysis `analyze_check10_r.sh` (closure, fire regions, yearly compare vs s31n, NaN, cover and
+wood by chunk and stress bin vs s31n and check10_31p). The cold protocol `launch_s31r.sh` (run + score against s31n)
+goes as soon as the check is clean; scored ~8 h later.

@@ -221,6 +221,10 @@ TYPE_SCALARS = {
     'gdd_thresh_l': ('pheno', 'gdd_thresh_l', 'lower'), 'tthresh_l_c': ('pheno', 'tthresh_l_c', 'lower'),
     'sen_ycrit_l': ('pheno', 'sen_ycrit_l', 'lower'), 'sen_pstart_l': ('pheno', 'sen_pstart_l', 'lower'),   # CALIBRATION.md 54
     'drop_stress_thresh': ('pheno', 'drop_stress_thresh', 'all'), 'stressfac': ('stomata', 'stressfac', 'all'),
+    # cover-limit ramp per zone (CALIBRATION.md 71): fu_max = clip((u - min) / ramp, 0, 1) ** power, set on the zone's
+    # tree types; a zone without values keeps the base (tropical) ramp
+    'tree_cover_min': ('pft', 'tree_cover_min', 'all'), 'tree_cover_ramp': ('pft', 'tree_cover_ramp', 'all'),
+    'tree_cover_power': ('pft', 'tree_cover_power', 'all'),
 }
 
 
@@ -290,16 +294,17 @@ def apply_types(params, pft_params, zone_idx, overrides: dict | None = None, bas
     pf = bf
     for (obj, field), v in new.items():
         if obj == 'pft': pf = eqx.tree_at(lambda o: getattr(o, field), pf, v, is_leaf=lambda x: x is None)
-    # per-cell scalars by zone (phenology thresholds, drought trigger, stress factor)
+    # per-cell scalars by zone (phenology thresholds, drought trigger, stress factor, cover-limit ramp)
     zi = np.asarray(zone_idx, dtype=np.int64); ph = bp.pheno
     for key, (obj, field, which) in TYPE_SCALARS.items():
         if key not in overrides:
             continue
-        base_v = float(np.asarray(getattr(ph if obj == 'pheno' else bp.stomata_params, field)))
+        base_v = float(np.asarray(getattr({'pheno': ph, 'stomata': bp.stomata_params, 'pft': bf}[obj], field)))
         per_zone = np.array([zone_scalar(z, overrides[key], which) if z not in ('none', 'E_ice') else None for z in ZONES], dtype=object)
         per_zone = np.array([base_v if v is None else v for v in per_zone], dtype=np.float64)
         val = jnp.asarray(per_zone[zi], dtype=jnp.float32)
         if obj == 'pheno': ph = eqx.tree_at(lambda o: getattr(o, field), ph, val)
+        elif obj == 'pft': pf = eqx.tree_at(lambda o: getattr(o, field), pf, val)
         else: sp = eqx.tree_at(lambda o: getattr(o, field), sp, val)
     hab = jnp.asarray(slot_habit(zone_idx), dtype=jnp.int32)
     par = jnp.asarray(slot_parent(slots), dtype=jnp.int32)
