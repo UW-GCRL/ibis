@@ -7216,3 +7216,74 @@ is right, but it is a side effect of the partition, not a fitted leaf change). A
 Rh 59.2 -> 57.0 (the gate's dead-tree litter gone, partly replaced by the root litter); soil C 1299 -> 1288 as 31p.
 Table `cover_wood_check10_pq.txt` (figures/final_2026-10-26/tables). The cold protocols carry the verdict: s31p / s31q
 at ~50 s per spin-up year side by side (three processes until 12:44), expected scored ~18:00.
+
+**Cold protocols s31p / s31q (launched 12:12, scored against s31n 19:50; `after_final_pq.sh` 19:51-19:54).** Both
+clean: 0 tracebacks, 0 NaN cells, carbon closure as s31n (live residual +0.09, soil -0.21 PgC yr-1), water +2.5 % of
+P. Tables in figures/final_2026-10-26/tables: `vs_s31n_s31p_2006-2010.txt`, `vs_s31n_s31q_2006-2010.txt`,
+`mip_compare_s31{n,p,q}.txt`, `gpp_tower_cells_s31{p,q}.txt`, `cover_wood_final_pq.txt` (2010 state by chunk and by
+stress bin), `wood_regions_s31n_s31p_s31q.txt`, `wood_traj_protocol.txt` (wood by chunk through the protocol years),
+`wood_budget_chunks_s31p_s31q.txt` (its "gate" column is what the old gate WOULD kill, not a loss of these runs),
+`metrics_s31p_s31q.json`, `after_final_pq.log`; figures `wood_regions_s31n_s31p_s31q.png`, `amazon_final_pq.png`,
+and the eight global figures as `*_s31p_s31q.png` (the plotting run overwrote the s31l/s31n set under the plain
+names; set aside and regenerated at 19:56, the deck's copies are its own assets). `global_spatial.txt` is empty for
+every final: the scorer's venv has no matplotlib (a gap of `final_validation.sh`; `extract_global` / `plot_global`
+cover it). Scripts: `gate_2026-10-27/wood_traj_protocol.py`, `scripts/after_final_pq.sh`, `run_s31{p,q}_go.sh`,
+`score_s31{p,q}_go.sh`, `launch_s31pq.sh`.
+
+**Verdict, ratios first (s31n -> s31p -> s31q; 2006-2010 means, pools at 2010).** *Unchanged by both:* GPP 147.0 /
+147.0 / 146.4 PgC yr-1, 1.35 / 1.35 / 1.34 x FLUXCOM (tropics 1.24 / 1.24 / 1.23, 30-60 N 1.51 / 1.53 / 1.53, 60-90 N
+1.94 / 1.88 / 1.88); towers model/tower 1.13 in all three (A 0.96 / 0.94 / 0.93, C 1.19, D 1.06 / 1.04 / 1.04, E 1.04;
+DBF 1.03, ENF 1.11 / 1.09 / 1.09, GRA 1.11 / 1.16 / 1.16, EBF 1.00 / 0.97 / 0.97); ET 1.03 / 1.05 / 1.05 x the
+ensemble; peak LAI 1.11 / 1.13 / 1.10 x MODIS (gate_compare's measure 1.34 / 1.36 / 1.32); fire 0.44 / 0.51 / 0.50 of
+GFED5 (Amazon 2.29 / 2.29 / 2.21 % yr-1 vs 1.92; Congo 2.1 all; African savanna 6.4 / 9.0 / 8.8 vs 40.8 -- more fuel;
+temperate 2.5 / 2.8 / 2.8 vs 3.5; boreal 0.5 / 0.7 / 0.7 vs 0.8).
+*The limit in the tropics (s31p): as designed.* Savanna + hot dry wood 0.50 -> 0.86 x map (Africa 0.35 -> 0.67, Asia
+0.27 -> 0.89, N America 0.21 -> 0.70, S America 0.93 -> 1.23); humid tropics 1.02 -> 1.12 (Amazon plot zone 68 -> 71
+PgC against 68; Congo 0.63 -> 0.71; humid Asia 1.34 -> 1.54); the tropical cover by stress bin sits at or under the
+product mean in every bin (u 0.5-0.6: 0.10 vs 0.19; 0.6-0.7: 0.26 vs 0.32; 0.7-0.8: 0.43 vs 0.49; 0.8-0.9: 0.67 vs
+0.70; > 0.9: 0.92 vs 0.94) where s31n had 0.05 / 0.10 / 0.44 / 0.80 / 0.92; humid cover 0.93 -> 0.89 (product 0.88);
+forest lost (obs > 0.6, model < 0.3) 3.0 -> 1.6 % of natural land; forest-class GPP 1.24 -> 1.21 x FLUXCOM. CH4 185
+-> 178 Tg (GMB 153 [116-189]). The partial-gate cells of the control (25.5 % of natural land, map wood 70 PgC) hold
+22 PgC in s31n and 65 in s31p.
+*The limit outside the tropics: nothing thins the trees any more, so the wood fills to its production equilibrium.*
+Subtropical / Mediterranean / highland 1.19 -> 1.94 x map (Europe 1.23 -> 2.97, S America 2.16 -> 3.59, Africa 0.67
+-> 2.04, N America 0.66 -> 1.41, Asia 1.57 -> 1.87, Australia 0.26 -> 1.16; wood per unit cover 9.7 -> 13.9 kgC m-2
+against the map's 8.8), temperate 2.16 -> 2.59 (Europe 2.60 -> 2.98, Asia 1.70 -> 2.32, N America 1.66 -> 1.98),
+tundra + cold dry 0.43 -> 1.15, boreal 1.09 -> 1.11; global 1.10 -> 1.39 (398 -> 502 PgC). Cover on natural land
+0.446 -> 0.470 (obs 0.388): phantom forest (obs < 0.15, model > 0.4) 2.9 -> 5.1 %, grassland-class cells 0.21 -> 0.32,
+mixed-tree cells 0.42 -> 0.48 (obs 0.32); by zone A_savanna 0.45 -> 0.55 (product 0.40), C_highland 0.50 -> 0.62
+(0.48), C_subtrop 0.62 -> 0.67 (0.49), D_temperate 0.78 -> 0.84 (0.56), C_med 0.61 -> 0.64 (0.32), while A_humid
+0.93 -> 0.89 (0.88) and D_subarctic 0.51 -> 0.49 (0.44) moved the right way. The ramp is the tropical p75 envelope
+and the A_savanna / C / D product sits under it (noted in the design), so the freed cells fill above the product.
+Soil C 1295 -> 1247 PgC (the dead-tree litter is gone: tropics 575 -> 553, 30-60 N 530 -> 513, 60-90 N 198 -> 188),
+Rh 59.3 -> 57.0, litter 106 -> 102; sink 2.87 -> 3.18 PgC yr-1 (GCB 2.78), of which wood filling 1.36 -> 1.45.
+*The tropical refit (s31q against s31p): over-corrects.* Humid tropics 1.12 -> 0.65 x map (Amazon 71 -> 41 PgC
+against 68, 0.62x; Congo 0.71 -> 0.42; humid Asia 1.54 -> 0.90), savanna + hot dry 0.86 -> 0.59 (T03 at awood 0.35);
+every extratropical number identical to s31p to the decimal. NPP 65.9 -> 63.6 PgC yr-1 (tropics 43.1 -> 40.8, the
+root share's maintenance respiration), peak LAI 1.36 -> 1.32 (tropics 1.37 -> 1.30), tropical CH4 160 -> 148 Tg
+(GMB 109 [66-146]: closer, through less litter), soil C 1247 -> 1222, sink 3.18 -> 2.79.
+
+**Expected against got.** The expectation table (equilibria at today's production) overstated every stock by one
+factor, because the protocol's stock is not at equilibrium: through the protocol (`wood_traj_protocol.txt`) s31n's
+humid tropics go 98 PgC (1800) -> 100 (1900, the 296 ppm equilibrium) -> 107 (1950) -> 114 (2000) -> 121 (2010)
+against 176 at 2010 production -- two thirds of the modern equilibrium, lifted 20 % by the transient CO2 and still
+rising 0.7 PgC yr-1 (Amazon +0.31 PgC yr-1 over 2000-2010; Brienen et al. 2015 measured ~0.4 for the basin's
+biomass). The same fraction holds for s31p (502 of 751, 0.67) and s31q (427 of 674, 0.63; lower because the root
+share cut tropical NPP 8 %, which the table did not carry). As ratios the table had the direction everywhere and
+roughly the size: limit / s31n expected 1.13, got 1.26 (savanna 1.62 / 1.73, subtropical 1.30 / 1.64, temperate 1.10 /
+1.20, boreal 0.93 / 1.02, humid 1.00 / 1.09); refit / limit in the humid tropics expected 0.72, got 0.58. The lesson
+for the next refit: a parameter set whose equilibrium sits on the map lands at two thirds of the map after this
+protocol, and s31n's Amazon is on the map because its equilibrium is 1.4x the map and the stock lags it. Which of the
+two is the right target depends on how strongly production responds to CO2, a question for the 30-60 N production
+item's sibling (the sink), not for this step.
+
+**Reading.** The cover limit does what it was built to do, and only where production is right: tropical cover on the
+product's curve, the savanna's wood from half the map to 0.86, the gate's yearly killing gone, fire and GPP untouched.
+Every cost is where production is already too high (C and D zones: GPP 1.5x FLUXCOM, awood 0.40-0.53 with no harvest)
+or where the tropical ramp sits above the A_savanna / C / D product: there the kill gate was hiding the
+overproduction by thinning. The tropical refit as parameterised is too strong for a protocol whose stocks lag their
+equilibrium by a third; half strength (T01 awood ~0.40, tauwood0 50, the freed share to leaves rather than roots so
+the NPP does not fall) is the next try, inside the same item. On the scorecard neither s31p nor s31q replaces s31n
+as the stage final (s31n better on global wood 1.10 vs 1.39 / 1.18, soil C, sink, phantom forest; tied on GPP,
+towers, LAI, ET, fire; worse on savanna wood and lost forest). The limit stays built and tested, switch off by
+default.
