@@ -7609,3 +7609,39 @@ keep ~0.4 gC m-2 month-1 from November to April where the module emits nothing, 
 and ~2 Tg in 45-60 N -- real, and a new process rather than a calibration, so a post-release item. The release
 records: IBIS 3.0 wetland CH4 170 Tg yr-1 (GMB 153 [116-189]), 1.39x the ensemble in the tropics, 0.36x in 30-60 N
 and 0.53x north of 60 N, with the band split following the FLUXNET-CH4 towers rather than the wetland-model ensemble.
+
+## 74. Release package, step 1: the final figure set and scorecard on s31t (2026-10-28 19:00)
+
+The release package is built on s31t. The reading folder (`ibis_local_document/figures/final_2026-10-26/`) was regenerated
+with s31n as the reference run and s31t as the final, so every number in the deck and the IBIS 3.0 documents comes from one
+run and one extraction: `extract_global.py s31t` (2006-2010 hindcast means on the 0.5-degree grid, pools from the 2010
+state), `plot_global.py s31n s31t` (gpp_maps, et_maps, gpp_zonal_season, nee_maps, lai_biomass, cover_zone, ch4_global,
+fire; `tables/metrics_s31n_s31t.json`), the new `plot_soil.py s31n s31r s31t` (soil_maps.png: 2010 soil C against HWSD2
+0-1 m, the model / HWSD2 ratio by Köppen group and latitude band, the zonal land mean; `tables/soil_figure_s31n_s31r_s31t.txt`,
+`metrics_soil_s31n_s31r_s31t.json`), `plot_amazon_final.py s31n s31t` (amazon_final_s31t.png with the humid-Amazon bars
+since the 12 Oct release) and `wood_regions.py s31n s31r s31t` (wood_regions_s31n_s31t.png, `tables/wood_regions_s31n_s31r_s31t.txt`;
+s31t = s31r to the decimal, as the vegetation is bit-identical). The s31n-vs-s31r set of 12:10 was renamed `*_s31n_s31r.png`
+and the 27 Oct Amazon figure `amazon_final_s31l_s31n.png`; nothing was deleted. Scripts are copied to `scripts/`.
+
+The headline numbers (`tables/scorecard_s31n_s31t.txt`, s31n -> s31t, reference):
+
+| quantity | s31n | s31t | reference |
+|---|---|---|---|
+| GPP 2006-10, PgC yr-1 | 147.0 | 147.2 | FLUXCOM 109 (0.75 of the towers at the tower cells) |
+| GPP at 435 tower cells, model / tower | 1.13 | 1.14 | Köppen A 0.96, B 1.30, C 1.18, D 1.05, E 1.04 |
+| ET 2006-10, mm yr-1 | 525 | 532 | five-product ensemble 508 |
+| land sink 2001-10, PgC yr-1 | 2.87 | 2.91 | GCB 2024 2.78 +- 0.69; TRENDY v13 mean 2.83 |
+| peak LAI, land mean | 2.36 | 2.33 | GLASS / GIMMS 2.12 |
+| tree cover on natural land (crop < 0.3) | 0.470 | 0.450 | CLM / MODIS 0.388; phantom forest 5.1 -> 3.6 % |
+| wood C 2010, PgC | 397 | 388 | Xu & Saatchi 362; temperate 2.16 -> 1.70, savanna 0.50 -> 0.71, tundra 0.43 -> 0.60 |
+| soil C 2010, PgC (HWSD2 cells) | 1297 | 1982 | HWSD2 0-1 m 2793; 30-60 N 0.45 -> 0.80, 60-90 N 0.24 -> 0.47; r 0.39 -> 0.51 |
+| wetland CH4 2001-10, Tg CH4 yr-1 | 185 | 170 | GMB 2025 BU 153 [116-189]; bands 1.39 / 0.36 / 0.53 x |
+| burned area, % of land yr-1 | 2.10 | 2.42 | GFED5 4.60 (x0.53); rank r 0.75 -> 0.76 |
+
+Two things noticed for the code closure (step 4): `score/global_spatial.txt` of every protocol run holds a matplotlib
+traceback, because the scoring chain runs `global_spatial.py` in the gpu venv, which has no matplotlib (the figure set
+above covers what it would have drawn); and the HWSD2 0-1 m grid used here is cached as `meeting/hwsd2_soc1m.npy`
+(orgcpct x bulk density x thickness, layers 1-4 of `soita_hwsd2_organic.nc`, the same construction as `soil_ref_bands.py`).
+
+Next: step 2, the launch deck refreshed from s31n to these numbers (plus a soil slide and the methane attribution);
+step 3, the IBIS 3.0 README and calibration description; step 4, full test suite, tag, diagnostics tidy; push on Hangkai's word.
