@@ -7417,6 +7417,41 @@ under the product mean; the partial-gate cells fill at 0.9 PgC yr-1 (limit alone
 the equilibria: s31r launched (`launch_s31r.sh`, scored against s31n; `after_final_r.sh` then adds the comparison
 against s31p, the elimination count, the protocol wood trajectory and the zone ramps' cover).
 
+**Verdict (2026-10-28 14:15; s31r scored 12:10, `after_final_r.log`; tables `cover_wood_final_r.txt`,
+`wood_regions_s31n_s31p_s31q_s31r.txt`, `wood_traj_protocol_r.txt`, `elimination_by_year_s31r.txt`,
+`wood_budget_chunks_s31p_s31r.txt`, `vs_s31n_s31r_2006-2010.txt`, `vs_s31p_s31r_2006-2010.txt`, `mip_compare_s31r.txt`,
+`gpp_tower_cells_s31r.txt`, `s31r_protocol.log`; figures `wood_regions_s31n_s31p_s31r.png`, `amazon_final_r.png`).**
+The production item lands. Wood x map at 2010, s31n / s31p / s31r with the expectation written above for s31r: humid
+tropics 1.02 / 1.12 / 1.01 (expected ~0.95; Amazon 1.00 / 1.05 / 0.98, Congo 0.63 / 0.71 / 0.66, humid Asia 1.34 /
+1.54 / 1.36), savanna + hot dry 0.50 / 0.86 / 0.71 (expected ~0.9), subtropical / Mediterranean / highland 1.19 /
+1.94 / 1.13 (expected 1.1-1.3), temperate 2.16 / 2.59 / 1.70 (expected 1.4-1.7), boreal 1.07 / 1.10 / 1.10, tundra +
+cold dry 0.43 / 1.15 / 0.60, global 1.10 / 1.39 / 1.07 (398 / 502 / 388 PgC). Four of the five designed groups land
+inside their expectation. The savanna stops at 0.71 because its ramp (power 2.5, fit to the product median) holds the
+cover at the product (0.16 against 0.20 observed) while the wood per unit cover stays at 6.5 against the map's 8.6
+kgC m-2 -- the fire regime of the fire verdict above, not cover. Cover on natural land 0.446 / 0.470 / 0.450 (observed
+0.388); phantom forest 2.9 / 5.1 / 3.6 %, forest lost 3.0 / 1.6 / 1.9 %, r 0.76 / 0.75 / 0.78: the limit's phantom
+cost is halved against s31p and the lost-forest gain stays. Nothing else moves: GPP 147.0 -> 147.2 PgC yr-1 (1.35x
+FLUXCOM), towers 1.13 -> 1.14, tower ET 1.04, ET x ensemble 1.03 -> 1.05, seasonal shape 0.0077, fire x0.53 of GFED5
+(rank 0.76). Sink 2001-2010 2.87 -> 2.74 PgC yr-1 (GCB 2.78 +- 0.69), of which wood +1.36 -> +1.02 and soil +1.39;
+soil C 1302 -> 1233 PgC (less litterfall under the shorter temperate residence); CH4 185 -> 171 Tg yr-1 (GMB 159
+[119-203]).
+
+The smoothed stress holds in the protocol: 4-61 cells eliminated per hindcast year, at most 0.22 PgC (2002), against
+the first pass's 266 cells / 1.16 PgC in one year. Closure 2008-2010: total residual -0.4 to -0.85 PgC yr-1 with the
+live part at +0.09 and the soil part at -0.21 -- the soil part is the leaching flux `cleach` of `soilbgc`, which
+`closure_any.py` does not add (section 72 shows it scaling with the SOM pools). The protocol trajectory says the
+temperate stock is now near its equilibrium (84.8 PgC at 1800 -> 88.0 at 1900 -> 92.5 at 2010 under tauwood0 45)
+where s31n and s31p were still filling; the humid tropics still rise with CO2 through the transient (99 -> 102 -> 120)
+as before.
+
+What remains, named and not fixed here: temperate Europe 1.99x, temperate South America 2.62x and temperate
+Australia 2.39x -- the temperate chunks with the heaviest land-use history, which the model does not carry (Erb et
+al. 2016: management halves the biomass); the Congo at 0.66x (wood per unit cover 11.4 against 16.4 kgC m-2 at a cover
+of 0.91 against 0.97 -- production or residence, not cover); humid Asia 1.36x; tundra + cold dry 0.60x (the cold
+ramp's cells carry little wood). Decision: s31r replaces s31n as the stage final and is the vegetation base of the
+soil stage and of the final; `params_31r.yaml` is the production parameter file; s31n stays as the reference of the
+type-table stage (section 68).
+
 ## 72. Soil-carbon stage: the baseline and the lever (2026-10-28 02:35-, while s31r runs)
 
 **Reference.** HWSD2 (`inputs/soil/soita_hwsd2_organic.nc`: organic carbon % x bulk density x thickness, IBIS layers
@@ -7485,3 +7520,31 @@ the vegetation changes are s31r against s31n. Three protocols side by side (188 
 PREALLOCATE off), so s31r's scoring moves to early afternoon and the soil verdict lands with it -- a day earlier
 than the Thursday-night slot of the plan. If s31r's production verdict asks for a correction, the soil factors are
 re-based on it by `build_soil_params.py`.
+
+**Verdict of the bracket (2026-10-28 14:30; s31t / s31u scored 13:16, `after_soil.log`; tables
+`soil_ref_bands_bracket.txt`, `soil_pools_by_group_bracket.txt`, `soil_traj_protocol_bracket.txt`,
+`mip_compare_s31t.txt`, `mip_compare_s31u.txt`, `s31t_protocol.log`, `s31u_protocol.log`).** Soil C at 2010 x HWSD2
+0-1 m by group, s31r / strong s31t / mild s31u, with the expectation above for strong: humid tropics 0.74 / 0.74 /
+0.74 (factor 1), savanna + hot dry 0.58 / 0.76 / 0.69 (expected 0.82), subtropical 0.81 / 0.90 / 0.83 (0.89),
+temperate 0.43 / 0.81 / 0.68 (0.82), boreal 0.26 / 0.59 / 0.49 (0.70), tundra + cold dry 0.50 / 0.74 / 0.63 (0.85);
+by band 90S-30N 0.68 / 0.82 / 0.75, 30-60N 0.43 / 0.80 / 0.68, 60-90N 0.23 / 0.47 / 0.39; global 1229 / 1983 / 1720
+PgC (0.44 / 0.71 / 0.62 of HWSD2's 2796; 9.0 / 14.3 / 12.4 kgC m-2 over all land against the literature's 10-15).
+Turnover soil C / Rh: temperate 27 -> 51 / 43 yr (HWSD2-implied 63), boreal 59 -> 142 / 116 (217), tropics 15.5
+unchanged. Temperate and subtropical land on the expectation; the cold zones fall 0.1 short of it because the
+expectation scaled equilibrium pools and the protocol's slow pools are still filling under a 142-yr turnover
+(boreal strong 567 PgC at 1800 -> 632 at 1900 -> 659 at 2010, +0.3 PgC yr-1 through the hindcast) -- section 70's
+lesson again, now on the soil.
+
+Side effects: none on the vegetation -- GPP, NPP, cover, LAI, towers, ET and fire are bit-identical to s31r, since the
+factor touches only the SOM pools' decomposition. Rh 2001-2010 56.40 -> 56.10 / 56.23 PgC yr-1 (at equilibrium Rh is
+the input, as noted before the launch); sink 2.74 -> 2.91 / 2.82 PgC yr-1 (GCB 2.78 +- 0.69; the soil part +1.39 ->
++1.56 / +1.48); CH4 171 -> 170 / 171 Tg yr-1. Closure: the soil residual -0.21 -> -0.34 / -0.30 PgC yr-1 in
+proportion to the SOM pools (1229 : 1983 = 0.62 = 0.21 : 0.34) -- it is the leaching flux `cleach = fleach x (passive
++ slow)` of `soilbgc`, a real loss of the model that `closure_any.py` does not count; not a leak.
+
+Recommendation, the user's call: strong. It brings 30-60 N to 0.80 of HWSD2 and the global stock to 14.3 kgC m-2,
+inside the literature and well under HWSD2's 2796 PgC (itself above the usual 1500-2400); the boreal is still the
+lowest ratio at 0.59, so nothing argues for the milder set; the sink stays inside GCB; nothing else moves. Mild lands
+at 12.4 kgC m-2 (0.62) with the boreal at 0.49. Whichever is chosen becomes the final's parameter file (params_31r +
+the chosen som_k_scale set); the methane bands are refit on it next (10-yr hindcast reruns, flux ∝ Rh), then the
+deck and the IBIS 3.0 documents.
