@@ -7476,3 +7476,12 @@ expected temperate 517 (0.82), boreal 781 (0.70; 1.5x NCSCD's circumpolar 0-1 m)
 stays available (`som_lt_e0`) for a later permafrost-aware version. Test
 `test_som_turnover_factor_per_zone_through_the_types`. Noted for the section-72 verdict: the sink's soil part
 (+1.47 PgC yr-1 in s31n) will change with the pool size, and Rh at equilibrium does not.
+
+**Soil bracket launched beside s31r (03:05; full suite 808 passed, commit after it).** `s31t` = params_31r +
+som_k_scale strong (temperate 0.5, boreal 0.35, tundra + cold dry 0.6, savanna + hot dry 0.7, subtropical 0.9, humid
+1), `s31u` = the mild sibling (0.6 / 0.45 / 0.75 / 0.8 / 1 / 1); same cold protocol, scored against s31n
+(`launch_s31t.sh`, `launch_s31u.sh`); the attribution of the soil factor is s31t / s31u against s31r (same base),
+the vegetation changes are s31r against s31n. Three protocols side by side (188 GB RAM, 9 GB RSS each; GPU 24 GB with
+PREALLOCATE off), so s31r's scoring moves to early afternoon and the soil verdict lands with it -- a day earlier
+than the Thursday-night slot of the plan. If s31r's production verdict asks for a correction, the soil factors are
+re-based on it by `build_soil_params.py`.
