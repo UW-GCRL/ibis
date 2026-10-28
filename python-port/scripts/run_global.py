@@ -551,6 +551,9 @@ def run_global_simulation(config: IBISConfig) -> None:
                 vals = tuple(_pt.zone_scalar(z, _type_over.get(key, {}), 'all') for key in ('tree_cover_min', 'tree_cover_ramp', 'tree_cover_power'))
                 if any(v is not None for v in vals): _ramps[z] = vals
             logger.info("  cover-limit ramp per zone (min, ramp, power; None = base): %s", _ramps)
+        if 'som_k_scale' in _type_over:                                                                   # CALIBRATION.md 72
+            _soms = {z: _pt.zone_scalar(z, _type_over['som_k_scale'], 'all') for z in _pt.ZONES if z not in ('none', 'E_ice')}
+            logger.info("  SOM turnover factor per zone (som_k_scale; None = 1): %s", {z: v for z, v in _soms.items() if v is not None})
         return params, pft_params
 
     params, pft_params = _apply_types_for(config.time.iyear0, params, pft_params)
@@ -965,6 +968,11 @@ def run_global_simulation(config: IBISConfig) -> None:
             if state.stress is not None:
                 _extra["aystressu"] = (state.stress.aystressu / jnp.maximum(state.stress.nday, 1.0), "1",
                                        "Annual-mean upper-canopy soil-water stress factor (input of the tree-establishment gate)")
+                from ibis.state.stress_accum import smoothed_stress as _smoothed_stress
+                _extra["aystressu_smooth"] = (_smoothed_stress(state, float(getattr(pft_params, 'tree_cover_years', 5.0))), "1",
+                                              "Multi-year (smoothed over tree_cover_years) upper-canopy stress this year: the cover limit's input (CALIBRATION.md 71)")
+                _extra["stress_u_smooth_prev"] = (state.stress.u_smooth, "1",
+                                                  "Smoothed upper-canopy stress as stored at the previous year end (0 = not yet seeded)")
             _extra["aynppu"] = (jnp.sum(state.summary.aynpp[:, :8], axis=1), "kgC/m2/yr", "Annual NPP of the upper canopy (PFTs 1-8)")
             _extra["aynppl"] = (jnp.sum(state.summary.aynpp[:, 8:], axis=1), "kgC/m2/yr", "Annual NPP of the lower canopy (PFTs 9-12)")
             path = writer.write_yearly(state, year, extra=_extra)
@@ -992,7 +1000,7 @@ def run_global_simulation(config: IBISConfig) -> None:
              jnp.zeros_like(state.summary.aytrunof),
              jnp.zeros_like(state.summary.aytdrain)),
         )
-        state = reset_stress_accum(state)   # after dynaveg consumed this year's mean stress
+        state = reset_stress_accum(state, float(getattr(pft_params, 'tree_cover_years', 5.0)))   # after dynaveg consumed this year's mean stress; stores the smoothed stress
         state = reset_et_parts(state)
         if state.wetland is not None:        # the annual CH4 sum was written above; it accumulated across years until 2026-10-09 (CALIBRATION.md 39)
             from ibis.bgc.methane import reset_annual as _reset_ch4

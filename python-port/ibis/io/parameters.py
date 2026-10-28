@@ -89,6 +89,8 @@ class PFTParams(eqx.Module):
     tree_cover_min: float = 0.30
     tree_cover_ramp: float = 0.65
     tree_cover_power: float = 1.75
+    #: years of the exponential smoothing of the stress the cover limit reads (CALIBRATION.md 71)
+    tree_cover_years: float = 5.0
     #: Exact litterfall booking (CALIBRATION.md 61, 63). The annual pool update decays a pool by c (1 - e^(-1/tau)) and
     #: grows it by a tau N (1 - e^(-1/tau)), but F77 books litterfall as c / tau and the NEE accounting assumes a N
     #: allocated: exact only at equilibrium (~3 PgC yr-1 of sink in s31f that no pool received). True books the
@@ -243,6 +245,14 @@ class BGCParams(eqx.Module):
     wfps_opt: float = 60.0      # water-filled pore space (%) at the optimum of the moisture factor (shifts both branches)
     rgrowth: float = 0.30       # growth respiration, fraction of (GPP - maintenance respiration); scalar or (12,) per PFT (CALIBRATION.md 37)
     k_scale: float = 1.0        # multiplier on both decomposition climate factors (= on every litter and SOM rate); 1 = F77; may be an (npoi,) array
+    #: Temperature sensitivity of the slow and passive SOM pools alone (CALIBRATION.md 72): a Lloyd-Taylor E0 (K) anchored at
+    #: som_t_ref, so the SOM rate at som_t_ref is unchanged and colder soils decompose their SOM more slowly than their litter.
+    #: 0 (default) = off: the SOM pools follow the litter's climate factor, bit-exact with every earlier run.
+    som_lt_e0: float = 0.0
+    som_t_ref: float = 298.16   # K; the anchor temperature of the SOM sensitivity (25 C: the humid tropics keep their rate)
+    #: Multiplier on the slow and passive SOM rates (CALIBRATION.md 72); 1 = off; a zone's types may carry it, then it is an
+    #: (npoi,) array (the bounded form of the cold-soil slow-down; the equilibrium SOM stock scales by its inverse)
+    som_k_scale: float = 1.0
     rwood: float = 0.0125       # maintenance respiration of sapwood, fraction of sapwood carbon per year at 15 C (F77 stats.f); scalar or (12,) per PFT (CALIBRATION.md 37)
     rroot: float = 1.25         # maintenance respiration of fine roots, fraction of root carbon per year at 15 C (F77); scalar or (12,) per PFT (CALIBRATION.md 37)
 

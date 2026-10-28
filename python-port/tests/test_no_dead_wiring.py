@@ -359,11 +359,11 @@ def test_tree_gate_inert_by_default_and_wired():
     g = GridConfig(npoi=4, nbedrock=3)
     n0 = len(jax.tree.leaves(create_ibis_state(g)))
     n1 = len(jax.tree.leaves(create_ibis_state(g, with_stress=True)))
-    assert n1 == n0 + 3, "StressAccum must add exactly three trailing leaves"
+    assert n1 == n0 + 4, "StressAccum must add exactly four trailing leaves (u_smooth since CALIBRATION.md 71)"
     vd = (Path(__file__).resolve().parents[1] / "ibis" / "physics" / "vegetation_dynamics.py").read_text()
     assert "tree_surv=None" in vd and "cbiol * ts" in vd and "tree_surv > 0.0" in vd
     lp = (Path(__file__).resolve().parents[1] / "ibis" / "timestepping" / "loops_gswp3.py").read_text()
-    assert "s.stress.aystressu" in lp and "reset_stress_accum(state)" in lp
+    assert "s.stress.aystressu" in lp and "reset_stress_accum(state" in lp
     st_ = (Path(__file__).resolve().parents[2] / "verify" / "calibration" / "site_transient.py").read_text()
     assert "tree_surv=tree_survival(state, c[\"pft\"])" in st_
 
@@ -381,9 +381,9 @@ def test_tree_gate_reaches_the_production_run_path():
     assert rg.count("with_stress=gate_on") == 2, "restart template AND cold start"
     assert "tree_surv=tree_survival(state, pft_params)," in rg
     assert "tree_surv=tree_survival(state, pft_params)," in lp
-    assert rg.index("tree_surv=tree_survival") < rg.index("state = reset_stress_accum(state)"), \
+    assert rg.index("tree_surv=tree_survival") < rg.index("state = reset_stress_accum(state"), \
         "run_global must reset the accumulator after dynaveg, not before"
-    assert lp.index("tree_surv=tree_survival") < lp.index("state = reset_stress_accum(state)")
+    assert lp.index("tree_surv=tree_survival") < lp.index("state = reset_stress_accum(state")
     assert "Tree-establishment gate ACTIVE" in rg, "the run log must say the gate is on"
 
 
@@ -505,7 +505,7 @@ def test_et_parts_accumulate_reset_write_and_migrate():
     g = GridConfig(npoi=4, nbedrock=3)
     n0 = len(jax.tree.leaves(create_ibis_state(g))); n1 = len(jax.tree.leaves(create_ibis_state(g, with_stress=True)))
     s2 = create_ibis_state(g, with_etparts=True); n2 = len(jax.tree.leaves(s2))
-    assert (n1 - n0, n2 - n1) == (3, 4) and s2.stress is not None
+    assert (n1 - n0, n2 - n1) == (4, 4) and s2.stress is not None
     import tempfile, os
     d = tempfile.mkdtemp()
     fu = jnp.array([0.1, 0.2, 0.3, 0.4], dtype=s2.vegetation.fu.dtype)

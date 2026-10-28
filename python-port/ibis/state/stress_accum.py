@@ -16,19 +16,32 @@ class StressAccum(eqx.Module):
     aystressu: Float[Array, "npoi"]
     aystressl: Float[Array, "npoi"]
     nday: Float[Array, "npoi"]
+    #: multi-year (exponentially smoothed) annual-mean upper-canopy stress, the cover limit's input (CALIBRATION.md
+    #: 71); 0 = not yet set (a fresh state or a restart written before it existed: the first year's mean seeds it)
+    u_smooth: Float[Array, "npoi"]
 
 
 def create_stress_accum(npoi: int) -> StressAccum:
     z = jnp.zeros((npoi,))
-    return StressAccum(aystressu=z, aystressl=z, nday=z)
+    return StressAccum(aystressu=z, aystressl=z, nday=z, u_smooth=z)
 
 
-def reset_stress_accum(state):
+def smoothed_stress(state, years=5.0):
+    """This year's value of the multi-year upper-canopy stress: u_smooth + (u_year - u_smooth) / years, or u_year
+    where u_smooth is unset (0). The same value `reset_stress_accum` stores, so dynaveg and the state agree."""
+    u_year = state.stress.aystressu / jnp.maximum(state.stress.nday, 1.0)
+    us = state.stress.u_smooth
+    return jnp.where(us > 0.0, us + (u_year - us) / jnp.maximum(years, 1.0), u_year)
+
+
+def reset_stress_accum(state, years=5.0):
+    """End of year: store the smoothed stress, zero the annual accumulators."""
     if state.stress is None:
         return state
     z = jnp.zeros_like(state.stress.nday)
-    return eqx.tree_at(lambda s: (s.stress.aystressu, s.stress.aystressl, s.stress.nday),
-                       state, (z, z, z))
+    us = smoothed_stress(state, years)
+    return eqx.tree_at(lambda s: (s.stress.aystressu, s.stress.aystressl, s.stress.nday, s.stress.u_smooth),
+                       state, (z, z, z, us))
 
 
 def tree_survival(state, pft_params):
@@ -49,10 +62,12 @@ def tree_cover_max(state, pft_params):
     tree_cover_min) / tree_cover_ramp, 0, 1) ** tree_cover_power.
 
     None unless pft_params.tree_cover_limit is set and the accumulator is present, so every caller without the
-    switch keeps the survival-factor path (tree_survival) bit-exact.
+    switch keeps the survival-factor path (tree_survival, on the single year's mean) bit-exact.
     """
     if state.stress is None or not bool(getattr(pft_params, 'tree_cover_limit', False)):
         return None
-    mean_u = state.stress.aystressu / jnp.maximum(state.stress.nday, 1.0)
+    # the multi-year stress (tree_cover_years, CALIBRATION.md 71): one dry year moves the limit by 1 / years of the
+    # dip, so forest cells are neither capped nor eliminated by a single drought
+    mean_u = smoothed_stress(state, getattr(pft_params, 'tree_cover_years', 5.0))
     x = jnp.clip((mean_u - pft_params.tree_cover_min) / pft_params.tree_cover_ramp, 0.0, 1.0)
     return x ** pft_params.tree_cover_power

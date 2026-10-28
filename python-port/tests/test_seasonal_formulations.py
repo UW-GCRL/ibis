@@ -30,7 +30,7 @@ def test_state_chain_and_restart_migration(tmp_path):
     g = GridConfig(npoi=4, nbedrock=3)
     n = [len(jax.tree.leaves(create_ibis_state(g, **kw))) for kw in ({}, {"with_stress": True}, {"with_etparts": True}, {"with_seasonal": True}, {"with_neeparts": True})]
     from ibis.io.restart import CHAIN_LEAVES
-    assert (n[1] - n[0], n[2] - n[1], n[3] - n[2], n[4] - n[3]) == (3, 4, 3, 2) == CHAIN_LEAVES      # one nested chain
+    assert (n[1] - n[0], n[2] - n[1], n[3] - n[2], n[4] - n[3]) == (4, 4, 3, 2) == CHAIN_LEAVES      # one nested chain
     s = create_ibis_state(g, with_seasonal=True)
     assert s.stress is not None and s.etparts is not None and s.seasonal is not None   # seasonal implies the others
     s5 = create_ibis_state(g, with_neeparts=True)

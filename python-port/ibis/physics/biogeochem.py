@@ -29,8 +29,12 @@ def soilbgc(
     clay: Float[Array, "npoi nsoilay"],
     bgc: BGCParams,
     ndaypy: int,
+    som_factor=None,
 ) -> tuple[CarbonState, VegetationState, SummaryState]:
     """Advance soil C/N pools by one day.
+
+    `som_factor` (npoi,), optional: multiplies the climate factor of the slow and passive SOM pools only
+    (:func:`som_climate_ratio`, CALIBRATION.md 72); None = 1, bit-exact.
 
     Parameters
     ----------
@@ -107,6 +111,7 @@ def soilbgc(
 
     decompl = carbon.decompl
     decomps = carbon.decomps
+    decomps_som = decomps if som_factor is None else decomps * som_factor     # the slow and passive pools (CALIBRATION.md 72)
 
     # --- Decomposition outflows ---
     outcrs = jnp.minimum(decomps * bgc.krs * clitrs, clitrs)
@@ -115,9 +120,9 @@ def soilbgc(
     outclm = jnp.minimum(decompl * bgc.klm * clitlm, clitlm)
     outcrm = jnp.minimum(decomps * bgc.krm * clitrm, clitrm)
     outcwm = jnp.minimum(decompl * bgc.kwm * clitwm, clitwm)
-    outcnb = jnp.minimum(decomps * bgc.knb * carbon.csoislon, carbon.csoislon)
-    outcpb = jnp.minimum(decomps * bgc.kpb * carbon.csoislop, carbon.csoislop)
-    outcsb = jnp.minimum(decomps * bgc.ksb * carbon.csoipas, carbon.csoipas)
+    outcnb = jnp.minimum(decomps_som * bgc.knb * carbon.csoislon, carbon.csoislon)
+    outcpb = jnp.minimum(decomps_som * bgc.kpb * carbon.csoislop, carbon.csoislop)
+    outcsb = jnp.minimum(decomps_som * bgc.ksb * carbon.csoipas, carbon.csoipas)
 
     # Microbial biomass turnover
     outcbp = jnp.minimum(bgc.kbp * cmicp, cmicp) * bgc.effac
@@ -133,7 +138,7 @@ def soilbgc(
     outcll = jnp.minimum(decompl * bgc.kll * clitll, clitll)
     outcrl = jnp.minimum(decomps * bgc.krl * clitrl, clitrl)
     outcwl = jnp.minimum(decompl * bgc.kwl * clitwl, clitwl)
-    outcns = jnp.minimum(decomps * bgc.kns * carbon.csoislon, carbon.csoislon)
+    outcns = jnp.minimum(decomps_som * bgc.kns * carbon.csoislon, carbon.csoislon)
 
     # Change in non-protected slow OM
     dcndt = (bgc.lig_frac * (outcll*bgc.yll + outcrl*bgc.yrl + outcwl*bgc.ywl) +
@@ -141,7 +146,7 @@ def soilbgc(
              outcnb - outcns)
 
     # Change in protected slow OM
-    outcps = jnp.minimum(decomps * bgc.kps * carbon.csoislop, carbon.csoislop)
+    outcps = jnp.minimum(decomps_som * bgc.kps * carbon.csoislop, carbon.csoislop)
 
     dcpdt = (bgc.lig_frac * (outcll*bgc.yll + outcrl*bgc.yrl + outcwl*bgc.ywl) +
              fbpom * (bgc.ybn*outcbn + bgc.ybp*outcbp) -
@@ -269,3 +274,21 @@ def soilbgc(
     )
 
     return new_carbon, new_veg, new_summary
+
+
+def som_climate_ratio(tsoil, tconst, e0_som, t_ref_som, t_base=288.16, t_zero=227.13):
+    """Ratio of the SOM pools' Lloyd-Taylor temperature factor to the litter's (CALIBRATION.md 72).
+
+    The litter factor is exp(tconst (1/(t_base - t_zero) - 1/(T - t_zero))) with the cell's (LAI-weighted) PFT
+    `tconst`; the SOM factor uses `e0_som` and is anchored so that at T = t_ref_som it equals the litter factor
+    there: ratio(T) = exp(e0_som (1/(t_ref_som - t_zero) - 1/(T - t_zero))) x f_litter(t_ref_som) / f_litter(T).
+    1 everywhere when e0_som <= 0 (off). Shapes broadcast ((npoi,) tsoil and tconst, scalar e0 and t_ref).
+    """
+    tsoil = jnp.asarray(tsoil, dtype=jnp.float32); tconst = jnp.asarray(tconst, dtype=jnp.float32)
+    e0 = jnp.asarray(e0_som, dtype=jnp.float32); tref = jnp.asarray(t_ref_som, dtype=jnp.float32)
+    safe_t = jnp.maximum(tsoil, jnp.float32(t_zero + 10.0))
+    inv = lambda t: jnp.float32(1.0) / (t - jnp.float32(t_zero))
+    f_lit = lambda t: jnp.minimum(jnp.exp(tconst * (inv(jnp.float32(t_base)) - inv(t))), jnp.float32(10.0))
+    f_som = jnp.exp(e0 * (inv(tref) - inv(safe_t)))
+    ratio = f_som * f_lit(tref) / jnp.maximum(f_lit(safe_t), jnp.float32(1e-12))
+    return jnp.where(e0 > 0.0, ratio, jnp.float32(1.0))

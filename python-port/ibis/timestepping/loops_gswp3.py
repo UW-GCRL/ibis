@@ -511,6 +511,11 @@ def _run_month_scan(
                     st.soil.wisoi[:, 2] * hsoi[2] + st.soil.wisoi[:, 3] * hsoi[3]) / h4
         fs_avg = _ftemp(tsoil_avg) * _fmoist(wsoi_avg, wice_avg)
         decomps_new = jnp.clip(fs_avg * params.bgc_params.k_scale, jnp.float32(0.001), jnp.float32(10.0))
+        # SOM temperature sensitivity (CALIBRATION.md 72): the slow and passive pools' factor relative to the litter's,
+        # 1 everywhere when bgc.som_lt_e0 is 0 (default, bit-exact)
+        from ibis.physics.biogeochem import som_climate_ratio as _som_ratio
+        som_factor = _som_ratio(tsoil_avg, _tconst, params.bgc_params.som_lt_e0, params.bgc_params.som_t_ref) \
+            * jnp.asarray(params.bgc_params.som_k_scale, dtype=jnp.float32)          # x the zone's SOM turnover factor (1 = off)
 
         # Update carbon state with new decomposition factors
         st = eqx.tree_at(
@@ -524,7 +529,7 @@ def _run_month_scan(
             nc, nv, ns = soilbgc(
                 s.carbon, s.vegetation, s.summary,
                 s.soil.hsoi, s.soil.sand, s.soil.clay,
-                params.bgc_params, ndaypy,
+                params.bgc_params, ndaypy, som_factor=som_factor,
             )
             return eqx.tree_at(
                 lambda x: (x.carbon, x.vegetation, x.summary),
@@ -1075,7 +1080,7 @@ def run_spinup_gswp3(
         from ibis.state.stress_accum import reset_stress_accum
         from ibis.state.et_parts import reset_et_parts
         from ibis.state.nee_parts import reset_nee_parts
-        state = reset_stress_accum(state)
+        state = reset_stress_accum(state, float(getattr(pft_params, 'tree_cover_years', 5.0)))
         state = reset_et_parts(state)
         state = reset_nee_parts(state)
 

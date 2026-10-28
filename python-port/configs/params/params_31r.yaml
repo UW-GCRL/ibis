@@ -243,6 +243,7 @@ pft:
   tree_cover_min: 0.30       # base ramp (B_hot, the subarctic, tundra): fu_max = clip((annual stress - 0.30) / 0.65, 0, 1) ^ 1.75 (gate_cover.py, tropics)
   tree_cover_ramp: 0.65      #   the other zones carry their own ramp on their tree types (ramp_fit_zones.py, CALIBRATION.md 71)
   tree_cover_power: 1.75
+  tree_cover_years: 5.0      # 2026-10-28: the limit reads the stress smoothed over 5 years (one dry year moves it by a fifth of the dip; CALIBRATION.md 71)
   exact_litterfall: true         # 2026-10-26: carbon-conserving litterfall booking (CALIBRATION.md 63)
   fu_min: 0.05
   cover_k: 0.5

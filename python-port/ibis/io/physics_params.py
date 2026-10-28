@@ -298,6 +298,7 @@ def build_pft_params(d: dict) -> PFTParams:
         tree_cover_min=float(s.get('tree_cover_min', defaults.tree_cover_min)),
         tree_cover_ramp=float(s.get('tree_cover_ramp', defaults.tree_cover_ramp)),
         tree_cover_power=float(s.get('tree_cover_power', defaults.tree_cover_power)),
+        tree_cover_years=float(s.get('tree_cover_years', defaults.tree_cover_years)),
         exact_litterfall=bool(s.get('exact_litterfall', defaults.exact_litterfall)),
         lai_max=_lai_max(s),
     )
@@ -359,7 +360,7 @@ def build_bgc_params(d: dict) -> BGCParams:
 
     defaults = default_bgc_params()
     resp = {}
-    for k in ('lt_e0', 'wfps_opt', 'rgrowth', 'k_scale', 'rwood', 'rroot'):                 # CALIBRATION.md 36
+    for k in ('lt_e0', 'wfps_opt', 'rgrowth', 'k_scale', 'rwood', 'rroot', 'som_lt_e0', 'som_t_ref', 'som_k_scale'):   # CALIBRATION.md 36, 72
         v = s.get(k, getattr(defaults, k))
         # lt_e0 / rgrowth / rwood / rroot may be a per-PFT table (CALIBRATION.md 37: class medians of the per-tower
         # fits); unknown PFT names are an error, missing ones keep the default

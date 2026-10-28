@@ -7355,3 +7355,124 @@ with the leaf area following it toward MODIS (30-60 N peak LAI 1.38x); phantom f
 `run_check10_r.sh`), analysis `analyze_check10_r.sh` (closure, fire regions, yearly compare vs s31n, NaN, cover and
 wood by chunk and stress bin vs s31n and check10_31p). The cold protocol `launch_s31r.sh` (run + score against s31n)
 goes as soon as the check is clean; scored ~8 h later.
+
+**check10_31r, first pass (01:56; 0 tracebacks, 0 NaN; `analyze_check10_r.log`).** Closure as before (live +0.09, soil
+-0.22); fire Amazon 2.21 % (fu 0.92), African savanna 8.2; GPP 150.6 -> 147.8, NPP 68.9 -> 64.6 (the root share),
+Rh 59.2 -> 57.6, wood 399 -> 392, soil C 1299 -> 1290. Wood by chunk after ten years (x map; s31n / limit / design):
+humid 1.02 / 1.05 / 1.00 (Amazon 0.99, Congo 0.62, Asia 1.30), savanna 0.50 / 0.66 / 0.59, subtropical 1.19 / 1.45 /
+1.18, temperate 2.16 / 2.28 / 1.93 (Europe 2.31, Asia 1.49), boreal 1.07 / 1.08 / 1.08, global 1.10 / 1.20 / 1.08;
+cover: humid 0.86 -> 0.91 (product 0.95: the A_humid ramp no longer caps the wet cells), temperate 0.73 -> 0.64
+(0.67), subtropical 0.54 -> 0.47 (0.56), tropical bins at or under the product's mean. **But the elimination count
+(`elimination_by_year.py`) exposed a flaw in the design**: with the D_temperate threshold at u 0.72 a single dry year
+eliminates whole forest cells -- 266 cells / 0.64 PgC in 2001, 90-160 cells a year after, and 266 cells / 1.16 PgC
+in 2010, the Russian drought year (eliminated cells' mean u 0.65-0.69: cells normally above the threshold that dip
+once). The limit-only check (threshold 0.30) eliminated 0-4 cells a year. The old gate had the same single-year
+input with a partial kill (47 % at u 0.66); the limit makes it total and irreversible for that year's stand, and a
+third of the design's temperate wood drop over the ten years (about 5 of 13 PgC) was this killing, not the
+allocation. The 2010 total-carbon residual of -2.1 PgC yr-1 (component residuals unchanged) is that litter pulse in
+the closure accounting.
+
+**Fix (02:30): the limit reads a multi-year stress.** `StressAccum.u_smooth` (fourth leaf): at dynaveg time the
+limit uses u_eff = u_smooth + (u_year - u_smooth) / tree_cover_years (u_year where u_smooth is unset, i.e. a fresh
+state or a restart from before), and the end-of-year reset stores u_eff; `tree_cover_years` 5.0 (PFTParams, yaml).
+A drought year moves the limit by a fifth of the dip, so neither the cap nor the elimination follows one year; a
+persistent change takes about five years to work through. The survival factor (old gate) stays on the single year's
+mean, bit-exact. Restarts: `CHAIN_LEAVES` (4, 4, 3, 2); `load_state` migrates a checkpoint written with the 3-leaf
+accumulator by inserting a zero (unset) u_smooth leaf, with or without the wetland state in front, so every restart
+on disk keeps loading (the s31n 2000 state seeds u_smooth with 2001's mean). Tests: the smoothing and the reset
+(`test_cover_limit_reads_the_smoothed_stress_and_the_reset_stores_it`), the migration with and without the wetland
+state and the new format (`test_restart_written_with_the_three_leaf_accumulator_still_loads`), the chain guard
+updated. check10_31r rerun from the same state (the first pass kept as `check10_31r/v1_single_year_stress/`).
+
+**Fire refit, offline, while the check reran (02:10-02:40; `fire_2026-10-28/fire_terms_regions.py`,
+`fire_zone_objective.py` on the s31p 2003-2005 restarts; tables `fire_terms_regions_s31p.txt`,
+`fire_zone_objective_s31p.txt`).** The predictor reproduces the states' own burned fraction (ratio 1.01, r 0.996).
+Terms by region (fseason, dry, fuel, vd, damping): the African savanna's fire index is only 1.25x South America's
+(fseason 0.52 vs 0.38, dry 0.66 vs 0.62, vd 0.78 vs 0.91, damping 0.98 vs 0.90) while GFED5 burns it 6x more (40.8 vs
+6.8 % yr-1), and the gap is not population: at < 5 people km-2 GFED5 burns 43 % of the African savanna and 7 % of the
+South American one. So the human-ignition term F3 (HYDE density from the CLM Li 2018 file, now readable) lifts both
+together (a_ig 0.05, ign_max 5: Africa 0.24 -> 0.41, South America 1.18 -> 1.70, SE Asia 1.97 -> 3.16) and is not the
+answer; a fine-fuel term lowers the dry savannas; a lower LAI saturation (lai_ref_vd 2-3) trades the Amazon and the
+humid zone for Australia and the hot-dry zone. On the zone log-RMS objective (fire_f7_fit's) with k_b refit per
+setting, the current parameters are at the optimum (0.613; lai_ref_vd 3.5 -> 0.625, 3.0 -> 0.644; closed_canopy_fu
+0.88 -> 0.601 but Amazon 1.37, SE Asia 2.5). Verdict: the fire scheme's parameters stay; the remaining errors --
+African savanna 0.24x (all of the global deficit: 2.6 vs 4.5 % yr-1), Congo 0.63x and SE Asia 1.97x (opposite signs
+under one humid floor), C_med 3.2x and C_highland 0.44x -- are regime errors the scheme has no term for (the
+African grass-fire regime; CLM and SPITFIRE carry explicit agricultural-burning and lightning terms). Recorded as a
+known limitation of IBIS 3.0's fire; no fire change rides on s31s. The methane bands (30-60 N 12 vs GMB 32, 60-90 N
+6.5 vs 12, tropics 160 vs 109 Tg yr-1) are deferred to after the soil stage: the flux is f_inund (WAD2M) x r_ch4 x
+Rh x ..., so Rh must be settled first, and the tower-fitted band rates should not be scaled to a budget.
+
+**check10_31r, second pass with the smoothed stress (02:29; 0 tracebacks, 0 NaN; `analyze_check10_r2.log`).**
+Elimination now 0-32 cells a year (0.00-0.04 PgC; 2010: 32 cells / 0.04 PgC against 266 / 1.16 before), apart from a
+one-time 272 cells / 0.65 PgC in 2001, the seeding year: the s31n 2000 restart carries no smoothed stress, so the
+first year reads its own mean (2001 was dry in those cells); in the cold protocol the smoothing is seeded in the
+spin-up's first year and no such pulse exists. Closure as before (live +0.08, soil -0.22; 2010 total -0.94 like
+s31p's -1.00, the drought litter pulse gone). Fire unchanged (Amazon 2.21 %, African savanna 8.3). GPP 150.6 -> 149.3,
+NPP 68.9 -> 65.3, Rh 59.2 -> 57.6, wood 399 -> 396, soil C 1299 -> 1291. Wood by chunk after ten years (x map;
+s31n / limit / design): humid 1.02 / 1.05 / 1.00, savanna 0.50 / 0.66 / 0.59, subtropical 1.19 / 1.45 / 1.19,
+temperate 2.16 / 2.28 / 2.01 (the first pass's 1.93 had the killing in it), boreal 1.07 / 1.08 / 1.08, global 1.10 /
+1.20 / 1.09; cover humid 0.91 (product 0.95), temperate 0.70 (0.67), subtropical 0.50 (0.56), tropical bins at or
+under the product mean; the partial-gate cells fill at 0.9 PgC yr-1 (limit alone 1.5). The cold protocol decides
+the equilibria: s31r launched (`launch_s31r.sh`, scored against s31n; `after_final_r.sh` then adds the comparison
+against s31p, the elimination count, the protocol wood trajectory and the zone ramps' cover).
+
+## 72. Soil-carbon stage: the baseline and the lever (2026-10-28 02:35-, while s31r runs)
+
+**Reference.** HWSD2 (`inputs/soil/soita_hwsd2_organic.nc`: organic carbon % x bulk density x thickness, IBIS layers
+0-10 / 10-25 / 25-50 / 50-100 cm) gives 2796 PgC to 1 m over the 90 % of land it covers (4525 to 2 m) --
+above the literature's 1500-2400 to 1 m (HWSD v1.2 ~1400 after Köchy et al. 2015's corrections; SoilGrids 2000-3000
+with a known high bias in the north), because no coarse-fragment or depth-to-bedrock correction is applied and
+the boreal organic soils carry 1115 PgC in the D_subarctic + D_extreme zones alone (NCSCD: ~500 for the whole
+circumpolar region to 1 m). It is used as a spatial pattern, not as a total. Scripts `soil_2026-10-28/`:
+`soil_ref_bands.py`, `soil_pools_by_group.py`, `soil_traj_protocol.py`; tables in figures/final_2026-10-26/tables.
+
+**The model against it (2010 states; s31n / s31p):** humid tropics 188 / 181 PgC against 231 (0.81 / 0.78),
+savanna + hot dry 231 / 221 vs 379 (0.61 / 0.58), subtropical 167 / 157 vs 194 (0.86 / 0.81), temperate 276 / 271 vs
+628 (0.44 / 0.43), boreal 314 / 289 vs 1115 (0.28 / 0.26), tundra + cold dry 123 / 129 vs 245 (0.50 / 0.53); by band
+90S-30N 571 vs 792 (0.72), 30-60N 530 vs 1178 (0.45), 60-90N 197 vs 825 (0.24); global 1298 / 1249 vs 2796. The
+turnover the model runs at (soil C / Rh): tropics 16 yr, savanna 13, subtropical 15, temperate 27, boreal 61, tundra
+39; the reference implies 19 / 21 / 17 / 63 / 217 / 78. So the deficit grows with cold: 1.2x in the tropics, 1.6x in
+the savannas (not temperature: fire and dry-season inputs), 2.2x temperate, 3.5x boreal. By pool (s31n: litter 106,
+slow 1055, passive 223 PgC): the SOM pools would have to grow by 1.16 (humid), 1.61 (savanna), 1.10 (subtropical),
+2.22 (temperate), 3.50 (boreal), 1.95 (tundra) to meet HWSD2 -- the litter pools are small and tower-validated.
+
+**It is not a spin-up artefact.** The protocol runs the soil at nsoilcall 10 through the 1601-1900 spin-up (2000
+soil-years; `soilcspin: 1`): global soil C 1122 PgC in 1800, 1216 in 1900 (0.09 PgC per accelerated soil-year at the
+end: the slow pools are at equilibrium, the passive pool nearly), then 1288 by 2000 at 1x under the rising CO2 and
++1.47 PgC yr-1 in the hindcast (s31p 1096 / 1174 / 1240 / 1253). The stock is the parameters' equilibrium.
+
+**The lever: a temperature sensitivity of the SOM pools of their own.** The decomposition climate factor is
+Lloyd-Taylor with the PFT-fitted E0 (CALIBRATION.md 36-37: 222-369 K, tower seasonality of Rh, litter-dominated)
+times the moisture factor, applied to every pool. The cold-zone deficit says the slow and passive pools are more
+temperature-sensitive than the litter (the carbon-quality-temperature hypothesis: Davidson & Janssens 2006; Lefèvre
+et al. 2014), or that peat and permafrost carbon are missing (a module, not this stage). Built, inert by default:
+`BGCParams.som_lt_e0` (0 = off) and `som_t_ref` (298.16 K); `biogeochem.som_climate_ratio` = exp(E0_som (1/(T_ref -
+T0) - 1/(T - T0))) x f_litter(T_ref) / f_litter(T), so the SOM rate at 25 C is unchanged (the humid tropics keep
+their 0.8x, which is inputs) and colder soils decompose their SOM more slowly than their litter; the loop passes
+it to `soilbgc(som_factor=...)`, which multiplies the climate factor of the five slow / passive outflows only
+(knb, kpb, ksb, kns, kps; microbial biomass and litter untouched, so the tower-fitted seasonality stands). With E0
+520 K: ratio 0.36 at 275 K (boreal), ~0.6 at 283 K (temperate), 1 at 298 K. Tests `test_som_sensitivity.py` (off
+bit-exact; the factor halves the slow pool's outflow and leaves the litter; carbon conserved against the respired
+CO2; loader and wiring). Fitting it is Thursday's protocol bracket (two values side by side), judged on the HWSD2
+pattern, the literature total and the sink; the loader key is `bgc: som_lt_e0`.
+
+**Expectation under the E0 lever (`soil_expect.py` on s31p 2010, twelve monthly soil temperatures of layers 1-4, the
+cell's typed litter E0; SOM pools scaled by 1 / <ratio>; table `soil_expect_s31p.txt`), x HWSD2 0-1 m:** E0 400:
+temperate 0.58, boreal 0.55, tundra + cold dry 2.11, global 0.75; E0 450: 0.73 / 0.77 / 2.93 / 0.94; E0 500: 0.90 /
+1.07 / 4.07 / 1.20; and outside the HWSD2 cells (polar, ice margins) the stock runs away (all-cell total 2861 PgC at
+E0 400, 5790 at 500). A Lloyd-Taylor sensitivity has no bound in the cold: at 255 K the SOM ratio is 0.05 and the
+equilibrium twenty times today's, so the value that fits the temperate zone (500) quadruples the tundra, and the one
+that spares the tundra (350) leaves the temperate zone at 0.47. **The bounded form is the lever for this stage:**
+`BGCParams.som_k_scale` per zone through the type scalars (`som_k_scale` on a zone's types, 'all'; `TYPE_SCALARS`
+gains the 'bgc' object), multiplied into the same `som_factor`; 1 = off. By construction the slow-pool equilibrium
+scales by its inverse (the passive pool, at 3400 yr base residence x 1 / climate factor, is far from equilibrium
+after the 2000 accelerated soil-years of the spin-up -- 223 PgC against an equilibrium several times that -- and
+will not show the factor within a protocol, so the stock response is the slow pools' 1055 PgC). A first design
+for Thursday's bracket, aimed at ~0.8 of the HWSD2 pattern (global ~2150 PgC, inside the literature's 1500-2400):
+temperate 0.5, boreal 0.35, tundra + cold dry 0.6, savanna + hot dry 0.7, subtropical 0.9, humid tropics 1.0 ->
+expected temperate 517 (0.82), boreal 781 (0.70; 1.5x NCSCD's circumpolar 0-1 m), tundra 208 (0.85), savanna 310
+(0.82), subtropical 173 (0.89); and a milder sibling (0.6 / 0.45 / 0.75 / 0.8 / 1.0 / 1.0) beside it. The E0 form
+stays available (`som_lt_e0`) for a later permafrost-aware version. Test
+`test_som_turnover_factor_per_zone_through_the_types`. Noted for the section-72 verdict: the sink's soil part
+(+1.47 PgC yr-1 in s31n) will change with the pool size, and Rh at equilibrium does not.

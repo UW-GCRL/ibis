@@ -225,6 +225,8 @@ TYPE_SCALARS = {
     # tree types; a zone without values keeps the base (tropical) ramp
     'tree_cover_min': ('pft', 'tree_cover_min', 'all'), 'tree_cover_ramp': ('pft', 'tree_cover_ramp', 'all'),
     'tree_cover_power': ('pft', 'tree_cover_power', 'all'),
+    # SOM turnover factor per zone (CALIBRATION.md 72), on the zone's types; a zone without a value keeps the base (1)
+    'som_k_scale': ('bgc', 'som_k_scale', 'all'),
 }
 
 
@@ -299,12 +301,13 @@ def apply_types(params, pft_params, zone_idx, overrides: dict | None = None, bas
     for key, (obj, field, which) in TYPE_SCALARS.items():
         if key not in overrides:
             continue
-        base_v = float(np.asarray(getattr({'pheno': ph, 'stomata': bp.stomata_params, 'pft': bf}[obj], field)))
+        base_v = float(np.asarray(getattr({'pheno': ph, 'stomata': bp.stomata_params, 'pft': bf, 'bgc': bp.bgc_params}[obj], field)))
         per_zone = np.array([zone_scalar(z, overrides[key], which) if z not in ('none', 'E_ice') else None for z in ZONES], dtype=object)
         per_zone = np.array([base_v if v is None else v for v in per_zone], dtype=np.float64)
         val = jnp.asarray(per_zone[zi], dtype=jnp.float32)
         if obj == 'pheno': ph = eqx.tree_at(lambda o: getattr(o, field), ph, val)
         elif obj == 'pft': pf = eqx.tree_at(lambda o: getattr(o, field), pf, val)
+        elif obj == 'bgc': bg = eqx.tree_at(lambda o: getattr(o, field), bg, val)
         else: sp = eqx.tree_at(lambda o: getattr(o, field), sp, val)
     hab = jnp.asarray(slot_habit(zone_idx), dtype=jnp.int32)
     par = jnp.asarray(slot_parent(slots), dtype=jnp.int32)

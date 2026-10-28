@@ -130,3 +130,99 @@ def test_cover_limit_ramp_per_zone_through_the_types():
     # the scalar path is untouched: no overrides -> scalars stay scalars
     _, pf0 = P.apply_types(params, pp, z, {})
     assert np.ndim(np.asarray(pf0.tree_cover_min)) == 0
+
+
+def test_cover_limit_reads_the_smoothed_stress_and_the_reset_stores_it():
+    """CALIBRATION.md 71: the limit reads u_smooth + (u_year - u_smooth) / tree_cover_years (u_year where unset); the
+    end-of-year reset stores that value and zeroes the annual sums, so one dry year moves the limit by a fifth of the
+    dip. The survival factor (old gate) stays on the single year's mean."""
+    from ibis.state.stress_accum import tree_cover_max, tree_survival, reset_stress_accum, smoothed_stress
+    from ibis.state.model_state import create_ibis_state
+    from ibis.dimensions import GridConfig
+    pp = eqx.tree_at(lambda p: (p.tree_cover_limit, p.tree_stress_min), default_pft_params(), (True, 0.5))
+    assert pp.tree_cover_years == 5.0
+    st = create_ibis_state(GridConfig(npoi=2, nbedrock=3), with_stress=True)
+    st = eqx.tree_at(lambda s: (s.stress.aystressu, s.stress.nday), st, (jnp.asarray([0.9, 0.6]) * 100.0, jnp.full((2,), 100.0)))
+    np.testing.assert_allclose(np.asarray(smoothed_stress(st, 5.0)), [0.9, 0.6], rtol=1e-6)          # unset: this year's mean
+    ramp = lambda u: np.clip((np.asarray(u) - 0.30) / 0.65, 0, 1) ** 1.75
+    np.testing.assert_allclose(np.asarray(tree_cover_max(st, pp)), ramp([0.9, 0.6]), rtol=1e-5)
+    st = reset_stress_accum(st, 5.0)
+    np.testing.assert_allclose(np.asarray(st.stress.u_smooth), [0.9, 0.6], rtol=1e-6)
+    assert float(st.stress.aystressu.sum()) == 0.0 and float(st.stress.nday.sum()) == 0.0
+    # a drought year: the annual mean drops to 0.4 in both cells
+    st = eqx.tree_at(lambda s: (s.stress.aystressu, s.stress.nday), st, (jnp.asarray([0.4, 0.4]) * 100.0, jnp.full((2,), 100.0)))
+    want = np.array([0.9 - 0.5 / 5, 0.6 - 0.2 / 5])
+    np.testing.assert_allclose(np.asarray(smoothed_stress(st, 5.0)), want, rtol=1e-5)
+    np.testing.assert_allclose(np.asarray(tree_cover_max(st, pp)), ramp(want), rtol=1e-5)             # limit barely moves
+    np.testing.assert_allclose(np.asarray(tree_survival(st, pp)), np.clip((0.4 - 0.5) / 0.3, 0, 1), atol=1e-6)   # old gate: the year's mean
+    st = reset_stress_accum(st, 5.0)
+    np.testing.assert_allclose(np.asarray(st.stress.u_smooth), want, rtol=1e-5)
+    from pathlib import Path
+    assert "'tree_cover_years'" in (Path(__file__).resolve().parents[1] / "ibis" / "io" / "physics_params.py").read_text()
+
+
+def test_restart_written_with_the_three_leaf_accumulator_still_loads(tmp_path):
+    """A checkpoint from before u_smooth (StressAccum of 3 leaves) loads into the 4-leaf template: u_smooth zeros,
+    every later leaf (ETParts here) aligned; with and without the wetland state in front of the chain."""
+    from ibis.state.model_state import create_ibis_state
+    from ibis.io.restart import save_state, load_state
+    from ibis.dimensions import GridConfig
+    import jax
+    g = GridConfig(npoi=3, nbedrock=3)
+    for with_wetland in (False, True):
+        s = create_ibis_state(g, with_etparts=True)
+        if with_wetland:
+            from ibis.bgc.methane import create_methane_state
+            s = eqx.tree_at(lambda x: x.wetland, s, create_methane_state(3), is_leaf=lambda x: x is None)
+        s = eqx.tree_at(lambda x: (x.stress.aystressu, x.stress.nday, x.stress.u_smooth), s,
+                        (jnp.full((3,), 70.0), jnp.full((3,), 100.0), jnp.full((3,), 0.77)))
+        s = eqx.tree_at(lambda x: x.etparts, s, jax.tree.map(lambda a: jnp.full_like(a, 3.5), s.etparts))
+        save_state(s, f"{tmp_path}/new_{with_wetland}.npz")
+        d = dict(np.load(f"{tmp_path}/new_{with_wetland}.npz"))
+        leaves = jax.tree.leaves(s); n = len(leaves)
+        k = next(i for i in range(n) if d.get(f"leaf_{i}") is not None and np.asarray(d[f"leaf_{i}"]).shape == (3,)
+                 and np.allclose(d[f"leaf_{i}"], 0.77))                                           # the u_smooth leaf
+        old = {kk: v for kk, v in d.items() if not kk.startswith("leaf_")}
+        j = 0
+        for i in range(n):
+            if i == k: continue
+            if f"leaf_{i}_is_none" in d: old[f"leaf_{j}_is_none"] = d[f"leaf_{i}_is_none"]
+            else: old[f"leaf_{j}"] = d[f"leaf_{i}"]
+            j += 1
+        old["num_leaves"] = np.array(n - 1)
+        np.savez_compressed(f"{tmp_path}/old_{with_wetland}.npz", **old)
+        tmpl = create_ibis_state(g, with_etparts=True)
+        if with_wetland:
+            from ibis.bgc.methane import create_methane_state
+            tmpl = eqx.tree_at(lambda x: x.wetland, tmpl, create_methane_state(3), is_leaf=lambda x: x is None)
+        got, _ = load_state(f"{tmp_path}/old_{with_wetland}.npz", tmpl)
+        np.testing.assert_allclose(np.asarray(got.stress.aystressu), 70.0); np.testing.assert_allclose(np.asarray(got.stress.nday), 100.0)
+        np.testing.assert_allclose(np.asarray(got.stress.u_smooth), 0.0)                             # unset
+        for a in jax.tree.leaves(got.etparts): np.testing.assert_allclose(np.asarray(a), 3.5)          # aligned
+        got2, _ = load_state(f"{tmp_path}/new_{with_wetland}.npz", tmpl)                               # the new format too
+        np.testing.assert_allclose(np.asarray(got2.stress.u_smooth), 0.77)
+
+
+def test_old_chain_checkpoint_loads_into_a_template_without_trailing_modules(tmp_path):
+    """A checkpoint written with the 3-leaf accumulator plus ETParts and SeasonalState (10 trailing leaves, the spin-up
+    restarts of every run before 2026-10-28) loads into a bare template (diagnostics): the trailing leaves are dropped."""
+    from ibis.state.model_state import create_ibis_state
+    from ibis.io.restart import save_state, load_state
+    from ibis.dimensions import GridConfig
+    import jax
+    g = GridConfig(npoi=3, nbedrock=3)
+    s = create_ibis_state(g, with_seasonal=True)                      # stress (4) + etparts (4) + seasonal (3)
+    s = eqx.tree_at(lambda x: x.soil.tg, s, jnp.full_like(s.soil.tg, 280.0))
+    save_state(s, f"{tmp_path}/new.npz"); d = dict(np.load(f"{tmp_path}/new.npz"))
+    leaves = jax.tree.leaves(s); n = len(leaves); base = n - 11
+    old = {kk: v for kk, v in d.items() if not kk.startswith("leaf_")}; j = 0
+    for i in range(n):
+        if i == base + 3: continue                                   # drop u_smooth: the old 3-leaf accumulator
+        if f"leaf_{i}_is_none" in d: old[f"leaf_{j}_is_none"] = d[f"leaf_{i}_is_none"]
+        else: old[f"leaf_{j}"] = d[f"leaf_{i}"]
+        j += 1
+    old["num_leaves"] = np.array(n - 1); np.savez_compressed(f"{tmp_path}/old10.npz", **old)
+    got, _ = load_state(f"{tmp_path}/old10.npz", create_ibis_state(g))                     # bare template: drop 10
+    assert got.stress is None and float(np.asarray(got.soil.tg)[0]) == 280.0
+    got2, _ = load_state(f"{tmp_path}/old10.npz", create_ibis_state(g, with_seasonal=True))   # full template: migrate
+    assert got2.seasonal is not None and float(np.asarray(got2.stress.u_smooth).max()) == 0.0
