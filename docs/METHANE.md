@@ -2454,3 +2454,17 @@ is the area's, not the flux's). The site harness takes the same switch (`site_fi
 `site_transient.py`), so the tower fits can be redone at the hourly cadence. Tests: `tests/test_methane_hourly.py`; the
 methane, wetland and wiring test files pass (72). First run on the final state: `verify_outputs/final_s31t_ch4hourly`
 (2001-2010 hindcast from the s31t 2000 restart, production bands, climatology area), results below.
+
+**Result, hourly against the month-end snapshot with the production parameters and the climatology area
+(`final_s31t_ch4hourly` vs `final_s31t`, 2001-2010; `tables/ch4_hourly_vs_snapshot_s31t.txt`, `ch4_bands_s31t_ch4hourly.txt`).**
+Totals barely move: 169.3 against 170.0 Tg CH4 yr-1 (tropics 151.8 vs 152.1, 30-60 N 11.5 vs 11.6, 60-90 N 6.1 vs 6.3);
+the annual anomalies correlate at 0.95-1.00 and the interannual spread is 2-30 % smaller in the north. What moves is the
+season in the north: with the snapshot, 30-60 N emitted 1.4 Tg in May and 0.8 in October; hourly it emits 0.9 in May and
+1.1 in October, 1.7 in September against 1.3, 0.5 in November against 0.3 -- the peak stays in July-August but the curve
+shifts two to four weeks later and broadens, because the month-end soil state ran ahead of the month's mean in the
+thawing spring and behind it in the freezing autumn. North of 60 N the same: May 0.8 -> 0.3, September 0.8 -> 1.1,
+October 0.3 -> 0.5. The GCP prior's cycle in 30-60 N peaks July-August with September at 3.1 and October at 1.7 Tg, so
+the hourly shape is the prior's shape; the amplitude gap of the north (0.36-0.52 of the budget) is untouched by the
+cadence and stays with the parameters, which the hourly refit of section 80 (CALIBRATION) now re-estimates. The tropics
+are unchanged in every month (max/min 1.2). The snapshot's cost was therefore the timing of the northern season, not the
+amount; the production parameters had absorbed the amount.

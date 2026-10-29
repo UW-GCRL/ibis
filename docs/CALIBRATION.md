@@ -7825,3 +7825,9 @@ outputs `site_fit/ch4_h1{,_gpu}`, logs `$S/ch4h1/`. Then: `ch4_fit_report.py` ->
 logs/ch4_towers_zone.csv` -> `params_31s_ch4h.yaml` (= the final file with the hourly bands) -> hindcast with
 `methane_hourly: true` -> `ch4_bands_production.py`. The release parameter file and the production configuration change
 if the hourly bands hold at the towers (held-out year) and the globe stays inside the budget.
+
+**Hourly hindcast with the production parameters (13:45; METHANE.md 9 result).** Totals within 0.5 % of the snapshot run
+(169.3 vs 170.0 Tg; bands 151.8 / 11.5 / 6.1 vs 152.1 / 11.6 / 6.3); the northern season shifts two to four weeks later and
+broadens (30-60 N: May 1.4 -> 0.9, September 1.3 -> 1.7, October 0.8 -> 1.1 Tg), onto the shape of the GCP prior. So the
+snapshot had cost the timing of the northern season; the amount was carried by the fitted parameters, which the refit
+now re-estimates at the cadence the model runs at.
