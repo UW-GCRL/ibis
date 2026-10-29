@@ -2399,3 +2399,12 @@ is the observed field (`read_wad2m_month`), written to the monthly output as `fi
 is used, with the `wetland_dynamic` anomaly on top if that switch is on. Tests: `tests/test_wetland_dynamic.py`. Run on
 the final state as `verify_outputs/final_s31t_wadobs` (2001-2010 hindcast from the s31t 2000 restart); evaluation
 `verify/methane/wadobs_eval.py`, results below.
+
+**Result of the observed-area run (2026-10-29, `wadobs_eval_s31t.txt`).** Against the climatology run, 2001-2010:
+global 175.3 against 170.0 Tg CH4 yr-1, all of it tropical (157.4 against 152.1; 30-60 N and 60-90 N unchanged to 0.1 Tg).
+The difference grows through the decade, +1.4 Tg in 2001 to +11.0 in 2010, because the observed tropical inundated area
+rises from 1.93 to 2.09 Mkm2 over these years (the 2000-2020 climatology sits at the decade's start). The interannual
+standard deviation of the global total rises from 4.3 to 6.8 Tg yr-1; the annual anomalies of the two runs correlate at
+0.99, so the year-to-year signal the model already had (soil temperature and respiration on a fixed area) is amplified
+rather than replaced. The seasonal cycle is unchanged in shape in every band (30-60 N max/min 10.4 -> 10.2). Observed
+area used: tropics 2.03 Mkm2 (sd of annual means 0.046), 30-60 N 0.95 (0.037), 60-90 N 0.38 (0.008), global 3.36 (0.063).

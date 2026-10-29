@@ -7801,3 +7801,11 @@ soil water). Recommendation put to Hangkai: read the observed WAD2M month for 20
 dynamics from observation in the hindcast; `read_wad2m_month` exists, a `wetland_source` switch is the wiring), keep the
 climatology with the boreal soil-water anomaly for years outside the record, and leave the prognostic extent (needs river
 routing) to the post-release list. Methane is diagnostic, so the change is a 20-minute hindcast, not a protocol.
+
+**Observed-area run (12:33).** `physics.wetland_source: observed` built and run on the final state (`final_s31t_wadobs`,
+METHANE.md 8): 175.3 against 170.0 Tg yr-1, the +5.3 all tropical and growing through the decade with the observed
+inundated area (1.93 -> 2.09 Mkm2); north unchanged; interannual sd of the global total 4.3 -> 6.8 Tg; seasonal shape
+unchanged. Hangkai (12:40) proposes a learned emulator of the WAD2M fraction from the model state and static topography
+(the CLM surface file carries FMAX, slope, elevation spread, percent wetland on our grid), constrained per band and
+monotone in water, as a switch if it beats the climatology on held-out years and cells; the test
+(`verify/methane/wetland_ml_feasibility.py`) is running.
