@@ -2362,3 +2362,33 @@ metre, as a standardised anomaly against the model's own monthly climatology, ap
 climatology, bounded by each cell's WAD2M minimum and maximum, zero under snow or frozen soil, one beta per band fitted
 on 2000-2010 and checked on later years, and the CH4 water-table factor held at its monthly climatology inside f_inund
 in that mode. The expected effect is small; the switch exists for the transient and future runs.
+
+## 8. Can the model's own hydrology carry the wetland area? The feasibility test (2026-10-29)
+
+Hangkai (10-29): the wetland area must be dynamic, seasonally and from year to year. Before any build, the question the
+literature of sections 6-7 left open was measured on the final run: how much of the WAD2M monthly inundated fraction
+does a model-side driver explain, cell by cell? `verify/methane/wetland_fit_diag.py` and `wetland_fit_drivers.py` fit,
+per land cell, f = f_max sigmoid(k (X_lag - X0)) with f_max the cell's WAD2M maximum, X a model driver from the s31t
+hindcast (2001-2010 monthly: top-metre liquid soil water W, 3-month runoff, 3-month precipitation, runoff + W) at the
+best lag 0-3 months, in-sample and held-out (fit 2001-05, test 2006-10); tables `wetland_fit_diag_s31t.txt`,
+`wetland_fit_drivers_s31t.txt` in figures/final_2026-10-26/tables.
+
+| band | monthly R2 of the WAD2M climatology | best model driver, R2 in-sample / held-out | IAV r of annual area, held-out | seasonal amplitude fit / obs, Mkm2 |
+|---|---|---|---|---|
+| 90S-30N | 0.57 | W 0.26 / 0.14 | +0.22 (W); runoff +0.61 held-out but +0.01 in-sample | 0.16 / 0.40 |
+| 30-60N | 0.59 | W 0.45 / 0.43 | +0.07 (W); negative for runoff and precipitation | 0.55 / 0.31 |
+| 60-90N | 0.89 | W 0.65 / 0.65 | +0.71 (W) | 0.76 / 0.96 |
+| global | 0.74 | W 0.54 / 0.52 | +0.52 (W) | 1.37 / 1.53 |
+
+Only 10 % of the wet area (35 % north of 60 N) has a cell fit with R2 above 0.5; the best lag is 0 for 78 % of the area.
+The band-level anomaly mode of section 7 (f_clim x (1 + beta A)) with beta fitted on the band's annual area reaches IAV r
++0.16 (tropics), -0.40 (30-60 N), +0.30 (60-90 N) with W. The observed interannual range of the annual area is small:
+0.24 Mkm2 of 3.7 globally (6 %), 0.15 in the tropics.
+
+**Reading.** The model's local water does not carry the inundation signal where most of the methane is: tropical
+floodplains fill from river routing and lagged basin-scale rain, which a column model without routing cannot see, and the
+temperate wetlands are managed. A fully prognostic extent from IBIS's own hydrology would halve the seasonal skill of the
+climatology in the tropics and add noise interannually; it has real skill only north of 60 N. What the data support now:
+the observed monthly WAD2M fields for the years they exist (2000-2020), which give the hindcast both the seasonal cycle
+and the year-to-year variation from observation, with the climatology plus a boreal soil-water anomaly outside the record;
+a prognostic extent needs river routing (the IBIS-THMB lineage) and belongs after the release.

@@ -7789,3 +7789,15 @@ records, pulled the tropical rate down toward the ensemble and the temperate rat
 budgets are the wetlands' or the records' is a question for Chenchen (measured share 0.1-0.3 at several); the towers of
 v1.0 that overlap say the processing itself is unbiased. The production bands stay; the v1.0-only file is kept as
 `methane_2026-10-28/params_31s_ch4v1_bands_from_v1_towers.yaml` for the record.
+
+## 79. Wetland area dynamics: the feasibility test (2026-10-29)
+
+Hangkai: "We need to adjust to make it a dynamics model, both annual dynamic and seasonal dynamic." The current final
+takes the WAD2M monthly climatology (seasonal cycle observed, identical every year). Tested whether the model's own
+hydrology can drive the extent: METHANE.md 8. Result: no model driver (top-metre soil water, 3-month runoff, 3-month
+precipitation) explains the WAD2M monthly fraction as well as the fixed climatology at the cell level (global R2 0.54
+against 0.74; tropics 0.26 against 0.57), and the year-to-year skill is weak except north of 60 N (held-out r +0.71 with
+soil water). Recommendation put to Hangkai: read the observed WAD2M month for 2000-2020 (seasonal and interannual
+dynamics from observation in the hindcast; `read_wad2m_month` exists, a `wetland_source` switch is the wiring), keep the
+climatology with the boreal soil-water anomaly for years outside the record, and leave the prognostic extent (needs river
+routing) to the post-release list. Methane is diagnostic, so the change is a 20-minute hindcast, not a protocol.
