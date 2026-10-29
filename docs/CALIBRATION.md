@@ -7727,6 +7727,13 @@ transient and the hindcast (boreal 631 -> 654 -> 659 PgC, 1900 -> 2000 -> 2010) 
 0.54 PgC yr-1 per half-century, decade), which is the response to rising inputs under rising CO2, not a pool approaching
 its equilibrium (that drift would decay).
 
+**Vegetation too.** The same test on vegetation carbon (`spinup_traj_var.py s31t cveg`; `tables/spinup_traj_cveg_s31t.txt`):
+drift over 1891-1900 at most +0.11 PgC yr-1 per group (+0.27 global on 346 PgC), e-folding 9-41 years, filled 0.99-1.01
+everywhere; the run starts from the ESA CCI cover types with young vegetation (365 PgC at 1701), so nothing starts from zero.
+**Cost of the alternative.** The s31t spin-up ran 200 years in 4 h 50 min with two other protocols on the same GPU (1.45 min
+per year; about 1 min alone), the transient 100 years in 4 h 33 min, the hindcast in 42 min. A thousand plain years would be
+17-25 hours plus 5 for the transient and hindcast, a weekend, and would land on the same state to within the drift above.
+
 **So the gap is the equilibrium, not the clock.** The 0.59 of HWSD2 in the boreal and 0.47 north of 60 N are where the
 model's equilibrium stock sits under its turnover (soil C / Rh 142 yr; the map implies 217) and its inputs. Section 72's
 reading that the cold zones "fall short because the slow pools are still filling" was wrong and is withdrawn here; the
