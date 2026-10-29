@@ -635,8 +635,9 @@ def run_global_simulation(config: IBISConfig) -> None:
     # the flag controls.
     ch4_clim = None
     ch4_params = None
+    _wsrc = 'climatology'
     if getattr(p, "enable_methane", False):
-        from ibis.io.wad2m import read_wad2m_climatology
+        from ibis.io.wad2m import read_wad2m_climatology, read_wad2m_month, wad2m_in_record
         from ibis.bgc.methane import biome_methane_params
         # WAD2M runs south-to-north; the GSWP3 row indices run north-to-south. Until 2026-10-09 the GSWP3 indices were
         # used directly, which mirrored the wetland map in latitude (zero inundation north of 60 N, the Antarctic
@@ -668,6 +669,10 @@ def run_global_simulation(config: IBISConfig) -> None:
                       else biome_methane_params(lat_land_deg, band_index=_bi))
         logger.info("  wetland CH4 enabled: WAD2M climatology loaded, "
                     "mean inundated fraction %.4f", float(ch4_clim.mean()))
+        _wsrc = str(getattr(p, 'wetland_source', 'climatology'))
+        if _wsrc not in ('climatology', 'observed'):
+            raise ValueError(f"physics.wetland_source must be 'climatology' or 'observed', got {_wsrc!r}")
+        logger.info("  wetland area source: %s%s", _wsrc, ' (WAD2M month of the calendar year inside 2000-2020, climatology outside)' if _wsrc == 'observed' else '')
         logger.info("  CH4 params: %s", (f"parameter file ({'with' if _mb else 'without'} band overrides)" if _has_fit else "per-biome r_ch4 and t_ref (docs/METHANE.md 5q)"))
 
     # Dynamic wetland area (docs/METHANE.md 7; Min's point 4): the month's inundated fraction from the model's own
@@ -763,8 +768,12 @@ def run_global_simulation(config: IBISConfig) -> None:
                 runof_before = state.summary.aytrunof
                 drain_before = state.summary.aytdrain
 
+            # observed wetland area (docs/METHANE.md 8): the WAD2M field of this calendar month when the record has it
+            _fobs = None
+            if ch4_clim is not None and _wsrc == 'observed' and wad2m_in_record(year):
+                _fobs = read_wad2m_month(f.wad2m_file, year, imonth + 1, _wli, _wlo, mlat, mlon, clamp_to_range=False)
             _fdyn = None
-            if _wdyn is not None:
+            if _wdyn is not None and _fobs is None:
                 _so = state.soil
                 _W = _wa.root_zone_water(np.asarray(_so.wsoi), np.asarray(_so.poros), np.asarray(_so.hsoi), np.asarray(_so.tsoi))
                 _fdyn = _wa.dynamic_fraction(ch4_clim[imonth], _W, _wdyn[0][imonth], _wdyn[1][imonth], _wdyn[4], _wdyn[2], _wdyn[3],
@@ -773,7 +782,7 @@ def run_global_simulation(config: IBISConfig) -> None:
                 state, consts, params, reader,
                 gswp3_latindex, gswp3_lonindex, np.array(lat_rad),
                 forcing_year, imonth, key, t.dtime, leap, grid.nband, nsoilcall,
-                f_inund=(_fdyn if _fdyn is not None else (None if ch4_clim is None else ch4_clim[imonth])),
+                f_inund=(_fobs if _fobs is not None else (_fdyn if _fdyn is not None else (None if ch4_clim is None else ch4_clim[imonth]))),
                 methane_params=ch4_params,
             )
 
@@ -782,7 +791,8 @@ def run_global_simulation(config: IBISConfig) -> None:
                 monthly_fluxes = {
                     'amprcp':   (state.summary.ayprcp   - prcp_before, 'mm',      'Monthly precipitation'),
                     'amaet':    (state.summary.ayaet    - aet_before,  'mm',      'Monthly AET'),
-                    **({'finund': (jnp.asarray(_fdyn, jnp.float32), '1', 'Inundated fraction of the month (dynamic wetland area)')} if _fdyn is not None else {}),
+                    **({'finund': (jnp.asarray(_fobs, jnp.float32), '1', 'Inundated fraction of the month (observed WAD2M field)')} if _fobs is not None else
+                       ({'finund': (jnp.asarray(_fdyn, jnp.float32), '1', 'Inundated fraction of the month (dynamic wetland area)')} if _fdyn is not None else {})),
                     'amnpptot': (state.summary.aynpptot - npp_before, 'kgC/m2', 'Monthly NPP'),
                     # NEE is only formed at year end, so a monthly value has to
                     # be built from its two parts rather than differenced.

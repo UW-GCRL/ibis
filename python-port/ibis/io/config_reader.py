@@ -89,6 +89,11 @@ class PhysicsSection:
     #: forcing.wetland_clim_file and beta per band from the parameter file's `wetland_area:` section. False: the WAD2M
     #: climatology, as before.
     wetland_dynamic: bool = False
+    #: Where the month's inundated fraction comes from when enable_methane is on (docs/METHANE.md 8): 'climatology'
+    #: (default) = the WAD2M 2000-2020 monthly climatology, identical every year; 'observed' = the WAD2M field of that
+    #: calendar month for years inside the record (2000-2020; seasonal cycle and year-to-year variation from the
+    #: observations) and the climatology outside it. wetland_dynamic adds its anomaly only where the climatology is used.
+    wetland_source: str = 'climatology'
     #: Mix organic-soil hydraulic and thermal properties by the HWSD2 organic-carbon fraction
     #: (Lawrence & Slater 2008); needs orgcpct and bulkdens in soil_file (scripts/hwsd2_organic_to_nc.py).
     soil_organic: bool | str = False

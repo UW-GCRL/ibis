@@ -31,3 +31,14 @@ def test_fraction_is_bounded_climatology_at_zero_beta_and_responds_to_the_anomal
 def test_switch_is_off_by_default():
     from ibis.io.config_reader import PhysicsSection, ForcingSection
     assert PhysicsSection().wetland_dynamic is False and ForcingSection().wetland_clim_file == ''
+
+
+def test_wetland_source_default_is_climatology_and_record_helper():
+    """docs/METHANE.md 8: the default source is the climatology (bit-identical to before); the observed source is
+    only taken for calendar years with a WAD2M field."""
+    from ibis.io.config_reader import PhysicsSection
+    from ibis.io.wad2m import wad2m_in_record, WAD2M_YEARS
+    assert PhysicsSection().wetland_source == 'climatology'
+    y0, y1 = WAD2M_YEARS
+    assert wad2m_in_record(y0) and wad2m_in_record(y1) and wad2m_in_record(2010)
+    assert not wad2m_in_record(y0 - 1) and not wad2m_in_record(y1 + 1) and not wad2m_in_record(1901)

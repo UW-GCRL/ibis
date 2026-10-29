@@ -2392,3 +2392,10 @@ climatology in the tropics and add noise interannually; it has real skill only n
 the observed monthly WAD2M fields for the years they exist (2000-2020), which give the hindcast both the seasonal cycle
 and the year-to-year variation from observation, with the climatology plus a boreal soil-water anomaly outside the record;
 a prognostic extent needs river routing (the IBIS-THMB lineage) and belongs after the release.
+
+**Built (2026-10-29): the `physics.wetland_source` switch.** `'climatology'` (default, bit-identical to before) or
+`'observed'`: for calendar years inside the WAD2M record (2000-2020, `wad2m_in_record`) the month's inundated fraction
+is the observed field (`read_wad2m_month`), written to the monthly output as `finund`; outside the record the climatology
+is used, with the `wetland_dynamic` anomaly on top if that switch is on. Tests: `tests/test_wetland_dynamic.py`. Run on
+the final state as `verify_outputs/final_s31t_wadobs` (2001-2010 hindcast from the s31t 2000 restart); evaluation
+`verify/methane/wadobs_eval.py`, results below.

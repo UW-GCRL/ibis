@@ -32,6 +32,12 @@ WAD2M_SHAPE = (360, 720)
 WAD2M_YEARS = (2000, 2020)
 
 
+def wad2m_in_record(year: int) -> bool:
+    """True when the calendar year has an observed WAD2M field (WAD2M_YEARS, inclusive)."""
+    y0, y1 = WAD2M_YEARS
+    return y0 <= int(year) <= y1
+
+
 def open_wad2m(path: str) -> xr.Dataset:
     return xr.open_dataset(path)
 
