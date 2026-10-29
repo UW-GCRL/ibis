@@ -94,8 +94,13 @@ def _run_day_inner(
     ndaypy: int = 365,
     sw_day: jax.Array | None = None,     # (nsteps, npoi) observed shortwave, W m-2 (site runs; CALIBRATION.md 27)
     use_day: jax.Array | None = None,    # (npoi,) bool: take sw_day instead of the generator's cycle
+    ch4=None,                            # (f_inund, MethaneParams, zwt_obs | None): evaluate the wetland CH4 flux every step (METHANE.md 9)
 ) -> tuple[IBISState, jax.Array]:
     """Run all timesteps for one day inside a lax.scan.
+
+    With `ch4`, the carry also holds the day's accumulated CH4 emission (kgC m-2 d-1 as a day mean), evaluated at every
+    time step from the hourly soil temperature, water and ice and the day's heterotrophic respiration rate, and the
+    function returns it as a third value. Without it the graph is the original one.
 
     jday must be a JAX scalar (jnp.int32 / jnp.int64) so that it traces as a
     dynamic value and does not trigger recompilation for each unique day.
@@ -103,7 +108,8 @@ def _run_day_inner(
     nsteps = timesteps_per_day(dtime)
 
     def _step_body(carry, istep):
-        st, k = carry
+        if ch4 is not None: st, k, ch4_acc = carry
+        else: st, k = carry
         k, subkey = jax.random.split(k)
 
         time = istep * dtime  # seconds since midnight
@@ -291,8 +297,21 @@ def _run_day_inner(
         st = eqx.tree_at(lambda s: s.summary, st, new_sm)
         # Ensure all floats stay float32 so lax.scan carry types match
         st = _cast_tree_f32(st)
+        if ch4 is not None:
+            # Wetland CH4 every time step (docs/METHANE.md 9): the hourly soil temperature, water and ice with the day's
+            # heterotrophic respiration rate (tco2mic, a daily rate: the soil model runs once a day), accumulated as a
+            # day-mean emission in kgC m-2 d-1.
+            from ibis.bgc.methane import methane_flux as _methane_flux
+            _f_in, _mp, _zo = ch4
+            _rh_rate = st.vegetation.tco2mic * jnp.float32(12.0e-3 * 86400.0)
+            _fl = _methane_flux(_f_in, _rh_rate, st.soil.tsoi, st.soil.wsoi, st.soil.wisoi, st.soil.hsoi[:st.soil.tsoi.shape[1]], _mp, zwt_obs=_zo)
+            ch4_acc = ch4_acc + jnp.asarray(_fl, jnp.float32) * jnp.float32(dtime / 86400.0)
+            return (st, k, ch4_acc), None
         return (st, k), None
 
+    if ch4 is not None:
+        (state_out, key_out, ch4_day), _ = jax.lax.scan(_step_body, (state, key, jnp.zeros(state.soil.tsoi.shape[0], jnp.float32)), jnp.arange(nsteps))
+        return state_out, key_out, ch4_day
     (state_out, key_out), _ = jax.lax.scan(
         _step_body,
         (state, key),
@@ -329,6 +348,8 @@ def _run_month_scan(
     dtime: float,
     nband: int,
     obs_sw: bool = False,   # static: xs carries (sw_h, use_h) and the day loop uses the observed shortwave
+    ch4_hourly: bool = False,   # static: evaluate the wetland CH4 flux every time step (METHANE.md 9); the day outputs gain its day mean
+    ch4_args=None,              # (f_inund, MethaneParams, zwt_obs | None) when ch4_hourly
 ) -> tuple[IBISState, jax.Array, tuple]:
     """JIT-compiled day scan for one month.
 
@@ -412,12 +433,14 @@ def _run_month_scan(
         k, k_timing, k_day = jax.random.split(k, 3)
         _, plens, startp, endp = compute_precip_timing(k_timing, dw.precip, dtime)
 
-        st, k_day = _run_day_inner(
+        _rd = _run_day_inner(
             st, consts, params, dw,
             rlds_d, plens, startp, endp,
             jday_d, k_day, dtime, nband, ndaypy,
-            sw_day=sw_d, use_day=use_d,
+            sw_day=sw_d, use_day=use_d, ch4=(ch4_args if ch4_hourly else None),
         )
+        if ch4_hourly: st, k_day, ch4_day = _rd
+        else: st, k_day = _rd
 
         # End-of-day: convert daily accumulations → 10-day running means.
         # F77 (stats.f sumday) applies zweight = exp(-dtime / (10 * 86400))
@@ -568,7 +591,7 @@ def _run_month_scan(
         daily_aet = st.summary.ayaet - aet_before
         daily_rh  = st.summary.ayco2mic - rh_before
 
-        return (st, k), (daily_gpp, daily_aet, daily_rh)
+        return (st, k), ((daily_gpp, daily_aet, daily_rh, ch4_day) if ch4_hourly else (daily_gpp, daily_aet, daily_rh))
 
     xs_all = (td, tmax, tmin, cloud, precip, psurf, qd, ud, iwet, rlds, jdays) + ((sw_h, use_h) if obs_sw else ())
     (state_out, key_out), daily_diag = jax.lax.scan(_day_body, (state, key), xs_all)
@@ -599,6 +622,7 @@ def run_month_gswp3(
     zwt_obs=None,
     enable_permafrost=False,
     permafrost_params=None,
+    methane_hourly: bool = False,
 ) -> tuple[IBISState, jax.Array]:
     """Run one calendar month using GSWP3 daily forcing.
 
@@ -648,9 +672,16 @@ def run_month_gswp3(
     # Ensure state is float32 before entering JIT-compiled scan
     # (restart files may contain float64 arrays from older runs)
     state = _cast_tree_f32(state)
+    # hourly wetland CH4 (docs/METHANE.md 9): the flux is evaluated every time step inside the scan and averaged
+    _ch4h = bool(methane_hourly) and f_inund is not None
+    _ch4_args = None
+    if _ch4h:
+        from ibis.bgc.methane import MethaneParams as _MP
+        _mp = methane_params if methane_params is not None else (getattr(params, 'methane', None) or _MP())
+        _ch4_args = (jnp.asarray(f_inund, jnp.float32), _mp, None if zwt_obs is None else jnp.asarray(zwt_obs, jnp.float32))
     state_out, key_out, daily_diag = _run_month_scan(
         state, key, consts, params, xs,
-        nsoilcall, ndaypy, dtime, nband, obs_sw,
+        nsoilcall, ndaypy, dtime, nband, obs_sw, _ch4h, _ch4_args,
     )
 
     # --- wetland CH4, monthly (docs/METHANE.md) ---------------------------
@@ -686,18 +717,24 @@ def run_month_gswp3(
                                 is_leaf=lambda x: x is None)
 
     if f_inund is not None:
-        from ibis.bgc.methane import create_methane_state, methane_step
+        from ibis.bgc.methane import create_methane_state, methane_step, methane_step_from_mean
         if methane_params is None: methane_params = getattr(params, 'methane', None)      # the parameter tree's set (site fits, CALIBRATION.md 38)
         so, veg = state_out.soil, state_out.vegetation
         rh_kgc_day = veg.tco2mic * jnp.float32(12.0e-3 * 86400.0)
         mstate = state_out.wetland
         if mstate is None:
             mstate = create_methane_state(rh_kgc_day.shape[0])
-        mstate = methane_step(
-            mstate, jnp.asarray(f_inund), rh_kgc_day,
-            so.tsoi, so.wsoi, so.wisoi, so.hsoi[:so.tsoi.shape[1]],
-            ndays, methane_params, zwt_obs=zwt_obs,
-        )
+        if _ch4h:
+            # the month's mean of the hourly fluxes (daily_diag[3]: (ndays, npoi) day means)
+            mstate = methane_step_from_mean(mstate, jnp.mean(daily_diag[3], axis=0), so.wsoi, so.wisoi, so.hsoi[:so.tsoi.shape[1]],
+                                            ndays, methane_params, zwt_obs=zwt_obs)
+            daily_diag = daily_diag[:3]
+        else:
+            mstate = methane_step(
+                mstate, jnp.asarray(f_inund), rh_kgc_day,
+                so.tsoi, so.wsoi, so.wisoi, so.hsoi[:so.tsoi.shape[1]],
+                ndays, methane_params, zwt_obs=zwt_obs,
+            )
         state_out = eqx.tree_at(lambda s: s.wetland, state_out, mstate,
                                 is_leaf=lambda x: x is None)
 

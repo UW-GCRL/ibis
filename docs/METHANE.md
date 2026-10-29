@@ -2408,3 +2408,49 @@ standard deviation of the global total rises from 4.3 to 6.8 Tg yr-1; the annual
 0.99, so the year-to-year signal the model already had (soil temperature and respiration on a fixed area) is amplified
 rather than replaced. The seasonal cycle is unchanged in shape in every band (30-60 N max/min 10.4 -> 10.2). Observed
 area used: tropics 2.03 Mkm2 (sd of annual means 0.046), 30-60 N 0.95 (0.037), 60-90 N 0.38 (0.008), global 3.36 (0.063).
+
+**A learned wetland fraction (Hangkai's proposal, 2026-10-29; `verify/methane/wetland_ml_feasibility.py`,
+`wetland_ml_variants.py`; tables `wetland_emulator_*_s31t.txt`).** Gradient-boosted trees (scikit-learn
+HistGradientBoosting, 400 iterations, 63 leaves, monotone increasing in every water variable), one model per wetland band
+(W01/W02/W03), trained on the 49,545 wet cells x 120 months of the s31t hindcast against the WAD2M monthly fraction, no
+month-of-year and no climatology as inputs; held out by year (odd -> even and back, so every month is predicted out of
+year) and by cell (a random half). Predictor sets: forcing only (precipitation with lags and 5x5-cell neighbourhood means,
+surface temperature, frozen soil), model state only (soil water by layer, top-metre liquid water with lags, runoff,
+drainage, ET, LAI, soil temperature), both, both with the state as standardised anomalies; static CLM topography (FMAX,
+slope, elevation spread, elevation, percent wetland and lake, VIC b), sand, clay, latitude and the cell's WAD2M range.
+
+| predictors | tropics: monthly R2 (clim 0.58) / IAV r | temperate: R2 (0.49) / IAV r | boreal: R2 (0.81) / IAV r | global IAV r |
+|---|---|---|---|---|
+| both (state + forcing) | 0.34 / +0.85 | 0.34 / +0.09 | 0.74 / +0.59 | +0.59 |
+| forcing only | 0.28 / +0.36 | 0.25 / -0.11 | 0.67 / +0.58 | +0.22 |
+| state only | 0.30 / +0.77 | 0.33 / -0.13 | 0.74 / +0.51 | +0.53 |
+| both, state as anomalies | 0.32 / +0.81 | 0.33 / +0.14 | 0.74 / +0.47 | +0.41 |
+| hybrid: observed seasonal climatology + emulator anomaly (both) | 0.59 / +0.85 | 0.47 / +0.09 | 0.80 / +0.61 | +0.58 |
+
+Reading. (1) No predictor set beats the observed seasonal climatology month by month; the emulator's seasonal cycle has
+the right shape (r 0.91-1.00) but 60-70 % of the amplitude. (2) The emulator carries the year-to-year variation the
+climatology lacks, strongly in the tropics (r 0.85 on ten held-out years) and the boreal zone (0.6), not in the temperate
+band (managed wetlands; every scheme in the literature fails there). (3) Forcing alone loses the tropical signal (0.36):
+the model's soil water is what carries it, so "both" is the answer to the bias question, and the anomaly form costs
+nothing in skill. (4) Without the cell's WAD2M range as a static input the tropics collapse (R2 -0.49), as every
+calibrated scheme keeps a satellite maximum. (5) The hybrid, observed climatology plus the emulator's anomaly, keeps the
+climatology's seasonal skill exactly and adds the interannual skill; its anomalies are damped (sd ratio 0.30 tropics,
+0.66 boreal), which a per-band inflation fitted on the training years corrects. (6) The "bounded" column is misleading:
+WAD2M has missing months that the truth zero-fills and the range ignores, so the floor raises winter zeros.
+Design taken forward: `wetland_source: learned` = the observed seasonal climatology scaled by the emulator's standardised
+anomaly, inflated per band, bounded to [0, cell maximum], with the emulator an input file evaluated host-side each month.
+
+## 9. Hourly methane (2026-10-29)
+
+Hangkai: "I want the methane not monthly, at least daily, better to be hourly! ... If the methane module is called once at
+the end of each month with the end-of-month snapshot ... it has large bias and it is 100 % not what I want to see."
+Built: `physics.methane_hourly` (off by default, bit-identical off). In the time-step loop (`_run_day_inner`, `loops_gswp3`)
+the wetland CH4 flux is evaluated every step from the hourly soil temperature, water and ice with the day's heterotrophic
+respiration rate (`tco2mic`, a daily rate because the soil carbon model runs once a day, spread over the steps as the
+day/night NEE diagnostic does), accumulated to a day mean, carried through the day scan as a fourth daily output and
+averaged over the month; `methane_step_from_mean` books the month (`MethaneState.flux` = the mean, `annual` += mean x days;
+the water-table diagnostic stays the end-of-month value). The monthly inundated fraction is unchanged (WAD2M's resolution
+is the area's, not the flux's). The site harness takes the same switch (`site_fit.py --methane-hourly`,
+`site_transient.py`), so the tower fits can be redone at the hourly cadence. Tests: `tests/test_methane_hourly.py`; the
+methane, wetland and wiring test files pass (72). First run on the final state: `verify_outputs/final_s31t_ch4hourly`
+(2001-2010 hindcast from the s31t 2000 restart, production bands, climatology area), results below.

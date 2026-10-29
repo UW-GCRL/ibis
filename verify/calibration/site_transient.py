@@ -109,7 +109,8 @@ def one_year(state, key, year, ctx, isimveg=1):
         state, key, dd = run_month_gswp3(
             state, c["consts"], c["sp"], c["reader"], c["i"], c["j"],
             c["lat_rad"], year, im, key, 3600.0, leap=leap, nband=2,
-            nsoilcall=1, f_inund=None if fin is None else (fin[im] if np.ndim(fin) == 2 else fin), zwt_obs=None if zwo is None else jnp.asarray(zwo[im], jnp.float32))
+            nsoilcall=1, f_inund=None if fin is None else (fin[im] if np.ndim(fin) == 2 else fin), zwt_obs=None if zwo is None else jnp.asarray(zwo[im], jnp.float32),
+            methane_hourly=bool(c.get('methane_hourly', False)))
         if fin is not None and state.wetland is not None:
             ch4_m.append(np.asarray(state.wetland.flux) * float(raw["ndays"]))     # monthly-mean kgC-CH4 m-2 d-1 x days -> kgC m-2 month-1
         # dd = (daily_gpp, daily_aet, daily_rh), each (ndays, npoi); it was

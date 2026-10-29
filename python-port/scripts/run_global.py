@@ -673,6 +673,7 @@ def run_global_simulation(config: IBISConfig) -> None:
         if _wsrc not in ('climatology', 'observed'):
             raise ValueError(f"physics.wetland_source must be 'climatology' or 'observed', got {_wsrc!r}")
         logger.info("  wetland area source: %s%s", _wsrc, ' (WAD2M month of the calendar year inside 2000-2020, climatology outside)' if _wsrc == 'observed' else '')
+        logger.info("  CH4 cadence: %s", 'hourly, averaged to the month (methane_hourly)' if getattr(p, 'methane_hourly', False) else 'end-of-month snapshot')
         logger.info("  CH4 params: %s", (f"parameter file ({'with' if _mb else 'without'} band overrides)" if _has_fit else "per-biome r_ch4 and t_ref (docs/METHANE.md 5q)"))
 
     # Dynamic wetland area (docs/METHANE.md 7; Min's point 4): the month's inundated fraction from the model's own
@@ -784,6 +785,7 @@ def run_global_simulation(config: IBISConfig) -> None:
                 forcing_year, imonth, key, t.dtime, leap, grid.nband, nsoilcall,
                 f_inund=(_fobs if _fobs is not None else (_fdyn if _fdyn is not None else (None if ch4_clim is None else ch4_clim[imonth]))),
                 methane_params=ch4_params,
+                methane_hourly=bool(getattr(p, 'methane_hourly', False)),
             )
 
             # Write monthly output

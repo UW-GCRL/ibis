@@ -454,6 +454,25 @@ def methane_step(
     return MethaneState(flux=flux, annual=mstate.annual + flux * ndays, zwt=zwt)
 
 
+def methane_step_from_mean(
+    mstate: MethaneState,
+    flux_month: Float[Array, "npoi"],
+    wsoi: Float[Array, "npoi nsoilay"],
+    wisoi: Float[Array, "npoi nsoilay"],
+    hsoi: Float[Array, "nsoilay"],
+    ndays: int,
+    params: MethaneParams | None = None,
+    zwt_obs=None,
+) -> MethaneState:
+    """Advance the diagnostics by one month from the month's MEAN emission (kgC m-2 d-1), as the hourly evaluation in
+    the time-step loop produces it (`loops_gswp3` with `methane_hourly`; docs/METHANE.md 9). The water-table diagnostic
+    stays the end-of-month value, as before."""
+    p = params or MethaneParams()
+    zwt = wetland_water_table(wsoi, wisoi, hsoi, p)
+    if zwt_obs is not None: zwt = jnp.where(jnp.isfinite(zwt_obs), jnp.clip(zwt_obs, 0.0, p.z_max), zwt)
+    return MethaneState(flux=flux_month, annual=mstate.annual + flux_month * ndays, zwt=zwt)
+
+
 def reset_annual(mstate: MethaneState) -> MethaneState:
     """Clear the annual accumulator. Call at year end, after it is consumed."""
     return MethaneState(flux=mstate.flux, annual=jnp.zeros_like(mstate.annual),

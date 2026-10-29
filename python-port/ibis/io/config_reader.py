@@ -94,6 +94,9 @@ class PhysicsSection:
     #: calendar month for years inside the record (2000-2020; seasonal cycle and year-to-year variation from the
     #: observations) and the climatology outside it. wetland_dynamic adds its anomaly only where the climatology is used.
     wetland_source: str = 'climatology'
+    #: Evaluate the wetland CH4 flux every time step from the hourly soil temperature, water and ice and the day's
+    #: heterotrophic respiration rate, averaged to the month (docs/METHANE.md 9). False: the end-of-month snapshot, as before.
+    methane_hourly: bool = False
     #: Mix organic-soil hydraulic and thermal properties by the HWSD2 organic-carbon fraction
     #: (Lawrence & Slater 2008); needs orgcpct and bulkdens in soil_file (scripts/hwsd2_organic_to_nc.py).
     soil_organic: bool | str = False

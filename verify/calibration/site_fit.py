@@ -182,6 +182,7 @@ def _args(argv=None):
     ap.add_argument('--start', default='', help="best.json of an earlier fit: start from its parameters (with --only-baseline: a replay)")
     ap.add_argument('--target', default='gpp', choices=['gpp', 'nee', 'ch4'], help="'nee': fit night-time + w_et x day-time NEE (tower_nee_daynight.py targets via --nee-targets) instead of GPP + w_et x ET (CALIBRATION.md 36)")
     ap.add_argument('--nee-targets', default='', help='npz from tower_nee_daynight.py (required with --target nee)')
+    ap.add_argument('--methane-hourly', action='store_true', help='evaluate the wetland CH4 flux every time step and average to the month (METHANE.md 9), as the hourly production runs do')
     ap.add_argument('--ch4-targets', default='', help='ch4_targets.npz from ch4_tower_prep.py (required with --target ch4); the methane module then runs with an inundated fraction of 1 at WET towers and the WAD2M climatology of the cell elsewhere (CALIBRATION.md 38)')
     ap.add_argument('--f-inund', default='', help='SITE=fraction[;SITE=fraction]: inundated fraction overrides (0-1)')
     ap.add_argument('--wtd-mode', default='model', choices=['model', 'tower'], help="WET towers: 'tower' replaces the module's water-table depth by the tower's monthly mean water table (wtd_ch4 in ch4_targets.npz; months without a record keep the model's) (CALIBRATION.md 42)")
@@ -357,7 +358,7 @@ def setup(a, spin=True, verbose=True):
         say('water table from the tower (months with a record): ' + ', '.join(f'{s_} {n}' for s_, n in nrec.items()))
         for item in [x for x in getattr(a, 'f_inund', '').split(';') if x]: s_, v_ = item.split('='); FIN[..., sites.index(s_)] = float(v_)
         say('inundated fraction (annual mean): ' + ', '.join(f'{s_} {float(FIN[..., n_].mean()):.2f}' for n_, s_ in enumerate(sites)))
-    ctx0 = dict(i=i, j=j, lat_rad=lat_rad, sp=sp0, pft=pft0, consts=consts, reader=rd, f_inund=FIN); key0 = jax.random.PRNGKey(0); t0 = time.time()
+    ctx0 = dict(i=i, j=j, lat_rad=lat_rad, sp=sp0, pft=pft0, consts=consts, reader=rd, f_inund=FIN, methane_hourly=bool(getattr(a, 'methane_hourly', False))); key0 = jax.random.PRNGKey(0); t0 = time.time()
     if getattr(a, 'start_state', ''):                                                                   # equilibrated pools (site_pool_spinup.py)
         from ibis.state.model_state import create_ibis_state as _cis
         _z = np.load(a.start_state, allow_pickle=True); ssites = [str(x) for x in _z['meta_sites']] if 'meta_sites' in _z.files else list(sites); nss = len(ssites)   # save_state stores metadata as meta_<key>
@@ -371,7 +372,7 @@ def setup(a, spin=True, verbose=True):
     print(f'{"" if verbose else f"worker {os.getpid()}: "}spin-up cycle done in {time.time() - t0:.0f} s', flush=True)
     base_state, base_key = st, key0
     def run(vm, ex):
-        sp, pft = apply_params(sp0, pft0, vm, specla, ex); ctx = dict(i=i, j=j, lat_rad=lat_rad, sp=sp, pft=pft, consts=consts, reader=rd, f_inund=FIN)
+        sp, pft = apply_params(sp0, pft0, vm, specla, ex); ctx = dict(i=i, j=j, lat_rad=lat_rad, sp=sp, pft=pft, consts=consts, reader=rd, f_inund=FIN, methane_hourly=bool(getattr(a, 'methane_hourly', False)))
         s_, k_ = base_state, base_key; GM = []; EM = []; NM = []; DN = []; CM = []
         if 'som_scale' in ex:                                                                            # per-site disequilibrium factor on the SOM pools (CALIBRATION.md 36)
             f = jnp.float32(ex['som_scale']); s_ = eqx.tree_at(lambda s: (s.carbon.csoislon, s.carbon.csoislop, s.carbon.csoipas), s_, (s_.carbon.csoislon * f, s_.carbon.csoislop * f, s_.carbon.csoipas * f))
