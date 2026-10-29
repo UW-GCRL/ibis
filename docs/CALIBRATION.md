@@ -7645,3 +7645,31 @@ above covers what it would have drawn); and the HWSD2 0-1 m grid used here is ca
 
 Next: step 2, the launch deck refreshed from s31n to these numbers (plus a soil slide and the methane attribution);
 step 3, the IBIS 3.0 README and calibration description; step 4, full test suite, tag, diagnostics tidy; push on Hangkai's word.
+
+## 75. Release package, steps 2-3: the deck kit and the IBIS 3.0 documents (2026-10-28 19:45)
+
+**Deck (step 2).** The launch deck (37 slides, v19) is refreshed to the final in a kit rather than in place, because the
+session that builds the deck was still active with unpublished work when the final landed: the ten keynote figures were
+regenerated on s31t (`make_keynote_figs_v20.py`, the new `k_soil`) and uploaded as deck assets, and fourteen slide files
+were rewritten (`write_slides_v20.py`: gpp, et, carbon, wood, the new soil slide, tree, fire, methane, extended-hero,
+scorecard, limitations with four items, roadmap, available, cover). Kit, asset ids and the publish recipe:
+`ibis_local_document/figures/launch_deck_2026-10-28/refresh_s31t/NOTES.txt`. The publish waits for Hangkai's word.
+Numbers chosen for the deck: sink and CH4 on 2001-2010 (the budgets' windows), the rest 2006-2010 means and 2010 pools,
+burned area "half of GFED5" (0.51 on all land, 0.53 on the scored cells).
+
+**Documents (step 3).** `README.md` rewritten for the release: the 356-tower campaign table (medians of the Oct 23
+rescoring: GPP 0.97 own / 0.98 shared, ET 1.06 / 1.02, Reco 1.01 / 1.11), the global table with a final column
+(2001-2010: sink 2.91, harvest 0.67, GPP 147 = 1.32 x FLUXCOM on its land with r 0.90, bands 1.25 / 1.49 / 1.82, trend
++21 %, ET 529 = 1.04 x with r 0.94 and 55 % of cells inside the spread, CH4 170 with bands 152 / 12 / 6, burned 2.42 %
+with rank r 0.76, wood 388, soil 1982, cover 0.450, LAI 2.33), the four README figures regenerated on s31t with
+`global_figures.py` and `global_spatial.py` in the CPU environment (`tables/global_spatial_s31t.txt`), the what-changed
+table with the types, the cover limit and the soil turnover, the limitations list of the final, and the parameter chain.
+New `docs/RELEASE_3.0.md`: the release state in short (what it is, provenance of `params_31s_soil_strong.yaml`, what was
+calibrated against what, the protocol and scoring commands, the scorecard, the limitations, where things are). The
+release figure scripts are copied into `verify/calibration/diagnostics/release_2026-10-28/` with a README of the order.
+External text says IBIS 3.0 throughout; the "3.1" of the parameter-file headers and of sections 45-57 is explained once
+in RELEASE_3.0.md as the internal name of the October stage. The crop harvest of the final is 0.67 PgC yr-1 against
+1.4 in the 12 October release; recorded, not investigated.
+
+**Left for step 4 (code closure):** the full test suite on the final code, the tag, `global_spatial.py` in the scoring
+chain (matplotlib missing in the gpu venv), the tidy of the diagnostics folders, and the push on Hangkai's word.
