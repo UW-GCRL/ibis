@@ -7809,3 +7809,19 @@ unchanged. Hangkai (12:40) proposes a learned emulator of the WAD2M fraction fro
 (the CLM surface file carries FMAX, slope, elevation spread, percent wetland on our grid), constrained per band and
 monotone in water, as a switch if it beats the climatology on held-out years and cells; the test
 (`verify/methane/wetland_ml_feasibility.py`) is running.
+
+## 80. Methane at the hourly cadence: the tower refit (2026-10-29 13:25-)
+
+Hangkai: "we definitely need the tower refit for the methane ... How can we use the last day's information to represent
+the whole month ... we do not even use the mean." Right: the production methane parameters (section 38.1) were fitted
+with the month-end snapshot that `methane_step` used, so they absorb that convention and cannot stand under the hourly
+evaluation of METHANE.md 9. Refit launched 13:25 for the 48 wetland towers of the production report, with the SAME years,
+base parameters (`params_s3_classmedian.yaml`), start state (`pool_spinup_ch4/state.npz`), objective, CMA-ES settings
+(48 evaluations, population 6) and inundated fraction 1 as the production fits, plus `--methane-hourly`: the cadence is
+the only change, so the new parameters against the old measure what the snapshot did. Smoke test at US-Myb: the switch
+reaches the harness (baseline loss 241.3 hourly against 256.9 snapshot). Launchers `ch4_chain_h1.sh` (CPU, six 4-core
+slots) and `ch4_chain_h1_gpu.sh` (GPU, three at once, after the hourly hindcast `final_s31t_ch4hourly` leaves the GPU),
+outputs `site_fit/ch4_h1{,_gpu}`, logs `$S/ch4h1/`. Then: `ch4_fit_report.py` -> `ch4_class_yaml.py --band-csv
+logs/ch4_towers_zone.csv` -> `params_31s_ch4h.yaml` (= the final file with the hourly bands) -> hindcast with
+`methane_hourly: true` -> `ch4_bands_production.py`. The release parameter file and the production configuration change
+if the hourly bands hold at the towers (held-out year) and the globe stays inside the budget.
