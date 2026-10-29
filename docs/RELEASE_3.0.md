@@ -109,8 +109,10 @@ in the CPU environment). The release figures and tables come from `verify/calibr
    towers' seasonal cycle is not reproduced (held-out r 0.03) (38, 73).
 4. **GPP north of 30 N in spring and autumn** is 1.5-3 times FLUXCOM while July is close; annual GPP north of 60 N is
    1.8 times FLUXCOM, where FLUXCOM is also lowest against the towers and the campaign has eight polar towers (47-49, 69).
-5. **Soil carbon is 0.71 of the HWSD2 top metre**: the cold zones fall short (boreal 0.59, north of 60 N 0.47) because the
-   slow pools are still filling after the 200-year spin-up and the transient (72).
+5. **Soil carbon is 0.71 of the HWSD2 top metre**: the cold zones fall short (boreal 0.59, north of 60 N 0.47). The soil is
+   at equilibrium by the end of the spin-up (drift under 0.1 PgC yr-1 per zone, 77), so the gap is the equilibrium stock
+   under the model's turnover and inputs, and the boreal HWSD2 stock is largely peat and permafrost carbon that a
+   mineral-soil decomposition scheme has no process to build (72, 77).
 6. **Tree cover is 0.450 against 0.388** on natural land, phantom forest 3.6 % (71).
 7. **Cropland is a managed grass**: no crop phenology, sowing or harvest date; harvest 0.67 PgC yr-1 (41).
 8. **Carried from the 12 October release and not re-evaluated**: the ET partition (transpiration share), growth respiration

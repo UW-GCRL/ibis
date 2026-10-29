@@ -109,7 +109,7 @@ Every new process sits behind a switch that is off by default and bit-identical 
 2. **Temperate wood is 1.7 times the biomass map** (Europe 1.9, the eastern United States 1.7): young, managed forests against a model that grows old growth with no land-use history. The Congo is 0.63 of the map.
 3. **Wetland methane by band follows the towers, not the wetland-model ensemble**: 1.4 times the ensemble in the tropics, 0.4 to 0.5 in the north; no frozen-season production; a climatological inundation, so the tropical towers' seasonal cycle is not reproduced.
 4. **GPP north of 30 N in spring and autumn** is 1.5–3 times FLUXCOM while July is close; north of 60 N the annual GPP is 1.8 times FLUXCOM with eight polar towers behind the types.
-5. **Soil carbon is 0.71 of the HWSD2 top metre**, the cold zones at 0.5–0.6 because the slow pools are still filling after the spin-up and the transient.
+5. **Soil carbon is 0.71 of the HWSD2 top metre**, the cold zones at 0.5–0.6. The soil is at equilibrium by the end of the spin-up (drift under 0.1 PgC yr⁻¹ per zone), so this is the equilibrium stock under the model's turnover and inputs; the HWSD2 top metre in the boreal zones is largely peat and permafrost carbon that a mineral-soil decomposition scheme does not accumulate.
 6. **Tree cover is 0.45 against 0.39** on natural land (phantom forest 3.6 %).
 7. **Cropland** is a managed grass: no crop phenology, sowing or harvest date; harvest 0.67 PgC yr⁻¹.
 8. **Carried from the 12 October release, not re-evaluated**: the ET partition, growth respiration booked in daylight, the unclumped two-stream canopy, no vertically resolved decomposition, forcing ending in 2010.

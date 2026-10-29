@@ -7706,3 +7706,79 @@ grass with the crop capacity). A fix is structural, not a parameter: on the crop
 share (fl_grass = 1 on the share, or the cropland share exempt from the saturating rule). It changes the cropland cells'
 GPP, ET and NEE and therefore needs a new protocol run; it is Hangkai's call whether that goes into the release or into
 the crop-model item of the roadmap. Recorded as a known limitation either way.
+
+## 77. Is the soil carbon short because the spin-up is short? No: the soil is at equilibrium by 1900 (2026-10-29)
+
+Hangkai (10-29): "do you think the soil carbon issue is due to the time of spin up too short? shall we make the spin up
+longer?" Tested on the final run's own spin-up output (`soil_2026-10-28/spinup_soil_traj.py s31t`;
+`tables/spinup_soil_traj_s31t.txt`). The protocol accelerates the soil model tenfold (`nsoilcall 10`: ten soil-bgc calls
+per day, litter inputs included in each call, the F77 `soilcspin` procedure with `spincons` 10 instead of 2.6b4's 40)
+from 1701 to 1850 and runs the last 50 years at the true rate (`soilcspin_tail_years` 50), under the 1901-1930 climate
+cycled at 296 ppm; so the soil has seen about 1,500 accelerated plus 50 plain years before the transient starts.
+
+**Result.** Soil carbon (totcsoi) is flat in every zone group by the end of the tail: the drift over 1891-1900 is +0.03
+(humid tropics), +0.13 (savanna), +0.06 (subtropical), +0.09 (temperate), +0.09 (boreal), +0.05 (tundra) PgC yr-1, +0.44
+globally on 1,893 PgC. Regressing the yearly increment on the stock over the 1x tail gives e-folding times of 24-89 years
+(boreal 54, tundra 89) and an equilibrium within 1 % of the 1900 stock in every group (boreal 635 against 631.5 at 1900,
+filled 1.00; tundra 171 against 168, 0.99). The release of the acceleration at 1850 leaves no jump (+0.8 PgC boreal,
++2.9 global), so the accelerated and the plain equilibria agree. The passive pool is small in this scheme (14 PgC in the
+boreal, 212 globally; `soil_pools_by_group_bracket.txt`): there is no millennial pool left to fill. The rise through the
+transient and the hindcast (boreal 631 -> 654 -> 659 PgC, 1900 -> 2000 -> 2010) accelerates with time (0.12, 0.32,
+0.54 PgC yr-1 per half-century, decade), which is the response to rising inputs under rising CO2, not a pool approaching
+its equilibrium (that drift would decay).
+
+**So the gap is the equilibrium, not the clock.** The 0.59 of HWSD2 in the boreal and 0.47 north of 60 N are where the
+model's equilibrium stock sits under its turnover (soil C / Rh 142 yr; the map implies 217) and its inputs. Section 72's
+reading that the cold zones "fall short because the slow pools are still filling" was wrong and is withdrawn here; the
+statements built on it (sections 74-75, the release note, the README limitation and the deck's soil slide) are corrected
+today to say what the data say. Two things keep the boreal gap honest rather than alarming: the HWSD2 top metre in the
+D_subarctic and D_extreme zones holds 1,115 PgC largely in organic soils (NCSCD gives about 500 PgC for the whole
+circumpolar region to 1 m, section 72), carbon that accumulated in peat under anoxia and in permafrost over millennia and
+that a mineral-soil CENTURY cascade has no process to build, however long it runs; and the temperate and tropical bands,
+where HWSD2 is mineral soil, are at 0.80-0.82. A longer spin-up would change nothing; a peat / anoxic accumulation
+process would, and is a post-release item.
+
+**What other models do (for the question's second half).** TRENDY asks for a pre-industrial spin-up to equilibrium with
+recycled early-century climate and pre-industrial CO2, and the slow pools are the reason models either run several
+thousand brute-force years or solve the soil steady state analytically (ORCHIDEE's quasi-analytical FORCESOIL
+substitute after Lardy; CABLE's semi-analytical solution of Xia et al. 2012, saving over 90 % of the spin-up time; the
+CLM5 matrix semi-analytical spin-up). CLM's own route is an accelerated-decomposition phase of 200-300 years followed by
+up to a thousand years at the normal rate, the cold latitudes being the last to settle. IBIS 2.6b4 shipped the same
+device this port uses: `spincons 40` soil-bgc calls per day for 75 % of the spin-up and `eqyears 50` at the end. Our
+tenfold acceleration for 150 years plus the 50-year tail reaches the same place, and the tail shows it.
+
+## 78. Methane: would the FLUXNET-CH4 v1.0 towers alone have given a different globe? (2026-10-29)
+
+Hangkai (10-29): the methane bands were fitted on Chenchen's unpublished gap-filled set built on the FLUXNET-CH4 v2 site
+list (section 38); "what if we trained based on FLUXNET-CH4 version 1's data, will this make a difference? Does the new
+pattern [come from] the increase of data, which implies previous estimate have some bias?" Three tests, no refit.
+
+**1. Same towers, same budgets.** 22 of the 48 fitted wetland towers are v1.0 sites (Delwiche et al. 2021, Appendix B on
+the NAS). At the 21 with a published annual flux, Chenchen's v2 budget is 1.09 times the v1.0 value at the median
+(inter-quartile 0.91-1.18; one EuroFlux site flips sign, the suspect gap-fill branch of 38.1). The processing is not the
+difference. (Per-tower values stay in `logs/`; only band statistics are written here.)
+
+**2. The added towers emit less, in every band.** v2 added 27 wetland towers (median record 6 years against 9, measured
+share of the half-hours 0.37 against 0.46). Annual budgets, g CH4 m-2 yr-1, medians by production band: tropical v1.0
+sites 58 (n 4) vs added 19 (n 8), all 29 (n 12); temperate 25 (12) vs 9 (12), all 15; boreal 12 (6) vs 7 (6), all 9.
+The v1.0 towers sit near the GMB 2025 per-area ensemble values (tropics 55, temperate 34, boreal 31); the full set sits
+below them. So the data increase did lower the tower-side picture, most in the temperate band.
+
+**3. The globe with v1.0-only parameters.** `ch4_class_yaml.py --band-csv` on the report restricted to the 22 v1.0
+towers (the production recipe reproduces the production file exactly on the full report) gives tropical r_ch4 0.086,
+q10p 2.62, z_tau 0.83, tau_oxid 0.431 (4 towers); temperate 0.160, 2.73, 0.79, 0.262 (12); boreal 0.204, 2.11, 0.75,
+0.138 (6) -- against production 0.139 / 1.92 / 0.66 / 0.107, 0.126 / 2.39 / 0.64 / 0.164, 0.143 / 1.65 / 0.73 / 0.138.
+The 2001-2010 hindcast from the s31t 2000 state with them (`verify_outputs/final_s31t_ch4v1`, methane is diagnostic;
+`tables/ch4_bands_s31t_ch4v1.txt`): global 205 Tg CH4 yr-1 (production 170; GMB 153 [116-189]); 90S-30N 185 (152;
+GMB 109, x1.69 against x1.39); 30-60N 14.4 (11.6; GMB 32, x0.45 against x0.36); 60-90N 5.8 (6.3; x0.50 against x0.53).
+Both bands rise because the v1.0 towers give a higher survival (tau_oxid) and a steeper Q10, and the tropics rise most;
+the tropics / north ratio of the effective rate stays near 4.
+
+**Answer.** Training on the v1.0 towers alone would not have moved the split toward the ensemble; it would have put the
+tropics further above it (1.7x) and left the north at 0.45-0.5. The band pattern is the model's (the Rh and shallow water
+table of the tropical wetlands, the fixed t_ref of the Q10, no frozen-season production; section 73), not the data's. What
+the v2 data changed is the amount: the 27 added towers, mostly North American sites with short, heavily gap-filled
+records, pulled the tropical rate down toward the ensemble and the temperate rate down a little. Whether those low
+budgets are the wetlands' or the records' is a question for Chenchen (measured share 0.1-0.3 at several); the towers of
+v1.0 that overlap say the processing itself is unbiased. The production bands stay; the v1.0-only file is kept as
+`methane_2026-10-28/params_31s_ch4v1_bands_from_v1_towers.yaml` for the record.
