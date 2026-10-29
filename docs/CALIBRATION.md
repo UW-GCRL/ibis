@@ -7673,3 +7673,36 @@ params_31*) keep their names. Hangkai also ruled that the deck is for the meetin
 
 **Step 4 so far:** the full test suite on the final code passed (2026-10-28 19:12, CPU environment: 808 passed, 6 skipped, 6 xfailed, 3 xpassed, 7 min 42 s). **Left:** the tag, `global_spatial.py` in the scoring
 chain (matplotlib missing in the gpu venv), the tidy of the diagnostics folders, and the push on Hangkai's word.
+
+## 76. Why the crop harvest halved: the saturating lower-canopy cover on the cropland share (2026-10-29)
+
+Hangkai (10-29): "I need you to dig into this." The harvest of the final is 0.67 PgC yr-1 against 1.39 in the 12 October
+release (`release_2026-10-28/harvest_compare.py`, 2001-2010 means; `tables/harvest_compare_s7_s31n_s31t.txt`).
+
+**What harvest is.** On the cropland share c of a cell, `harvest = c x harvest_index x (grass leaf litterfall)`
+(`vegetation_dynamics.py`, section 41); harvest_index 0.45 and the crop capacity factors (C3 0.33, C4 1.16) are the same
+in both parameter files, and the cropland map is the same (ESA CCI, 21.98 Mkm2). The harvest therefore follows the
+cell-mean grass leaf turnover on cropland cells, which is leaf area per covered area x the covered fraction x the turnover.
+
+**Where the halving is.** It is everywhere: every region (Europe 75 -> 15 gC per m2 of cropland, North America 76 -> 29,
+East Asia 61 -> 24, South and South-East Asia 65 -> 41, South America 84 -> 53, Africa 47 -> 32) and every cropland-share
+bin (0.1-0.3: 47 -> 23; 0.3-0.6: 71 -> 34; 0.6-1.0: 68 -> 32 gC m-2 yr-1). On the cropland cells (share > 0.1) the
+lower-canopy leaf area per covered area barely moved (1.88 -> 1.63) while the lower-canopy COVER fell from 0.94 to 0.38.
+The cell-mean grass leaf area, cover x leaf area, went from 1.77 to 0.62, and the harvest with it (65 -> 31 gC per m2 of
+cropland). The 12 October run also carried a cropland GPP of 96 PgC yr-1 on those cells against 66 now, part of its
+excess over FLUXCOM in the cropland belts (12 October README, figure 3).
+
+**Why the cover fell.** The 12 October set had `cover_k = 0`, the F77 linear rule `fl = clip(LAI, 0.25, 0.975)`: a grass
+LAI of 1.9 covered the field. The type-set stages adopted the saturating cover of stage (b2), `fl = 1 - exp(-cover_k LAI)`
+with `cover_k 0.5` and `fl_min 0.05` (sections 11-12: "lower-canopy cover 0.69 -> 0.31"), to stop the open-land leaf area
+and GPP excess of the natural grasslands. Cropland carries the same grass with the same rule, so the managed grass now
+covers about 40 % of its own field. Nothing in the cropland treatment (section 41) was changed; the halving is a side
+effect of the cover rule on a land type where the cover is not the grass's to decide.
+
+**What it means.** Harvested crop production in the literature is about 1-2 PgC yr-1 (the 12 October 1.4 sat inside; the
+final's 0.67 is at half). The number touches nothing else: the harvest leaves with the disturbance flux, the soil and the
+sink are closed around it, and the cropland towers were fitted at full cover (section 41: towers run as fully cropland
+grass with the crop capacity). A fix is structural, not a parameter: on the cropland share the crop should cover its
+share (fl_grass = 1 on the share, or the cropland share exempt from the saturating rule). It changes the cropland cells'
+GPP, ET and NEE and therefore needs a new protocol run; it is Hangkai's call whether that goes into the release or into
+the crop-model item of the roadmap. Recorded as a known limitation either way.
