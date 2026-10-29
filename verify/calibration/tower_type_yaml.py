@@ -1,4 +1,4 @@
-"""Per-tower yamls: the tower's zone types (from a full 3.1 set with `types:`) at their parent positions on that set's base."""
+"""Per-tower yamls: the tower's zone types (from a full 3.0 type set with `types:`) at their parent positions on that set's base."""
 import sys, os, yaml, numpy as np, pandas as pd
 sys.path[:0] = ['python-port', 'verify/calibration']
 from ibis.io import pft_types as P

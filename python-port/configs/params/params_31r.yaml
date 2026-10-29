@@ -1,7 +1,7 @@
 # params_31r (2026-10-28, CALIBRATION.md 71): params_31n + the cover limit with a ramp PER ZONE (types carry tree_cover_*),
 #   the C/D-zone tree allocation refit (awood -> 0.35, the leaf-calibration cut goes to roots), shorter temperate wood
 #   residence (45 / 40 yr), and the tropical refit at half strength (T01 awood 0.40 / tau 50, T02 0.42 / tau 40).
-# IBIS 3.1 set v5 of the allocation stage (CALIBRATION.md 55): v4 + cold grasses G07 0.28/0.8 and G08 0.28/0.7 (between v1 collapse and v4 tundra 3.2), T16 x1.15, T17 x1.1, T01 x0.9; caps off.
+# IBIS 3.0 type set v5 of the allocation stage (CALIBRATION.md 55): v4 + cold grasses G07 0.28/0.8 and G08 0.28/0.7 (between v1 collapse and v4 tundra 3.2), T16 x1.15, T17 x1.1, T01 x0.9; caps off.
 stomata:
   tau15: 4500.0
   kc15: 0.00015

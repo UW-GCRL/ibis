@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Köppen-zone PFT list for IBIS 3.1 and the towers that can calibrate each type (CALIBRATION.md 45).
+"""Köppen-zone PFT list for IBIS 3.0 and the towers that can calibrate each type (CALIBRATION.md 45).
 
 40 types. T20 (northern open taiga conifer) was merged into T17 on 2026-10-13 (Hangkai: no towers; T17 is the
 nearest type, same parent and form, adjacent zone); IDs are kept stable, so there is no T20.

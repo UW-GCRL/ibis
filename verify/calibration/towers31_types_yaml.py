@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Per-type parameter file of IBIS 3.1 from the per-tower fits of the campaign (CALIBRATION.md 45.2).
+"""Per-type parameter file of IBIS 3.0 from the per-tower fits of the campaign (CALIBRATION.md 45.2).
 
     IBIS_FLUX_DIR=<towers31>/compact python verify/calibration/towers31_types_yaml.py <s2 root> <nee root> <base.yaml> <out.yaml> [table.csv]
 

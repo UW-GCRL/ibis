@@ -1,15 +1,15 @@
-"""Re-score every campaign tower under the IBIS 3.1 per-type set (CALIBRATION.md 50): per-tower yamls and commands.
+"""Re-score every campaign tower under the IBIS 3.0 per-type set (CALIBRATION.md 50): per-tower yamls and commands.
 
     IBIS_FLUX_DIR=<towers31>/compact python verify/calibration/towers31_rescore.py <params_31a.yaml> <base.yaml> \\
         <s2 cmds> <open refit cmds> <yaml dir> <cmds out> [--out-root DIR] [--prefix /Users/hyou/nas2]
 
-A tower runs its types at their parent positions (section 45.2), so the 3.1 values it would see in the global run are
+A tower runs its types at their parent positions (section 45.2), so the 3.0 values it would see in the global run are
 its types' `types:` entries written into the 12-position base: vmax (stomata.vmax, long names), coefm / acclim
 (stomata.coefm_pft, acclim_s0_pft, acclim_smax_pft, short names), lt_e0 / rgrowth / rroot (bgc, short names) per type at
 its parent; the scalars (gdd_thresh_u, gdd_ramp_u, sen_ycrit_u from the tree types; gdd_thresh_l, tthresh_l_c from the
 lower types; drop_stress_thresh, stressfac from all) as the mean over the tower's types that carry them. Each command is
 the tower's own fit line (the open refit's for GRA/OSH/CSH/SAV/WSA, else the S2 line) with the per-tower yaml, no start
-point, `--only-baseline --workers 1`: site_fit then writes best.json (the loss of the 3.1 set on the tower's objective)
+point, `--only-baseline --workers 1`: site_fit then writes best.json (the loss of the 3.0 type set on the tower's objective)
 and best_series.npz (its monthly GPP, ET, NEE). --prefix rewrites the NAS prefix for a mirror (the Mac).
 """
 import sys, os, re, yaml, numpy as np, pandas as pd

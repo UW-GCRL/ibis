@@ -3,8 +3,8 @@
 The short description of the IBIS 3.0 release state: what the model is, which parameter file is the release and where it
 came from, what was calibrated against what, how the release run is reproduced and scored, what it scores, and what it
 does not do. The long form is the calibration log, [`CALIBRATION.md`](CALIBRATION.md) (74 sections, each stage with its
-baseline, lever test and verdict); the section numbers below point there. Naming: this is IBIS 3.0; the "3.1" that appears
-in some parameter-file headers and log sections is the internal name of the October stage, not a version.
+baseline, lever test and verdict); the section numbers below point there. Naming: this is IBIS 3.0; the run tags and
+file names of the October stage (s31*, t31_*, params_31*) are working labels, not a version.
 
 ## 1. What IBIS 3.0 is
 
@@ -100,7 +100,7 @@ in the CPU environment). The release figures and tables come from `verify/calibr
    the scheme has no agricultural or lightning ignition term. The fire parameters sit at the optimum of the zone
    objective, so a further fire change would trade burned area for wood (71).
 2. **Temperate wood is 1.7 times the biomass map** (Europe 1.9, the eastern United States 1.7, Australia 1.6): those
-   forests are young and managed, and the model grows old growth from bare ground with no land-use history. The Congo is
+   forests are young and managed, and the model grows old growth over the 310-year protocol with no land-use history. The Congo is
    0.63 and humid Asia 1.36 of the map (67, 71).
 3. **The methane split by band follows the towers, not the wetland-model ensemble**: 1.39 times the ensemble in the
    tropics, 0.36 in 30-60 N, 0.53 north of 60 N. The band parameters fitted at the towers carry the towers' own rates into

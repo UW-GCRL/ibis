@@ -1,4 +1,4 @@
-# IBIS 3.1 set for s31e (CALIBRATION.md 53): params_31d + gate 0.50 (0.55 cost seasonal-tropical forest), GDD5 floor 600 for ALL boreal tree types (T19 larch had taken the evergreen's place at gdd5 ~490), temperate conifer floor 1200 -> 900 (LPJ TeNE; the Dfb cold edge had no tree type).
+# IBIS 3.0 type set for s31e (CALIBRATION.md 53): params_31d + gate 0.50 (0.55 cost seasonal-tropical forest), GDD5 floor 600 for ALL boreal tree types (T19 larch had taken the evergreen's place at gdd5 ~490), temperate conifer floor 1200 -> 900 (LPJ TeNE; the Dfb cold edge had no tree type).
 stomata:
   tau15: 4500.0
   kc15: 0.00015
@@ -64,7 +64,7 @@ stomata:
   cap_kn: 0.15
   coefm_mix: true
   acclim_per_pft: true
-  acclim_light: false      # built and tested (CALIBRATION.md 53) but OFF: at 24 conifer towers the 3.1 set already matched the measured cold-season share; the switch cost 13-15 % of ENF GPP
+  acclim_light: false      # built and tested (CALIBRATION.md 53) but OFF: at 24 conifer towers the 3.0 type set already matched the measured cold-season share; the switch cost 13-15 % of ENF GPP
   frost_on: false
   frost_t0: -5.0
   frost_t1: 5.0

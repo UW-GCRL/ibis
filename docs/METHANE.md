@@ -2158,7 +2158,7 @@ deep peat" or quantify the bias. Do not leave it implicit.
   `ibis.io.wad2m.read_wad2m_bounds` (per-cell range over 2000-2020); `verify/methane/wetland_clim_prep.py` (mu, sd per
   cell and month from a hindcast's monthly wsoi/tsoi with the model's own porosity; s7 2001-2010 ->
   `inputs/methane/wetland_clim/wetland_clim_s7_2001-2010.npz`, W 0.137 +- 0.018 m); run_global: `physics.wetland_dynamic`
-  + `forcing.wetland_clim_file` + the yaml `wetland_area:` betas by band (W01/W02/W03 when the 3.1 types are on, else the
+  + `forcing.wetland_clim_file` + the yaml `wetland_area:` betas by band (W01/W02/W03 when the 3.0 types are on, else the
   latitude bands), the fraction written as `finund`. Off by default; beta 0 is the bounded climatology. Betas from the
   regression: tropical 0.13 (Wrz), boreal 0.06 (W lag 0); the temperate storage beta was not tabulated (the band's best
   predictor was precipitation), 0.07 provisional. Not done: the water-table factor held at climatology inside f_inund

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Global map of the 40 Köppen-zone PFTs of IBIS 3.1 (CALIBRATION.md 45) with the calibration towers.
+"""Global map of the 40 Köppen-zone PFTs of IBIS 3.0 (CALIBRATION.md 45) with the calibration towers.
 
     <ibis-python> verify/calibration/diagnostics/pft_koppen_map.py <out dir>
 
@@ -30,7 +30,7 @@ import pft_koppen_design as D
 from landmask import true_landfrac
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else '.'
-# --towers31 SITEINFO: the calibration towers of the 3.1 campaign (towers31_prep.py; CALIBRATION.md 45.2) instead of
+# --towers31 SITEINFO: the calibration towers of the 3.0 campaign (towers31_prep.py; CALIBRATION.md 45.2) instead of
 # every tower on disk; circles = on disk before 2026-10-13, stars = acquired that day; counts = calibration-grade towers
 CAMPAIGN = sys.argv[sys.argv.index('--towers31') + 1] if '--towers31' in sys.argv else None
 SUFFIX = '_campaign' if CAMPAIGN else ''
@@ -161,7 +161,7 @@ ax.scatter([lo for _, _, lo in fx], [la for _, la, _ in fx], s=40, marker='o', c
            edgecolors='black', linewidths=0.8, transform=ccrs.PlateCarree(), zorder=5)
 ax.scatter([lo for _, _, lo in ch], [la for _, la, _ in ch], s=120, marker='*', c=[colour(s) for s, _, _ in ch],
            edgecolors='black', linewidths=0.7, transform=ccrs.PlateCarree(), zorder=6)
-ax.set_title('IBIS 3.1: the 40 Köppen-zone plant functional types (dominant type per 0.5° cell) and the calibration towers',
+ax.set_title('IBIS 3.0: the 40 Köppen-zone plant functional types (dominant type per 0.5° cell) and the calibration towers',
              fontsize=17, loc='left', pad=10)
 
 # legend: one block per life form

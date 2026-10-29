@@ -237,7 +237,7 @@ def pheno(
         frac = frac.at[:, 6].set(plai[:, 6] * tempu / avglaiu_safe)
         frac = frac.at[:, 7].set(plai[:, 7] * tempu / avglaiu_safe)
     else:
-        # IBIS 3.1 types (CALIBRATION.md 45.1): the habit travels with the type, not the position --
+        # IBIS 3.0 types (CALIBRATION.md 45.1): the habit travels with the type, not the position --
         # 0 evergreen, 1 drought-deciduous (dropu), 2 cold-deciduous (tempu)
         h = jnp.asarray(habit)[:, :8]
         fac = jnp.where(h == 1, dropu[:, None], jnp.where(h == 2, tempu[:, None], 1.0))

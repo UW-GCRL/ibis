@@ -1,4 +1,4 @@
-# IBIS 3.1 set v2 of the allocation stage (CALIBRATION.md 55): v1 (params_31g) + per-type leaf factors from the v1 global check (tropical x0.75, C-zone trees x0.7, Mediterranean x0.85, temperate conifer x1.25, boreal x1.2, savanna C4 x0.7, temperate grass x1.3; cold grasses tauleaf 1.0 / aleaf 0.35) applied through aleaf (balance to wood or roots); caps off.
+# IBIS 3.0 type set v2 of the allocation stage (CALIBRATION.md 55): v1 (params_31g) + per-type leaf factors from the v1 global check (tropical x0.75, C-zone trees x0.7, Mediterranean x0.85, temperate conifer x1.25, boreal x1.2, savanna C4 x0.7, temperate grass x1.3; cold grasses tauleaf 1.0 / aleaf 0.35) applied through aleaf (balance to wood or roots); caps off.
 stomata:
   tau15: 4500.0
   kc15: 0.00015

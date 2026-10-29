@@ -5156,7 +5156,7 @@ finding: IBIS's soil-carbon equilibrium is already at the top of the literature 
 anything that slows decomposition pushes it out; the soil respiration side (section 36, the growth-respiration
 and Rh structure) has to move first. Min's item 2 is closed with that record.
 
-## 45. IBIS 3.1: Köppen-zone PFTs and recalibration on tower NEE (2026-10-13, design)
+## 45. IBIS 3.0 Köppen-zone types: PFTs by climate zone and recalibration on tower NEE (2026-10-13, design)
 
 Hangkai's decision (2026-10-13, after Min's comments and sections 44): regenerate the PFT list from the Köppen
 mask, 30-40 or more types, then recalibrate the parameter set on the towers' NEE. This supersedes the four-PFT
@@ -5195,7 +5195,7 @@ rules differ -- that is stated in the table, not hidden.
    day-time uptake, held-out year), grouped by type; class medians per type; parent medians where a type has
    no towers; then the GPP/ET verdicts of sections 37 and 39 and the global protocol.
 Expected effort: one to two weeks for 1-3, one week of fits for 4 (about 300 towers at the section-36 cost,
-six at a time), two days of global runs; three to four weeks to a scored IBIS 3.1.
+six at a time), two days of global runs; three to four weeks to a scored IBIS 3.0.
 
 **Why the GPP is high: it is leaf area, not physiology (2026-10-13 16:00).** Decomposition of the s7 2001-2010
 excess over FLUXCOM into leaf area (annual mean of the monthly cover-weighted displayed LAI against the MODIS
@@ -5220,7 +5220,7 @@ long everywhere outside the tropics. The towers did not see this because every f
 site-attribute or MODIS leaf area (`--fixed-lai attrs`, `--lai-mode attrs-modis`, sections 31-36): the
 physiology was calibrated under observed canopies; the model's own canopy generation (leaf allocation and
 turnover, the lower-canopy LAI, the cover rules, the two-canopy stacking) was never under test. So the answer
-to "is it the framework" is yes: the vegetation dynamics, not the parameters of photosynthesis. For IBIS 3.1
+to "is it the framework" is yes: the vegetation dynamics, not the parameters of photosynthesis. For IBIS 3.0
 this fixes the calibration design: NEE at towers calibrates the physiology and respiration of each type; the
 leaf area, cover and season of each type must be fitted against MODIS LAI, tree cover and the seasonal cycle
 by type and zone, or the global GPP stays where it is however well the towers fit.
@@ -5533,7 +5533,7 @@ chain (leaf area 1.41, composition and cover 1.11). The grasses carry the most l
 tauleaf x specla 13.5 for C3 grass, 11.25 C4, against 7.5 for the trees) and F77's lower cover saturates (fl = LAI,
 clipped at 0.975), so a modest dryland NPP grows a full, dense grass canopy. Next: the leaf-area calibration, grasses
 and shrubs first. The gate is kept as the tree-cover fix (a realism gain at no GPP cost); its 3 % forest loss is the
-price of the stress overlap and can be revisited per type when the 3.1 types carry their own stress.
+price of the stress overlap and can be revisited per type when the 3.0 types carry their own stress.
 
 ## 48. The leaf-area stage: references and where the excess sits (2026-10-17)
 
@@ -5654,7 +5654,7 @@ attribute). This corrects section 48's reading: plot-versus-cell leaf area expla
 GPP per leaf area the model carries, not most of it; the rest of the tower / FLUXCOM gap (1.43) is FLUXCOM's documented
 low bias, plot productivity beyond leaf area, or both, which these data cannot separate. What it does supply is a
 physically grounded capacity correction: refitting capacity at the tower pixel's leaf area (+22 % over what was held)
-would lower GPP per leaf by ~7 %, ~10 % through the leaf-GPP feedback -- to be done per type on the 3.1 set.
+would lower GPP per leaf by ~7 %, ~10 % through the leaf-GPP feedback -- to be done per type on the 3.0 type set.
 
 **Capacity from the tower pixel's leaf area, approximate test (`gate_test/glc_cap10`, `params_s7_glc_cap.yaml`,
 `diagnostics/capacity_pixel.py`; `compare_vs_cover_2006-2010.txt`).** vmax x (pixel / held)^(-0.29/0.75), median per
@@ -5664,7 +5664,7 @@ cover run: **GPP 175.9 -> 171.2 PgC yr-1 (1.61 -> 1.57 x FLUXCOM)**; tropics 1.3
 60 N 3.71 -> 3.56; excess 67 -> 62 PgC; ET, tree cover unchanged. The estimate of ~10 % was again too high (the leaf
 step: -10 % estimated, -1.4 % measured): the effective dlnGPP/dlnVmax in this state is ~0.37, half of section 4's 0.75,
 and the leaf-GPP amplification hardly shows. Only measured effects are reported from here. Where the 62 PgC stand:
-north of 60 N 3.56x (tundra and boreal: the pooled lower-canopy phenology of section 40, which the 3.1 tundra types
+north of 60 N 3.56x (tundra and boreal: the pooled lower-canopy phenology of section 40, which the 3.0 tundra types
 replace), 30-60 N 2.09x (the season: November-March 21 % of the GPP against 7 %), shrubland 4.86x, cropland 1.58x (the
 crop model), tropics 1.34x (within FLUXCOM's documented tropical low bias; COS-based estimates are 25-30 % higher).
 Since s7 (2006-2010): 193.9 -> 191.7 (gate) -> 189.0 (leaf) -> 175.9 (cover) -> 171.2 (capacity), -12 %.
@@ -5679,13 +5679,13 @@ shrubland 1.26 -> 1.11 (closer), grassland 1.05 -> 1.04, savanna 0.80 -> 0.70 an
 below), open classes 1.02 -> 0.95, all towers 0.89 -> 0.87. The rule removes 9-20 % of GPP at sparse towers and nothing
 in forests and dense grasslands.
 
-**Decision (Hangkai, 2026-10-19): adopt the LPJ cover in IBIS 3.1 and refit the open types' capacity under it.** The
-3.1 base is the gate + leaf step + LPJ cover (`params_s7_gate_leaf_cover.yaml`; the approximate capacity test of
+**Decision (Hangkai, 2026-10-19): adopt the LPJ cover in IBIS 3.0 and refit the open types' capacity under it.** The
+3.0 base is the gate + leaf step + LPJ cover (`params_s7_gate_leaf_cover.yaml`; the approximate capacity test of
 `params_s7_glc_cap.yaml` is not adopted -- capacity comes from the refits). The refit (`$S/t31_stage4.sh`, queued after
 the crop stage, 8 slots): the GPP/ET fits of the 148 open towers (GRA 86, OSH 34, SAV 15, WSA 8, CSH 5) again, same
 fitted set as S2, base `params_s7_crop_lpjcover.yaml` (= s7 + cover_k 0.5, fl_min 0.05), warm-started from the S2
 best.json, at the tower's GLASS 0.05-degree pixel peak leaf area (`--lai`, 147 towers; logs/lai_tower_pixel.csv), 48
-evaluations, outputs `site_fit/t31_open_lpj`. The first 3.1 global run uses the open types' S2 capacity until the
+evaluations, outputs `site_fit/t31_open_lpj`. The first 3.0 global run uses the open types' S2 capacity until the
 refit lands; the NEE respiration fits of the open towers were made at the S2 GPP and may want a re-check after it.
 
 **The fits were I/O-bound (2026-10-19/20).** The site harness read GSWP3 through the global reader, which decompresses
@@ -5715,11 +5715,11 @@ protocol as section 41, leaf area the MODIS cell maximum): C3 median 0.30 with 2
 from 16 towers; the fallow season the managed grass does not have), C4 3.00 with all four maize towers at the cap and
 still 0.58-0.83 x their GPP (s7: 1.16): under the thinner cover at a crop LAI of ~1.7 the capacity cannot reach maize.
 A section with both medians at their bounds would raise the global cropland capacity 0.49 -> 0.84 x grass, so the first
-3.1 run keeps s7's crop scales (0.329 / 1.158, already run under the LPJ cover in the cover test: cropland 1.65 x
+3.0 run keeps s7's crop scales (0.329 / 1.158, already run under the LPJ cover in the cover test: cropland 1.65 x
 FLUXCOM). Next for crops, if wanted before IBIScrop: the refit at the towers' GLASS pixel leaf area (Corn Belt pixels
 3-4 against the cell maximum 1.7), as done for the open types.
 
-## 50. IBIS 3.1, the first global run (s31a; 2026-10-20 03:15)
+## 50. The type set's first global run (s31a; 2026-10-20 03:15)
 
 **The set.** `configs/params/params_31a.yaml` = `params_31_base.yaml` (sections 47-49: tree gate 0.225 / 0.30 with
 fu_min 0.05, the trait-bounded leaf step, the LPJ lower cover 0.5 with fl_min 0.05, the zone-band methane sets, s7's
@@ -5739,9 +5739,9 @@ clean: no non-finite cells, GPP 197 vs s7 195 with the same Köppen-group split;
 sink are the per-type respiration meeting s7's soil, which the spin-up settles. The capacity split
 (`gpp_split_by_capacity`) stays off; it is the on/off experiment after this run. Scoring when the hindcast lands
 (~16:30): the section-47/48 diagnostics (GPP by band and observed land type, leaf area against GLASS/GIMMS, tree
-cover, ET, the 30-50 N season), the budgets, methane by zone band, and the towers re-scored with the 3.1 set.
+cover, ET, the 30-50 N season), the budgets, methane by zone band, and the towers re-scored with the 3.0 type set.
 
-**The 3.1 set at its own towers (re-score, 2026-10-20 04:55; `towers31_rescore.py` on the Mac, 358 baselines,
+**The 3.0 type set at its own towers (re-score, 2026-10-20 04:55; `towers31_rescore.py` on the Mac, 358 baselines,
 `logs/rescore31a.csv`, `diagnostics/rescore_report.py`).** Each tower run with its types' medians at the parent
 positions, on its own GPP/ET objective, against its own fit. Annual GPP model / tower, medians: **0.97 under the set
 against 0.99 under the own fits**, but the share of towers within 0.8-1.25 falls from 78 % to 47 %, and 31 % of the
@@ -5801,10 +5801,10 @@ stress factor includes the frozen season (boreal forest stress median 0.55-0.64,
 temperate and tropical forest) -- a cold-season artefact, not drought; over 300 years a factor 0.7 per year thins a
 stand to a fraction of its wood (the spin-up trajectory: boreal forest cover 0.91 at 1701, 0.62 at 1726, 0.51 at 1800;
 s7 holds 0.82). (2) The temperate loss is in s31a only (the cover run keeps 0.84): the temperate grass under the
-forest grows from LAI 1.4 (cover run) to 6.4, i.e. the 3.1 grass types (G06 with its capacity at the TRY floor and the
+forest grows from LAI 1.4 (cover run) to 6.4, i.e. the 3.0 grass types (G06 with its capacity at the TRY floor and the
 per-zone lower-canopy phenology) outgrow the T15/T16 trees in the dynamic competition, which the LPJ cover does not stop.
 The lower canopy carries 64 % of global NPP (40 % inside observed forest), which is also why NPP and the far north
-rose. A two-arm five-year run from the s7 2000 state (the 3.1 set with and without the gate) is launched to confirm the
+rose. A two-arm five-year run from the s7 2000 state (the 3.0 type set with and without the gate) is launched to confirm the
 split; the fixes on offer are the gate's stress averaged over the growing season (a definition change of the gate) and
 the bound-relaxed refit of the grass and shrub types.
 
@@ -5812,16 +5812,16 @@ the bound-relaxed refit of the grass and shrub types.
 `pheno.stress_accum_tmin`; stage (b3) set it to 5 C ("frozen soil reads as fully stressed, so a calendar mean cannot
 tell boreal forest from steppe", section 18), the site-first sets started from the defaults (-100 C, every day) and
 nobody carried it over, so the gate of sections 47-50 has been fed the calendar mean -- the boreal artefact above is
-that. `params_31a_gs.yaml` = the 3.1 set with stress_accum_tmin 5.0; the threshold 0.225 / 0.30 was fitted to the
+that. `params_31a_gs.yaml` = the 3.0 type set with stress_accum_tmin 5.0; the threshold 0.225 / 0.30 was fitted to the
 calendar-mean field and must be re-estimated on the growing-season field (`gate_test/gs_stress1`, one year from the
 s31a 2000 state, queued behind the forest diagnosis).
 
 **The split, confirmed (`gate_test/forest5_{types,types_nogate}`, five years from the s7 2000 state, 10:08).**
 Observed-forest tree cover, July 2001 -> 2005, and the grass LAI under it: s7 (3.0, no gate) tropical 0.85 / temperate
-0.86 / boreal 0.86, grass 0.9 / 1.6 / 1.5; the cover run (3.0, gate) boreal 0.85 -> 0.73; the 3.1 set with the gate
-boreal 0.85 -> 0.76, temperate grass 1.5 -> 3.9; the 3.1 set without the gate boreal 0.85 -> 0.85, temperate grass 1.5
+0.86 / boreal 0.86, grass 0.9 / 1.6 / 1.5; the cover run (3.0, gate) boreal 0.85 -> 0.73; the 3.0 type set with the gate
+boreal 0.85 -> 0.76, temperate grass 1.5 -> 3.9; the 3.0 type set without the gate boreal 0.85 -> 0.85, temperate grass 1.5
 -> 3.8. So the boreal loss is the gate (the calendar-mean stress) and nothing else, and the temperate grass invasion is
-the 3.1 grass types and not the gate; the trees' loss in the temperate zone is the slow outcome of that competition
+the 3.0 grass types and not the gate; the trees' loss in the temperate zone is the slow outcome of that competition
 over the spin-up (0.52 by 1750). The boreal fix is the restored growing-season threshold with a re-estimated gate; the
 temperate fix is the grass types' capacity, which 40 % of the C3-grass fits had pinned at the TRY floor (above): the
 bound-relaxed refit.
@@ -5858,13 +5858,13 @@ below: not the shoulders.**
 
 **In absolute terms (PgC, the same cells, monthly).** The D-zone mixed excess (6.8 PgC) is summer: 6.0 in May-September,
 0.6 in April + October (the shoulder ratios of 5-22 x are ratios of near-zero FLUXCOM values); and at the subarctic
-towers the 3.1 set's season is if anything short (the re-score: April + October carry 1 % of the model's GPP against 7 %
+towers the 3.0 type set's season is if anything short (the re-score: April + October carry 1 % of the model's GPP against 7 %
 of the towers' for the G07 and G08 grasses, trees 0.8-1.0 x in those months). What the D-zone summer has is a grass layer
 of LAI x cover 4.4 among trees of 2.2. The C-zone mixed land (5.7 PgC) carries a grass layer of LAI x cover 6.5-7.8 in
 every month over trees of 0.4 (model GPP 1.0 PgC in January against FLUXCOM 0.55): the invasion of section 50 at its
 worst, unbounded leaf area. The A-zone mixed land (6.8 PgC) is a flat 1.4 x with plausible canopies (upper 2.8, lower
 2.1-2.5): the tower-level factor. So the mixed class is grass capacity and grass leaf area, and **the per-type maximum
-leaf area of section 46 (Hangkai's choice; C3 grass 2.75, C4 2.5, shrubs 4.0) was never carried into the 3.1 base** --
+leaf area of section 46 (Hangkai's choice; C3 grass 2.75, C4 2.5, shrubs 4.0) was never carried into the 3.0 base** --
 the leaf step superseded the cap test without adopting the cap. s31b carries it (`build_s31b.sh`: base = gate on the
 growing-season stress + the cap + the relaxed capacities).
 
@@ -5881,12 +5881,12 @@ refits, only the towers whose every capacity moved down (the floor was the artef
 
 ## 51. The canopy scaling was already right: a retracted premise (2026-10-20 13:00-14:10)
 
-Claimed at 12:55 and chosen by Hangkai as the next fix: that the s7 / 3.1 runs still carry the F77 big-leaf scaling of
+Claimed at 12:55 and chosen by Hangkai as the next fix: that the s7 / 3.0 runs still carry the F77 big-leaf scaling of
 section 16 (stems' absorbed PAR credited to the leaves, a leafless canopy still assimilating), because the
 `scale_leaf_only` / `vmax_mix` switches of sections 16-17 are absent from every parameter file since the site-first
 restart. Checked before launching the refit cycle: four forest towers (DE-Hai, US-Ha1, US-MMS, FI-Hyy) run with and
 without the switches are bit-identical, and the deciduous towers' December-February GPP is 0.0 either way. The reason
-is in the code: the s7 and 3.1 sets run the sun / shade canopy of section 26 (`sunshade_u`, `sunshade_l` true, `cap_kn`
+is in the code: the s7 and 3.0 type sets run the sun / shade canopy of section 26 (`sunshade_u`, `sunshade_l` true, `cap_kn`
 0.15), and `sunshade_canopy` integrates the two-stream light over the plant area with the leaves as the share L / (L + S)
 at every depth and the only assimilating surface; with no leaves it assimilates nothing. On that path `canopy_scaling`
 is computed and unused (`anc_ub if params.sunshade_u else an_ub`), so its switch is inert. The section-16 error exists
@@ -5896,7 +5896,7 @@ is the one of section 49 again: test the claim on a tower before building on it.
 stands.
 
 **s31b launched (14:09; Hangkai: "run the s31b now", all refits adopted -- one rule for every tower).**
-`params_31b_relax.yaml` = `params_31_base_gs.yaml` (the 3.1 base + stress_accum_tmin 5 C + the section-46 leaf-area
+`params_31b_relax.yaml` = `params_31_base_gs.yaml` (the 3.0 base + stress_accum_tmin 5 C + the section-46 leaf-area
 cap) + the `types:` section from the S2 fits with the 126 finished relaxed-bound refits replacing the pinned towers'
 (CA-TP4 and SE-Nor were cut off mid-fit and keep their earlier values) and the NEE fits; all 35 natural types with their
 own values. Protocol: the closing protocol with SKIP_SPINUP=1 from s31a's 1900 state (transient 1901-2000, monthly
@@ -5905,10 +5905,7 @@ s31a hindcast when it lands (~18:30). Changes against s31a, in one run: the gate
 leaf-area cap, the grass / shrub / boreal-conifer capacities down 25-45 %, the forest capacities up (temperate deciduous
 +47 %, tropical evergreen +19 %).
 
-**Naming (Hangkai, 2026-10-20 14:45).** "IBIS 3.1" in sections 45-51, the run tags (s31a, s31b, ...), the `t31_*`
-tower outputs and the `params_31*.yaml` files is an internal working label for the Köppen-type calibration. Until the
-model is published, all of it is part of **IBIS 3.0**: the README, the report and any external text say IBIS 3.0; the
-internal labels stay as they are in logs and file names.
+**Naming (Hangkai, 2026-10-20 14:45; applied to the text 2026-10-28).** The Köppen-type calibration of sections 45-51 carried an internal "3.1" label while it ran; the run tags (s31a, s31b, ...), the `t31_*` tower outputs and the `params_31*.yaml` files keep that label in their names. All of it is **IBIS 3.0**. On 2026-10-28 (Hangkai: "Use IBIS 3.0") the label was scrubbed from this log, the parameter-file headers and the code comments, so the text says IBIS 3.0 throughout; file and tag names stay as they are.
 
 **s31b mid-transient (16:20, year 65).** GPP 1956-1965 is 0.86 x s31a's (tropics 0.92, 30-60 N 0.78, 60-90 N 0.75),
 i.e. ~151 PgC on the 2006-2010 basis; ET unchanged. Observed-forest tree cover from the thinned 1900 state: boreal 0.51
@@ -5919,7 +5916,7 @@ corrected gate now allows; s7 had 15 %). The temperate tree types are not the ca
 keeps a median capacity of 30.2 umol (base 31.1): only its bound-pinned towers were refit (to ~17), the interior-optimum
 towers stayed at ~31 and the median is the upper half -- the towers are split, and the type median hardly moved, so the
 invasion is weakened less than the C3-grass-wide 0.56 suggested; (2) re-establishment: the five-year arms (section 50)
-showed an established temperate forest holding under the 3.1 set, while a thinned forest cannot regrow through a
+showed an established temperate forest holding under the 3.0 type set, while a thinned forest cannot regrow through a
 grass sward that already holds the ground -- a hysteresis the warm start from s31a's 1900 state cannot escape. The
 consequence for the final run is a cold spin-up; a 50-year cold spin-up on the s31b set (`gate_test/cold50_s31b`) is
 queued behind s31b to confirm that temperate forests seeded at full cover hold.
@@ -5973,7 +5970,7 @@ The gate is not the cause (survival 1.00 on those cells, stress 0.86-0.94), and 
 (lower LAI 2.3, its NPP 500 gC m-2 beside the trees' 250 at year 5). The temperate tree PFTs 3/4/5 simply never
 grow in the C zones, from the same cold start, under BOTH sets; in 3.0 the subtropical and oceanic forests were
 tropical trees (the F77 envelope lets PFTs 1/2 in wherever the coldest month is above 0 C) -- phantom tropical forest
-of LAI 7.5 in the SE US, S China, W Europe, part of s7's 30-60 N GPP excess. The 3.1 layout switches 1/2 off in the
+of LAI 7.5 in the SE US, S China, W Europe, part of s7's 30-60 N GPP excess. The 3.0 layout switches 1/2 off in the
 C zones, so the forests collapsed: C-zone forest cover 0.10 at the end of s31a's spin-up, 0.14 in s31b's hindcast
 (sections 50-51 read this as grass invasion and hysteresis; both wrong). Section 20 met the same thing at the
 towers in September ("the prescribed stand dies at 12 of 61": DK-Sor, BE-Bra, FR-Fon, NL-Loo, IT-*, FR-Pue, AU-Tum
@@ -6136,7 +6133,7 @@ the F77 "not too warm" band of PFT 6, gdd5 < 1200, and do not count): under the 
 already 0.015 against 0.019 measured -- the per-type acclimation constants fitted in the campaign had closed the
 September gap (0.12-0.16 vs 0.01-0.06, section 21) at the cold conifers; the switch leaves the winter share where it
 is (0.014) and costs 15 % of annual GPP (median ratio 1.02 -> 0.87, the shoulders), as it cost 12 % at the mild-winter
-pines (1.12 -> 0.99). The towers therefore say the evergreen RATE is right in the 3.1 set, and the 30-60 N shoulder
+pines (1.12 -> 0.99). The towers therefore say the evergreen RATE is right in the 3.0 type set, and the 30-60 N shoulder
 excess is leaf display and composition (section 53's diagnosis: upper LAI 3.3 in January, 85 % evergreen). Decision:
 `acclim_light` and `frost_on` stay in the code, OFF in `params_31d.yaml`; s31d carries the gate 0.55, T07 out of
 A_humid and the GDD5 floor 600. The winter item moves whole to the phenology/composition stage.
@@ -7653,7 +7650,9 @@ session that builds the deck was still active with unpublished work when the fin
 regenerated on s31t (`make_keynote_figs_v20.py`, the new `k_soil`) and uploaded as deck assets, and fourteen slide files
 were rewritten (`write_slides_v20.py`: gpp, et, carbon, wood, the new soil slide, tree, fire, methane, extended-hero,
 scorecard, limitations with four items, roadmap, available, cover). Kit, asset ids and the publish recipe:
-`ibis_local_document/figures/launch_deck_2026-10-28/refresh_s31t/NOTES.txt`. The publish waits for Hangkai's word.
+`ibis_local_document/figures/launch_deck_2026-10-28/refresh_s31t/NOTES.txt`. Published on Hangkai's reply the same
+evening (deck Version 23, 20:15; the soil slide after wood; the deck session's newer wood note kept). The deck is for
+the meeting only: nothing of it is tracked in this repository.
 Numbers chosen for the deck: sink and CH4 on 2001-2010 (the budgets' windows), the rest 2006-2010 means and 2010 pools,
 burned area "half of GFED5" (0.51 on all land, 0.53 on the scored cells).
 
@@ -7667,9 +7666,10 @@ table with the types, the cover limit and the soil turnover, the limitations lis
 New `docs/RELEASE_3.0.md`: the release state in short (what it is, provenance of `params_31s_soil_strong.yaml`, what was
 calibrated against what, the protocol and scoring commands, the scorecard, the limitations, where things are). The
 release figure scripts are copied into `verify/calibration/diagnostics/release_2026-10-28/` with a README of the order.
-External text says IBIS 3.0 throughout; the "3.1" of the parameter-file headers and of sections 45-57 is explained once
-in RELEASE_3.0.md as the internal name of the October stage. The crop harvest of the final is 0.67 PgC yr-1 against
+The text says IBIS 3.0 throughout: on Hangkai's instruction the same evening ("Use IBIS 3.0") the internal "3.1" label
+was scrubbed from this log, the parameter-file headers and the code comments; run tags and file names (s31*, t31_*,
+params_31*) keep their names. Hangkai also ruled that the deck is for the meeting only and never goes into the repository. The crop harvest of the final is 0.67 PgC yr-1 against
 1.4 in the 12 October release; recorded, not investigated.
 
-**Left for step 4 (code closure):** the full test suite on the final code, the tag, `global_spatial.py` in the scoring
+**Step 4 so far:** the full test suite on the final code passed (2026-10-28 19:12, CPU environment: 808 passed, 6 skipped, 6 xfailed, 3 xpassed, 7 min 42 s). **Left:** the tag, `global_spatial.py` in the scoring
 chain (matplotlib missing in the gpu venv), the tidy of the diagnostics folders, and the push on Hangkai's word.

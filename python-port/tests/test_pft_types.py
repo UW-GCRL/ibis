@@ -1,4 +1,4 @@
-"""IBIS 3.1 Köppen-zone types in the 12 IBIS positions (ibis.io.pft_types; CALIBRATION.md 45.1)."""
+"""IBIS 3.0 Köppen-zone types in the 12 IBIS positions (ibis.io.pft_types; CALIBRATION.md 45.1)."""
 from __future__ import annotations
 
 import numpy as np

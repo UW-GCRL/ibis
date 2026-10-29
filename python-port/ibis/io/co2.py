@@ -17,7 +17,7 @@ no year-to-year growth-rate variability. `co2_series_from_file` is provided so
 the table can be replaced by real data without touching callers.
 
 Outside the table CO2 is clamped to the end values rather than extrapolated. 2021-2024 (NOAA GML Mauna Loa annual
-means) were added on 2026-10-13 for the IBIS 3.1 tower windows that run past 2020 (CALIBRATION.md 45); the run
+means) were added on 2026-10-13 for the IBIS 3.0 tower windows that run past 2020 (CALIBRATION.md 45); the run
 years up to 2020 are unchanged.
 """
 from __future__ import annotations

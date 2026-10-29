@@ -293,7 +293,7 @@ def setup(a, spin=True, verbose=True):
         if nm.startswith('vmax:'): return np.log(vmax0[PFT_NAMES.index(nm[5:])])
         v = np.asarray(_extra_value(sp0, pft0, nm), dtype=float)
         if v.ndim == 1: v = v[mask.any(axis=0) > 0]                  # per-PFT base (class-median sets): the towers' own PFTs
-        elif v.ndim == 2: v = v[mask > 0]                              # per cell and PFT (IBIS 3.1 types)
+        elif v.ndim == 2: v = v[mask > 0]                              # per cell and PFT (IBIS 3.0 types)
         return _enc(nm, float(np.mean(v)))
     lo = np.array([enc_bounds(nm)[0] for nm in names]); hi = np.array([enc_bounds(nm)[1] for nm in names])
     if a.start:                                                                       # an earlier fit's parameters (natural units)

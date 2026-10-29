@@ -166,7 +166,7 @@ def _run_day_inner(
         # (Fortran stats.f sumnow: rwood, rroot, rgrowth)
         # scalars or (12,) per-PFT vectors (CALIBRATION.md 37); indexed by PFT below
         _pv = lambda x: (jnp.asarray(x, dtype=jnp.float32) if jnp.ndim(x) == 2
-                         else jnp.broadcast_to(jnp.asarray(x, dtype=jnp.float32), (12,)))   # (npoi, 12) under IBIS 3.1 types
+                         else jnp.broadcast_to(jnp.asarray(x, dtype=jnp.float32), (12,)))   # (npoi, 12) under IBIS 3.0 types
         rwood   = _pv(params.bgc_params.rwood) / (ndaypy * 86400.0) * (1000.0 / 12.0)  # /s, mol C basis; F77 0.0125 (CALIBRATION.md 36)
         rroot   = _pv(params.bgc_params.rroot) / (ndaypy * 86400.0) * (1000.0 / 12.0)  # F77 1.25
         rgrowth = _pv(params.bgc_params.rgrowth)     # F77 0.30 (CALIBRATION.md 36)
@@ -183,7 +183,7 @@ def _run_day_inner(
         # Per-PFT GPP (mol CO2/m2 ground/s)
         c_fac   = 12.0e-3 * dtime   # mol CO2 → kgC × dtime
         aynpp   = sm.aynpp
-        # IBIS 3.1 (CALIBRATION.md 45.1): optionally split each big leaf's GPP by leaf area x own vmax
+        # IBIS 3.0 (CALIBRATION.md 45.1): optionally split each big leaf's GPP by leaf area x own vmax
         _sp = params.stomata_params
         if getattr(_sp, 'gpp_split_by_capacity', False):
             from ibis.physics.stomata import capacity_shares
@@ -462,7 +462,7 @@ def _run_month_scan(
         if _tconst.ndim == 1:                            # (12,) per PFT: the cell's leaf-area-weighted value (CALIBRATION.md 37)
             _w = jnp.maximum(st.vegetation.plai, 0.0); _ws = _w.sum(axis=1)
             _tconst = jnp.where(_ws > 0.0, (_w * _tconst[None, :]).sum(axis=1) / jnp.maximum(_ws, 1e-6), _tconst.mean())
-        elif _tconst.ndim == 2:                          # (npoi, 12) per position under IBIS 3.1 types
+        elif _tconst.ndim == 2:                          # (npoi, 12) per position under IBIS 3.0 types
             _w = jnp.maximum(st.vegetation.plai, 0.0); _ws = _w.sum(axis=1)
             _tconst = jnp.where(_ws > 0.0, (_w * _tconst).sum(axis=1) / jnp.maximum(_ws, 1e-6), _tconst.mean(axis=1))
         _wshift = params.bgc_params.wfps_opt - 60.0     # F77 optimum 60 %

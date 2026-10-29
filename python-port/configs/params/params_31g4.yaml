@@ -1,4 +1,4 @@
-# IBIS 3.1 set v4 of the allocation stage (CALIBRATION.md 55): tropical and C-zone tree factors of v2 (x0.7-0.85); D-zone trees at the trait set (v1); grasses a_leaf 0.25-0.35 with the standing peak 0.6-0.7 of the annual leaf production (tauleaf 0.6-0.7; cold grasses 1.0); caps off.
+# IBIS 3.0 type set v4 of the allocation stage (CALIBRATION.md 55): tropical and C-zone tree factors of v2 (x0.7-0.85); D-zone trees at the trait set (v1); grasses a_leaf 0.25-0.35 with the standing peak 0.6-0.7 of the annual leaf production (tauleaf 0.6-0.7; cold grasses 1.0); caps off.
 stomata:
   tau15: 4500.0
   kc15: 0.00015

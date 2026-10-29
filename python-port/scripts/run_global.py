@@ -523,7 +523,7 @@ def run_global_simulation(config: IBISConfig) -> None:
     _forganic = soil_props.get("forganic") if getattr(config.physics, "soil_organic", False) else None
     params, pft_params, bgc_params = build_all_params(npoi, lat_rad, _pdict, cropfrac=_cropfrac, forganic=_forganic)
 
-    # IBIS 3.1 Köppen-zone types (CALIBRATION.md 45.1): the cell's zone maps its 12 positions to the 40 types and
+    # IBIS 3.0 Köppen-zone types (CALIBRATION.md 45.1): the cell's zone maps its 12 positions to the 40 types and
     # every per-PFT parameter becomes per cell. The 12-entry base pair is kept so the map can be re-applied when a
     # year enters a new Köppen period (same shapes, so the compiled kernels are reused).
     _types_base = (params, pft_params); _types_period = None; _type_over = None; _zones = None
@@ -657,7 +657,7 @@ def run_global_simulation(config: IBISConfig) -> None:
         # per-biome r_ch4 and t_ref tables apply, as before.
         _mb = (_pdict or {}).get('methane_bands') if _pdict else None
         _has_fit = bool(_pdict and (_pdict.get('methane') or _mb))
-        # IBIS 3.1 types: the band is the wetland type of the cell's Köppen zone (W01/W02/W03; CALIBRATION.md 45), fixed at
+        # IBIS 3.0 types: the band is the wetland type of the cell's Köppen zone (W01/W02/W03; CALIBRATION.md 45), fixed at
         # the start period
         _bi = None
         if _types_on:

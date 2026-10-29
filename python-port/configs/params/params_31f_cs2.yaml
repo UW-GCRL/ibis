@@ -1,4 +1,4 @@
-# IBIS 3.1 set for stage 54 (CALIBRATION.md 54): params_31e + lower-canopy cap on the GROUND leaf area (lai_cap_lower_ground) with per-type grass and shrub caps from the products' open-land peak LAI by zone + temperate-grass timing (G06) from the tower fit + cap_share_power 2 (the dominant pays the layer excess).
+# IBIS 3.0 type set for stage 54 (CALIBRATION.md 54): params_31e + lower-canopy cap on the GROUND leaf area (lai_cap_lower_ground) with per-type grass and shrub caps from the products' open-land peak LAI by zone + temperate-grass timing (G06) from the tower fit + cap_share_power 2 (the dominant pays the layer excess).
 stomata:
   tau15: 4500.0
   kc15: 0.00015

@@ -1,4 +1,4 @@
-# IBIS 3.1 set v3 of the allocation stage (CALIBRATION.md 55): v2 tree factors; grasses at tauleaf 1.0 (annual flush) with a_leaf 0.25 (C4, steppe, Mediterranean, subtropical), 0.30 (temperate), 0.35 (subarctic, tundra) and the canopy-mean specla 26-27; caps off.
+# IBIS 3.0 type set v3 of the allocation stage (CALIBRATION.md 55): v2 tree factors; grasses at tauleaf 1.0 (annual flush) with a_leaf 0.25 (C4, steppe, Mediterranean, subtropical), 0.30 (temperate), 0.35 (subarctic, tundra) and the canopy-mean specla 26-27; caps off.
 stomata:
   tau15: 4500.0
   kc15: 0.00015

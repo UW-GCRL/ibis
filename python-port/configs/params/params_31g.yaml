@@ -1,4 +1,4 @@
-# IBIS 3.1 set v1 of the allocation stage (CALIBRATION.md 55, Min 2026-10-22): no leaf-area cap; per PFT specla = 0.65 x TRY species mean (canopy mean), tauleaf = TRY lifespan (evergreens; deciduous 1.0, grasses 0.5), aleaf/awood/aroot and tauwood0 from the partitioning and residence-time syntheses (allocation_turnover_literature_2026-10-22.md). Types inherit from their parents.
+# IBIS 3.0 type set v1 of the allocation stage (CALIBRATION.md 55, Min 2026-10-22): no leaf-area cap; per PFT specla = 0.65 x TRY species mean (canopy mean), tauleaf = TRY lifespan (evergreens; deciduous 1.0, grasses 0.5), aleaf/awood/aroot and tauwood0 from the partitioning and residence-time syntheses (allocation_turnover_literature_2026-10-22.md). Types inherit from their parents.
 stomata:
   tau15: 4500.0
   kc15: 0.00015

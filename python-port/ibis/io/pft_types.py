@@ -1,4 +1,4 @@
-"""IBIS 3.1 Köppen-zone plant functional types in the 12 IBIS positions (CALIBRATION.md 45, 45.1).
+"""IBIS 3.0 Köppen-zone plant functional types in the 12 IBIS positions (CALIBRATION.md 45, 45.1).
 
 Forty types (21 trees minus the merged T20, 7 shrubs, 8 grasses, 3 wetland, 2 crop), each a growth form in a
 Köppen zone, with a `parent` among the 12 IBIS PFTs whose parameters it starts from. Every cell has ONE zone,

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Towers of the IBIS 3.1 calibration (CALIBRATION.md 45) in the FLUXNET2015 layout the site harness reads.
+"""Towers of the IBIS 3.0 calibration (CALIBRATION.md 45) in the FLUXNET2015 layout the site harness reads.
 
     python3 verify/calibration/towers31_prep.py <out dir> [--sites A,B,...] [--workers 6]
 
@@ -15,7 +15,7 @@ held-out year and at least one fitted year good; most good years, then the lates
     <out>/compact/FLX_<s>_FLUXNET2015_FULLSET_HH_<y0>-<y1>_31.csv        compact half-hourly (or hourly) file of the
                     window: TIMESTAMP, TIMESTAMP_START, TA_F_MDS, SW_IN_F_MDS, SW_IN_F, NIGHT, NEE_VUT_REF, NEE_VUT_REF_QC
     <out>/compact/FLUXNET_siteinfo.csv                                    one row per tower with the record, window, Köppen
-                                                                         class, zone and IBIS 3.1 type
+                                                                         class, zone and IBIS 3.0 type
 Point IBIS_FLUX_DIR, IBIS_FLUX_HH_DIR and IBIS_FLUX_MM_DIR at <out>/compact. Needs numpy, pandas, PIL (Köppen map).
 """
 import sys, os, glob, re, zipfile, io, csv, argparse

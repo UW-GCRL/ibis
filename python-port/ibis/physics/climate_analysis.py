@@ -28,7 +28,7 @@ def existence(
 ) -> Float[Array, "npoi 12"]:
     """Determine which PFTs can exist in each grid cell.
 
-    IBIS 3.1 types (`slot_parent`, `slot_gate`, `slot_typed`; CALIBRATION.md 52): a position holding a zone TYPE
+    IBIS 3.0 types (`slot_parent`, `slot_gate`, `slot_typed`; CALIBRATION.md 52): a position holding a zone TYPE
     exists by its zone membership (the Köppen class is its climate envelope) and the parent PFT's degree-day floor
     only; the F77 temperature bands are not applied to it. The bands make the temperate PFTs 3/4/5 require a
     coldest month below 0 C, which no Köppen C climate has, so under the parent's envelope no temperate type
@@ -127,7 +127,7 @@ def existence(
     exist = exist.at[:, 11].set(jnp.where(gdd0 > GDD[11], 1.0, 0.0))
 
     if slot_parent is not None:
-        # IBIS 3.1 types (CALIBRATION.md 45.1): each position takes the envelope of the PFT its type descends from
+        # IBIS 3.0 types (CALIBRATION.md 45.1): each position takes the envelope of the PFT its type descends from
         par = jnp.asarray(slot_parent, dtype=jnp.int32)
         exist = jnp.take_along_axis(exist, par, axis=1)
         if slot_typed is not None:

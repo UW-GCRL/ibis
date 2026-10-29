@@ -502,7 +502,7 @@ def biome_methane_params(lat_deg, base: MethaneParams | None = None, bands: dict
     trop = (lat > -30.0) & (lat < 30.0)
     boreal = lat >= 60.0
     if band_index is not None:
-        # IBIS 3.1 (CALIBRATION.md 45): the wetland types W01/W02/W03 by Köppen zone -- 0 tropical and subtropical,
+        # IBIS 3.0 (CALIBRATION.md 45): the wetland types W01/W02/W03 by Köppen zone -- 0 tropical and subtropical,
         # 1 temperate, 2 boreal and arctic; -1 (unclassified cells) keeps the latitude rule
         bi = jnp.asarray(band_index)
         trop = jnp.where(bi >= 0, bi == 0, trop); boreal = jnp.where(bi >= 0, bi == 2, boreal)

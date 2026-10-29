@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Per-tower fit commands of the IBIS 3.1 campaign (CALIBRATION.md 45): stage S2 (GPP and ET) for every
+"""Per-tower fit commands of the IBIS 3.0 campaign (CALIBRATION.md 45): stage S2 (GPP and ET) for every
 calibration-grade natural-vegetation tower of towers31_prep.py, in the protocol of the 62 fits of sections 31-36.
 
     IBIS_FLUX_DIR=<towers31>/compact python verify/calibration/towers31_cmds.py <out root> [--types T19,S06] > s2_cmds.txt

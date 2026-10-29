@@ -153,7 +153,7 @@ class StomataParams(eqx.Module):
     frost_on: bool = eqx.field(static=True, default=False)
     frost_t0: float = -5.0
     frost_t1: float = 5.0
-    #: IBIS 3.1 (CALIBRATION.md 45.1): split each big leaf's GPP among its positions by displayed leaf area x own
+    #: IBIS 3.0 (CALIBRATION.md 45.1): split each big leaf's GPP among its positions by displayed leaf area x own
     #: vmax instead of leaf area alone (shares re-normalised to the big leaf's total, so the canopy GPP is unchanged).
     #: False (default) is the F77 split.
     gpp_split_by_capacity: bool = eqx.field(static=True, default=False)
@@ -537,7 +537,7 @@ def drystress(wsoi, wisoi, swilt, sfield, froot, stressfac=-5.0):
     stressl, stressu : arrays [npoi, nsoilay]
         Per-layer moisture stress, lower and upper canopy.
     """
-    if jnp.ndim(stressfac) == 1:                       # per cell (npoi,) under IBIS 3.1 types (CALIBRATION.md 45)
+    if jnp.ndim(stressfac) == 1:                       # per cell (npoi,) under IBIS 3.0 types (CALIBRATION.md 45)
         stressfac = jnp.asarray(stressfac)[:, None]
     znorm = 1.0 - jnp.exp(stressfac)
 
@@ -823,7 +823,7 @@ def stomata(tu, tl, t12, t34, q12, q34, su, sl, psurf,
 
     # Select Vmax per PFT. `vfac` (npoi, npft) is the acclimation factor of StomataParams.acclim_on (built in
     # timestep_body from state.seasonal); None keeps the F77 path bit-identical.
-    _vrow = params.vmax_pft if jnp.ndim(params.vmax_pft) == 2 else params.vmax_pft[jnp.newaxis, :]   # (npoi, 12) under IBIS 3.1 types
+    _vrow = params.vmax_pft if jnp.ndim(params.vmax_pft) == 2 else params.vmax_pft[jnp.newaxis, :]   # (npoi, 12) under IBIS 3.0 types
     vp_eff = None if vfac is None else _vrow * vfac
     vmaxub_nom, vmaxuc_nom = _select_vmax_upper(exist, params, frac, vp=vp_eff)
     # Cold-season factor of each big leaf for the light-limited rate (acclim_light): the ratio by which the

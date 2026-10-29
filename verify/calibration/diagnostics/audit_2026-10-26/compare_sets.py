@@ -1,5 +1,5 @@
 """Tower metrics of several shared-type-set scores against the own fits (CALIBRATION.md 57).
-Sets: deck = t31_rescore (3.1 set, GRID soil pools and litterfall: no --start-state); deck_pools = the same set on the
+Sets: deck = t31_rescore (3.0 type set, GRID soil pools and litterfall: no --start-state); deck_pools = the same set on the
 tower pools (t31_pools); A = params_31f_cs2 per tower on the tower pools; B = params_31g5 per tower on the tower pools.
 Own fit = t31_s2 (GPP, ET) and t31_nee (NEE; Reco = GPP + NEE of that stage), as in the meeting deck.
     python compare_sets.py <out csv prefix>

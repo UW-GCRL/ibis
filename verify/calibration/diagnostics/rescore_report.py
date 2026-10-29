@@ -1,9 +1,9 @@
-"""The IBIS 3.1 per-type set at the campaign towers (CALIBRATION.md 50): the re-score baselines against each tower's own fit.
+"""The IBIS 3.0 per-type set at the campaign towers (CALIBRATION.md 50): the re-score baselines against each tower's own fit.
 
     IBIS_FLUX_DIR=<towers31>/compact IBIS_FLUX_MM_DIR=<towers31>/compact python verify/calibration/diagnostics/rescore_report.py \
         <rescore root> <own-fit roots...> --out <csv>
 
-Per tower: the loss of the 3.1 set on the tower's own objective (rescore best.json) against the loss of the tower's own
+Per tower: the loss of the 3.0 type set on the tower's own objective (rescore best.json) against the loss of the tower's own
 fit (the first own-fit root holding its best.json), and the annual GPP ratio model / tower over the scored years for
 both (best_series.npz against the tower's monthly GPP through site_fit.tower_obs). Medians by type (every type of the
 tower's TYPE column) and by IGBP class.
@@ -36,7 +36,7 @@ t = pd.DataFrame(rows); t['capped_31'] = t.loss_31 >= 29.99                  # t
 t['loss_31_over_own'] = np.where(t.capped_31 | (t.loss_own >= 29.99), np.nan, t.loss_31 / t.loss_own); t.to_csv(out, index=False)
 q = lambda x: pd.Series(dict(n=len(x), gpp_31=x.gpp_ratio_31.median(), gpp_own=x.gpp_ratio_own.median(), within25_31=(abs(np.log(x.gpp_ratio_31)) < np.log(1.25)).mean(),
                              within25_own=(abs(np.log(x.gpp_ratio_own)) < np.log(1.25)).mean(), capped_31=x.capped_31.mean(), loss_ratio_uncapped=x.loss_31_over_own.median()))
-print(f'{len(t)} towers re-scored under the 3.1 set (medians; gpp = annual model / tower over the scored years; within25 = share within 0.8-1.25;\n'
+print(f'{len(t)} towers re-scored under the 3.0 type set (medians; gpp = annual model / tower over the scored years; within25 = share within 0.8-1.25;\n'
       f'capped = share of baselines at the tower cap 30; loss_ratio over towers uncapped in both)\n')
 print('all:'); print(q(t).round(2).to_string())
 print('\nby IGBP:'); print(t.groupby('igbp').apply(q).round(2).to_string())
