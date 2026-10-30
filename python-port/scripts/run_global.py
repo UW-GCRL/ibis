@@ -645,8 +645,8 @@ def run_global_simulation(config: IBISConfig) -> None:
         mlat = np.arange(-90.0, 90.0, 0.5)
         mlon = np.arange(-180.0, 180.0, 0.5)
         _lon_land_deg = lon_sub[lonindex_sub].astype(np.float32)
-        _wli = np.rint((lat_land_deg - mlat[0]) / 0.5).astype(int).clip(0, 359)
-        _wlo = np.rint((_lon_land_deg - mlon[0]) / 0.5).astype(int).clip(0, 719)
+        from ibis.io.wad2m import wad2m_cell_index
+        _wli, _wlo = wad2m_cell_index(lat_land_deg, _lon_land_deg)          # floor, not rint (DEFECTS_FOR_REVIEW "WAD2M registration")
         ch4_clim = read_wad2m_climatology(f.wad2m_file, _wli, _wlo, mlat, mlon)
         # The VALIDATED configuration: per-biome r_ch4 and t_ref
         # (docs/METHANE.md 5q, 182 Tg/yr inside the GMB range). MethaneParams()

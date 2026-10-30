@@ -54,8 +54,8 @@ def main():
     st, _ = load_state(a.state, create_ibis_state(grid))
 
     mlat = np.arange(-90., 90., .5); mlon = np.arange(-180., 180., .5)
-    wli = np.rint((lat - mlat[0]) / .5).astype(int).clip(0, 359)
-    wlo = np.rint((lon - mlon[0]) / .5).astype(int).clip(0, 719)
+    wli = np.floor((lat - mlat[0]) / .5 + 1e-9).astype(int).clip(0, 359)
+    wlo = np.floor((lon - mlon[0]) / .5 + 1e-9).astype(int).clip(0, 719)
     clim = read_wad2m_climatology(
         "/shared/nas2/Hangkai/ibis/inputs/methane/wad2m/"
         "WAD2M_wetlands_2000-2020_05deg_Ver2.0.nc", wli, wlo, mlat, mlon)

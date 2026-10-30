@@ -625,3 +625,22 @@ default mode the override was silently ignored. Impact: none on any result. Ever
 the 10 October methane batches (r3-r5), before the defect; every later command passed it only for wetland towers, where
 the harness sets the fraction to 1 regardless (checked over all command files, 2026-10-29). Fixed by moving both
 statements out of the branch, guarded by `FIN is not None`.
+
+## WAD2M (and GFED5) registration: half-to-even rounding put 75 % of land points on a neighbouring cell (found 2026-10-29, fixed)
+
+The runner mapped each land point to the WAD2M grid as `np.rint((lat - (-90)) / 0.5)` (and the same for longitude), on the
+corner grid the readers check against. A half-degree cell centre (x.25 / x.75) is exactly half-way between two corner
+indices, and `np.rint` rounds half to even, so every other row and every other column landed one cell off: 49.8 % of rows,
+50.0 % of columns, 74.9 % of land points read a neighbouring WAD2M cell. Introduced 2026-10-09 with the fix of the
+latitude mirror ("index the climatology from the land points' own coordinates, as evaluate_global.py does"), which copied
+the rounding from the evaluation scripts. Effect on the prescribed wetland area (annual mean, true land): 90S-30N 1.993
+instead of 2.071 Mkm2 (-3.8 %), 30-60N 0.944 instead of 0.959 (-1.5 %), 60-90N 0.377 instead of 0.390 (-3.5 %), global
+3.313 instead of 3.420 (-3.1 %); cell correlation of the read map with the correct one 0.71 in the tropics, 0.77 globally.
+So every global wetland CH4 number from 2026-10-09 to 2026-10-29 (the release's 170 Tg, CALIBRATION 73, the hourly runs)
+carries a ~3 % low and spatially smeared wetland area. The tower fits are not affected (wetland towers run at an inundated
+fraction of 1). The same expression sat in the GFED5 fire evaluator (`verify/fire/evaluate_gfed5.py`, `_grid`), so the
+observed burned-area map of every fire score (protocol logs, `glob_refs.npz` burn_gfed5, the fire-objective work) was read
+from a neighbouring cell for 75 % of land points; and in `site_fit.py` (WAD2M at non-wetland towers), the methane band
+diagnostic and four older methane scripts. Fix: `ibis.io.wad2m.wad2m_cell_index` (floor, the cell that contains the point)
+in the runner, floor in the scripts; `tests/test_wad2m_registration.py` (every centre maps to its own cell, any point to
+the cell that contains it, the file's centre equals the point). Methane hindcasts rerun; fire re-scored (CALIBRATION 81).

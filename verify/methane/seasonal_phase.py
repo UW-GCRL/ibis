@@ -57,8 +57,8 @@ def main():
     clim = read_wad2m_climatology(
         "/shared/nas2/Hangkai/ibis/inputs/methane/wad2m/"
         "WAD2M_wetlands_2000-2020_05deg_Ver2.0.nc",
-        np.rint((lat-mlat[0])/.5).astype(int).clip(0,359),
-        np.rint((lon-mlon[0])/.5).astype(int).clip(0,719), mlat, mlon)
+        np.floor((lat-mlat[0])/.5 + 1e-9).astype(int).clip(0,359),
+        np.floor((lon-mlon[0])/.5 + 1e-9).astype(int).clip(0,719), mlat, mlon)
 
     params = build_sim_params(npoi, jnp.asarray(latr), None)
     p = biome_methane_params(lat)

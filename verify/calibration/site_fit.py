@@ -329,7 +329,7 @@ def setup(a, spin=True, verbose=True):
         from ibis.io.wad2m import read_wad2m_climatology
         _mlat = np.arange(-90.0, 90.0, 0.5); _mlon = np.arange(-180.0, 180.0, 0.5)                                 # WAD2M's south-to-north cell grid (verify/methane/evaluate_global.py)
         _la = np.array([float(META.loc[s_, 'LOCATION_LAT']) for s_ in sites]); _lo = np.array([float(META.loc[s_, 'LOCATION_LONG']) for s_ in sites])
-        _wi = np.rint((_la - _mlat[0]) / 0.5).astype(int).clip(0, 359); _wj = np.rint((_lo - _mlon[0]) / 0.5).astype(int).clip(0, 719)
+        _wi = np.floor((_la - _mlat[0]) / 0.5 + 1e-9).astype(int).clip(0, 359); _wj = np.floor((_lo - _mlon[0]) / 0.5 + 1e-9).astype(int).clip(0, 719)
         try: FIN = np.asarray(read_wad2m_climatology(WAD2M, _wi, _wj, _mlat, _mlon), np.float32).copy()             # (12, ns) WAD2M climatology at the cells
         except Exception as e: say(f'WAD2M climatology unavailable ({e}); non-wetland towers get 0'); FIN = np.zeros((12, ns), np.float32)
         for n_, s_ in enumerate(sites):

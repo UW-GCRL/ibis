@@ -69,8 +69,8 @@ def main():
     latr = np.deg2rad(lat).astype(np.float32)
 
     mlat = np.arange(-90.0, 90.0, 0.5); mlon = np.arange(-180.0, 180.0, 0.5)
-    wli = np.rint((lat - mlat[0]) / 0.5).astype(int).clip(0, 359)
-    wlo = np.rint((lon - mlon[0]) / 0.5).astype(int).clip(0, 719)
+    wli = np.floor((lat - mlat[0]) / 0.5 + 1e-9).astype(int).clip(0, 359)
+    wlo = np.floor((lon - mlon[0]) / 0.5 + 1e-9).astype(int).clip(0, 719)
     clim = read_wad2m_climatology(a.wad2m, wli, wlo, mlat, mlon)
 
     params = build_sim_params(len(cells), jnp.asarray(latr), None)

@@ -37,7 +37,7 @@ t_ref = float(base.get('t_ref', DEF['t_ref'])); z_wt_max = float(base.get('z_wt_
 from ibis.bgc.methane import MethaneParams; mp = MethaneParams(); sat_crit = float(base.get('sat_crit', mp.sat_crit))
 # --- WAD2M climatology on the output grid
 mlat = np.arange(-90.0, 90.0, 0.5); mlon = np.arange(-180.0, 180.0, 0.5)
-wli = np.rint((LAT.ravel() - mlat[0]) / 0.5).astype(int).clip(0, 359); wlo = np.rint((LON.ravel() - mlon[0]) / 0.5).astype(int).clip(0, 719)
+wli = np.floor((LAT.ravel() - mlat[0]) / 0.5 + 1e-9).astype(int).clip(0, 359); wlo = np.floor((LON.ravel() - mlon[0]) / 0.5 + 1e-9).astype(int).clip(0, 719)
 clim = np.asarray(read_wad2m_climatology(WAD, wli, wlo, mlat, mlon)).reshape(12, *LAT.shape); clim = np.nan_to_num(clim)
 # --- soil layers
 st = eg._load(f'{run}/restart/ibis_restart_{y1}.npz'); hsoi = np.asarray(st.soil.hsoi, float).ravel()[:6]

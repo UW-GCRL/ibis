@@ -32,6 +32,18 @@ WAD2M_SHAPE = (360, 720)
 WAD2M_YEARS = (2000, 2020)
 
 
+def wad2m_cell_index(lat_deg, lon_deg, step: float = 0.5):
+    """Row and column of the 0.5-degree cell that CONTAINS each point, on the south-to-north corner grid the readers check
+    against (rows from -90, columns from -180): floor((lat + 90) / step), floor((lon + 180) / step).
+
+    Not np.rint: a cell centre (x.25 / x.75) sits exactly half-way between two corner indices and rint rounds half to
+    even, which put every other row and column one cell off (75 % of land points read a neighbouring WAD2M cell from
+    2026-10-09 to 2026-10-29; DEFECTS_FOR_REVIEW.md "WAD2M registration")."""
+    li = np.floor((np.asarray(lat_deg, np.float64) + 90.0) / step + 1e-9).astype(int).clip(0, int(round(180.0 / step)) - 1)
+    lo = np.floor((np.asarray(lon_deg, np.float64) + 180.0) / step + 1e-9).astype(int).clip(0, int(round(360.0 / step)) - 1)
+    return li, lo
+
+
 def wad2m_in_record(year: int) -> bool:
     """True when the calendar year has an observed WAD2M field (WAD2M_YEARS, inclusive)."""
     y0, y1 = WAD2M_YEARS

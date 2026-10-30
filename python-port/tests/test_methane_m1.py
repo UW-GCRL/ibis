@@ -142,8 +142,8 @@ def test_wad2m_geography_is_the_right_way_up():
         la = np.arange(la0, la1, 0.5)
         lo = np.arange(lo0, lo1, 0.5)
         LA, LO = np.meshgrid(la, lo, indexing="ij")
-        li = np.rint((LA.ravel() - mlat[0]) / 0.5).astype(int)
-        lj = np.rint((LO.ravel() - mlon[0]) / 0.5).astype(int)
+        li = np.floor((LA.ravel() - mlat[0]) / 0.5 + 1e-9).astype(int)
+        lj = np.floor((LO.ravel() - mlon[0]) / 0.5 + 1e-9).astype(int)
         return float(read_wad2m_month(WAD2M, 2010, 7, li, lj, mlat, mlon).mean())
 
     hudson = box(51, 59, -96, -80)

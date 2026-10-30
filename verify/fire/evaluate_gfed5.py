@@ -65,8 +65,8 @@ def _grid(state_path=""):
         cells = build_global_cell_grid(lat_step=0.5, lon_step=0.5)
         lat = np.array([c[1] for c in cells])
         lon = np.array([c[2] for c in cells])
-    li = np.rint((lat - mlat[0]) / 0.5).astype(int).clip(0, 359)
-    lo = np.rint((lon - mlon[0]) / 0.5).astype(int).clip(0, 719)
+    li = np.floor((lat - mlat[0]) / 0.5 + 1e-9).astype(int).clip(0, 359)
+    lo = np.floor((lon - mlon[0]) / 0.5 + 1e-9).astype(int).clip(0, 719)
     return lat, lon, li, lo, mlat, mlon
 
 
