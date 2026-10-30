@@ -2500,3 +2500,25 @@ with `forcing.wetland_learned_file`; needs `methane_hourly`. Off by default. Mod
   as `finund`. No end-of-month state enters anywhere.
 Tests: `tests/test_wetland_learned.py` (the builder against the explicit array definitions on a random series; the hybrid's
 bounds and its climatology limit; a file applies to its own cells only and rejects a feature list that differs).
+
+**Training on the month means (2026-10-29 21:55; `tables/wetland_learned_v2_training.txt`).** Reference hindcast
+`final_s31t_ch4h` (soil means on); XGBoost, 400 rounds, depth 8, monotone; out-of-year (odd <-> even years) against WAD2M:
+
+| band | monthly R2, climatology | monthly R2, hybrid | IAV r of annual area, hybrid | annual anomaly sd, hybrid / observed |
+|---|---|---|---|---|
+| tropical | 0.52 | 0.56 | +0.90 | 0.23 |
+| temperate | 0.46 | 0.48 | +0.48 | 0.28 |
+| boreal | 0.80 | 0.81 | +0.58 | 0.77 |
+| global | 0.72 | 0.73 | +0.65 | 0.41 |
+
+The hybrid beats the fixed climatology in every band on held-out years and carries the year-to-year timing the climatology
+cannot; its seasonal cycle matches the observations month for month (boreal January 0.16 against 0.15 Mkm2). Its
+anomalies are damped (a quarter of the observed size in the tropics). Inflation was tested and rejected as the default:
+matching the annual variance (lambda 4.4 tropics) costs all tropical monthly skill (R2 -0.18); the monthly-skill optimum is
+lambda 0.6-0.7, barely different from 1. The file stores lambda = 1 (`--lambda one`; `r2` and `var` are options).
+Two fixes on the way: WAD2M's NaN on land are the frozen months (none in the tropics, 95-99 % of cell-months north of 60 N
+from November to April); the model's climatology (`read_wad2m_climatology`) fills them with zero and so must the training's
+(the first training averaged with NaN skipped, which put boreal January at 0.62 Mkm2); and the runner's learned block had
+swallowed the dynamic-wetland log line, which crashed the first learned run at start-up (no output).
+File: `inputs/methane/wetland_learned/wetland_learned_v2_s31t.npz` (the rejected first file kept beside it, renamed).
+

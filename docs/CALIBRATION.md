@@ -7831,3 +7831,36 @@ if the hourly bands hold at the towers (held-out year) and the globe stays insid
 broadens (30-60 N: May 1.4 -> 0.9, September 1.3 -> 1.7, October 0.8 -> 1.1 Tg), onto the shape of the GCP prior. So the
 snapshot had cost the timing of the northern season; the amount was carried by the fitted parameters, which the refit
 now re-estimates at the cadence the model runs at.
+
+**Result of the hourly refit (2026-10-29 21:49; `logs/ch4_fit_report_hourly.csv`, `tables/ch4_hourly_refit_finish.log`,
+`ch4_bands_s31t_ch4h.txt`, `ch4_hourlybands_vs_snapshot_s31t.txt`).** All 48 fits finished (39 CPU, 8 GPU, US-HB4 rerun on its
+repaired pools `pool_spinup_ch4_fix`, as the production fit). The first finishing pass at 18:56 had merged fits still running,
+because both launchers ran their loop in a pipe and printed "done" early; it was stopped before its hindcast and replaced by a
+pass that checks every tower's log for its final parameters (`ch4h1_finish_v2.sh`, launcher `ch4_chain_v2.sh`).
+
+| band (zone) | ch4_r | q10p | z_tau | tau_oxid | held-out monthly r | held-out amount ratio | towers within 25 % |
+|---|---|---|---|---|---|---|---|
+| boreal, snapshot (production) | 0.143 | 1.65 | 0.73 | 0.138 | 0.70 | 0.88 | 50 % |
+| boreal, hourly | 0.188 | 1.71 | 0.73 | 0.121 | 0.74 | 0.82 | 67 % |
+| temperate, snapshot | 0.126 | 2.39 | 0.64 | 0.164 | 0.80 | 0.83 | 46 % |
+| temperate, hourly | 0.119 | 2.25 | 0.70 | 0.111 | 0.83 | 0.69 | 42 % |
+| tropical, snapshot | 0.139 | 1.92 | 0.66 | 0.107 | 0.06 | 0.88 | 25 % |
+| tropical, hourly | 0.100 | 2.17 | 0.77 | 0.128 | 0.30 | 0.78 | 17 % |
+
+Globe, 2001-2010, hourly flux with the hourly bands, climatology area (`final_s31t_ch4h`, `params_31s_ch4h.yaml`):
+145.5 Tg CH4 yr-1 (GMB 2025 bottom-up 153 [116-189]; 0.95x); 90S-30N 128.7 (109.5 [66-146], 1.18x, inside the range;
+production 152.1, 1.39x); 30-60N 10.3 (32.1, 0.32x; production 11.6); 60-90N 6.6 (11.7, 0.56x; production 6.3).
+The northern season is two to four weeks later and broader than the snapshot run's (30-60N peak Jul-Aug, September 1.6
+against 1.3 Tg), as in the GCP prior. Interannual sd of the global total 3.2 Tg (snapshot 4.3).
+
+**Attribution at the towers (`logs/ch4_baseline_decomposition_hourly.csv`).** Loss at the same base parameters, same
+objective and years: production (10 October code, snapshot) | today's code, snapshot (`site_fit/ch4_h1_snapbase`) |
+today's code, hourly. Cadence alone (hourly over snapshot, today's code): median 0.98, 60 % of towers better hourly.
+Code since 10 October (today's snapshot over the production baseline): 1.00 at 29 towers and 1.2-16x at 19 (mostly the
+FLUXNET-CH4 v2 AmeriFlux sites added for this campaign: CA-EM1/EM2, CA-DB2, CA-DBB, CA-BOU, CA-ARB/ARF, CA-SCB, CA-DSM,
+US-HB1, US-EvM, US-Dmg, US-ALQ, US-BZB/BZF, US-Elm/Esm, US-DPW, US-Cms). Not the inputs: Chenchen's gap-filled files are
+unchanged since July, the 11 October regeneration of the targets (section 42) changed no CH4 aggregation, and the
+meteorology clipping of 3509a51 touched only 4 of the 19. So the production methane parameters were stale against the
+current model at 19 of the 48 towers, independent of the cadence; the refit was needed on both counts. Which commit
+since 10 October moved those towers is not yet bisected.
+
