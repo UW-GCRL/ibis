@@ -5,7 +5,7 @@ import sys, re, ast, numpy as np, xarray as xr, warnings; warnings.filterwarning
 R = '/shared/nas2/Hangkai/ibis-port'; sys.path[:0] = [f'{R}/python-port', R, f'{R}/verify/calibration']
 from landmask import true_landfrac
 ZONES = ast.literal_eval(re.search(r'\nZONES = (\([^)]*\))', open(f'{R}/python-port/ibis/io/pft_types.py').read()).group(1))
-L, O = sys.argv[1], sys.argv[2]; S = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'
+L, O = sys.argv[1], sys.argv[2]; S = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work'
 NDAY = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 m0 = xr.open_dataset(f'{L}/ibis_monthly_2001_01.nc'); lat = np.asarray(m0['lat'].values); I, J = np.where(np.isfinite(m0['fu'].values)); la = lat[I]
 area = (np.deg2rad(0.5) * 6.371e6) ** 2 * np.cos(np.deg2rad(la)) * np.nan_to_num(true_landfrac()[I, J])

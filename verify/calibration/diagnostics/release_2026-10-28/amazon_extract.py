@@ -6,7 +6,7 @@ import sys, dataclasses, numpy as np, xarray as xr, warnings
 warnings.filterwarnings('ignore')
 R = '/shared/nas2/Hangkai/ibis-port'; sys.path[:0] = [R, f'{R}/python-port']
 from ibis.state import VegetationState, CarbonState
-V = '/shared/nas2/Hangkai/ibis/verify_outputs'; OUT = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad/nee_cycle/amazon'
+V = '/shared/nas2/Hangkai/ibis/verify_outputs'; OUT = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work/nee_cycle/amazon'
 import os; os.makedirs(OUT, exist_ok=True)
 ref_mask = xr.open_dataset(f'{V}/final_s31f/hindcast/out/ibis_monthly_2010_07.nc')['fu'].values
 for tag in sys.argv[1:]:

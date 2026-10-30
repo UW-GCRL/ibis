@@ -68,5 +68,5 @@ for bn, msk in BANDS.items():
     share = (area[m2] * (best['in-sample'][2][m2] > 0.5)).sum() / area[m2].sum(); lags = [(area[m2] * (best['in-sample'][1][m2] == l)).sum() / area[m2].sum() for l in range(4)]
     print(f"{bn:9s} {o.mean():6.2f} {c.mean():6.2f} {a_.mean():6.2f} {f.mean():6.2f} | {seas(o, c)[0]:.2f}/{seas(o, a_)[0]:.2f}/{sr[0]:.2f} amp {sr[1]:.2f}/{sr[2]:.2f} | {iav(o, a_):+.2f} / {iav(o, f):+.2f} / {iav(o[ev], fh[ev]):+.2f} | {r2cells(fclim_series):.2f} / {r2cells(Fanom):.2f} / {r2cells(best['in-sample'][0]):.2f} / {r2(Fw[ev], best['held-out 2006-10'][0][ev], m2):.2f} | {share:.2f} | " + '/'.join(f'{l:.2f}' for l in lags))
 print('\nObserved WAD2M interannual range of annual band area (max-min of the 10 annual means, Mkm2):', {bn: round(float(np.ptp(band_series(Fw, msk & wet).reshape(-1, 12).mean(1))), 3) for bn, msk in BANDS.items()})
-np.savez_compressed('/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad/wetland/fit_diag.npz', I=I, J=J, lat=lat, FMAX=FMAX, lag=best['in-sample'][1], r2=best['in-sample'][2], W=W.astype(np.float32), Fw=Fw.astype(np.float32))
+np.savez_compressed('/shared/nas2/Hangkai/ibis/verify_outputs/diag_work/wetland/fit_diag.npz', I=I, J=J, lat=lat, FMAX=FMAX, lag=best['in-sample'][1], r2=best['in-sample'][2], W=W.astype(np.float32), Fw=Fw.astype(np.float32))
 print('saved fit_diag.npz')

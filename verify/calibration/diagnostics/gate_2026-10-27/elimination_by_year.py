@@ -5,7 +5,7 @@ import sys, re, ast, numpy as np, xarray as xr, warnings; warnings.filterwarning
 R = '/shared/nas2/Hangkai/ibis-port'; sys.path[:0] = [f'{R}/python-port', R, f'{R}/verify/fire', f'{R}/verify/calibration']
 import evaluate_gfed5 as eg; from landmask import true_landfrac
 ZONES = ast.literal_eval(re.search(r'\nZONES = (\([^)]*\))', open(f'{R}/python-port/ibis/io/pft_types.py').read()).group(1))
-S = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'; Z = np.load(f'{S}/meeting/glob_refs.npz')['zone']
+S = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work'; Z = np.load(f'{S}/meeting/glob_refs.npz')['zone']
 args = sys.argv[1:]
 for i in range(0, len(args), 3):
     run, y0, y1 = args[i], int(args[i + 1]), int(args[i + 2])

@@ -4,7 +4,7 @@ tree cover (Xu & Saatchi; tree-cover product), model wood, upper-canopy cover fu
 of the chunk's area whose canopy is open (fu < 0.5) with its wood deficit. Read-only.    python wood_decomp.py RUN [RUN ...]"""
 import sys, re, ast, numpy as np, xarray as xr, warnings; warnings.filterwarnings('ignore')
 ZONES = ast.literal_eval(re.search(r'\nZONES = (\([^)]*\))', open('/shared/nas2/Hangkai/ibis-port/python-port/ibis/io/pft_types.py').read()).group(1))
-S = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'; M = f'{S}/meeting'; V = '/shared/nas2/Hangkai/ibis/verify_outputs'
+S = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work'; M = f'{S}/meeting'; V = '/shared/nas2/Hangkai/ibis/verify_outputs'
 ref = np.load(f'{M}/glob_refs.npz'); lat, lon = ref['lat'], ref['lon']; LO, LA = np.meshgrid(lon, lat)
 area = (np.deg2rad(0.5) * 6.371e6) ** 2 * np.cos(np.deg2rad(LA)) * np.nan_to_num(ref['lf']); W = ref['wood']; Z = ref['zone']; TREE = ref['tree']; CROP = np.nan_to_num(ref['crop'])
 zn = lambda *names: np.isin(Z, [ZONES.index(n) for n in names])

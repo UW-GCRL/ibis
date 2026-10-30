@@ -1,7 +1,7 @@
 #!/bin/bash
 # check10_31r (per-zone cover limit + C/D allocation refit + temperate residence + half tropical refit) vs the s31n hindcast and vs check10_31p/31q (CALIBRATION.md 71)
 cd /shared/nas2/Hangkai/ibis-port; export JAX_PLATFORMS=cpu PYTHONPATH=python-port:.; PY=/home/hangkai/.venvs/ibis-gpu/bin/python; V=/shared/nas2/Hangkai/ibis/verify_outputs
-N=/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad/nee_cycle; A=verify/calibration/diagnostics/audit_2026-10-26
+N=/shared/nas2/Hangkai/ibis/verify_outputs/diag_work/nee_cycle; A=verify/calibration/diagnostics/audit_2026-10-26
 P=31r; echo "##### check10_$P (tracebacks $(grep -c Traceback $V/check10_$P/run.log))"
 echo "--- carbon closure"; $PY -I $A/closure_any.py $V/check10_$P 2 2>&1 | grep -v -iE "warn|Checkpoint|Land mask" | tail -3
 echo "--- fire regions 2010"; $PY -I $A/fire_regions_state.py $V/check10_$P/restart/ibis_restart_2010.npz 2>&1 | grep -v -iE "warn|Checkpoint|Land mask" | tail -2

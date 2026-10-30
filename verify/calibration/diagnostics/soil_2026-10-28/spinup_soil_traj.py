@@ -3,7 +3,7 @@ the drift in the last decade of the 1x tail (constant cycled climate, so drift =
 estimate from the 1x tail by regressing the yearly increment on the stock (dC/dt = (Ceq - C) / tau).
     python -I spinup_soil_traj.py <run>   (verify_outputs/final_<run>/spinup/out/ibis_yearly_YYYY.nc)"""
 import sys, re, ast, numpy as np, xarray as xr, warnings; warnings.filterwarnings('ignore')
-R = '/shared/nas2/Hangkai/ibis-port'; V = '/shared/nas2/Hangkai/ibis/verify_outputs'; M = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad/meeting'
+R = '/shared/nas2/Hangkai/ibis-port'; V = '/shared/nas2/Hangkai/ibis/verify_outputs'; M = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work/meeting'
 ZONES = ast.literal_eval(re.search(r'\nZONES = (\([^)]*\))', open(f'{R}/python-port/ibis/io/pft_types.py').read()).group(1))
 run = sys.argv[1]; ref = np.load(f'{M}/glob_refs.npz'); Z = ref['zone']; lf = ref['lf']; lat = ref['lat']
 area = 6371e3 ** 2 * np.deg2rad(0.5) ** 2 * np.cos(np.deg2rad(lat))[:, None] * np.ones((360, 720)) * np.nan_to_num(lf)

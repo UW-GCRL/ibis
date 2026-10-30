@@ -8,7 +8,7 @@ from ibis.state.model_state import create_ibis_state; from ibis.state.stress_acc
 from ibis.io.physics_params import build_all_params, load_physics_params
 from ibis.io.gswp3_reader import GSWP3Reader; from ibis.constants import PhysicalConstants
 from ibis.timestepping.loops_gswp3 import _cast_tree_f32
-V='/shared/nas2/Hangkai/ibis/verify_outputs'; S='/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'
+V='/shared/nas2/Hangkai/ibis/verify_outputs'; S='/shared/nas2/Hangkai/ibis/verify_outputs/diag_work'
 m=np.array(xr.open_dataset(MASK).landfrac.values)>0; fl=np.where(m.ravel())[0]; posmap={g:p for p,g in enumerate(fl)}
 worst=[tuple(x) for x in np.load(f'{S}/neg_et_cells.npz')['worst'][:6]]
 ctrl={"Mongolia 47N 105E (1300 m)":(47.25,105.25),"Great Basin 40N 116W (1600 m)":(40.25,-116.25),"Tibet 33N 90E (4800 m)":(33.25,90.25),"Kenya 0N 37E (1700 m)":(0.25,37.25),

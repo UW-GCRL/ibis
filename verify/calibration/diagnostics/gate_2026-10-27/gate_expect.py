@@ -8,7 +8,7 @@ R = '/shared/nas2/Hangkai/ibis-port'; sys.path[:0] = [f'{R}/python-port', R, f'{
 import evaluate_gfed5 as eg; from landmask import true_landfrac
 from ibis.io.pft_types import TYPES
 ZONES = ast.literal_eval(re.search(r'\nZONES = (\([^)]*\))', open(f'{R}/python-port/ibis/io/pft_types.py').read()).group(1))
-S = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'; M = f'{S}/meeting'; V = '/shared/nas2/Hangkai/ibis/verify_outputs'
+S = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work'; M = f'{S}/meeting'; V = '/shared/nas2/Hangkai/ibis/verify_outputs'
 ref = np.load(f'{M}/glob_refs.npz'); Z = ref['zone']; W = ref['wood']; TREE = ref['tree']; CROP = np.nan_to_num(ref['crop'])
 MORT = np.array([0.50, 0.35, 0.50, 0.35, 0.50, 0.80, 0.70, 0.75])
 run = f'{V}/final_s31n/hindcast'

@@ -3,7 +3,7 @@ water), 3-month running means of total runoff (surface + drainage) and of precip
 sigmoid fit and band metrics as wetland_fit_diag.py; plus the band-level anomaly mode (f_clim x (1 + beta A)) with beta
 fitted on the band's annual area. Uses fit_diag.npz (W, Fw, cells) and re-reads runoff and precipitation."""
 import sys, numpy as np, xarray as xr, warnings; warnings.filterwarnings('ignore')
-S = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad/wetland'; V = '/shared/nas2/Hangkai/ibis/verify_outputs/final_s31t/hindcast/out'
+S = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work/wetland'; V = '/shared/nas2/Hangkai/ibis/verify_outputs/final_s31t/hindcast/out'
 z = np.load(f'{S}/fit_diag.npz'); I, J, lat, FMAX, W, Fw = z['I'], z['J'], z['lat'], z['FMAX'], z['W'].astype(float), z['Fw'].astype(float); n = len(I); NM = 120
 RO = np.zeros((NM, n)); PR = np.zeros((NM, n)); k = 0
 for y in range(2001, 2011):

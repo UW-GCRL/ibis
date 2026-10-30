@@ -5,7 +5,7 @@ import sys, re, ast, numpy as np, matplotlib; matplotlib.use('Agg'); import matp
 ZONES = ast.literal_eval(re.search(r'\nZONES = (\([^)]*\))', open('/shared/nas2/Hangkai/ibis-port/python-port/ibis/io/pft_types.py').read()).group(1))   # no jax import needed
 def _rank(x): r = np.empty(len(x)); r[np.argsort(x)] = np.arange(len(x)); return r
 def spearman(x, y): return float(np.corrcoef(_rank(x), _rank(y))[0, 1])
-S = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'; M = f'{S}/meeting'
+S = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work'; M = f'{S}/meeting'
 out, runs = sys.argv[1], sys.argv[2:]
 ref = np.load(f'{M}/glob_refs.npz'); lat, lon = ref['lat'], ref['lon']; LO, LA = np.meshgrid(lon, lat)
 area = (np.deg2rad(0.5) * 6.371e6) ** 2 * np.cos(np.deg2rad(LA)) * np.nan_to_num(ref['lf']); W = ref['wood']; Z = ref['zone']

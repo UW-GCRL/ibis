@@ -3,8 +3,8 @@ and Xu & Saatchi 2021, plus the humid-Amazon totals across the runs since the 12
 the 2010 state; wood: upper-canopy cbiow of the 2010 state (amazon/<run>.npz of the nee_cycle folder, amazon_extract.py).
     python -I plot_amazon_final.py OUT.png RUN_A RUN_B"""
 import sys, numpy as np, matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
-N = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad/nee_cycle'
-S = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'
+N = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work/nee_cycle'
+S = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work'
 out, RA, RB = sys.argv[1], sys.argv[2], sys.argv[3]
 ref = np.load(f'{S}/meeting/glob_refs.npz'); lat, lon = ref['lat'], ref['lon']; LO, LA = np.meshgrid(lon, lat)
 runs = {'s7_crop': '12 Oct release', 's31l': 'road A final', 's31n': 'road B stage (s31n)', 's31p': '+ uniform limit', 's31r': '+ zone limit, refit', 's31t': 'final (s31t)'}

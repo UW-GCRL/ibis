@@ -4,7 +4,7 @@ import sys, os, dataclasses, numpy as np, xarray as xr, warnings
 warnings.filterwarnings('ignore')
 R = '/shared/nas2/Hangkai/ibis-port'; sys.path[:0] = [R, f'{R}/python-port', f'{R}/verify/calibration']
 from landmask import true_landfrac
-V = '/shared/nas2/Hangkai/ibis/verify_outputs'; M = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad/meeting'
+V = '/shared/nas2/Hangkai/ibis/verify_outputs'; M = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work/meeting'
 LAT = np.arange(89.75, -90, -0.5); LON = np.arange(-179.75, 180, 0.5); YRS = range(2006, 2011)
 tag = sys.argv[1]
 if tag != 'refs':

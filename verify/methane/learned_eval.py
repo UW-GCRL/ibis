@@ -3,7 +3,7 @@ the annual band area, seasonal amplitude; the fixed climatology alongside. Read-
 import sys, numpy as np, xarray as xr, warnings; warnings.filterwarnings('ignore')
 R = '/shared/nas2/Hangkai/ibis-port'; sys.path[:0] = [f'{R}/python-port', R]
 from ibis.io.pft_types import wetland_band
-H = sys.argv[1]; S = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'
+H = sys.argv[1]; S = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work'
 m0 = xr.open_dataset(f'{H}/ibis_monthly_2001_01.nc'); mlat = np.asarray(m0['lat'].values, float); land = np.isfinite(m0['fu'].values); I, J = np.where(land)
 fin = np.array([np.asarray(xr.open_dataset(f'{H}/ibis_monthly_{y}_{m:02d}.nc')['finund'].values, float)[I, J] for y in range(2001, 2011) for m in range(1, 13)])
 wd = xr.open_dataset('/shared/nas2/Hangkai/ibis/inputs/methane/wad2m/WAD2M_wetlands_2000-2020_05deg_Ver2.0.nc'); FW = np.asarray(wd['Fw'].values, float)

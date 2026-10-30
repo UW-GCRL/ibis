@@ -13,7 +13,7 @@ R = '/shared/nas2/Hangkai/ibis-port'; sys.path[:0] = [f'{R}/python-port', R, f'{
 import evaluate_gfed5 as eg; from landmask import true_landfrac
 from ibis.io.pft_types import ZONES, wetland_band
 from ibis.io.wad2m import read_wad2m_climatology
-S = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'; M = f'{S}/meeting'
+S = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work'; M = f'{S}/meeting'
 G = '/shared/nas2/Hangkai/ibis/inputs/eval/mip/gmb2024'; WAD = '/shared/nas2/Hangkai/ibis/inputs/methane/wad2m/WAD2M_wetlands_2000-2020_05deg_Ver2.0.nc'
 args = [a for a in sys.argv[1:] if not a.startswith('--')]; run = args[0].rstrip('/')
 yrs = next((a.split('=')[1] for a in sys.argv[1:] if a.startswith('--years=')), '2001-2010'); y0, y1 = map(int, yrs.split('-'))

@@ -11,7 +11,7 @@ from ibis.io.pft_types import zones_from_classes, ZONES, apply_types, parse_type
 from ibis.io.physics_params import build_all_params
 from ibis.physics.biogeochem import som_climate_ratio
 run, pfile = sys.argv[1], sys.argv[2]; E0S = [float(x) for x in sys.argv[3:]] or [400.0, 450.0, 500.0, 550.0, 600.0]
-S = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'; Z = np.load(f'{S}/meeting/glob_refs.npz')['zone']
+S = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work'; Z = np.load(f'{S}/meeting/glob_refs.npz')['zone']
 p = f'{run}/restart/ibis_restart_2010.npz'; lat, lon, *_ = eg._grid(p); st = eg._load(p); cb = st.carbon; v = st.vegetation
 lf = true_landfrac(); gi = np.rint((89.75 - lat) / 0.5).astype(int); gj = np.rint((lon + 179.75) / 0.5).astype(int)
 area = (np.deg2rad(0.5) * 6.371e6) ** 2 * np.cos(np.deg2rad(lat)) * np.nan_to_num(lf[gi, gj]); npoi = len(lat)

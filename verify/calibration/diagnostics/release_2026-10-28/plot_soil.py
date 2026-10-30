@@ -6,7 +6,7 @@ run, and the zonal land mean.  Totals on the HWSD2-covered cells.
 Prints the ratio table and saves metrics_soil_<runs>.json next to the grids."""
 import sys, re, ast, json, numpy as np, matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
 from matplotlib.colors import TwoSlopeNorm
-M = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad/meeting'
+M = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work/meeting'
 ZONES = ast.literal_eval(re.search(r'\nZONES = (\([^)]*\))', open('/shared/nas2/Hangkai/ibis-port/python-port/ibis/io/pft_types.py').read()).group(1))
 LBL = {'s31n': 's31n · stage final, before the soil stage', 's31r': 's31r · + zone cover limit', 's31t': 's31t · final: strong soil factors', 's31u': 's31u · mild soil factors'}
 COL = {'s31n': '#2F6FB0', 's31r': '#7A8699', 's31t': '#D9822B', 's31u': '#E9A35B'}

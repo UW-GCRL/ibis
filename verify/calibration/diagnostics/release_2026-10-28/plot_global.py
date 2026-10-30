@@ -1,7 +1,7 @@
 """Meeting figures for the global runs. python plot_global.py runA runB  (e.g. s31f s31g)."""
 import sys, json, numpy as np, matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
 from matplotlib.colors import TwoSlopeNorm
-M = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad/meeting'; FIG = '/shared/nas2/Hangkai/ibis_local_document/figures/final_2026-10-26'
+M = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work/meeting'; FIG = '/shared/nas2/Hangkai/ibis_local_document/figures/final_2026-10-26'
 RA, RB = sys.argv[1], sys.argv[2]
 LBL = {'s31e': 's31e (before stage 54)', 's31f': 's31f · road A, caps', 's31g': 's31g · road B, allocation', 's31j': 's31j · road A, caps + fixes', 's31k': 's31k · road B, allocation + fixes', 's31l': 's31l · road A, final (fixes + fire rule)', 's31m': 's31m · road B, final (fixes + fire rule)', 's31n': 's31n · road B, cold shrub aleaf 0.30', 's31o': 's31o · road B, cold shrub aleaf 0.25', 's31p': 's31p · road B + cover limit', 's31q': 's31q · road B + cover limit + tropical wood refit', 's31r': 's31r · road B + zone cover limit + production refit', 's31t': 's31t · final: s31r vegetation + strong soil factors', 's31u': 's31u · s31r vegetation + mild soil factors'}
 C = {'ref': '#14213D', RA: '#2F6FB0', RB: '#D9822B', 's31e': '#7A8699'}

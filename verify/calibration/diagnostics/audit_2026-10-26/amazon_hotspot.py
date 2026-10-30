@@ -26,7 +26,7 @@ vd = np.asarray(vegetation_density(jnp.asarray(plai), P)); bl = np.asarray(broad
 cd = np.asarray(canopy_damping(jnp.asarray(fu), P, jnp.asarray(plai), closed=closed))
 fuel = np.asarray(legacy_fuel_fraction(jnp.asarray(np.asarray(cb.totlit, float))))
 wood = np.asarray(v.cbiow, float)[:, :8].sum(1)
-ref = np.load('/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad/meeting/glob_refs.npz'); gi = np.rint((89.75 - lat) / 0.5).astype(int); gj = np.rint((lon + 179.75) / 0.5).astype(int); wmap = ref['wood'][gi, gj]
+ref = np.load('/shared/nas2/Hangkai/ibis/verify_outputs/diag_work/meeting/glob_refs.npz'); gi = np.rint((89.75 - lat) / 0.5).astype(int); gj = np.rint((lon + 179.75) / 0.5).astype(int); wmap = ref['wood'][gi, gj]
 aw = np.cos(np.deg2rad(lat)); m = hum & np.isfinite(d) & np.isfinite(obs)
 wm = lambda x, mm: float((x[mm] * aw[mm]).sum() / aw[mm].sum())
 print(f'{tag} humid Amazon: {int(m.sum())} cells; burned model {100 * wm(d, m):.2f} % vs GFED5 {100 * wm(obs, m):.2f} %; cell rank r {spearmanr(d[m], obs[m]).statistic:.2f}')

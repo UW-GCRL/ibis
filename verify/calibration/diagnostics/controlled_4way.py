@@ -12,7 +12,7 @@ from ibis.dimensions import GridConfig; from ibis.io.restart import load_state
 from ibis.state.model_state import create_ibis_state; from ibis.state.stress_accum import create_stress_accum; from ibis.state.et_parts import create_et_parts
 from ibis.io.physics_params import build_all_params, load_physics_params
 from ibis.io.gswp3_reader import GSWP3Reader; from ibis.constants import PhysicalConstants
-V='/shared/nas2/Hangkai/ibis/verify_outputs'; S='/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'; R='/shared/nas2/Hangkai/ibis-port'
+V='/shared/nas2/Hangkai/ibis/verify_outputs'; S='/shared/nas2/Hangkai/ibis/verify_outputs/diag_work'; R='/shared/nas2/Hangkai/ibis-port'
 # ---------------- four variants of the forcing loop, by source substitution ----------------
 src=open(f'{R}/python-port/ibis/timestepping/loops_gswp3.py').read()
 CLOCK=("zweight = jnp.exp(-1.0 / 10.0)", "zweight = jnp.exp(-1.0 / 240.0)")

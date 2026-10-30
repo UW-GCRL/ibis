@@ -5,7 +5,7 @@ import sys, re, ast, numpy as np, xarray as xr, warnings; warnings.filterwarning
 R = '/shared/nas2/Hangkai/ibis-port'; sys.path[:0] = [f'{R}/python-port', R, f'{R}/verify/fire', f'{R}/verify/calibration']
 import evaluate_gfed5 as eg; from landmask import true_landfrac
 ZONES = ast.literal_eval(re.search(r'\nZONES = (\([^)]*\))', open(f'{R}/python-port/ibis/io/pft_types.py').read()).group(1))
-S = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'; Z = np.load(f'{S}/meeting/glob_refs.npz')['zone']
+S = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work'; Z = np.load(f'{S}/meeting/glob_refs.npz')['zone']
 runs = dict(a.split('=', 1) for a in sys.argv[1:])
 h = xr.open_dataset('/shared/nas2/Hangkai/ibis/inputs/soil/soita_hwsd2_organic.nc'); thick = np.array([0.10, 0.15, 0.25, 0.50, 1.0, 2.0])
 soc1 = (np.nan_to_num(np.asarray(h['orgcpct'].values, float) / 100.0 * np.asarray(h['bulkdens'].values, float) * 1000.0) * thick[:, None, None])[:4].sum(0)

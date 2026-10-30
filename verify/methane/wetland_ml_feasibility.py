@@ -12,7 +12,7 @@ import sys, time, numpy as np, xarray as xr, warnings; warnings.filterwarnings('
 from scipy.ndimage import uniform_filter
 from sklearn.ensemble import HistGradientBoostingRegressor
 R = '/shared/nas2/Hangkai/ibis-port'; sys.path[:0] = [f'{R}/python-port', R]
-S = '/tmp/claude-1007/-home-hangkai/28719488-0896-443d-8709-849a94fae0be/scratchpad'; V = '/shared/nas2/Hangkai/ibis/verify_outputs/final_s31t/hindcast/out'
+S = '/shared/nas2/Hangkai/ibis/verify_outputs/diag_work'; V = '/shared/nas2/Hangkai/ibis/verify_outputs/final_s31t/hindcast/out'
 QUICK = '--quick' in sys.argv; t0 = time.time()
 z = np.load(f'{S}/wetland/fit_diag.npz'); I, J, lat, FMAXW, W, Fw = z['I'], z['J'], z['lat'], z['FMAX'], z['W'].astype(np.float32), z['Fw'].astype(np.float32); n = len(I); NM = 120
 ref = np.load(f'{S}/meeting/glob_refs.npz'); zone = ref['zone'][I, J]
