@@ -202,7 +202,7 @@ Its `state_latest.pkl` carries the PRNG key, so it is reproducibly resumable.
 
 Branch **`fire-test`** (35 commits). `main` is untouched at `605800c`. Each
 defect above has its own commit with the evidence in the message. Test suite:
-614 passing. (The August state. The IBIS 3.0 release is on `calibration-s1`, where the full suite passes; CALIBRATION 84.)
+614 passing. (The August state. The IBIS 3.0 release is on `main`, where the full suite passes; CALIBRATION 85.)
 
 
 ---

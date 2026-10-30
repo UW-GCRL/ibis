@@ -2,7 +2,7 @@
 
 IBIS 3.0 is the Integrated Biosphere Simulator (IBIS 2.6b4; Foley et al. 1996, Kucharik et al. 2000) rewritten in JAX, verified against the Fortran at machine precision, corrected where the original or the port was wrong, extended with a sunlit/shaded canopy, forty climate-zone plant types, a water-limited tree cover, fire, wetland methane, cropland and a deeper soil column, and calibrated from the flux towers outward to the globe. The global protocol at 0.5° (200-year spin-up, 1901–2010) takes about eight and a half hours on one GPU, a per-tower calibration under an hour, and the whole model is differentiable.
 
-The release state (30 October 2026) is the parameter set [`params_31s_ch4h.yaml`](python-port/configs/params/params_31s_ch4h.yaml) on branch `calibration-s1`, run with hourly wetland methane, its carbon taken out of the respiration CO2, and the learned wetland area (`methane_hourly`, `methane_carbon_partition`, `wetland_source: learned`). [`docs/RELEASE_3.0.md`](docs/RELEASE_3.0.md) describes it in short: what was calibrated against what, the file's provenance, how to reproduce the run and its scores, and the limitations. [`docs/CALIBRATION.md`](docs/CALIBRATION.md) is the full record (85 sections). `main` carries the 12 October 2026 release ([`params_s7_crop.yaml`](python-port/configs/params/params_s7_crop.yaml)) until the final is merged.
+The release state (30 October 2026) is the parameter set [`params_31s_ch4h.yaml`](python-port/configs/params/params_31s_ch4h.yaml) on branch `main`, run with hourly wetland methane, its carbon taken out of the respiration CO2, and the learned wetland area (`methane_hourly`, `methane_carbon_partition`, `wetland_source: learned`). [`docs/RELEASE_3.0.md`](docs/RELEASE_3.0.md) describes it in short: what was calibrated against what, the file's provenance, how to reproduce the run and its scores, and the limitations. [`docs/CALIBRATION.md`](docs/CALIBRATION.md) is the full record (85 sections). The previous release on `main` was that of 12 October 2026 ([`params_s7_crop.yaml`](python-port/configs/params/params_s7_crop.yaml)); the calibration that led from it to this one is the history of branch `calibration-s1`.
 
 ## Results at a glance (30 October 2026)
 
@@ -31,7 +31,7 @@ The 12 October comparison at the original 62 FLUXNET2015 towers, 2009–2012 ("h
 | Wetland CH4, the release, held-out monthly r: boreal / temperate / tropical | – | 0.75 / 0.64 / 0.33 | 0.74 / 0.83 / 0.30 | 1 |
 | Cropland GPP, held-out model/tower (r): C3 crops / maize (16 towers) | – | – | 0.76 (0.55) / 1.01 (0.77) | 1 |
 
-**Global, 2001–2010** — means on true land area after the cold 200-year spin-up and the 1901–2000 transient with rising CO2; pools from the 2010 state. The 12 October column is `main`; the final is the release.
+**Global, 2001–2010** — means on true land area after the cold 200-year spin-up and the 1901–2000 transient with rising CO2; pools from the 2010 state. The 12 October column is the previous release; the final is this one.
 
 | Quantity | IBIS 2.6b4 default | IBIS 3.0, 12 October | IBIS 3.0, final | Reference |
 |---|---|---|---|---|

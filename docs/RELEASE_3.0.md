@@ -36,7 +36,7 @@ partition, which books 0.11 PgC yr-1 of the respiration as CH4 instead of CO2 (C
 | cover limit and production | `params_31r.yaml` | the water-limited maximum tree cover with a ramp per zone (the stress gate retired); the C/D-zone allocation refit (awood 0.35, the leaf cut going to roots); shorter temperate wood residence (45 / 40 yr); the tropical wood refit at half strength | 70-71 |
 | allocation stage, road B | `params_31n.yaml` | leaf area set through the allocation and leaf-mass coefficients, no caps; the cold shrub kept (aleaf 0.30) | 54-69 |
 | the type set | carried in the above | 40 climate-zone types, each the median of its towers' fits from the 356-tower campaign; methane bands from 45 Fluxnet-Methane_V2.0 wetland towers (refitted at 48 in the step above); cropland from 16 cropland towers | 45-57, 38, 41 |
-| 12 October release (`main`) | `params_s7_crop.yaml` | the class-median set of the 62-tower fits, with methane and cropland | 37-43 |
+| 12 October release (the previous `main`) | `params_s7_crop.yaml` | the class-median set of the 62-tower fits, with methane and cropland | 37-43 |
 
 Switches on in the release run: `koppen_types` (with the Köppen mask `koppen_file`), `tree_cover_limit`, `enable_methane`
 with `methane_hourly`, `methane_carbon_partition` (the net CH4 carbon taken out of the respiration booked as CO2) and

@@ -18,13 +18,13 @@ the code.
 | what | where |
 |---|---|
 | Repository | `git@github.com:UW-GCRL/ibis.git` |
-| **Branch to use** | **`calibration-s1`** (the IBIS 3.0 release) |
+| **Branch to use** | **`main`** (the IBIS 3.0 release) |
 | Working copy on the box | `/shared/nas2/Hangkai/ibis-port` (66 MB) |
 
-`main` carries the 12 October release until the IBIS 3.0 release is merged.
+The 12 October release is the earlier state of `main`; `calibration-s1` holds the calibration history.
 
     git clone git@github.com:UW-GCRL/ibis.git
-    cd ibis && git checkout calibration-s1
+    cd ibis && git checkout main
 
 Layout:
 

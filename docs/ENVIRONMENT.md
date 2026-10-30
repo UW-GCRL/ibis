@@ -12,7 +12,7 @@ live, and for the constraints of the storage they live on. Referenced by
 
 | What | Path | Notes |
 |---|---|---|
-| **Git working copy** | `/shared/nas2/Hangkai/ibis-port` | **Authoritative.** Branches `main`, `calibration-s1` (the IBIS 3.0 release), `fire-test`, `methane-test`. |
+| **Git working copy** | `/shared/nas2/Hangkai/ibis-port` | **Authoritative.** Branches `main` (the IBIS 3.0 release), `calibration-s1` (its calibration history), `fire-test`, `methane-test`. |
 | **Python environment** | `/shared/nas2/Hangkai/ibis-env` | Launcher `ibis-python`, `requirements.lock`, `site-packages/` (755 M). |
 | **Run tree / outputs** | `/shared/nas2/Hangkai/ibis` | 374 G `verify_outputs/`, 8.4 G `inputs/` (Ramankutty & Foley 1999, WIEMIP), WIEMIP protocol. Not a git repo. |
 | Older git copy | `/shared/nas/Chenchen/hangkai/ibis-port` | **Superseded** — identical content as of 2026-08-12 but will drift. `nas` is 97 % full. |
