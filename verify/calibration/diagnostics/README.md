@@ -10,7 +10,7 @@ files are the outputs the sections quote.
 | script | question | section |
 |---|---|---|
 | `lever_test.py` .. `lever_test5.py` | phenology and stress levers on 60 sparse-excess cells | 14 |
-| `notree_test.py`, `canopy_decomp.py`, `composition_test.py`, `regime_test.py`, `stress_test.py`, `vmax_experiment.py`, `tower_offseason.py` | where the sparse-cell excess sits (canopy, PFT, season) | 14 |
+| `notree_test.py`, `canopy_decomp.py`, `composition_test.py`, `regime_test.py`, `stress_test.py`, `../vmax_experiment.py`, `tower_offseason.py` | where the sparse-cell excess sits (canopy, PFT, season) | 14 |
 | `fu_vs_clm_v11d.py` | tree cover vs CLM tree fraction, globally (became `fu_vs_tree.py`) | 14 |
 | `lever_test6.py` | the tree-establishment gate at 0.45 / 0.55 / 0.65 on sparse, dense and tower cells | 14 |
 | `tropical_phase.py` | the tropical GPP phase lag by seasonality class | 16 |

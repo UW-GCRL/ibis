@@ -167,12 +167,14 @@ Two things that look alarming and are correct, recorded so nobody re-opens them:
   4.64 (Jul). Zhang et al. (2021) quote larger figures. Whether that is a
   definitional difference (inundated-only vs including non-inundated peatland)
   or an error on our side is **not established**, and methane flux scales
-  linearly with it.
+  linearly with it. **Update 2026-10-30:** a registration error in our reader (3 % low and smeared) was found
+  and fixed (CALIBRATION 81, below); whether the remaining gap to Zhang et al. is definitional is still open.
 * **F6 fire calibration produced a null result** — the a-priori parameters beat
   the fitted ones on global rank and total burned area. Shipped defaults are a
   priori. Consistent with FireMIP (Hantson 2020): structure dominates
-  parameters.
-* Methane M2–M7 not started.
+  parameters. **Superseded:** the fire parameters were refitted on a zone objective
+  (CALIBRATION 65-66); the release sits at its optimum.
+* Methane: built, calibrated and in the release (METHANE.md 1); only M4 (microbial dormancy) is not built.
 
 ---
 
@@ -200,7 +202,7 @@ Its `state_latest.pkl` carries the PRNG key, so it is reproducibly resumable.
 
 Branch **`fire-test`** (35 commits). `main` is untouched at `605800c`. Each
 defect above has its own commit with the evidence in the message. Test suite:
-614 passing.
+614 passing. (The August state. The IBIS 3.0 release is on `calibration-s1`, where the full suite passes; CALIBRATION 84.)
 
 
 ---
@@ -455,7 +457,9 @@ years, 0 NaN, soil carbon drift +0.017 %/yr). Equilibrium total NPP is
 carbon state reproduced the archived run almost exactly, as it must, since the
 fixes were to diagnostics and not to physics.
 
-## One NaN cell in every v11 state (open)
+## One NaN cell in every v11 state (open; absent from the release run)
+
+The release run's 2000 and 2010 restarts hold no non-finite value (`final_rel30`, every float array, 2026-10-30).
 
 **Found 2026-09-11, diagnosed 2026-09-16.** Cell index 8028, **68.75N
 -26.75E** -- the Greenland ice-sheet margin. Present in `v11_spinup` (year
@@ -636,7 +640,7 @@ latitude mirror ("index the climatology from the land points' own coordinates, a
 the rounding from the evaluation scripts. Effect on the prescribed wetland area (annual mean, true land): 90S-30N 1.993
 instead of 2.071 Mkm2 (-3.8 %), 30-60N 0.944 instead of 0.959 (-1.5 %), 60-90N 0.377 instead of 0.390 (-3.5 %), global
 3.313 instead of 3.420 (-3.1 %); cell correlation of the read map with the correct one 0.71 in the tropics, 0.77 globally.
-So every global wetland CH4 number from 2026-10-09 to 2026-10-29 (the release's 170 Tg, CALIBRATION 73, the hourly runs)
+So every global wetland CH4 number from 2026-10-09 to 2026-10-29 (the 28 October candidate's 170 Tg, CALIBRATION 73, the hourly runs; the release's 152 is on the corrected reader)
 carries a ~3 % low and spatially smeared wetland area. The tower fits are not affected (wetland towers run at an inundated
 fraction of 1). The same expression sat in the GFED5 fire evaluator (`verify/fire/evaluate_gfed5.py`, `_grid`), so the
 observed burned-area map of every fire score (protocol logs, `glob_refs.npz` burn_gfed5, the fire-objective work) was read

@@ -1,6 +1,8 @@
 # IBIS-JAX methane module — design & build log
 
-**Status:** design agreed, not yet implemented
+**Status:** built, calibrated and in the IBIS 3.0 release (2026-10-30): the flux every time step (§9) with band
+parameters refitted at 48 wetland towers (CALIBRATION.md 80), the learned wetland area (§11) and the carbon partition (§12).
+Sections 0-5s are the original design and its findings; D6-D10 the original plan, decision and build logs; 6-12 the later builds.
 **Owner:** Hangkai
 **Created:** 2026-08-10
 **Scope:** add wetland CH₄ emissions to IBIS, which currently has none. Written
@@ -35,14 +37,14 @@ biogeochemistry while inheriting the same extent uncertainty buys almost nothing
 | M0 | Read TRIPLEX-GHG and IBIS-CH4 papers; extract their parameter values | ☑ **done** (2026-08-21) — see §4.11 |
 | M1 | Inundated fraction + water table depth diagnostic | ☑ **done** (2026-08-25) — `io/wad2m.py`, `bgc/methane.py`, 18 tests |
 | M2 | **M-lite⁺**: `f_inund · r_CH4 · Rh · Q10^((T−T_ref)/10) · exp(−z/τ)` | ☑ **built and wired** (2026-08-28), 30 tests. Runs inside the timestep, `enable_methane` read by `run_global`. Uncalibrated: 353 Tg/yr and too tropical at the best configuration — §5i–5k |
-| M3 | Evaluate M-lite: FLUXNET-CH4 + global total | ☐ not started |
+| M3 | Evaluate M-lite: methane towers + global total | ☑ **done** — tower fits CALIBRATION.md 38, 80; global total CALIBRATION.md 81-84 |
 | M4 | **microbial growth/dormancy** (2 params) — the only added process with a replicated skill gain; *only if M3 shows seasonal bias* | ☐ not started |
 | M5 | ~~ebullition, plant transport, diffusion~~ — **removed from the plan** (§5f); reinstate only for a question needing pathway partitioning | ✗ dropped |
-| M6 | Global evaluation vs Global Methane Budget 2025 | ☐ not started |
-| M7 | Differentiable calibration of `r_CH4`, `Q10p` (+ `Vmax` if M-mid) | ☐ not started |
+| M6 | Global evaluation vs Global Methane Budget 2025 | ☑ **done** — 152 Tg CH4 yr⁻¹ against the bottom-up 153 (116-189), 2001-2010 (CALIBRATION.md 84) |
+| M7 | Calibration of `r_CH4`, `Q10p`, `z_tau`, `tau_oxid` | ☑ **done** — per-tower CMA-ES fits, band medians (CALIBRATION.md 80), not by gradients |
 
 Gate between tiers: do not start the next tier until the previous one is evaluated
-and the comparison is written into §9.
+and the comparison is written into §D9.
 
 Legend: ☐ not started · ◐ in progress · ☑ done & verified
 
@@ -56,7 +58,7 @@ Legend: ☐ not started · ◐ in progress · ☑ done & verified
 hits. This module is greenfield — no legacy path to preserve, no bit-exactness
 constraint. That is a freedom the fire module does not have.
 
-### 2.2 `python-port/ibis/bgc/wetlands.py` — quarantine, do not extend
+### 2.2 `python-port/ibis/bgc/_legacy_unwired/wetlands.py` — quarantine, do not extend
 
 250 lines, present since the initial monorepo commit, **never called** (only a
 dormant `enable_wetlands: bool = False` in `config.py`), never verified, absent
@@ -162,7 +164,7 @@ effort on the 20%. Restructured below as a tiered design.
 | **M-full** | + ebullition, plant transport, diffusion partition | 14 | Only build if the science question needs pathway partitioning (isotopes, episodicity, wetland-type contrasts). |
 
 Each tier must be evaluated before the next is built, and the comparison recorded
-in §9. If M-lite matches M-full's global total to within the observational spread,
+in §D9. If M-lite matches M-full's global total to within the observational spread,
 that is a publishable result in itself and we stop.
 
 The subsections below specify M-full; M-lite is its first term.
@@ -327,7 +329,7 @@ bearing and the weakest link in the whole design:
 | TRIPLEX-GHG: `r` (CH₄:CO₂) and `Q10` are the **dominant sensitivities** | Choice of the two primary calibration knobs (§4.7) | We would calibrate the wrong parameters |
 | Gedney et al. 2004 is a **~3-parameter** scheme still used as the JULES default | The claim that a very light scheme is competitive | Weakens the light-model argument |
 | 16-model review: only **25 %** represent ebullition adequately | Decision to "do ebullition properly" (§4.4) | Minor — the cost is ~10 lines either way |
-| Global wetland CH₄ **153 (136–168) Tg yr⁻¹** | The global evaluation target (§6) | Wrong benchmark |
+| Global wetland CH₄ **153 (136–168) Tg yr⁻¹** | The global evaluation target (§D6) | Wrong benchmark |
 
 **Action before M1:** read Bloom et al. (2017) and Zhu et al. (2014) in full and
 replace the two top rows with verified numbers. This is the M0 stage already in the
@@ -385,7 +387,7 @@ The same class of error is the main risk here, so units were checked first.
 
 | # | Assumption | Reality | Impact |
 |---|---|---|---|
-| 1 | `tco2mic` may only be an annual diagnostic (§7 open question 3) | ✅ **Resolved — it is a per-timestep field.** `VegetationState.tco2mic` (`state/vegetation.py:66`), computed in `physics/biogeochem.py:235`. | **M2 needs no plumbing work.** The open question is closed. |
+| 1 | `tco2mic` may only be an annual diagnostic (§D7 open question 3) | ✅ **Resolved — it is a per-timestep field.** `VegetationState.tco2mic` (`state/vegetation.py:66`), computed in `physics/biogeochem.py:235`. | **M2 needs no plumbing work.** The open question is closed. |
 | 2 | Rh units | `tco2mic` is **mol CO₂ m⁻² s⁻¹**. `timestepping/loops_gswp3.py:414-415` already converts: `rh_day = tco2mic × 12.0e-3 × 86400` → **kgC m⁻² d⁻¹**. | §4.2 said "gC m⁻² d⁻¹". **Pick one and state it in code.** Reuse the existing conversion rather than writing a second one — the fire module's 1000× near-miss came from exactly this. |
 | 3 | Per-cell root profile for plant transport (§4.4 `f_root`) | ⚠ **`froot` has no `npoi` dimension**: `Float[Array, "nsoilay 2"]`, shape (6, 2) (`state/vegetation.py:44`). Root fraction is **spatially uniform** in the port, upper/lower canopy only. | Plant-mediated transport cannot vary by cell through `froot`. Either scale by `lai` (which *is* per-cell) or accept a uniform profile. **Decide at M3, do not assume.** |
 | 4 | Soil layers 0.10/0.15/0.25/0.50/1.00/2.00 m, 4 m total | ✅ Confirmed — `fortran/params.soi:33-38`, read via `readpars.f:221`. | Layer weighting `w_rh[k]` can be built on these as stated. |
@@ -1775,7 +1777,7 @@ faithful to the product. **So the tropical excess in §5n is not extent** — it
 lives in `Rh × Q10 × r_ch4`, and the remaining candidates are tropical Rh and
 the tropical `r_ch4` of 0.15.
 
-That does not make the inundation product *correct* — §7 open question 2 stands,
+That does not make the inundation product *correct* — §D7 open question 2 stands,
 since WAD2M, GIEMS-2 and SWAMPS disagree substantially and that remains the
 largest single lever on the global total. What is now established is narrower
 and sufficient for M3: **we are reproducing WAD2M faithfully, so our error is
@@ -2032,7 +2034,7 @@ modules"*:
 
 | mechanism | present in IBIS? |
 |---|---|
-| vertically resolved decomposition | **no** -- CENTURY here is a bulk scheme (§7 Q4) |
+| vertically resolved decomposition | **no** -- CENTURY here is a bulk scheme (§D7 Q4) |
 | freezing-induced decomposition inhibition | **no** explicit term; only the generic `ftemp` |
 | cryoturbation-driven SOC mixing | **no** |
 | SOC thermal insulation | **no** -- `FORGANIC` is a constant 0.010, not prognostic |
@@ -2087,7 +2089,7 @@ shares the bias, so matching it would not mean being right.
 
 ---
 
-## 6. Verification plan
+## D6. Verification plan (the original design)
 
 No F77 counterpart exists, so `verify/STATUS.md`'s two-layer pattern is replaced by:
 
@@ -2110,7 +2112,7 @@ deep peat" or quantify the bias. Do not leave it implicit.
 
 ---
 
-## 7. Open questions
+## D7. Open questions (the original design)
 
 1. **Domain — global 0.5° or CONUS?** CONUS largely removes the peatland problem
    and has denser FLUXNET-CH4 coverage; global is what the field expects.
@@ -2129,7 +2131,7 @@ deep peat" or quantify the bias. Do not leave it implicit.
 
 ---
 
-## 8. Decision log
+## D8. Decision log
 
 | Date | Decision | Rationale |
 |---|---|---|
@@ -2145,7 +2147,7 @@ deep peat" or quantify the bias. Do not leave it implicit.
 
 ---
 
-## 9. Build log
+## D9. Build log
 
 > Append one entry per work session: what changed, what was measured, what broke.
 
@@ -2174,7 +2176,7 @@ deep peat" or quantify the bias. Do not leave it implicit.
 
 ---
 
-## 10. References
+## D10. References
 
 1. Riley et al. (2011), *Barriers to predicting changes in global terrestrial methane fluxes: analyses using CLM4Me*, Biogeosciences 8, 1925. https://bg.copernicus.org/articles/8/1925/2011/bg-8-1925-2011.html
 2. *CLM5.0 Technical Note — Methane Model*. https://escomp.github.io/CTSM/tech_note/Methane/CLM50_Tech_Note_Methane.html
@@ -2483,7 +2485,7 @@ default run to float32 rounding (bit for bit when the test runs alone; inside th
 XLA's fusion and the soil temperature differs by ~1e-6 relative, as on the GPU, CALIBRATION 82); the means are physical and differ from the month-end state; the hourly CH4 is booked as the month's
 mean. The section-8 emulator is retrained on the month means before any switch is built on it.
 
-## 11. The learned wetland area as a switch (2026-10-29, built; validation pending the soil-means hindcast)
+## 11. The learned wetland area as a switch (2026-10-29; validated in CALIBRATION.md 81-84, the release setting)
 
 `physics.wetland_source: learned` (and `observed_learned`: the observed WAD2M field inside 2000-2020, learned outside),
 with `forcing.wetland_learned_file`; needs `methane_hourly`. Off by default. Module `ibis/bgc/wetland_learned.py`:
@@ -2498,7 +2500,10 @@ with `forcing.wetland_learned_file`; needs `methane_hourly`. Off by default. Mod
 - Runner: in a learned month the methane runs with a unit inundated fraction, the hourly accumulator integrating the
   flux per unit of wetland; after the month the fraction is computed from that month's means and the month's flux and the
   annual total are scaled by it (exact: the flux is linear in the fraction, clip(f, 0, 1)). The month's fraction is written
-  as `finund`. No end-of-month state enters anywhere.
+  as `finund`. No end-of-month state enters anywhere. The predictor buffers (lags, 3-month means) are not in the restart: a
+  run started from a restart builds them afresh, as the training did from 2001, so a transient split at 2000 and a
+  continuous run differ in the first three months' predictors. The mode needs the full global grid (the file's cells are
+  global rows and columns; the run stops on a sub-domain).
 Tests: `tests/test_wetland_learned.py` (the builder against the explicit array definitions on a random series; the hybrid's
 bounds and its climatology limit; a file applies to its own cells only and rejects a feature list that differs).
 

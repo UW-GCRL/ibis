@@ -12,11 +12,11 @@ live, and for the constraints of the storage they live on. Referenced by
 
 | What | Path | Notes |
 |---|---|---|
-| **Git working copy** | `/shared/nas2/Hangkai/ibis-port` | **Authoritative.** Branches `main`, `fire-test`, `methane-test`. |
+| **Git working copy** | `/shared/nas2/Hangkai/ibis-port` | **Authoritative.** Branches `main`, `calibration-s1` (the IBIS 3.0 release), `fire-test`, `methane-test`. |
 | **Python environment** | `/shared/nas2/Hangkai/ibis-env` | Launcher `ibis-python`, `requirements.lock`, `site-packages/` (755 M). |
 | **Run tree / outputs** | `/shared/nas2/Hangkai/ibis` | 374 G `verify_outputs/`, 8.4 G `inputs/` (Ramankutty & Foley 1999, WIEMIP), WIEMIP protocol. Not a git repo. |
 | Older git copy | `/shared/nas/Chenchen/hangkai/ibis-port` | **Superseded** — identical content as of 2026-08-12 but will drift. `nas` is 97 % full. |
-| GitHub remote | `git@github.com:UW-GCRL/ibis.git` | `main` only. Neither test branch has been pushed. |
+| GitHub remote | `git@github.com:UW-GCRL/ibis.git` | `main`, `calibration-s1`, `fire-test`, `methane-test`. |
 
 Run anything with:
 
@@ -77,7 +77,10 @@ The 46-year F77↔JAX lockstep and the 200-year spin-up (`verify/STATUS.md`, wor
 ending 2026-06-11) ran under a `verify/.venv` that did not survive the move to
 shared storage, so those versions are **not recoverable from disk**.
 
-Current suite status in this environment (2026-08-12, identical on local disk
+Suite status on the release branch (2026-10-30): the full suite passes, no failures (CALIBRATION 84). The seven
+failures below were the 2026-08-12 state and no longer occur; the caveat on the lost verification environment stands.
+
+Suite status in this environment on 2026-08-12 (identical on local disk
 and on nas2):
 
 ```

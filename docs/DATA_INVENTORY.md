@@ -18,15 +18,13 @@ the code.
 | what | where |
 |---|---|
 | Repository | `git@github.com:UW-GCRL/ibis.git` |
-| **Branch to use** | **`fire-test`** |
+| **Branch to use** | **`calibration-s1`** (the IBIS 3.0 release) |
 | Working copy on the box | `/shared/nas2/Hangkai/ibis-port` (66 MB) |
 
-`main` does **not** have this work -- it lacks the grid fix, the carbon
-correction, the fire and methane modules, and the calibration. Use
-`fire-test`.
+`main` carries the 12 October release until the IBIS 3.0 release is merged.
 
     git clone git@github.com:UW-GCRL/ibis.git
-    cd ibis && git checkout fire-test
+    cd ibis && git checkout calibration-s1
 
 Layout:
 
@@ -128,7 +126,7 @@ Spinning up from cold costs ~4.5 h on the GPU. Use a restart instead.
 
 | state | restart file | what it is |
 |---|---|---|
-| **v11 transient** | `/shared/nas2/Hangkai/ibis/verify_outputs/v11_transient/restart/ibis_restart_2010.npz` | 55 MB. **Current reference.** IBIS default parameters, cold start -> 300 yr spin-up at 296 ppm -> transient 1901-2010 with rising CO2. GPP 232 PgC/yr (high, uncalibrated) |
+| **v11 transient** | `/shared/nas2/Hangkai/ibis/verify_outputs/v11_transient/restart/ibis_restart_2010.npz` | 55 MB. The reference of the August-September stages (the release is `final_rel30`, RELEASE_3.0.md). IBIS default parameters, cold start -> 300 yr spin-up at 296 ppm -> transient 1901-2010 with rising CO2. GPP 232 PgC/yr (high, uncalibrated) |
 | v11 spin-up | `.../v11_spinup/restart/ibis_restart_1900.npz` | end of the 300-yr spin-up, 296 ppm |
 | both_fix | `.../both_fix/restart/ibis_restart_2200.npz` | 54 MB. **Superseded.** Carries `vmax x0.54` and soil-OM `x0.67`; GPP 138 PgC/yr but the Arctic is empty and restarts clobbered its climate normals |
 

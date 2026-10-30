@@ -4,7 +4,10 @@ Started 2026-09-09, after the fire and methane modules were re-validated on the
 corrected carbon cycle. Order set by Hangkai: carbon, then ET, then the smaller
 parts. Methane is evaluated against FLUXNET-CH4 (Chenchen's processing).
 
-**Current stage (2026-10-23): ongoing.** The zone-type set from the 356-tower campaign (sections 45, 50-54) is being
+**Status (2026-10-30): final.** The IBIS 3.0 release is `params_31s_ch4h.yaml` (sections 70-84; `docs/RELEASE_3.0.md`). The
+note below is the stage of 23 October, kept as written.
+
+**Stage of 2026-10-23.** The zone-type set from the 356-tower campaign (sections 45, 50-54) is being
 carried down two roads to a candidate final run: road A, per-type leaf-area caps (s31f, `params_31f_cs2.yaml`); road B,
 allocation and leaf-mass coefficients without a cap (s31g, `params_31g5.yaml`; section 55). Both verdicts are in section 56;
 the tower re-score on the towers' own soil pools (section 57) showed that the shared respiration is right at the towers and
@@ -4739,12 +4742,11 @@ seasonality at all (r 0.03) for the same reason: their cycle is hydrological (fl
 tower inundated all year. Magnitude is right to within 25 % at only 43 % of the towers on the held-out year, median
 0.84, so the per-class set is a scale correction, not a seasonal one.
 
-**Non-wetland methane towers.** Grassland and forest towers that emit strongly (US-Snf 25, US-Sne 41, US-NGC 3, CA-SCC
-6, BR-Npw 14, CH-Cha 2, RU-Fy2 2 gC m-2 yr-1) are wet sites classed by their vegetation; with the cell's WAD2M fraction
+**Non-wetland methane towers.** Grassland and forest towers that emit strongly (seven towers, 2-41 gC m-2 yr-1) are wet sites classed by their vegetation; with the cell's WAD2M fraction
 the model cannot emit there and the fit pushes r_ch4 to its ceiling, so they were refitted fully inundated. The class
 medians (GRA 0.23, ENF 0.07, OSH 0.50, 9 / 5 / 2 towers) are not used for the global run: the inundated fraction of a
-grid cell emits with the wetland set, and the upland sink the model lacks is what those towers mostly show (US-Ho1,
-US-ICh, FI-Hyy, DE-Msr budgets of -0.2 to 0.04).
+grid cell emits with the wetland set, and the upland sink the model lacks is what those towers mostly show (four upland
+towers with budgets of -0.2 to 0.04).
 
 **Global translation.** `ch4_class_yaml.py` writes `methane:` (the 47-tower WET medians: r_ch4 0.142, Q10 2.06, z_tau
 0.71, tau_oxid 0.158) and `methane_bands:` (the medians by band above) into
@@ -4897,10 +4899,9 @@ observation should inform. 23 towers were refitted (`site_fit/ch4_wtd`, `ch4_wtd
 | monthly r, median | 0.66 | 0.50 | 12 / 5 towers |
 | training-years monthly r, median | 0.55 | 0.50 | 4 / 9 towers |
 
-The tower's water table helps where the record is a real wetland water table (CA-SCB bog 0.60 -> 0.73 r, US-ALQ,
-US-Esm, US-Elm Everglades 0.03 -> 0.33, CA-DBB) and breaks the fit where the record's datum is not the surface: the
-tidal marsh US-HB1 reports 0.6-4.2 m "above the surface" all year and gives a held-out ratio of 125, CA-DB2 and US-Tw4
-lose their seasonality altogether. The medians do not move in one direction, the fitted production ratios scatter
+The tower's water table helps where the record is a real wetland water table (five bog and marsh towers, monthly r up by as much as
+0.3) and breaks the fit where the record's datum is not the surface: a tidal marsh whose record sits metres "above the
+surface" all year goes far off in the held-out year, and two towers lose their seasonality altogether. The medians do not move in one direction, the fitted production ratios scatter
 more (temperate 0.09 against 0.11), and the boreal and tropical bands keep two and three towers. **Verdict: not
 adopted.** The constant-water-table fits of 38.1 remain the parameter set, and the global run uses the module's own
 water table. What the test did settle: where a wetland's water table is known and referenced to the surface, the
@@ -7818,8 +7819,8 @@ with the month-end snapshot that `methane_step` used, so they absorb that conven
 evaluation of METHANE.md 9. Refit launched 13:25 for the 48 wetland towers of the production report, with the SAME years,
 base parameters (`params_s3_classmedian.yaml`), start state (`pool_spinup_ch4/state.npz`), objective, CMA-ES settings
 (48 evaluations, population 6) and inundated fraction 1 as the production fits, plus `--methane-hourly`: the cadence is
-the only change, so the new parameters against the old measure what the snapshot did. Smoke test at US-Myb: the switch
-reaches the harness (baseline loss 241.3 hourly against 256.9 snapshot). Launchers `ch4_chain_h1.sh` (CPU, six 4-core
+the only change, so the new parameters against the old measure what the snapshot did. Smoke test at one tower: the switch
+reaches the harness. Launchers `ch4_chain_h1.sh` (CPU, six 4-core
 slots) and `ch4_chain_h1_gpu.sh` (GPU, three at once, after the hourly hindcast `final_s31t_ch4hourly` leaves the GPU),
 outputs `site_fit/ch4_h1{,_gpu}`, logs `$S/ch4h1/`. Then: `ch4_fit_report.py` -> `ch4_class_yaml.py --band-csv
 logs/ch4_towers_zone.csv` -> `params_31s_ch4h.yaml` (= the final file with the hourly bands) -> hindcast with
@@ -7977,7 +7978,7 @@ winter stays at zero where the towers keep 0.1-0.3 (the frozen-season floor, a p
 
 ## 84. The reproduction `rel30` landed: it is the release (2026-10-30 10:09)
 
-The README's protocol command run cold from the release parameter file with every release switch (spin-up 1601-1900,
+The README's protocol command run cold from the release parameter file with every release switch (spin-up 1701-1900,
 transient 1901-2000 and hindcast 2001-2010, 01:38-10:09; scoring to 10:21, no errors). Against the assembled release
 (s31t + `final_s31t_ch4h_learned_r2`), 2001-2010, true-land totals:
 
@@ -7991,3 +7992,58 @@ transient 1901-2000 and hindcast 2001-2010, 01:38-10:09; scoring to 10:21, no er
 
 Full test suite at `39d20d4`: 819 passed, 6 skipped, 6 xfailed, 3 xpassed (the hourly-methane state test now compares
 `gadjust`, a rounding residual by construction, in water per step).
+
+## 85. The pre-push review: two loader and grid bugs, the methane month end in the package, the documents (2026-10-30)
+
+Hangkai (10-30): "before push it, we shall double check and organize the code ... And also double check about the
+document." Two independent reviews (the model package, driver and tests; the public documents) of the 67 unpushed commits,
+each finding checked against the code or the score files before it was acted on.
+
+**Code.**
+- `load_state` decided whether a checkpoint carries the wetland state from leaf counts, which are ambiguous since the
+  StressAccum has 4 leaves (3 wetland + 4 equals an old-chain offset): a methane run with the gate on and the seasonal
+  module off would load its stress accumulators into the wrong slots and drop the wetland. It now reads the checkpoint's
+  saved tree structure (`treedef_repr`); counts only for files without it. Test with the driver's own template
+  (`test_wetland_checkpoint_loads_into_the_driver_template`: fails before, passes after). The release is not affected (the
+  seasonal module is on; its restarts load leaf for leaf, checked on the 1900, 2000 and 2010 files).
+- The snow constants of a restart written before 26 October (hsnomin 0.01, fimin 0.02, z0sno 0.005) came back on loading,
+  against the state's own comment; `load_state` now takes them from the template, as arrays of the loaded leaves' type (a
+  Python float would become a compile-time constant of the step; the leaf types stay those of every earlier run).
+- The learned wetland area matched its cells by the run's sub-grid indices: a regional run would read the wrong cells and
+  truncate the neighbourhood means. It now stops unless the run is on the full global grid.
+- The learned area's month-end scaling and the CH4 carbon partition moved from the driver into `ibis/bgc/methane.py`
+  (`scale_month`, `ch4_carbon_from_rh`, same arithmetic) with tests (`test_methane_month_end.py`: the flux is linear in
+  the fraction; the partition is capped at the month's Rh and closes); the duplicated WAD2M read merged.
+- Smaller: a stale `exact_litterfall` docstring, stale leaf counts, a shadowing local import in `load_state`, the
+  misleading `soilcspin_tail_years` fallback, an unused counter, a duplicated fire constant, `scipy` skipped when absent.
+- The protocol's stage templates were only on the NAS (`verify_outputs/v11_*/cfg.yaml`): now
+  `verify/calibration/protocol/{spinup,transient}.yaml` (bodies byte-identical), with `IBIS_OUT`, `PY`, `CPY` overridable.
+- 32 diagnostic scripts (the learned-wetland training among them) read inputs from a session scratchpad: copied to
+  `verify_outputs/diag_work` (646 MB) and repointed.
+
+**Check of the changed driver on the GPU** (`verify_outputs/check_refactor_1030`, 2001 from the release's 2000 restart,
+the release configuration), against the release's own 2001 and a control of the unchanged code:
+
+| 2001 against `final_rel30` | GPP, soil C | NPP | vegetation C | Rh as CO2 | wetland CH4 | months with soil means differing |
+|---|---|---|---|---|---|---|
+| control: the unchanged code, run again | identical | identical | identical | 743 cells, 4e-8 | 17,214 cells, 3e-5 | 7 |
+| the changed code, first version | identical | identical | identical | 356 cells, 1e-9 | 586 cells, 7e-7 | 4 |
+| the changed code, final | identical | 7,247 cells, 7e-9 (1 ulp) | 1 cell, 2e-12 | 12 cells, 2e-12 | 1,402 cells, 4e-10 | 0 |
+
+(cells differing, global relative difference). The GPU is not bit-repeatable from launch to launch: the month-mean soil
+accumulators move by float32 rounding, and the learned area's trees turn that into whole-split changes at a few cells,
+so the release methane reproduces to about 3e-5 of its global total (0.005 Tg). The code changes sit inside that noise;
+the first version's methane difference, first read as the snow constants' doing, is the same noise.
+
+**Documents.** README and RELEASE_3.0: GPP 148 (147 was the 2006-10 mean), FLUXCOM 0.70 of the towers (0.75 was an older
+cell set), the wood regions on the release's table (temperate Europe 2.0, North America 1.35; the Congo 0.66, boreal
+1.11), the soil drift at most 0.13 PgC yr-1 per zone group, the release run named as `final_rel30` and the earlier names
+explained, local folders marked as such, the release methane tower rows added (band parameters and per-tower fits,
+48 towers), the figures redrawn from `final_rel30`, the non-switch corrections listed, xgboost in the install line.
+METHANE.md: status and build table current, the original design's sections 6-10 relabelled D6-D10 (every citation in the
+code is to the later 6-12). ENVIRONMENT, DATA_INVENTORY, DEFECTS_FOR_REVIEW: branch, suite and open-item notes current;
+the NaN cell absent from the release restarts (0 non-finite values). Per-tower methane values in this log replaced by
+band-level statements (four passages; three of them were pushed in September and October).
+
+Full suite on the final code: 824 passed, 6 skipped, 6 xfailed, 3 xpassed. (Its first run caught one more near-zero
+field in the accumulator test, the puddle `wpud` at 2e-9: fields below 1e-6 are now compared against 1e-6.)
