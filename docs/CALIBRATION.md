@@ -7864,3 +7864,17 @@ meteorology clipping of 3509a51 touched only 4 of the 19. So the production meth
 current model at 19 of the 48 towers, independent of the cadence; the refit was needed on both counts. Which commit
 since 10 October moved those towers is not yet bisected.
 
+
+## 81. WAD2M and GFED5 registration fixed; the wetland-area modes rerun (2026-10-29 22:45)
+
+Found while tracing why the learned-area run used 0.07 Mkm2 more tropical wetland than an offline replay of the same file
+on the same run (the replay matched the run in the file's 49,545 cells; the excess sat in the other land points, which take
+the model's WAD2M climatology): the runner's WAD2M index was `np.rint((lat + 90) / 0.5)` on the corner grid, which rounds
+every cell centre half to even, so 75 % of land points read a neighbouring WAD2M cell since 2026-10-09 (DEFECTS_FOR_REVIEW
+"WAD2M registration"; area -3.1 % globally, -3.8 % in the tropics; cell correlation of the read and the correct map 0.77).
+The same expression sat in the GFED5 fire evaluator and in the methane diagnostics. Fixed (`wad2m_cell_index`, floor) and
+tested (commit 47432d6). Fire re-scored with the corrected registration (`tables/fire_rescored_registration_fix.txt`):
+final s31t 0.52 of GFED5 (0.53 as scored), rank r 0.776 (0.764), burning cells 0.441 (0.429); s31n 0.45 (0.46), 0.764
+(0.753). The fire verdicts stand. Every global methane number since 2026-10-09 carries the ~3 % low, smeared area; the
+three wetland-area modes (climatology / learned / observed, hourly CH4 with the hourly bands) are rerun on the corrected
+registration (`final_s31t_ch4h_{clim,learned,obs}_r2`) before Hangkai's choice between `learned` and `observed_learned`.
