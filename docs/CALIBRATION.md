@@ -7878,3 +7878,22 @@ final s31t 0.52 of GFED5 (0.53 as scored), rank r 0.776 (0.764), burning cells 0
 (0.753). The fire verdicts stand. Every global methane number since 2026-10-09 carries the ~3 % low, smeared area; the
 three wetland-area modes (climatology / learned / observed, hourly CH4 with the hourly bands) are rerun on the corrected
 registration (`final_s31t_ch4h_{clim,learned,obs}_r2`) before Hangkai's choice between `learned` and `observed_learned`.
+
+**Result of the three modes on the corrected registration (2026-10-29 23:20; `tables/wetland_modes_compare_r2.txt`).**
+Hourly CH4, hourly bands (`params_31s_ch4h.yaml`), 2001-2010, Tg CH4 yr-1 (year-to-year sd of the annual total):
+
+| band | climatology area | learned area | observed area | GMB 2025 BU 2000-09 |
+|---|---|---|---|---|
+| 90S-30N | 134.3 (3.3) | 134.7 (4.0) | 138.3 (5.5) | 109.5 [66-146] |
+| 30-60N | 10.5 (0.37) | 10.6 (0.36) | 10.5 (0.35) | 32.1 [16-60] |
+| 60-90N | 6.7 (0.42) | 6.8 (0.47) | 6.7 (0.46) | 11.7 [4-28] |
+| global | 151.5 (3.3) | 152.1 (4.1) | 155.6 (5.5) | 153.3 [116-189] |
+
+Learned against observed: annual CH4 anomalies r 0.98 globally (0.96-1.00 by band), annual area anomalies r 0.89; mean
+difference -3.4 Tg (all tropical); the learned area's year-to-year sd is a third of the observed (0.023 against 0.062
+Mkm2 globally), so the learned run sits close to the climatology run in totals and spread, the observed run carries the
+observed 2001-2010 rise of the tropical area (global 150 -> 168 Tg against 149 -> 160 learned). Seasonal cycles identical
+in all three to 0.1-0.4 Tg per month. The learned area against WAD2M (in-sample years): monthly R2 0.60 / 0.61 / 0.85 by
+band against the climatology's 0.52 / 0.46 / 0.80, annual-area r 0.95 / 0.91 / 0.76. With the registration fixed, the
+globe sits on the GMB mean (151-156 against 153) and the tropics inside the model range.
+
