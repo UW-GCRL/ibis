@@ -30,15 +30,16 @@ wetland area (`verify_outputs/final_s31t_ch4h_learned_r2/`; methane is diagnosti
 
 | Step | File | What it added | Log |
 |---|---|---|---|
-| methane at the hourly cadence | `params_31s_ch4h.yaml` | the methane band parameters refitted at the 48 wetland towers with the flux evaluated every time step (the earlier fits used the month-end state); used with `methane_hourly` and the learned wetland area (`wetland_learned_v2_s31t.npz`) | 80-82 |
+| methane at the hourly cadence | `params_31s_ch4h.yaml` | the methane band parameters refitted at the 48 Fluxnet-Methane_V2.0 wetland towers with the flux evaluated every time step (the earlier fits used the month-end state); used with `methane_hourly` and the learned wetland area (`wetland_learned_v2_s31t.npz`) | 80-82 |
 | soil-carbon stage | `params_31s_soil_strong.yaml` | slow- and passive-pool turnover scaled per zone group on the zones' tree types (`som_k_scale`); the stronger member of a two-member bracket run through the full protocol | 72 |
 | cover limit and production | `params_31r.yaml` | the water-limited maximum tree cover with a ramp per zone (the stress gate retired); the C/D-zone allocation refit (awood 0.35, the leaf cut going to roots); shorter temperate wood residence (45 / 40 yr); the tropical wood refit at half strength | 70-71 |
 | allocation stage, road B | `params_31n.yaml` | leaf area set through the allocation and leaf-mass coefficients, no caps; the cold shrub kept (aleaf 0.30) | 54-69 |
-| the type set | carried in the above | 40 climate-zone types, each the median of its towers' fits from the 356-tower campaign; methane bands from the 45 FLUXNET-CH4 towers; cropland from 16 cropland towers | 45-57, 38, 41 |
+| the type set | carried in the above | 40 climate-zone types, each the median of its towers' fits from the 356-tower campaign; methane bands from 45 Fluxnet-Methane_V2.0 wetland towers (refitted at 48 in the step above); cropland from 16 cropland towers | 45-57, 38, 41 |
 | 12 October release (`main`) | `params_s7_crop.yaml` | the class-median set of the 62-tower fits, with methane and cropland | 37-43 |
 
 Switches on in the release run: `koppen_types` (with the Köppen mask `koppen_file`), `tree_cover_limit`, `enable_methane`
-with `methane_hourly` and `wetland_source: learned` (`wetland_learned_file`), `enable_fire_emissions`, cropland
+with `methane_hourly`, `methane_carbon_partition` (the net CH4 carbon taken out of the respiration booked as CO2) and
+`wetland_source: learned` (`wetland_learned_file`), `enable_fire_emissions`, cropland
 (`cropfrac_file`). Organic-soil hydrology is off. The run is cold: no state is inherited
 from an earlier run.
 
@@ -49,7 +50,7 @@ Towers first, then the globe; no global total was ever a term in a loss function
 | Process | Parameters | Data | How | Log |
 |---|---|---|---|---|
 | photosynthesis, stomata, phenology, respiration, allocation | per type: capacity and acclimation, Ball-Berry, leaf traits, allocation and turnover, respiration | 356 flux towers (FLUXNET2015, ICOS, AmeriFlux, NEON, regional networks): monthly GPP, ET and NEE on the tower's own meteorology, three to five years, one held out | CMA-ES per tower on a bounded objective; each type is the median of its towers; every tower re-scored under the shared set | 34-36, 45, 50-57 |
-| wetland methane | rate, Q10, anaerobic depth scale and oxidation scale per wetland band | 48 wetland towers of the FLUXNET-CH4 v2 compilation (Chenchen's gap-filled set, unpublished), held-out year | per-tower fits with the flux evaluated every time step, band medians by Köppen wetland type | 38, 42, 73, 80 |
+| wetland methane | rate, Q10, anaerobic depth scale and oxidation scale per wetland band | 48 wetland towers of Fluxnet-Methane_V2.0, held-out year | per-tower fits with the flux evaluated every time step, band medians by Köppen wetland type | 38, 42, 73, 80 |
 | wetland area | the learned anomaly model (trees per band, monotone in water) | WAD2M v2.0 monthly fraction 2001-2010 | trained on a reference hindcast's month-mean soil state and water totals; held out by year | METHANE 8-11, 81 |
 | cropland | crop capacity factor, harvest | 16 cropland towers | per-tower fits | 41 |
 | fire | season, danger, fuel, mortality, damping | GFED5 burned fraction 2001-05 by zone | a zone objective on amount and pattern; the release sits at its optimum | 59, 65-66 |
@@ -66,8 +67,8 @@ radiation) is the verified IBIS 2.6b4 physics.
 cd ibis-port; export PYTHONPATH=python-port:.
 SPINUP_YEARS=200 METHANE=1 KOPPEN_TYPES=1 \
   KOPPEN=<koppen_beck2023_0.5deg.npz> CROPFRAC=<cropfrac_esacci_2000_05deg.npz> \
-  METHANE_HOURLY=1 WETLAND_SOURCE=learned WETLAND_LEARNED_FILE=<wetland_learned_v2_s31t.npz> \
-  bash verify/calibration/final_validation.sh s31t python-port/configs/params/params_31s_ch4h.yaml
+  METHANE_HOURLY=1 METHANE_CARBON_PARTITION=1 WETLAND_SOURCE=learned WETLAND_LEARNED_FILE=<wetland_learned_v2_s31t.npz> \
+  bash verify/calibration/final_validation.sh rel30 python-port/configs/params/params_31s_ch4h.yaml
 ```
 
 Stages: cold spin-up 1701-1900 (1901-1930 climate cycled, 296 ppm, soil carbon accelerated then released), transient

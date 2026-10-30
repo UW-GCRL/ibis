@@ -106,7 +106,7 @@ protocol and is not needed here.
 | FLUXNET-CH4 Europe | `/shared/nas/Chenchen/Eurofluxnet/EuroFlux` | 43 sites | |
 | Site coordinates | `/shared/nas/Chenchen/hangkai/combined_site_coords.csv` | 108 sites | lat/lon/network for the above |
 
-The methane tower data is **unpublished** (Chenchen's). Check with them before
+The methane tower data (named **Fluxnet-Methane_V2.0** in the public documents, Hangkai 2026-10-30) is **unpublished** (Chenchen's). Check with them before
 using it in anything that leaves the group.
 
 ---

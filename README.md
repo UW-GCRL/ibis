@@ -2,7 +2,7 @@
 
 IBIS 3.0 is the Integrated Biosphere Simulator (IBIS 2.6b4; Foley et al. 1996, Kucharik et al. 2000) rewritten in JAX, verified against the Fortran at machine precision, corrected where the original or the port was wrong, extended with a sunlit/shaded canopy, forty climate-zone plant types, a water-limited tree cover, fire, wetland methane, cropland and a deeper soil column, and calibrated from the flux towers outward to the globe. The 310-year global protocol at 0.5° takes about seven hours on one GPU, a per-tower calibration under an hour, and the whole model is differentiable.
 
-The release state (29 October 2026) is the parameter set [`params_31s_ch4h.yaml`](python-port/configs/params/params_31s_ch4h.yaml) on branch `calibration-s1`, run with hourly wetland methane and the learned wetland area (`methane_hourly`, `wetland_source: learned`). [`docs/RELEASE_3.0.md`](docs/RELEASE_3.0.md) describes it in short: what was calibrated against what, the file's provenance, how to reproduce the run and its scores, and the limitations. [`docs/CALIBRATION.md`](docs/CALIBRATION.md) is the full record (82 sections). `main` carries the 12 October 2026 release ([`params_s7_crop.yaml`](python-port/configs/params/params_s7_crop.yaml)) until the final is merged.
+The release state (29 October 2026) is the parameter set [`params_31s_ch4h.yaml`](python-port/configs/params/params_31s_ch4h.yaml) on branch `calibration-s1`, run with hourly wetland methane, its carbon taken out of the respiration CO2, and the learned wetland area (`methane_hourly`, `methane_carbon_partition`, `wetland_source: learned`). [`docs/RELEASE_3.0.md`](docs/RELEASE_3.0.md) describes it in short: what was calibrated against what, the file's provenance, how to reproduce the run and its scores, and the limitations. [`docs/CALIBRATION.md`](docs/CALIBRATION.md) is the full record (82 sections). `main` carries the 12 October 2026 release ([`params_s7_crop.yaml`](python-port/configs/params/params_s7_crop.yaml)) until the final is merged.
 
 ## Results at a glance (28 October 2026)
 
@@ -25,7 +25,7 @@ The 12 October comparison at the original 62 FLUXNET2015 towers, 2009–2012 ("h
 | NEE, monthly r / NSE | 0.47 / 0.12 | – | 0.73 / 0.49 | 1 / 1 |
 | NEE day-time uptake, held-out year, model/tower (within 25 %) | 0.68 (23 %) | – | 0.89 (69 %) | 1 |
 | NEE night-time release, held-out year, model/tower | 1.02 | – | 1.07 | 1 |
-| Wetland CH4, held-out model/tower: boreal / temperate / tropical (45 towers) | – | – | 0.84 / 0.82 / 0.95 | 1 |
+| Wetland CH4, held-out model/tower: boreal / temperate / tropical (45 Fluxnet-Methane_V2.0 towers) | – | – | 0.84 / 0.82 / 0.95 | 1 |
 | Wetland CH4, held-out monthly r: boreal / temperate / tropical | – | – | 0.66 / 0.83 / 0.03 | 1 |
 | Cropland GPP, held-out model/tower (r): C3 crops / maize (16 towers) | – | – | 0.76 (0.55) / 1.01 (0.77) | 1 |
 
@@ -65,7 +65,8 @@ The 12 October comparison at the original 62 FLUXNET2015 towers, 2009–2012 ("h
 ### Wetland methane: hourly flux, learned wetland area
 
 Wetland CH4 is computed every time step from the hourly soil temperature, water and ice and the day's heterotrophic
-respiration, with the band parameters refitted at the 48 wetland towers at that cadence. The wetland area is dynamic,
+respiration, with the band parameters refitted at the 48 Fluxnet-Methane_V2.0 wetland towers at that cadence. The methane
+carbon is taken out of the respiration booked as CO2, so the emitted carbon is counted once (0.11 PgC yr⁻¹). The wetland area is dynamic,
 seasonally and from year to year: the WAD2M seasonal climatology plus an anomaly from a learned model (gradient-boosted
 trees per wetland band, monotone in water) of the month's inundation from the model's own month-mean soil water and
 water totals and static topography. Held out by year, the learned area beats the fixed climatology against WAD2M in
@@ -119,7 +120,7 @@ which are the models' own (prognostic) wetland extents; the observed source rema
 | Cropland | none (crops become forest) | managed grass on a sub-grid share: harvest, crop capacity factor, calibrated at cropland towers | new |
 | Soil column | 4 m, zero flux | +8 m bedrock, permafrost diagnostic | new |
 | Respiration and allocation | hard-coded constants | per-type parameters, NEE by day and night, ET components; slow/passive soil turnover per zone group | parameters |
-| Calibration | none shipped | tower-first: 356 towers one by one, then one set per type; 45 FLUXNET-CH4 and 16 cropland towers; then cover, wood and soil carbon against the gridded products inside the full protocol | calibration |
+| Calibration | none shipped | tower-first: 356 towers one by one, then one set per type; 48 Fluxnet-Methane_V2.0 wetland towers and 16 cropland towers; then cover, wood and soil carbon against the gridded products inside the full protocol | calibration |
 
 Every new process sits behind a switch that is off by default and bit-identical to the Fortran when off. The science is written down in `docs/`:
 
@@ -161,7 +162,7 @@ Parameter sets in [`python-port/configs/params/`](python-port/configs/params/): 
 
 ## Quick start
 
-The inputs (GSWP3 forcing, HWSD soils, ESACCI land cover, WAD2M inundation, the cropland map, FLUXNET2015 and FLUXNET-CH4 towers, and the evaluation products) are not in the repository; [`docs/DATA_INVENTORY.md`](docs/DATA_INVENTORY.md) lists each with its source. The calibration harness and `final_validation.sh` carry the paths of our machine.
+The inputs (GSWP3 forcing, HWSD soils, ESACCI land cover, WAD2M inundation, the cropland map, FLUXNET2015 and Fluxnet-Methane_V2.0 towers, and the evaluation products) are not in the repository; [`docs/DATA_INVENTORY.md`](docs/DATA_INVENTORY.md) lists each with its source. The calibration harness and `final_validation.sh` carry the paths of our machine.
 
 ```bash
 # environment (CPU; add jax[cuda12] for the GPU) — pinned versions in docs/ENVIRONMENT.md
@@ -176,8 +177,8 @@ PYTHONPATH=python-port:. python python-port/scripts/run_global.py <cfg.yaml>
 
 # the IBIS 3.0 protocol as the release ran it: cold 200-yr spin-up, 1901-2000 transient, 2001-2010 hindcast, scoring against the budgets
 SPINUP_YEARS=200 METHANE=1 KOPPEN_TYPES=1 KOPPEN=<koppen_npz> CROPFRAC=<cropfrac_npz> \
-  METHANE_HOURLY=1 WETLAND_SOURCE=learned WETLAND_LEARNED_FILE=<wetland_learned_v2_s31t.npz> \
-  bash verify/calibration/final_validation.sh s31t python-port/configs/params/params_31s_ch4h.yaml
+  METHANE_HOURLY=1 METHANE_CARBON_PARTITION=1 WETLAND_SOURCE=learned WETLAND_LEARNED_FILE=<wetland_learned_v2_s31t.npz> \
+  bash verify/calibration/final_validation.sh rel30 python-port/configs/params/params_31s_ch4h.yaml
 
 # a per-tower fit (CMA-ES) at the evergreen-needleleaf towers
 PYTHONPATH=python-port:. python verify/calibration/site_fit.py --igbp ENF \

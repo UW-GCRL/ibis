@@ -7937,3 +7937,40 @@ where things are); DATA_INVENTORY (the learned file, the CLM surface data); ENVI
 (`wetland` optional dependencies). The tower comparison at the band parameters the globe uses is running
 (`site_fit/ch4_band_h`, `ch4_band_snap`).
 
+## 83. Decisions of 2026-10-30: crops unchanged, the methane carbon partition, the tower data's name, the reproduction
+
+**Crops unchanged.** Hangkai: "based on this, I decide to not change the crop part." The fix (crops covering their share)
+would change the lower-canopy cover of every cell with cropland, natural grasses and shrubs included (they share one
+lower canopy), and reach the trees through water and fire in about a quarter of the land. Crop harvest stays 0.67 PgC
+yr-1 as a documented limitation (76); the right fix is crop phenology and cover together, in the crop model.
+
+**Methane carbon partition.** Hangkai: "I think it needs partition, but make sure, double check." Built and verified as
+METHANE 12 (commit 6af64fa): the release's emitted carbon is now counted once. The verification found that the GPU does
+not repeat bit for bit between launches of an identical configuration (a control year with the partition off differs from
+the earlier run by 1-4 float32 units in the same fields), so the release statements say "to float32 rounding". The
+real-forcing accumulator test was relaxed from bit equality to float32 rounding (rtol 1e-4) for the same reason: inside
+the full suite the extra outputs change XLA's fusion.
+
+**Name.** The methane tower data is "Fluxnet-Methane_V2.0" in the public documents (README, RELEASE_3.0); the internal log
+and the data inventory keep its provenance.
+
+**Reproduction.** Launched 01:38: the README's protocol command, cold, tag `rel30` (`verify_outputs/final_rel30/`; logs
+`$S/rel30.log`, `rel30_protocol.log`; scoring `score_rel30_go.sh`), with the release parameter file and every release
+switch (hourly methane, carbon partition, learned wetland area). The comparison against the assembled release (s31t +
+`final_s31t_ch4h_learned_r2`) follows when it lands.
+
+**The towers at the global parameters** (`verify/methane/plot_tower_ch4.py`; each of the 48 wetland towers run once with
+its wetland band's parameters; `logs/ch4_towers_band_params_hourly_vs_snapshot.csv`; figure local). Band medians over
+towers, release (hourly, refitted bands) against the setting before 29 October (snapshot, production bands):
+
+| band | amount, fit years | monthly r, fit years | amount, held-out year | monthly r, held-out year |
+|---|---|---|---|---|
+| tropical (12) | 0.93 vs 0.96 | 0.52 vs 0.38 | 1.51 vs 1.67 | 0.33 vs 0.07 |
+| temperate (24) | 0.72 vs 0.89 | 0.44 vs 0.51 | 0.79 vs 0.86 | 0.64 vs 0.71 |
+| boreal (12) | 0.95 vs 0.88 | 0.77 vs 0.72 | 0.99 vs 0.88 | 0.75 vs 0.72 |
+
+The release improves timing in the tropics and amount and timing in the boreal band (the northern season no longer
+starts and ends early); the temperate band is lower in amount (summer median 1.0-1.2 against the towers' 1.7 gC-CH4
+m-2 month-1), because the band median of 24 widely different fits does not give the median tower's flux. The boreal
+winter stays at zero where the towers keep 0.1-0.3 (the frozen-season floor, a post-release item).
+

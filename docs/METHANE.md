@@ -2478,8 +2478,9 @@ section 9 removed from the methane flux. Built: `output.soil_means` (off by defa
 (the one the hourly CH4 uses, generalised) also sums tsoi, wsoi, wisoi by layer and tg over every step; `run_month_gswp3`
 returns the month means, and the monthly files gain `tsoi_mean`, `wsoi_mean`, `wisoi_mean` (by layer) and `tg_mean` beside
 the month-end fields. Test (`tests/test_soil_means_hourly_ch4.py`, real GSWP3 forcing, three cells, January 2001):
-with `methane_hourly` and `soil_means` on, every leaf of the model state except the wetland diagnostics is bit-identical
-to the default run; the means are physical and differ from the month-end state; the hourly CH4 is booked as the month's
+with `methane_hourly` and `soil_means` on, every leaf of the model state except the wetland diagnostics equals the
+default run to float32 rounding (bit for bit when the test runs alone; inside the full suite the extra outputs change
+XLA's fusion and the soil temperature differs by ~1e-6 relative, as on the GPU, CALIBRATION 82); the means are physical and differ from the month-end state; the hourly CH4 is booked as the month's
 mean. The section-8 emulator is retrained on the month means before any switch is built on it.
 
 ## 11. The learned wetland area as a switch (2026-10-29, built; validation pending the soil-means hindcast)
@@ -2521,4 +2522,18 @@ from November to April); the model's climatology (`read_wad2m_climatology`) fill
 (the first training averaged with NaN skipped, which put boreal January at 0.62 Mkm2); and the runner's learned block had
 swallowed the dynamic-wetland log line, which crashed the first learned run at start-up (no output).
 File: `inputs/methane/wetland_learned/wetland_learned_v2_s31t.npz` (the rejected first file kept beside it, renamed).
+
+## 12. Carbon partition of the wetland CH4 (2026-10-30)
+
+Until now the module was diagnostic in carbon: the soil model books all decomposed carbon as heterotrophic respiration
+(CO2, `summary.ayco2mic`) and the CH4 was computed from part of it, so the emitted carbon was counted twice by 0.11 PgC
+yr-1. `physics.methane_carbon_partition` (off by default; on in the release): after each month's methane is final (after
+the learned area's scaling), the month's net CH4 emission is taken out of the month's Rh booked as CO2, never more than
+that Rh. Accumulators only, the soil pools having lost this carbon in soilbgc already; nothing the physics reads changes.
+Monthly `amco2mic` / `amneetot` and the yearly `ayneetot` are then CO2-only; the yearly output gains `ayrh_ch4c` (the
+carbon moved), and `closure_any.py` adds it back when it closes the soil budget. Verified on 2001 against the same
+configuration without the partition: Rh_CO2 + CH4-C equals the old Rh to 2e-6 per cell, NEE changes by exactly the moved
+carbon (111.5 TgC, the CH4 emitted), 27 cells were clipped at their month Rh with negligible carbon, and every other field
+differs only at the level a repeat of the identical run differs (1-4 float32 units in the last place; the GPU does not
+repeat bit for bit between launches).
 
