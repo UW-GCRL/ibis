@@ -41,9 +41,10 @@ sf = xr.open_dataset('/shared/nas2/Hangkai/ELM Edge Effects/inputdata/surfdata_0
 st = lambda v: np.nan_to_num((np.asarray(sf[v].values, np.float32)[::-1] if flip else np.asarray(sf[v].values, np.float32))[I, J])
 wd = xr.open_dataset('/shared/nas2/Hangkai/ibis/inputs/methane/wad2m/WAD2M_wetlands_2000-2020_05deg_Ver2.0.nc'); FWall = np.asarray(wd['Fw'].values, np.float32)
 FWall = FWall[:, ::-1] if float(wd['lat'].values[0]) < float(wd['lat'].values[-1]) else FWall
-fmin_w = np.nan_to_num(np.nanmin(FWall, 0))[I, J]; fmax_w = np.nan_to_num(np.nanmax(FWall, 0))[I, J]
+FW0 = np.nan_to_num(FWall)                                   # WAD2M's NaN on land = frozen months: zero, as the model's climatology (read_wad2m_climatology)
+fmin_w = FW0.min(0)[I, J]; fmax_w = FW0.max(0)[I, J]
 t = wd['time'].dt.year.values; Fw = np.nan_to_num(FWall[(t >= Y0) & (t <= Y1)])[:, I, J]
-FCLIM = np.array([np.nan_to_num(np.nanmean(FWall[m::12], 0))[I, J] for m in range(12)], np.float32)       # 2000-2020 climatology, as the model's
+FCLIM = np.clip(FW0.reshape(-1, 12, *FW0.shape[1:]).mean(0), 0, 1)[:, I, J].astype(np.float32)               # zero-filled 2000-2020 mean, exactly the model's
 STAT = {'FMAX_clm': st('FMAX'), 'SLOPE': st('SLOPE'), 'STD_ELEV': st('STD_ELEV'), 'TOPO': st('TOPO'), 'PCT_WETLAND': st('PCT_WETLAND'), 'PCT_LAKE': st('PCT_LAKE'), 'binfl': st('binfl'),
         'sand': sand[0, I, J].astype(np.float32), 'clay': clay[0, I, J].astype(np.float32), 'lat': mlat[I].astype(np.float32), 'fmin_w': fmin_w, 'fmax_w': fmax_w}
 zone = np.load(f'{S}/meeting/glob_refs.npz')['zone'][I, J]; band = np.asarray(wetland_band(zone)); lat = mlat[I]
@@ -77,26 +78,34 @@ def anom_hybrid(Pf, rows_fold, lam):
     """hybrid on rows_fold, with the emulator climatology Pbar from the same out-of-year predictions of that fold"""
     Pb = np.array([np.nanmean(Pf[rows_fold][m::12], 0) for m in range(12)])
     H = Fc[rows_fold] + lam * (Pf[rows_fold] - np.tile(Pb, (len(rows_fold) // 12, 1))); return np.clip(H, 0, fmx[None, :])
-# cross-fitted inflation: lambda_b for fold k from fold (1-k)'s out-of-year anomalies
-LAM = {}
+# inflation choices, cross-fitted on the other fold: 'one' (no inflation, the default saved), 'r2' (regression of the observed
+# on the predicted anomaly over cell-months, the monthly-skill optimum), 'var' (matching the sd of the annual band-area anomalies)
+LAMMODE = sys.argv[sys.argv.index('--lambda') + 1] if '--lambda' in sys.argv else 'one'
+LAM = {}; LAM_R2 = {}
 for b in (0, 1, 2):
     sel = band[cells] == b; lam_k = []
     for k_ in (0, 1):
         r = folds[k_]; o = ann(bs(Fo[r], sel)); h = ann(bs(anom_hybrid(P, r, 1.0), sel)); lam_k.append(float(np.clip(np.std(o - o.mean()) / max(np.std(h - h.mean()), 1e-9), 1.0, 5.0)))
-    LAM[b] = lam_k
+    LAM[b] = lam_k; lr = []
+    for k_ in (0, 1):
+        r = folds[k_]; Pb = np.array([np.nanmean(P[r][m::12], 0) for m in range(12)]); pa = (P[r] - np.tile(Pb, (len(r) // 12, 1)))[:, sel].ravel(); oa = (Fo[r] - Fc[r])[:, sel].ravel()
+        lr.append(float(np.clip((oa * pa).sum() / max((pa * pa).sum(), 1e-12), 0.0, 10.0)))
+    LAM_R2[b] = lr
+LAM_USE = {b: ([1.0, 1.0] if LAMMODE == 'one' else LAM_R2[b] if LAMMODE == 'r2' else LAM[b]) for b in (0, 1, 2)}
+print('lambda per band (fold-wise): var-matched', {b: [round(v, 2) for v in LAM[b]] for b in LAM}, '| r2-optimal', {b: [round(v, 2) for v in LAM_R2[b]] for b in LAM_R2}, '| used:', LAMMODE)
 Hy = np.zeros_like(P); Hy1 = np.zeros_like(P)
 for b in (0, 1, 2):
     sel = np.where(band[cells] == b)[0]
     for k_ in (0, 1):
-        r = folds[k_]; Hy[np.ix_(r, sel)] = anom_hybrid(P, r, LAM[b][1 - k_])[:, sel]; Hy1[np.ix_(r, sel)] = anom_hybrid(P, r, 1.0)[:, sel]
+        r = folds[k_]; Hy[np.ix_(r, sel)] = anom_hybrid(P, r, LAM_USE[b][1 - k_])[:, sel]; Hy1[np.ix_(r, sel)] = anom_hybrid(P, r, 1.0)[:, sel]
 def r2(F_, Q, sel): return 1 - np.nansum((F_[:, sel] - Q[:, sel]) ** 2) / np.nansum((F_[:, sel] - F_[:, sel].mean(0)) ** 2)
 def iav(a, b_): a = ann(a); b_ = ann(b_); return float(np.corrcoef(a - a.mean(), b_ - b_.mean())[0, 1]) if np.std(b_) > 0 else float('nan')
 def sdr(a, b_): a = ann(a); b_ = ann(b_); return float(np.std(b_ - b_.mean()) / max(np.std(a - a.mean()), 1e-12))
-print('\nOut-of-year scores against WAD2M 2001-2010 (month-mean features). Columns: monthly R2 over wet cells | IAV r of the annual band area | sd ratio of the annual anomalies (model/obs)')
+print(f'\nOut-of-year scores against WAD2M 2001-2010 (month-mean features). hybL = the hybrid with the inflation used ({LAMMODE}). Columns: monthly R2 over wet cells | IAV r of the annual band area | sd ratio of the annual anomalies (model/obs)')
 print(f"{'band':10s} {'area':>5s} | {'clim':>5s} {'emul':>5s} {'hyb1':>5s} {'hybL':>5s} | {'emul':>6s} {'hyb1':>6s} {'hybL':>6s} | {'hyb1':>5s} {'hybL':>5s} | lambda folds")
 for nm, b in (('tropical', 0), ('temperate', 1), ('boreal', 2), ('GLOBAL', None)):
     sel = np.ones(nc, bool) if b is None else band[cells] == b; o = bs(Fo, sel)
-    print(f"{nm:10s} {o.mean():5.2f} | {r2(Fo, Fc, sel):5.2f} {r2(Fo, P, sel):5.2f} {r2(Fo, Hy1, sel):5.2f} {r2(Fo, Hy, sel):5.2f} | {iav(o, bs(P, sel)):+6.2f} {iav(o, bs(Hy1, sel)):+6.2f} {iav(o, bs(Hy, sel)):+6.2f} | {sdr(o, bs(Hy1, sel)):5.2f} {sdr(o, bs(Hy, sel)):5.2f} | " + (str([round(v, 2) for v in LAM[b]]) if b is not None else ''))
+    print(f"{nm:10s} {o.mean():5.2f} | {r2(Fo, Fc, sel):5.2f} {r2(Fo, P, sel):5.2f} {r2(Fo, Hy1, sel):5.2f} {r2(Fo, Hy, sel):5.2f} | {iav(o, bs(P, sel)):+6.2f} {iav(o, bs(Hy1, sel)):+6.2f} {iav(o, bs(Hy, sel)):+6.2f} | {sdr(o, bs(Hy1, sel)):5.2f} {sdr(o, bs(Hy, sel)):5.2f} | " + (str([round(v, 2) for v in LAM_USE[b]]) if b is not None else ''))
 print('\nseasonal cycle of band area (Mkm2), obs | hybrid-lambda (decade means by calendar month):')
 for nm, b in (('tropical', 0), ('temperate', 1), ('boreal', 2)):
     sel = band[cells] == b; o = bs(Fo, sel).reshape(-1, 12).mean(0); h = bs(Hy, sel).reshape(-1, 12).mean(0)
@@ -108,7 +117,7 @@ if SAVE:
     for b in (0, 1, 2):
         mdl = fit(allr, b); models[b] = mdl; p = predict(mdl, allr, b); sel = band[cells] == b; Pin[:, sel] = p[:, sel]
     PBAR = np.array([np.nanmean(Pin[m::12], 0) for m in range(12)], np.float32)
-    lam_final = {b: float(np.mean(LAM[b])) for b in (0, 1, 2)}
+    lam_final = {b: float(np.mean(LAM_USE[b])) for b in (0, 1, 2)}
     np.savez_compressed(SAVE, feats=np.array(FEATS), dyn_feats=np.array(DYN_FEATS), stat_feats=np.array(STAT_FEATS), mono=mono,
                         cells_I=I[cells], cells_J=J[cells], band=band[cells], pbar=PBAR, fclim=FCLIM[:, cells], fmax=fmax_w[cells], fmin=fmin_w[cells],
                         lam=np.array([lam_final[0], lam_final[1], lam_final[2]], np.float32), stat=np.stack([STAT[f][cells] for f in STAT], 1),

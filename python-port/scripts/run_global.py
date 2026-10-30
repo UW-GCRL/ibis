@@ -694,6 +694,8 @@ def run_global_simulation(config: IBISConfig) -> None:
         _lat = np.asarray(lat_land_deg); _band = np.where((_lat > -30.0) & (_lat < 30.0), 0, np.where(_lat >= 60.0, 2, 1))
         if _bi is not None: _band = np.where(np.asarray(_bi) >= 0, np.asarray(_bi), _band)      # the wetland type of the zone
         _wdyn = (_mu, _sd, _fmin, _fmax, _bt[_band])
+        logger.info("  dynamic wetland area ON: climatology %s; beta tropical/temperate/boreal %s; cell bounds mean %.4f-%.4f",
+                    f.wetland_clim_file, _bt.tolist(), float(_fmin.mean()), float(_fmax.mean()))
 
     # Learned wetland area (docs/METHANE.md 11): each month runs with a unit inundated fraction, so the hourly accumulator
     # integrates the flux per unit of wetland; after the month the predictors are built from the month's MEAN soil state and
@@ -709,8 +711,6 @@ def run_global_simulation(config: IBISConfig) -> None:
         _lw = LearnedWetland(f.wetland_learned_file, latindex_sub, lonindex_sub)
         _fbld = FeatureBuilder(latindex_sub, lonindex_sub, np.asarray(state.soil.poros), np.asarray(state.soil.hsoi), nlat=len(lat_sub), nlon=len(lon_sub))
         logger.info("  learned wetland area: %s (%d cells of the file on this run's land, %d dropped)", f.wetland_learned_file, len(_lw.pts), _lw.n_dropped)
-        logger.info("  dynamic wetland area ON: climatology %s; beta tropical/temperate/boreal %s; cell bounds mean %.4f-%.4f",
-                    f.wetland_clim_file, _bt.tolist(), float(_fmin.mean()), float(_fmax.mean()))
 
     for iyear_offset in range(t.nrun):
         year = t.iyear0 + iyear_offset
