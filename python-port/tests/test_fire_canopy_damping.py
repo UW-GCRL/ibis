@@ -140,12 +140,12 @@ def test_fire_section_of_the_parameter_file():
 def test_closed_canopy_climate_damps_whatever_the_cover():
     """CALIBRATION.md 65: in a closed-canopy climate zone the damping is that of a closed canopy, so an open cell
     (the cold-start fire trap) is damped too; elsewhere the cover decides."""
-    from ibis.physics.fire import canopy_damping, CLOSED_CANOPY_FU
+    from ibis.physics.fire import canopy_damping
     p = FireParams(use_canopy_damping=True)
     fu = jnp.asarray([0.2, 0.2, 0.95]); plai = jnp.full((3, 12), 0.5) * BL[None, :]
     closed = jnp.asarray([1.0, 0.0, 0.0])
     d = np.asarray(canopy_damping(fu, p, plai, closed=closed))
-    d_closed = float(canopy_damping(jnp.asarray([CLOSED_CANOPY_FU]), p, plai[:1])[0])
+    d_closed = float(canopy_damping(jnp.asarray([p.closed_canopy_fu]), p, plai[:1])[0])
     assert d[0] == pytest.approx(d_closed) and d[1] > 0.99 and d[2] < 0.05            # flagged open cell = closed; unflagged open cell undamped
     np.testing.assert_allclose(np.asarray(canopy_damping(fu, p, plai)), np.asarray(canopy_damping(fu, p, plai, closed=None)))
 

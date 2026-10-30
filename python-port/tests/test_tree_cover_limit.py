@@ -203,6 +203,33 @@ def test_restart_written_with_the_three_leaf_accumulator_still_loads(tmp_path):
         np.testing.assert_allclose(np.asarray(got2.stress.u_smooth), 0.77)
 
 
+def test_wetland_checkpoint_loads_into_the_driver_template(tmp_path):
+    """run_global builds its template without the wetland state; a methane run's checkpoint (wetland + the 4-leaf
+    StressAccum, whose 7 extra leaves equal an old-chain offset) still loads every leaf into its own slot."""
+    from ibis.state.model_state import create_ibis_state
+    from ibis.bgc.methane import create_methane_state
+    from ibis.io.restart import save_state, load_state
+    from ibis.dimensions import GridConfig
+    import jax
+    g = GridConfig(npoi=4, nbedrock=3)
+    for ck_kw, tp_kw in [(dict(with_stress=True), dict(with_stress=True)), (dict(with_stress=True), dict(with_etparts=True)),
+                         (dict(with_etparts=True), dict(with_etparts=True)), (dict(with_seasonal=True), dict(with_seasonal=True))]:
+        s = create_ibis_state(g, **ck_kw)
+        s = eqx.tree_at(lambda x: (x.stress.aystressu, x.stress.nday, x.stress.u_smooth), s,
+                        (jnp.full((4,), 70.0), jnp.full((4,), 100.0), jnp.full((4,), 0.77)))
+        if s.etparts is not None:
+            s = eqx.tree_at(lambda x: x.etparts, s, jax.tree.map(lambda a: jnp.full_like(a, 3.5), s.etparts))
+        s = eqx.tree_at(lambda x: x.wetland, s, eqx.tree_at(lambda m: m.annual, create_methane_state(4), jnp.full((4,), 5e-3)),
+                        is_leaf=lambda x: x is None)
+        save_state(s, f"{tmp_path}/ck.npz")
+        got, _ = load_state(f"{tmp_path}/ck.npz", create_ibis_state(g, **tp_kw))
+        assert got.wetland is not None, (ck_kw, tp_kw)
+        np.testing.assert_allclose(np.asarray(got.wetland.annual), 5e-3, rtol=1e-6)
+        np.testing.assert_allclose(np.asarray(got.stress.aystressu), 70.0); np.testing.assert_allclose(np.asarray(got.stress.u_smooth), 0.77, rtol=1e-6)
+        if s.etparts is not None and got.etparts is not None:
+            for a in jax.tree.leaves(got.etparts): np.testing.assert_allclose(np.asarray(a), 3.5)
+
+
 def test_old_chain_checkpoint_loads_into_a_template_without_trailing_modules(tmp_path):
     """A checkpoint written with the 3-leaf accumulator plus ETParts and SeasonalState (10 trailing leaves, the spin-up
     restarts of every run before 2026-10-28) loads into a bare template (diagnostics): the trailing leaves are dropped."""

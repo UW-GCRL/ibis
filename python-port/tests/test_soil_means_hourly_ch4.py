@@ -76,11 +76,12 @@ def test_accumulators_leave_the_state_alone_and_give_physical_means(production_f
     # arithmetic (bit-identical when the test runs alone; ~1e-6 relative inside the full suite, CALIBRATION.md 82).
     # A feedback of the accumulators into the state would show at the level of kelvins and whole water fractions.
     # The measure is each field's difference relative to that field's own scale (its largest magnitude): rounding drift
-    # over a month stays below 1e-3 of the scale, a feedback of the accumulators would be percent-level or more.
+    # over a month stays below 1e-3 of the scale, a feedback of the accumulators would be percent-level or more. A field
+    # whose largest value is below 1e-6 (a puddle of a micrometre, a rounding residual) is measured against 1e-6 instead.
     def scaled_diff(x, y):
         x = np.asarray(x, np.float64); y = np.asarray(y, np.float64); ok = np.isfinite(x) & np.isfinite(y)
         assert np.array_equal(np.isfinite(x), np.isfinite(y))
-        scale = max(float(np.max(np.abs(x[ok]))) if ok.any() else 0.0, 1e-30)
+        scale = max(float(np.max(np.abs(x[ok]))) if ok.any() else 0.0, 1e-6)
         return float(np.max(np.abs(x[ok] - y[ok]))) / scale if ok.any() else 0.0
     # hydrology.gadjust (the last step's water change from the bound clamp in wadjust, ztot1 - ztot0 over the step) is
     # float32 rounding of a column total of hundreds of kg/m2 when nothing is clamped: its own scale is that rounding, so

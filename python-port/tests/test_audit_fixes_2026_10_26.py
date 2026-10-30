@@ -153,6 +153,21 @@ def test_snow_constants_are_f77s():
     assert s.hsnomin >= 3 * s.hsnotop - 1e-9                            # vadapt's requirement
 
 
+def test_restart_from_before_the_snow_fix_takes_the_new_constants(tmp_path):
+    """A checkpoint written with the old 0.005 / 0.01 / 0.02 loads with F77's values; the snow state itself is kept."""
+    import equinox as eqx, jax.numpy as jnp
+    from ibis.state.model_state import create_ibis_state
+    from ibis.dimensions import GridConfig
+    from ibis.io.restart import save_state, load_state
+    g = GridConfig(npoi=3, nbedrock=3)
+    s = create_ibis_state(g)
+    s = eqx.tree_at(lambda x: (x.snow.z0sno, x.snow.hsnomin, x.snow.fimin, x.snow.fi), s, (0.005, 0.01, 0.02, jnp.full((3,), 0.4)))
+    save_state(s, f"{tmp_path}/old.npz")
+    got, _ = load_state(f"{tmp_path}/old.npz", create_ibis_state(g))
+    assert float(got.snow.hsnomin) == pytest.approx(0.15) and float(got.snow.fimin) == pytest.approx(4e-5) and float(got.snow.z0sno) == pytest.approx(5e-4)
+    assert np.allclose(np.asarray(got.snow.fi), 0.4)
+
+
 def test_spinup_tail_keeps_short_checks_accelerated():
     from ibis.io.config_reader import spinup_nsoilcall
     assert [spinup_nsoilcall(10, 1, i, 200, 50) for i in (0, 149, 150, 199)] == [10, 10, 1, 1]

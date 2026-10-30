@@ -6,7 +6,7 @@ with Rh spread evenly over the day (the model's own resolution of Rh; no diurnal
 module, hung off IBISState after `seasonal`, accumulates that NEE (kgC m-2, positive = release) separately for the
 steps with the sun below the horizon (coszen <= 0, the FLUXNET NIGHT flag) and the others. A state without it keeps its
 leaf count; with it, `create_ibis_state` also attaches the earlier optional modules so the trailing-leaf layouts form
-one chain (258 / 261 / 265 / 268 / 270) and `load_state` migrates between them.
+one chain (258 / 262 / 266 / 269 / 271) and `load_state` migrates between them.
 """
 from __future__ import annotations
 import equinox as eqx

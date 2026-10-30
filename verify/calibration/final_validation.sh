@@ -3,7 +3,8 @@
 #
 #   bash verify/calibration/final_validation.sh <TAG> <params.yaml>      (~6 h on the GPU; CIFS: no exec bit)
 #
-#   1. spin-up   : cold start, 1601-1900 (300 yr), 1901-1930 climate cycled, 296 ppm  (v11_spinup cfg)
+#   1. spin-up   : cold start, SPINUP_YEARS (default 300; the release 200, 1701-1900) ending 1900, 1901-1930 climate
+#                  cycled, 296 ppm (protocol/spinup.yaml)
 #   2. transient : 1901-2000 from the 1900 state, real GSWP3 years, rising CO2, yearly output
 #   3. hindcast  : 2001-2010 from the 2000 state, real years, rising CO2, MONTHLY output
 #   4. scoring on the actual 2001-2010 years: pools/fluxes/bands, tree cover, ET, season, towers,
@@ -11,7 +12,7 @@
 # Every fit and validation so far started from a 2010 state made under the v11 default parameters
 # and re-equilibrated 25-50 years on cycled 2001-2010 weather; this is the self-consistent form.
 set -u -o pipefail
-TAG=$1; PAR=$(readlink -f "$2"); V=/shared/nas2/Hangkai/ibis/verify_outputs; R=/shared/nas2/Hangkai/ibis-port
+TAG=$1; PAR=$(readlink -f "$2"); V=${IBIS_OUT:-/shared/nas2/Hangkai/ibis/verify_outputs}; R=${IBIS_REPO:-$(cd "$(dirname "$0")/../.." && pwd)}
 SPINUP_YEARS=${SPINUP_YEARS:-300}; METHANE=${METHANE:-0}      # CALIBRATION.md 38: SPINUP_YEARS=200 METHANE=1 -> 1701-1900 spin-up, wetland CH4 written in the transient and hindcast
 METHANE_HOURLY=${METHANE_HOURLY:-0}                              # METHANE.md 9: 1 -> the wetland CH4 flux every time step, averaged to the month (the release setting)
 METHANE_CARBON_PARTITION=${METHANE_CARBON_PARTITION:-0}          # METHANE.md 12: 1 -> the CH4 carbon taken out of Rh booked as CO2 (the release setting)
@@ -21,7 +22,7 @@ KOPPEN=${KOPPEN:-}; LARCH_FIX=${LARCH_FIX:-0}                      # CALIBRATION
 SOIL_ORGANIC=${SOIL_ORGANIC:-0}; SOIL_FILE=${SOIL_FILE:-}          # CALIBRATION.md 44: SOIL_ORGANIC=1 -> soil_organic (needs the HWSD2 organic soil_file)
 SOIL_ORGANIC_END=${SOIL_ORGANIC_END:-ls2008}                     # organic end-member: ls2008 | fibric | hemic | sapric (hemic is the stable one)
 KOPPEN_TYPES=${KOPPEN_TYPES:-0}                                  # CALIBRATION.md 45: KOPPEN_TYPES=1 -> physics.koppen_types (the 40 Köppen-zone types; needs KOPPEN and a `types:` section)
-PY=/home/hangkai/.venvs/ibis-gpu/bin/python; CPY=/shared/nas2/Hangkai/ibis-env/ibis-python
+PY=${PY:-/home/hangkai/.venvs/ibis-gpu/bin/python}; CPY=${CPY:-/shared/nas2/Hangkai/ibis-env/ibis-python}   # run (GPU) and scoring (CPU) interpreters
 F=$V/final_$TAG; cd $R; export PYTHONPATH=python-port:. XLA_PYTHON_CLIENT_PREALLOCATE=false XLA_PYTHON_CLIENT_MEM_FRACTION=.3
 [ -f "$PAR" ] || { echo "no params yaml $PAR"; exit 1; }
 $PY -c "import cma, jax, equinox, xarray, netCDF4, pandas, yaml" || exit 1
@@ -48,22 +49,22 @@ ch4cfg() {  # ch4cfg <cfg>: the methane cadence and wetland-area source (METHANE
 mkdir -p $F/spinup/{out,restart} $F/transient/{out,restart} $F/hindcast/{out,restart}
 # 1. spin-up (SKIP_SPINUP=1: resume from an existing 1900 restart of this TAG)
 if [ "${SKIP_SPINUP:-0}" = 1 ] && [ -f $F/spinup/restart/ibis_restart_1900.npz ]; then echo "=== [$TAG] SPIN-UP skipped (restart present) ==="; else
-mkcfg $V/v11_spinup/cfg.yaml $F/spinup/cfg.yaml $F/spinup
+mkcfg $R/verify/calibration/protocol/spinup.yaml $F/spinup/cfg.yaml $F/spinup
 sed -i -e "s|^  iyear0: 1601|  iyear0: $((1901 - SPINUP_YEARS))|" -e "s|^  nrun: 300|  nrun: $SPINUP_YEARS|" $F/spinup/cfg.yaml
-echo "=== [$TAG] SPIN-UP 1601-1900 start $(date +%H:%M) ==="; grep -E "iyear0|nrun|irestart|co2init|spinup_year|params_file" $F/spinup/cfg.yaml | tr -s ' ' | tr '\n' ';'; echo
+echo "=== [$TAG] SPIN-UP $((1901 - SPINUP_YEARS))-1900 start $(date +%H:%M) ==="; grep -E "iyear0|nrun|irestart|co2init|spinup_year|params_file" $F/spinup/cfg.yaml | tr -s ' ' | tr '\n' ';'; echo
 $PY -u python-port/scripts/run_global.py $F/spinup/cfg.yaml > $F/spinup/run.log 2>&1 || { echo "SPIN-UP FAILED"; tail -5 $F/spinup/run.log; exit 1; }
 [ -f $F/spinup/restart/ibis_restart_1900.npz ] || { echo "no 1900 restart"; ls $F/spinup/restart | tail -2; exit 1; }
 grep -E "gate ACTIVE|gate inactive|Physics parameters" $F/spinup/run.log | head -2
 fi
 # 2. transient 1901-2000
-mkcfg $V/v11_transient/cfg.yaml $F/transient/cfg.yaml $F/transient
+mkcfg $R/verify/calibration/protocol/transient.yaml $F/transient/cfg.yaml $F/transient
 sed -i -e 's|^  nrun: 110|  nrun: 100|' $F/transient/cfg.yaml; cp $F/spinup/restart/ibis_restart_1900.npz $F/transient/restart/
 [ "$METHANE" = 1 ] && sed -i -e 's|^  enable_fire_emissions: true|  enable_fire_emissions: true\n  enable_methane: true|' $F/transient/cfg.yaml && ch4cfg $F/transient/cfg.yaml
 echo "=== [$TAG] TRANSIENT 1901-2000 start $(date +%H:%M) ==="
 $PY -u python-port/scripts/run_global.py $F/transient/cfg.yaml > $F/transient/run.log 2>&1 || { echo "TRANSIENT FAILED"; tail -5 $F/transient/run.log; exit 1; }
 [ -f $F/transient/restart/ibis_restart_2000.npz ] || { echo "no 2000 restart"; exit 1; }
 # 3. hindcast 2001-2010, monthly
-mkcfg $V/v11_transient/cfg.yaml $F/hindcast/cfg.yaml $F/hindcast
+mkcfg $R/verify/calibration/protocol/transient.yaml $F/hindcast/cfg.yaml $F/hindcast
 sed -i -e 's|^  iyear0: 1901|  iyear0: 2001|' -e 's|^  nrun: 110|  nrun: 10|' -e 's|^  irestart: 1900|  irestart: 2000|' -e 's|^  imonthout: 0|  imonthout: 1|' \
        -e 's|^  transient_co2: true|  transient_co2: true\n  et_components: true|' $F/hindcast/cfg.yaml    # ET components in the yearly files (CALIBRATION.md 15)
 [ "$METHANE" = 1 ] && sed -i -e 's|^  enable_fire_emissions: true|  enable_fire_emissions: true\n  enable_methane: true|' $F/hindcast/cfg.yaml && ch4cfg $F/hindcast/cfg.yaml

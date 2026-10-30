@@ -264,6 +264,7 @@ def biomass_update(
     awood = pft_params.awood
     specla = pft_params.specla
     xminlai = pft_params.xminlai
+    _exact = bool(getattr(pft_params, 'exact_litterfall', False))
 
     cbiol = veg.cbiol
     cbiow = veg.cbiow
@@ -289,7 +290,7 @@ def biomass_update(
         _fl, _fr, _fw = _litterfall_terms(cbiol[:, j], cbior[:, j], cbiow[:, j], jnp.maximum(0.0, aynpp_j),
                                           aleaf[..., j], aroot[..., j], awood[..., j],
                                           tauleaf[..., j], tauroot[..., j], tauwood_j,
-                                          bool(getattr(pft_params, 'exact_litterfall', False)))
+                                          _exact)
         falll = falll + _fl
         fallr = fallr + _fr
         fallw = fallw + _fw
@@ -311,7 +312,7 @@ def biomass_update(
         cbior_j = (cbior[:, j] * exp_root +
                    aroot[..., j] * tauroot[..., j] * jnp.maximum(0.0, aynpp_j) *
                    (1.0 - exp_root))
-        if bool(getattr(pft_params, 'exact_litterfall', False)):      # as in dynaveg (CALIBRATION.md 63)
+        if _exact:                                                   # as in dynaveg (CALIBRATION.md 63)
             falll = falll + jnp.maximum(0.0, raw_aynpp[:, j]) * (1.0 - exist[:, j])
             _def = jnp.maximum(0.0, -raw_aynpp[:, j])
             _pay = jnp.minimum(_def, cbiow_j); cbiow_j = cbiow_j - _pay; _def = _def - _pay
@@ -493,7 +494,7 @@ def dynaveg(
         _fl, _fr, _fw = _litterfall_terms(cbiol[:, j], cbior[:, j], cbiow[:, j], jnp.maximum(0.0, aynpp_j),
                                           aleaf[..., j], aroot[..., j], awood[..., j],
                                           tauleaf[..., j], tauroot[..., j], tauwood_j,
-                                          bool(getattr(pft_params, 'exact_litterfall', False)))
+                                          _exact)
         falll = falll + _fl
         fallr = fallr + _fr
         fallw = fallw + _fw

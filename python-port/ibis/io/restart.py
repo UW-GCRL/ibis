@@ -91,9 +91,9 @@ def load_state(path: str, template_state):
     leaves_template, treedef = jax.tree.flatten(template_state)
 
     n_fill = len(leaves_template) - num_leaves
-    # The optional trailing modules form one nested chain: StressAccum (3 leaves), ETParts (4), SeasonalState (3),
-    # NEEParts (2), each implying the ones before it, so a state carries 0, 3, 7, 10 or 12 trailing leaves
-    # (258 / 261 / 265 / 268 / 270).
+    # The optional trailing modules form one nested chain: StressAccum (4 leaves; 3 before 2026-10-28), ETParts (4),
+    # SeasonalState (3), NEEParts (2), each implying the ones before it, so a state carries 0, 4, 8, 11 or 13 trailing
+    # leaves (258 / 262 / 266 / 269 / 271; 0, 3, 7, 10 or 12 with the old accumulator).
     # A checkpoint may load into a template anywhere on that chain; any other difference is a real mismatch.
     _chain = [0]
     for _n in CHAIN_LEAVES:
@@ -106,12 +106,18 @@ def load_state(path: str, template_state):
                                                      getattr(template_state, "seasonal", None),
                                                      getattr(template_state, "neeparts", None)) if _m is not None)
     _off_c = _off_t - n_fill
-    if _off_c not in _chain and _off_c not in _old_chain and ((_off_c - 3) in _chain or (_off_c - 3) in _old_chain) \
-            and getattr(template_state, "wetland", None) is None:
+    # Whether the checkpoint carries the wetland state: read from its saved tree structure. Leaf counts alone are
+    # ambiguous (the 3 wetland leaves plus the 4-leaf StressAccum equal an old-chain offset); checkpoints without the
+    # saved structure fall back to the counts.
+    if "treedef_repr" in data.files:
+        _ck_wetland = "MethaneState" in str(data["treedef_repr"])
+    else:
+        _ck_wetland = _off_c not in _chain and _off_c not in _old_chain and ((_off_c - 3) in _chain or (_off_c - 3) in _old_chain)
+    if _ck_wetland and getattr(template_state, "wetland", None) is None:
         # The checkpoint carries the wetland MethaneState (3 leaves: flux, annual, zwt; declared before the trailing
         # chain, so it is not a trailing module). Attach one to the template so every leaf aligns, and load it: a
         # restart of a methane-enabled run keeps its water table and annual sums (CALIBRATION.md 38).
-        import equinox as eqx, logging
+        import logging
         from ibis.bgc.methane import create_methane_state
         _npoi = int(jnp.asarray(template_state.soil.tg).shape[0])
         template_state = eqx.tree_at(lambda s: s.wetland, template_state, create_methane_state(_npoi), is_leaf=lambda x: x is None)
@@ -149,7 +155,7 @@ def load_state(path: str, template_state):
         )
     if n_fill:
         # Trailing-leaf migration: a template with the optional StressAccum
-        # (3 leaves, declared after every other field) may load a checkpoint
+        # (4 leaves, declared after every other field) may load a checkpoint
         # written without it; the accumulator starts from the template's zeros.
         import logging
         logging.getLogger(__name__).warning(
@@ -175,6 +181,15 @@ def load_state(path: str, template_state):
             new_leaves.append(arr)
 
     state = jax.tree.unflatten(treedef, new_leaves)
+    if getattr(template_state, "snow", None) is not None:
+        # SnowState's static parameters come from the template, not the checkpoint: restarts written before 2026-10-26
+        # carry z0sno 0.005, hsnomin 0.01 and fimin 0.02 (CALIBRATION.md 63).
+        _static = ("z0sno", "rhos", "consno", "hsnotop", "hsnomin", "fimin", "fimax")
+        # (as arrays of the loaded leaves' type: a Python float would become a compile-time constant and change the
+        # compiled step's rounding)
+        state = eqx.tree_at(lambda s: [getattr(s.snow, k) for k in _static], state,
+                            [jnp.asarray(getattr(template_state.snow, k), dtype=jnp.asarray(getattr(state.snow, k)).dtype)
+                             for k in _static])
 
     # Extract metadata
     metadata = {}

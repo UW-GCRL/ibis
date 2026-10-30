@@ -701,6 +701,7 @@ def run_global_simulation(config: IBISConfig) -> None:
     # integrates the flux per unit of wetland; after the month the predictors are built from the month's MEAN soil state and
     # its water totals, the hybrid fraction is computed, and the month's flux and the annual total are scaled by it (the
     # flux is linear in the fraction). The feature builder is stepped every month so its lags never break.
+    from ibis.bgc.methane import scale_month, ch4_carbon_from_rh
     _ch4p = bool(getattr(p, 'methane_carbon_partition', False)) and ch4_clim is not None
     if _ch4p: logger.info("  CH4 carbon partition ON: the month's net CH4 emission is taken out of Rh booked as CO2 (methane_carbon_partition)")
     _lw = _fbld = None
@@ -710,6 +711,11 @@ def run_global_simulation(config: IBISConfig) -> None:
             raise ValueError("physics.wetland_source 'learned' / 'observed_learned' needs physics.methane_hourly: true")
         if not getattr(f, 'wetland_learned_file', ''):
             raise ValueError("physics.wetland_source 'learned' needs forcing.wetland_learned_file (verify/methane/wetland_learned_train.py --save)")
+        if (len(lat_sub), len(lon_sub)) != (360, 720):
+            # the file's cells are rows/columns of the global 0.5-degree grid and the neighbourhood predictors need every
+            # neighbour: a sub-domain would match the wrong cells and truncate the 5x5 means at its edges
+            raise ValueError("physics.wetland_source 'learned' runs on the full global 0.5-degree grid only "
+                             f"(this run's grid is {len(lat_sub)} x {len(lon_sub)})")
         _lw = LearnedWetland(f.wetland_learned_file, latindex_sub, lonindex_sub)
         _fbld = FeatureBuilder(latindex_sub, lonindex_sub, np.asarray(state.soil.poros), np.asarray(state.soil.hsoi), nlat=len(lat_sub), nlon=len(lon_sub))
         logger.info("  learned wetland area: %s (%d cells of the file on this run's land, %d dropped)", f.wetland_learned_file, len(_lw.pts), _lw.n_dropped)
@@ -757,7 +763,7 @@ def run_global_simulation(config: IBISConfig) -> None:
         # also why physics.soilcspin -- documented as "0=no spinup,
         # 1=acceleration" -- was a dead flag, read nowhere in the codebase.
         from ibis.io.config_reader import spinup_nsoilcall
-        _tail = int(getattr(p, 'soilcspin_tail_years', 0))
+        _tail = int(p.soilcspin_tail_years)
         nsoilcall = spinup_nsoilcall(p.nsoilcall, p.soilcspin, iyear_offset, t.nrun, _tail)
         if nsoilcall == 1 and iyear_offset > 0 and spinup_nsoilcall(p.nsoilcall, p.soilcspin, iyear_offset - 1, t.nrun, _tail) > 1:
             logger.info("  soil acceleration off for the last %d years (soilcspin_tail_years)", _tail)
@@ -795,11 +801,9 @@ def run_global_simulation(config: IBISConfig) -> None:
 
             # observed wetland area (docs/METHANE.md 8): the WAD2M field of this calendar month when the record has it
             _fobs = None
-            if ch4_clim is not None and _wsrc == 'observed' and wad2m_in_record(year):
+            if ch4_clim is not None and _wsrc in ('observed', 'observed_learned') and wad2m_in_record(year):
                 _fobs = read_wad2m_month(f.wad2m_file, year, imonth + 1, _wli, _wlo, mlat, mlon, clamp_to_range=False)
             _learned_now = _lw is not None and not (_wsrc == 'observed_learned' and wad2m_in_record(year))
-            if _wsrc == 'observed_learned' and ch4_clim is not None and wad2m_in_record(year):
-                _fobs = read_wad2m_month(f.wad2m_file, year, imonth + 1, _wli, _wlo, mlat, mlon, clamp_to_range=False)
             _fdyn = None
             if _wdyn is not None and _fobs is None and not _learned_now:
                 _so = state.soil
@@ -824,18 +828,13 @@ def run_global_simulation(config: IBISConfig) -> None:
                                     np.asarray((state.summary.aytrunof - _lw_before[2]) + (state.summary.aytdrain - _lw_before[3])))
                 if _learned_now:
                     _flearn = _lw.fraction(imonth, _feats, ch4_clim[imonth])
-                    _wl = state.wetland; _a0 = jnp.zeros_like(_wl.annual) if _lw_before[4] is None else _lw_before[4]
-                    _fj = jnp.asarray(_flearn, jnp.float32)
-                    state = eqx.tree_at(lambda s: s.wetland, state, type(_wl)(flux=_wl.flux * _fj, annual=_a0 + (_wl.annual - _a0) * _fj, zwt=_wl.zwt))
+                    state = eqx.tree_at(lambda s: s.wetland, state, scale_month(state.wetland, _lw_before[4], _flearn))
 
             # Carbon partition of the wetland CH4 (docs/METHANE.md 12): the month's methane is final here (after the learned
             # area's scaling); its net emission leaves the soil as CH4, not CO2, so it comes out of the month's Rh booked as
             # CO2. Never more than that Rh. Accumulators only: the soil pools already lost this carbon in soilbgc.
             if _ch4p and state.wetland is not None:
-                _w0 = jnp.zeros_like(state.wetland.annual) if _ch4p_w0 is None else _ch4p_w0
-                _mch4 = jnp.maximum(state.wetland.annual - _w0, 0.0)                    # kgC m-2 this month
-                _mrh = jnp.maximum(state.summary.ayco2mic - _ch4p_rh0, 0.0)             # kgC m-2 this month
-                _take = jnp.minimum(_mch4, _mrh)
+                _take = ch4_carbon_from_rh(state.wetland.annual, _ch4p_w0, state.summary.ayco2mic, _ch4p_rh0)   # kgC m-2
                 state = eqx.tree_at(lambda s: s.summary.ayco2mic, state, state.summary.ayco2mic - _take)
                 _ch4p_acc = _take if _ch4p_acc is None else _ch4p_acc + _take
 

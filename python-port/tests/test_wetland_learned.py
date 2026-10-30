@@ -3,6 +3,7 @@ definitions the predictors were designed with; the hybrid stays inside the cell'
 anomaly is zero; a trained file applies to its own cells only."""
 import numpy as np
 import pytest
+pytest.importorskip('scipy')                                   # the `wetland` extra
 from scipy.ndimage import uniform_filter
 from ibis.bgc.wetland_learned import FeatureBuilder, DYN_FEATS, STAT_FEATS, hybrid_fraction, ROOT_LAYERS, NB
 

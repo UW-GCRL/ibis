@@ -1,4 +1,4 @@
-"""Learned wetland (inundated) fraction (docs/METHANE.md 8, 10, 11; Hangkai 2026-10-29).
+"""Learned wetland (inundated) fraction (docs/METHANE.md 8, 10, 11).
 
 Off by default. With `physics.wetland_source: learned` the month's inundated fraction the methane scheme sees is
 
@@ -48,7 +48,6 @@ class FeatureBuilder:
         lm = np.zeros((nlat, nlon), np.float64); lm[self.I, self.J] = 1.0
         self.lf = uniform_filter(lm, NB, mode='wrap')
         self.buf = {k: [] for k in ('W', 'prcp', 'runoff', 'GP', 'GR', 'W3', 'P3', 'R3', 'NP3', 'NR3')}
-        self.t = 0                                                       # months stepped
 
     def _grid(self, v):
         g = np.zeros((self.nlat, self.nlon), np.float64); g[self.I, self.J] = v; return g
@@ -86,7 +85,6 @@ class FeatureBuilder:
                   'runoff_3mo': b['R3'][-1], 'runoff_3mo_l1': self._lag(b['R3'], 1), 'runoff_3mo_l3': self._lag(b['R3'], 3),
                   'nb_prcp_3mo': b['NP3'][-1], 'nb_prcp_3mo_l1': self._lag(b['NP3'], 1), 'nb_prcp_3mo_l2': self._lag(b['NP3'], 2),
                   'nb_runoff_3mo': b['NR3'][-1], 'nb_runoff_3mo_l1': self._lag(b['NR3'], 1), 'nb_runoff_3mo_l2': self._lag(b['NR3'], 2)})
-        self.t += 1
         return f
 
 

@@ -56,10 +56,10 @@ class IBISState(eqx.Module):
     etparts: Optional[eqx.Module] = None
     #: Seasonal states (docs/CALIBRATION.md 21-22): photosynthetic acclimation and photoperiod-gated
     #: senescence. None unless a run enables either formulation; implies `stress` and `etparts`, so the
-    #: optional trailing modules stay one nested chain for load_state (258 / 261 / 265 / 268 leaves).
+    #: optional trailing modules stay one nested chain for load_state (258 / 262 / 266 / 269 leaves).
     seasonal: Optional[eqx.Module] = None
     #: Day-time / night-time NEE accumulators (CALIBRATION.md 36). None unless a run asks for them; implies
-    #: `stress`, `etparts` and `seasonal` (chain 258 / 261 / 265 / 268 / 270 leaves).
+    #: `stress`, `etparts` and `seasonal` (chain 258 / 262 / 266 / 269 / 271 leaves).
     neeparts: Optional[eqx.Module] = None
 
 

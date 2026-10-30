@@ -95,7 +95,9 @@ class PFTParams(eqx.Module):
     #: grows it by a tau N (1 - e^(-1/tau)), but F77 books litterfall as c / tau and the NEE accounting assumes a N
     #: allocated: exact only at equilibrium (~3 PgC yr-1 of sink in s31f that no pool received). True books the
     #: litterfall as what actually left plus the allocated carbon that decayed within the year, c (1 - e) +
-    #: a N (1 - tau (1 - e)), which conserves carbon exactly and leaves the pool trajectory unchanged. False = F77.
+    #: a N (1 - tau (1 - e)), which conserves carbon exactly. The pool update stays F77's except where F77 loses carbon:
+    #: a negative annual NPP is paid from the pools (wood, then roots, then leaves) and the NPP of a type that does not
+    #: exist goes to leaf litter. False = F77.
     exact_litterfall: bool = False
     #: Per-type maximum canopy leaf area, m2 of leaf per m2 of the layer's cover (docs/CALIBRATION.md 46). Each year
     #: the leaf carbon of a canopy layer is held to the layer's leaf-area-weighted mean cap; the excess goes to wood

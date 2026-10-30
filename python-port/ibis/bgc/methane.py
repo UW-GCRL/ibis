@@ -408,10 +408,10 @@ def to_nmol_ch4(flux_kgc: Float[Array, "npoi"]) -> Float[Array, "npoi"]:
 class MethaneState(eqx.Module):
     """Wetland CH4 diagnostics carried in `IBISState.wetland`.
 
-    Diagnostic, not prognostic: the carbon is not removed from the soil pool.
-    At ~7 % of Rh that is a small term, and making it prognostic would couple
-    the methane parameters to the carbon balance before either is calibrated
-    (docs/METHANE.md 5f). Revisit once M3 has evaluated the flux.
+    Diagnostic, not prognostic: the methane does not feed back on the soil pools
+    (docs/METHANE.md 5f). Its carbon has already left them as part of Rh; with
+    `methane_carbon_partition` the driver books it as CH4 instead of CO2
+    (`ch4_carbon_from_rh`, docs/METHANE.md 12).
     """
 
     #: Most recent monthly-mean emission, kgC m-2 d-1.
@@ -477,6 +477,23 @@ def reset_annual(mstate: MethaneState) -> MethaneState:
     """Clear the annual accumulator. Call at year end, after it is consumed."""
     return MethaneState(flux=mstate.flux, annual=jnp.zeros_like(mstate.annual),
                         zwt=mstate.zwt)
+
+
+def scale_month(mstate: MethaneState, annual_before, f) -> MethaneState:
+    """Scale a month run at unit inundated fraction to the fraction `f` (the learned wetland area, docs/METHANE.md 11):
+    the month's flux and its share of the annual total, both linear in the fraction. `annual_before` is the annual
+    total at the start of the month (None = zero)."""
+    a0 = jnp.zeros_like(mstate.annual) if annual_before is None else annual_before
+    f = jnp.asarray(f, jnp.float32)
+    return MethaneState(flux=mstate.flux * f, annual=a0 + (mstate.annual - a0) * f, zwt=mstate.zwt)
+
+
+def ch4_carbon_from_rh(annual, annual_before, rh, rh_before):
+    """The month's CH4 carbon to book out of Rh as CO2 (docs/METHANE.md 12), kgC m-2: the month's net methane emission,
+    never more than the month's Rh. All four are running annual totals, at the end and at the start of the month
+    (`annual_before` None = zero)."""
+    w0 = jnp.zeros_like(annual) if annual_before is None else annual_before
+    return jnp.minimum(jnp.maximum(annual - w0, 0.0), jnp.maximum(rh - rh_before, 0.0))
 
 
 # ---------------------------------------------------------------------------

@@ -525,9 +525,6 @@ def vegetation_density(
                     0.0, 1.0)
 
 
-#: dynaveg's upper-canopy cover cap; the default of FireParams.closed_canopy_fu.
-CLOSED_CANOPY_FU = 0.975
-
 #: Upper-canopy broadleaf positions (0-based): tropical evergreen, tropical
 #: drought-deciduous, warm-temperate evergreen, temperate and boreal deciduous.
 #: Zone types keep the leaf form of their position (pft_types.zone_slots).

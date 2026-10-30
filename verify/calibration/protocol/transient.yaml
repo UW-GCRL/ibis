@@ -1,0 +1,46 @@
+# The protocol's transient stage template (verify/calibration/final_validation.sh): the script copies it per stage, sets
+# params_file, the stage's output and restart directories and the switches of its environment variables.
+# Input paths are the lab NAS's (docs/DATA_INVENTORY.md lists every source); point them at your copies.
+grid:
+  snorth: 90.0
+  ssouth: -90.0
+  swest: -180.0
+  seast: 180.0
+  xres: 0.5
+  yres: 0.5
+  nbedrock: 3
+
+time:
+  iyear0: 1901
+  nrun: 110
+  dtime: 3600.0
+  irestart: 1900
+
+physics:
+  isimveg: 1
+  isimfire: 1
+  fire_scheme: seasonlength
+  enable_fire_emissions: true
+  co2init: 296.0e-6
+  o2init: 0.209
+  soilcspin: 0
+  nsoilcall: 1
+  transient_co2: true
+
+output:
+  output_dir: /shared/nas2/Hangkai/ibis/verify_outputs/v11_transient/out
+  restart_dir: /shared/nas2/Hangkai/ibis/verify_outputs/v11_transient/restart
+  iyearout: 1
+  imonthout: 0
+
+input:
+  input_dir: /shared/nas2/Hangkai/ibis/inputs
+
+forcing:
+  forcing_type: gswp3
+  gswp3_dir: /shared/nas2/Min/GSWP3
+  vegtype_dir: ''
+  soil_file: /shared/nas2/Min/HWSD/soita.nc
+  land_mask_file: /shared/nas2/Min/HWSD/surta.nc
+  spinup_year_start: 0
+  spinup_year_end: 0

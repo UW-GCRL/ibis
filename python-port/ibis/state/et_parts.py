@@ -6,7 +6,7 @@ snow sublimation -- and accumulates only their sum (`ayaet`). This optional
 module, hung off IBISState after `stress`, accumulates the four groups in mm
 so a run or a fit can decompose its ET. A state without it keeps its leaf
 count; with it, `create_ibis_state` also attaches the (inert by default)
-StressAccum so the trailing-leaf layouts form one chain (258 / 261 / 265) and
+StressAccum so the trailing-leaf layouts form one chain (258 / 262 / 266) and
 `load_state` migrates between them.
 """
 from __future__ import annotations
