@@ -2468,3 +2468,16 @@ the hourly shape is the prior's shape; the amplitude gap of the north (0.36-0.52
 cadence and stays with the parameters, which the hourly refit of section 80 (CALIBRATION) now re-estimates. The tropics
 are unchanged in every month (max/min 1.2). The snapshot's cost was therefore the timing of the northern season, not the
 amount; the production parameters had absorbed the amount.
+
+## 10. Monthly means of the soil state, not month-end snapshots (2026-10-29)
+
+The monthly output files carry the soil temperature, liquid water and surface temperature of the LAST time step of the
+month (`write_monthly`: "end-of-month model state"); precipitation, runoff, ET and the carbon fluxes are monthly totals.
+The wetland-area tests of section 8 used those month-end soil fields as predictors, so they carry the same snapshot error
+section 9 removed from the methane flux. Built: `output.soil_means` (off by default). The time-step loop's accumulator
+(the one the hourly CH4 uses, generalised) also sums tsoi, wsoi, wisoi by layer and tg over every step; `run_month_gswp3`
+returns the month means, and the monthly files gain `tsoi_mean`, `wsoi_mean`, `wisoi_mean` (by layer) and `tg_mean` beside
+the month-end fields. Test (`tests/test_soil_means_hourly_ch4.py`, real GSWP3 forcing, three cells, January 2001):
+with `methane_hourly` and `soil_means` on, every leaf of the model state except the wetland diagnostics is bit-identical
+to the default run; the means are physical and differ from the month-end state; the hourly CH4 is booked as the month's
+mean. The section-8 emulator is retrained on the month means before any switch is built on it.

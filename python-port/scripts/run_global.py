@@ -779,14 +779,16 @@ def run_global_simulation(config: IBISConfig) -> None:
                 _W = _wa.root_zone_water(np.asarray(_so.wsoi), np.asarray(_so.poros), np.asarray(_so.hsoi), np.asarray(_so.tsoi))
                 _fdyn = _wa.dynamic_fraction(ch4_clim[imonth], _W, _wdyn[0][imonth], _wdyn[1][imonth], _wdyn[4], _wdyn[2], _wdyn[3],
                                              frozen=np.asarray(_so.tsoi)[:, 0] <= _wa.T_FREEZE)
-            state, key, _ = run_month_gswp3(
+            state, key, _dd = run_month_gswp3(
                 state, consts, params, reader,
                 gswp3_latindex, gswp3_lonindex, np.array(lat_rad),
                 forcing_year, imonth, key, t.dtime, leap, grid.nband, nsoilcall,
                 f_inund=(_fobs if _fobs is not None else (_fdyn if _fdyn is not None else (None if ch4_clim is None else ch4_clim[imonth]))),
                 methane_params=ch4_params,
                 methane_hourly=bool(getattr(p, 'methane_hourly', False)),
+                soil_means=bool(getattr(out, 'soil_means', False)),
             )
+            _soilm = _dd[3] if (getattr(out, 'soil_means', False) and len(_dd) > 3) else None
 
             # Write monthly output
             if out.imonthout > 0:
@@ -805,6 +807,10 @@ def run_global_simulation(config: IBISConfig) -> None:
                     'amco2mic': (state.summary.ayco2mic  - rh_before,  'kgC/m2', 'Monthly Rh'),
                     'amtrunof': (state.summary.aytrunof  - runof_before, 'mm',   'Monthly runoff'),
                     'amtdrain': (state.summary.aytdrain  - drain_before, 'mm',   'Monthly drainage'),
+                    **({'tsoi_mean': (_soilm['tsoi_mean'], 'K', 'Soil temperature by layer, month mean over every time step'),
+                        'wsoi_mean': (_soilm['wsoi_mean'], 'fraction of pore space', 'Liquid soil water by layer, month mean over every time step'),
+                        'wisoi_mean': (_soilm['wisoi_mean'], 'fraction of pore space', 'Soil ice by layer, month mean over every time step'),
+                        'tg_mean': (_soilm['tg_mean'], 'K', 'Soil surface temperature, month mean over every time step')} if _soilm is not None else {}),
                 }
                 mpath = writer.write_monthly(state, year, imonth + 1, monthly_fluxes)
                 logger.info("  Wrote monthly output: %s", mpath)

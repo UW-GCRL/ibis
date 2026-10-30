@@ -95,20 +95,25 @@ def _run_day_inner(
     sw_day: jax.Array | None = None,     # (nsteps, npoi) observed shortwave, W m-2 (site runs; CALIBRATION.md 27)
     use_day: jax.Array | None = None,    # (npoi,) bool: take sw_day instead of the generator's cycle
     ch4=None,                            # (f_inund, MethaneParams, zwt_obs | None): evaluate the wetland CH4 flux every step (METHANE.md 9)
+    soil_means: bool = False,            # static: accumulate the day means of tsoi, wsoi, wisoi and tg over the steps (METHANE.md 10)
 ) -> tuple[IBISState, jax.Array]:
     """Run all timesteps for one day inside a lax.scan.
 
-    With `ch4`, the carry also holds the day's accumulated CH4 emission (kgC m-2 d-1 as a day mean), evaluated at every
-    time step from the hourly soil temperature, water and ice and the day's heterotrophic respiration rate, and the
-    function returns it as a third value. Without it the graph is the original one.
+    With `ch4` and / or `soil_means`, the carry also holds accumulators over the day's steps, and the function returns
+    them as a third value, a tuple: first the day-mean CH4 emission (kgC m-2 d-1, evaluated every step from the step's
+    soil temperature, water and ice and the day's heterotrophic respiration rate) when `ch4` is given, then the day means
+    of tsoi, wsoi, wisoi (npoi, nlayer) and tg (npoi,) when `soil_means`. The accumulators only read the state, so the
+    model state is identical with and without them; without either, the graph is the original one.
 
     jday must be a JAX scalar (jnp.int32 / jnp.int64) so that it traces as a
     dynamic value and does not trigger recompilation for each unique day.
     """
     nsteps = timesteps_per_day(dtime)
 
+    _acc_on = (ch4 is not None) or soil_means
+
     def _step_body(carry, istep):
-        if ch4 is not None: st, k, ch4_acc = carry
+        if _acc_on: st, k, acc = carry
         else: st, k = carry
         k, subkey = jax.random.split(k)
 
@@ -297,21 +302,29 @@ def _run_day_inner(
         st = eqx.tree_at(lambda s: s.summary, st, new_sm)
         # Ensure all floats stay float32 so lax.scan carry types match
         st = _cast_tree_f32(st)
-        if ch4 is not None:
-            # Wetland CH4 every time step (docs/METHANE.md 9): the hourly soil temperature, water and ice with the day's
-            # heterotrophic respiration rate (tco2mic, a daily rate: the soil model runs once a day), accumulated as a
-            # day-mean emission in kgC m-2 d-1.
-            from ibis.bgc.methane import methane_flux as _methane_flux
-            _f_in, _mp, _zo = ch4
-            _rh_rate = st.vegetation.tco2mic * jnp.float32(12.0e-3 * 86400.0)
-            _fl = _methane_flux(_f_in, _rh_rate, st.soil.tsoi, st.soil.wsoi, st.soil.wisoi, st.soil.hsoi[:st.soil.tsoi.shape[1]], _mp, zwt_obs=_zo)
-            ch4_acc = ch4_acc + jnp.asarray(_fl, jnp.float32) * jnp.float32(dtime / 86400.0)
-            return (st, k, ch4_acc), None
+        if _acc_on:
+            _w = jnp.float32(dtime / 86400.0); new = []; ia = 0
+            if ch4 is not None:
+                # Wetland CH4 every time step (docs/METHANE.md 9): the step's soil temperature, water and ice with the day's
+                # heterotrophic respiration rate (tco2mic, a daily rate: the soil model runs once a day), as a day mean.
+                from ibis.bgc.methane import methane_flux as _methane_flux
+                _f_in, _mp, _zo = ch4
+                _rh_rate = st.vegetation.tco2mic * jnp.float32(12.0e-3 * 86400.0)
+                _fl = _methane_flux(_f_in, _rh_rate, st.soil.tsoi, st.soil.wsoi, st.soil.wisoi, st.soil.hsoi[:st.soil.tsoi.shape[1]], _mp, zwt_obs=_zo)
+                new.append(acc[ia] + jnp.asarray(_fl, jnp.float32) * _w); ia += 1
+            if soil_means:
+                # day means of the soil state over the steps (docs/METHANE.md 10): what the monthly output's means are built from
+                _so = st.soil
+                new += [acc[ia] + _so.tsoi * _w, acc[ia + 1] + _so.wsoi * _w, acc[ia + 2] + _so.wisoi * _w, acc[ia + 3] + _so.tg * _w]; ia += 4
+            return (st, k, tuple(new)), None
         return (st, k), None
 
-    if ch4 is not None:
-        (state_out, key_out, ch4_day), _ = jax.lax.scan(_step_body, (state, key, jnp.zeros(state.soil.tsoi.shape[0], jnp.float32)), jnp.arange(nsteps))
-        return state_out, key_out, ch4_day
+    if _acc_on:
+        _np = state.soil.tsoi.shape[0]; _nl = state.soil.tsoi.shape[1]; acc0 = []
+        if ch4 is not None: acc0.append(jnp.zeros(_np, jnp.float32))
+        if soil_means: acc0 += [jnp.zeros((_np, _nl), jnp.float32), jnp.zeros((_np, _nl), jnp.float32), jnp.zeros((_np, _nl), jnp.float32), jnp.zeros(_np, jnp.float32)]
+        (state_out, key_out, acc_day), _ = jax.lax.scan(_step_body, (state, key, tuple(acc0)), jnp.arange(nsteps))
+        return state_out, key_out, acc_day
     (state_out, key_out), _ = jax.lax.scan(
         _step_body,
         (state, key),
@@ -350,6 +363,7 @@ def _run_month_scan(
     obs_sw: bool = False,   # static: xs carries (sw_h, use_h) and the day loop uses the observed shortwave
     ch4_hourly: bool = False,   # static: evaluate the wetland CH4 flux every time step (METHANE.md 9); the day outputs gain its day mean
     ch4_args=None,              # (f_inund, MethaneParams, zwt_obs | None) when ch4_hourly
+    soil_means: bool = False,   # static: the day outputs gain the day means of tsoi, wsoi, wisoi, tg (METHANE.md 10)
 ) -> tuple[IBISState, jax.Array, tuple]:
     """JIT-compiled day scan for one month.
 
@@ -437,10 +451,10 @@ def _run_month_scan(
             st, consts, params, dw,
             rlds_d, plens, startp, endp,
             jday_d, k_day, dtime, nband, ndaypy,
-            sw_day=sw_d, use_day=use_d, ch4=(ch4_args if ch4_hourly else None),
+            sw_day=sw_d, use_day=use_d, ch4=(ch4_args if ch4_hourly else None), soil_means=soil_means,
         )
-        if ch4_hourly: st, k_day, ch4_day = _rd
-        else: st, k_day = _rd
+        if ch4_hourly or soil_means: st, k_day, acc_day = _rd
+        else: st, k_day = _rd; acc_day = ()
 
         # End-of-day: convert daily accumulations → 10-day running means.
         # F77 (stats.f sumday) applies zweight = exp(-dtime / (10 * 86400))
@@ -591,7 +605,7 @@ def _run_month_scan(
         daily_aet = st.summary.ayaet - aet_before
         daily_rh  = st.summary.ayco2mic - rh_before
 
-        return (st, k), ((daily_gpp, daily_aet, daily_rh, ch4_day) if ch4_hourly else (daily_gpp, daily_aet, daily_rh))
+        return (st, k), (daily_gpp, daily_aet, daily_rh) + tuple(acc_day)
 
     xs_all = (td, tmax, tmin, cloud, precip, psurf, qd, ud, iwet, rlds, jdays) + ((sw_h, use_h) if obs_sw else ())
     (state_out, key_out), daily_diag = jax.lax.scan(_day_body, (state, key), xs_all)
@@ -623,6 +637,7 @@ def run_month_gswp3(
     enable_permafrost=False,
     permafrost_params=None,
     methane_hourly: bool = False,
+    soil_means: bool = False,
 ) -> tuple[IBISState, jax.Array]:
     """Run one calendar month using GSWP3 daily forcing.
 
@@ -681,8 +696,15 @@ def run_month_gswp3(
         _ch4_args = (jnp.asarray(f_inund, jnp.float32), _mp, None if zwt_obs is None else jnp.asarray(zwt_obs, jnp.float32))
     state_out, key_out, daily_diag = _run_month_scan(
         state, key, consts, params, xs,
-        nsoilcall, ndaypy, dtime, nband, obs_sw, _ch4h, _ch4_args,
+        nsoilcall, ndaypy, dtime, nband, obs_sw, _ch4h, _ch4_args, bool(soil_means),
     )
+    # monthly means from the day means (docs/METHANE.md 10): returned as a dict appended to the daily outputs
+    _ch4_month = None; _soilm = None
+    if _ch4h: _ch4_month = jnp.mean(daily_diag[3], axis=0)
+    if soil_means:
+        _o = 4 if _ch4h else 3
+        _soilm = {k_: jnp.mean(daily_diag[_o + n_], axis=0) for n_, k_ in enumerate(('tsoi_mean', 'wsoi_mean', 'wisoi_mean', 'tg_mean'))}
+    daily_diag = tuple(daily_diag[:3]) + ((_soilm,) if _soilm is not None else ())
 
     # --- wetland CH4, monthly (docs/METHANE.md) ---------------------------
     # Monthly because that is WAD2M's resolution; a daily flux would imply a
@@ -725,10 +747,9 @@ def run_month_gswp3(
         if mstate is None:
             mstate = create_methane_state(rh_kgc_day.shape[0])
         if _ch4h:
-            # the month's mean of the hourly fluxes (daily_diag[3]: (ndays, npoi) day means)
-            mstate = methane_step_from_mean(mstate, jnp.mean(daily_diag[3], axis=0), so.wsoi, so.wisoi, so.hsoi[:so.tsoi.shape[1]],
+            # the month's mean of the hourly fluxes
+            mstate = methane_step_from_mean(mstate, _ch4_month, so.wsoi, so.wisoi, so.hsoi[:so.tsoi.shape[1]],
                                             ndays, methane_params, zwt_obs=zwt_obs)
-            daily_diag = daily_diag[:3]
         else:
             mstate = methane_step(
                 mstate, jnp.asarray(f_inund), rh_kgc_day,

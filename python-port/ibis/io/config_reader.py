@@ -150,6 +150,9 @@ class OutputSection:
     restart_dir: str = "restart"
     env_snapshot_dir: str = ""       # Directory for calibration env snapshots
     env_snapshot_start: int = 0      # Start year for saving snapshots (0=disabled)
+    #: Write the month means of the soil state (tsoi_mean, wsoi_mean, wisoi_mean by layer; tg_mean), averaged over every
+    #: time step, beside the end-of-month tsoi / wsoi / tg (docs/METHANE.md 10). False: the end-of-month state only.
+    soil_means: bool = False
 
 
 @dataclass

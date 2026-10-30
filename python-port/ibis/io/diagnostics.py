@@ -173,10 +173,13 @@ class DiagnosticWriter:
         self._add_2d(ds, "totlit", state.carbon.totlit, "kgC/m2",
                      "Total litter carbon")
 
-        # Monthly flux totals (accumulator differences from run_global.py)
+        # Monthly flux totals (accumulator differences from run_global.py); a (npoi, nlayer) entry is written by layer
         if monthly_fluxes:
             for name, (arr, units, long_name) in monthly_fluxes.items():
-                self._add_2d(ds, name, arr, units, long_name)
+                if np.ndim(arr) == 2:
+                    self._add_3d(ds, name, arr, "soilay", np.arange(np.shape(arr)[1]), units, long_name)
+                else:
+                    self._add_2d(ds, name, arr, units, long_name)
 
         path = os.path.join(
             self.output_dir,
