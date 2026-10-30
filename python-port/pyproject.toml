@@ -19,6 +19,8 @@ dependencies = [
 gpu = ["jax[cuda12]>=0.4.20"]
 dev = ["pytest>=7.0", "pytest-xdist", "hypothesis"]
 ml = ["flax>=0.7.0", "wandb"]
+# the learned wetland area (physics.wetland_source learned / observed_learned; docs/METHANE.md 11)
+wetland = ["xgboost>=3.0", "scipy>=1.10"]
 
 [build-system]
 requires = ["setuptools>=68.0", "setuptools-scm"]

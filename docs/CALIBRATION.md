@@ -7906,3 +7906,34 @@ a few hundredths of a Mkm2 that emits nothing (frozen soil). In space: the decad
 the area in different cells; 1.8-3.9 % by Koppen group), because both share the seasonal climatology; month by month 11 % of
 the area sits in different cells globally (8 % tropics), which is where the learned anomaly departs from the observed one.
 
+## 82. Decision: the release methane is hourly, with the learned wetland area (2026-10-29)
+
+Hangkai (10-29, on the three-mode comparison of 81 and its breakdown): "Looks good for this method, apply this then", with
+the learned-against-observed table to go into the README. The release methane configuration is: the wetland CH4 flux
+evaluated every time step (`physics.methane_hourly: true`), the band parameters refitted at that cadence
+(`params_31s_ch4h.yaml` = `params_31s_soil_strong.yaml` + the hourly `methane:` / `methane_bands:` sections, 80), and the
+wetland area from `physics.wetland_source: learned` with `forcing.wetland_learned_file =
+inputs/methane/wetland_learned/wetland_learned_v2_s31t.npz` (METHANE 11). Release numbers, 2001-2010: 152.1 Tg CH4 yr-1
+(GMB 2025 bottom-up 153.3 [116-189]); 90S-30N 134.7 (109.5 [66-146]), 30-60N 10.6 (32.1 [16-60]), 60-90N 6.8 (11.7 [4-28]).
+
+**The release run.** Methane is diagnostic, so the release keeps the s31t protocol (spin-up, transient) and takes the
+2001-2010 hindcast rerun from its 2000 state with the methane configuration (`final_s31t_ch4h_learned_r2`). Checked: the
+carbon and water fields of that hindcast against the s31t hindcast differ by 1e-7 of every global total (GPP +9.6e-8, ET
++9.9e-8, vegetation C -2.1e-9, soil C +1.3e-8, Rh -1.4e-7 relative, 2010), with cell-level differences that individual
+cells amplify through thresholds over ten years. The source is the compiled graph, not the physics: the in-loop
+accumulators of the hourly CH4 and the month-mean soil state change the XLA fusion on the GPU (a three-cell CPU test of
+the same flags is bit-identical, METHANE 10), and two runs with the same graph (`_clim_r2`, `_learned_r2`) agree with each
+other exactly in those totals. So every carbon, water, fire and soil number of the release (74-75) stands as quoted.
+
+**Protocol.** `final_validation.sh` gains `METHANE_HOURLY=1`, `WETLAND_SOURCE=learned`, `WETLAND_LEARNED_FILE=<file>`
+(applied to the transient and the hindcast with `METHANE=1`), so the release can be reproduced end to end. A full cold
+protocol with the release methane configuration has not been run; for methane it would differ from `_learned_r2` only in
+the first months of 2001, where the learned model's lags start without history.
+
+**Documents.** README (the release line, the global table's methane and fire rows, a section with the three-mode table and
+the learned-against-observed table, Figures 1-2 regenerated from `_learned_r2`, the what-changed row, limitation 3, the
+parameter chain, the protocol command); RELEASE_3.0.md (provenance, switches, calibration table, scorecard, limitations,
+where things are); DATA_INVENTORY (the learned file, the CLM surface data); ENVIRONMENT (xgboost); `pyproject.toml`
+(`wetland` optional dependencies). The tower comparison at the band parameters the globe uses is running
+(`site_fit/ch4_band_h`, `ch4_band_snap`).
+

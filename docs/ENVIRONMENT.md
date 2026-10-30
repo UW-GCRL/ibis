@@ -104,3 +104,13 @@ bisect the library versions until the 7 pass, or re-run the lockstep and
 re-baseline `verify/STATUS.md` against these versions. Until then, treat
 absolute numbers from this environment as provisional; relative comparisons
 made *within* one environment (such as the F0 bit-exactness test) are still valid.
+
+## Learned wetland area: xgboost (2026-10-29)
+
+`physics.wetland_source: learned` (and `observed_learned`) evaluates gradient-boosted trees each month (`ibis.bgc.wetland_learned`),
+so the runtime needs `xgboost` (>= 3.0; and scipy for the neighbourhood filter), the `wetland` optional dependency group of
+`python-port/pyproject.toml`. Installed on this box in the GPU venv (`/home/hangkai/.venvs/ibis-gpu`, xgboost 3.4.1 with
+scikit-learn 1.9.1) and the CPU environment (xgboost 3.3.0). The pip wheel reports "No visible GPU" and trains on the CPU;
+training the release file takes about 4 minutes on 24 threads, so the GPU build was not pursued. The trees load from the
+file's JSON in any xgboost >= 3.0. Default runs (`wetland_source: climatology`) do not import xgboost.
+

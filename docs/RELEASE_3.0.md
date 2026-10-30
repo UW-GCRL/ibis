@@ -15,26 +15,31 @@ when off: a sunlit/shaded two-big-leaf canopy with capacity declining through th
 parameters (photoperiod senescence, a soil-stress drought trigger); forty Köppen-zone plant types that live in the twelve
 PFT slots, each square taking the types of its climate zone; a water-limited maximum tree cover; a fire scheme driven by
 the length of the fire season with per-type mortality and conserved emissions (CO2, CO, CH4, N2O); a wetland methane
-module (one scalar form) on WAD2M inundation with the water table from the model's own soil moisture; cropland as managed
+module (one scalar form) evaluated every time step, with the water table from the model's own soil moisture and a
+dynamic wetland area (the WAD2M seasonal climatology plus a learned year-to-year anomaly from the model's own water); cropland as managed
 grass on the ESA CCI cropland share with harvest; three thermal bedrock layers under the 4 m column; per-type respiration
 and allocation; and the diagnostics the towers measure (ET parts, day and night NEE, fire emissions, methane, harvest).
 The global run has 95,333 half-degree land cells; the 310-year protocol takes about seven hours on one RTX 4090.
 
 ## 2. The release parameter file and its provenance
 
-The release is `python-port/configs/params/params_31s_soil_strong.yaml`, run as the protocol tagged `s31t` on 28 October
-2026 (`verify_outputs/final_s31t/`). Newest change first:
+The release is `python-port/configs/params/params_31s_ch4h.yaml`, run as the protocol tagged `s31t` on 28 October 2026
+(`verify_outputs/final_s31t/`), with the 2001-2010 hindcast rerun on 29 October with hourly methane and the learned
+wetland area (`verify_outputs/final_s31t_ch4h_learned_r2/`; methane is diagnostic, so carbon, water and fire are those of
+`s31t` to float32 rounding, 1e-7 of every global total, CALIBRATION 82). Newest change first:
 
 | Step | File | What it added | Log |
 |---|---|---|---|
+| methane at the hourly cadence | `params_31s_ch4h.yaml` | the methane band parameters refitted at the 48 wetland towers with the flux evaluated every time step (the earlier fits used the month-end state); used with `methane_hourly` and the learned wetland area (`wetland_learned_v2_s31t.npz`) | 80-82 |
 | soil-carbon stage | `params_31s_soil_strong.yaml` | slow- and passive-pool turnover scaled per zone group on the zones' tree types (`som_k_scale`); the stronger member of a two-member bracket run through the full protocol | 72 |
 | cover limit and production | `params_31r.yaml` | the water-limited maximum tree cover with a ramp per zone (the stress gate retired); the C/D-zone allocation refit (awood 0.35, the leaf cut going to roots); shorter temperate wood residence (45 / 40 yr); the tropical wood refit at half strength | 70-71 |
 | allocation stage, road B | `params_31n.yaml` | leaf area set through the allocation and leaf-mass coefficients, no caps; the cold shrub kept (aleaf 0.30) | 54-69 |
 | the type set | carried in the above | 40 climate-zone types, each the median of its towers' fits from the 356-tower campaign; methane bands from the 45 FLUXNET-CH4 towers; cropland from 16 cropland towers | 45-57, 38, 41 |
 | 12 October release (`main`) | `params_s7_crop.yaml` | the class-median set of the 62-tower fits, with methane and cropland | 37-43 |
 
-Switches on in the release run: `koppen_types` (with the Köppen mask `koppen_file`), `tree_cover_limit`, `enable_methane`,
-`enable_fire_emissions`, cropland (`cropfrac_file`). Organic-soil hydrology is off. The run is cold: no state is inherited
+Switches on in the release run: `koppen_types` (with the Köppen mask `koppen_file`), `tree_cover_limit`, `enable_methane`
+with `methane_hourly` and `wetland_source: learned` (`wetland_learned_file`), `enable_fire_emissions`, cropland
+(`cropfrac_file`). Organic-soil hydrology is off. The run is cold: no state is inherited
 from an earlier run.
 
 ## 3. What was calibrated against what
@@ -44,7 +49,8 @@ Towers first, then the globe; no global total was ever a term in a loss function
 | Process | Parameters | Data | How | Log |
 |---|---|---|---|---|
 | photosynthesis, stomata, phenology, respiration, allocation | per type: capacity and acclimation, Ball-Berry, leaf traits, allocation and turnover, respiration | 356 flux towers (FLUXNET2015, ICOS, AmeriFlux, NEON, regional networks): monthly GPP, ET and NEE on the tower's own meteorology, three to five years, one held out | CMA-ES per tower on a bounded objective; each type is the median of its towers; every tower re-scored under the shared set | 34-36, 45, 50-57 |
-| wetland methane | rate, Q10, anaerobic depth scale and oxidation scale per latitude band | 45 FLUXNET-CH4 towers, held-out year | per-tower fits, band medians; the bands kept at the final (the decomposition of 73) | 38, 42, 73 |
+| wetland methane | rate, Q10, anaerobic depth scale and oxidation scale per wetland band | 48 wetland towers of the FLUXNET-CH4 v2 compilation (Chenchen's gap-filled set, unpublished), held-out year | per-tower fits with the flux evaluated every time step, band medians by Köppen wetland type | 38, 42, 73, 80 |
+| wetland area | the learned anomaly model (trees per band, monotone in water) | WAD2M v2.0 monthly fraction 2001-2010 | trained on a reference hindcast's month-mean soil state and water totals; held out by year | METHANE 8-11, 81 |
 | cropland | crop capacity factor, harvest | 16 cropland towers | per-tower fits | 41 |
 | fire | season, danger, fuel, mortality, damping | GFED5 burned fraction 2001-05 by zone | a zone objective on amount and pattern; the release sits at its optimum | 59, 65-66 |
 | tree cover | maximum cover against growing-season water stress, per zone | CLM / MODIS tree cover on natural land | the product's cover as a function of the model's own stress, fitted by zone; phantom and lost forest as the check | 70-71 |
@@ -60,7 +66,8 @@ radiation) is the verified IBIS 2.6b4 physics.
 cd ibis-port; export PYTHONPATH=python-port:.
 SPINUP_YEARS=200 METHANE=1 KOPPEN_TYPES=1 \
   KOPPEN=<koppen_beck2023_0.5deg.npz> CROPFRAC=<cropfrac_esacci_2000_05deg.npz> \
-  bash verify/calibration/final_validation.sh s31t python-port/configs/params/params_31s_soil_strong.yaml
+  METHANE_HOURLY=1 WETLAND_SOURCE=learned WETLAND_LEARNED_FILE=<wetland_learned_v2_s31t.npz> \
+  bash verify/calibration/final_validation.sh s31t python-port/configs/params/params_31s_ch4h.yaml
 ```
 
 Stages: cold spin-up 1701-1900 (1901-1930 climate cycled, 296 ppm, soil carbon accelerated then released), transient
@@ -87,8 +94,8 @@ in the CPU environment). The release figures and tables come from `verify/calibr
 | ET, mm yr-1 | 529 | five-product ensemble 508 | 1.04; cell r 0.94; 55 % of cells inside the product spread; by band 1.08 / 0.99 / 0.80 |
 | land sink (change of stored carbon), PgC yr-1 | 2.91 | GCB 2024 2.78 ± 0.69; TRENDY v13 mean 2.83 (1.4-4.4) | NPP - Rh before fire and harvest 8.1; carbon closure to 0.1 PgC yr-1, the soil residual being leaching |
 | crop harvest, PgC yr-1 | 0.67 | about 1-2 | cropland as managed grass |
-| wetland CH4, Tg CH4 yr-1 | 170 | GMB 2025 bottom-up 153 (116-189), 2000-09 | by band 152 / 12 / 6 against 109 / 32 / 12 |
-| burned area, % of land yr-1 | 2.42 | GFED5 4.60 (products 2.4-4.6) | 0.53; rank r 0.76 (burning cells 0.43); African savanna 0.24 |
+| wetland CH4, Tg CH4 yr-1 | 152 | GMB 2025 bottom-up 153 (116-189), 2000-09 | by band 135 / 11 / 7 against 109 / 32 / 12; hourly flux on the learned wetland area (observed WAD2M area: 156; fixed climatology: 151) |
+| burned area, % of land yr-1 | 2.42 | GFED5 4.62 (products 2.4-4.6) | 0.52; rank r 0.78 (burning cells 0.44), on the corrected GFED5 registration (81); African savanna 0.24 |
 | wood carbon, PgC | 388 | Xu & Saatchi 2021: 362 | 1.07; humid tropics 1.01 (Amazon 0.98, Congo 0.63), savanna 0.71, temperate 1.70, boreal 1.10, tundra 0.60; rank r 0.70 |
 | soil carbon, PgC | 1982 | HWSD2 0-1 m 2793 (98 % of land); literature 1500-2400 | 0.71; 90 S-30 N 0.82, 30-60 N 0.80, 60-90 N 0.47; boreal 0.59; cell r 0.51 |
 | tree cover on natural land | 0.450 | CLM / MODIS 0.388 | phantom forest 3.6 % of natural land, lost forest 1.9 % |
@@ -102,11 +109,12 @@ in the CPU environment). The release figures and tables come from `verify/calibr
 2. **Temperate wood is 1.7 times the biomass map** (Europe 1.9, the eastern United States 1.7, Australia 1.6): those
    forests are young and managed, and the model grows old growth over the 310-year protocol with no land-use history. The Congo is
    0.63 and humid Asia 1.36 of the map (67, 71).
-3. **The methane split by band follows the towers, not the wetland-model ensemble**: 1.39 times the ensemble in the
-   tropics, 0.36 in 30-60 N, 0.53 north of 60 N. The band parameters fitted at the towers carry the towers' own rates into
+3. **The methane split by band follows the towers, not the wetland-model ensemble**: 1.23 times the ensemble in the
+   tropics, 0.33 in 30-60 N, 0.58 north of 60 N. The band parameters fitted at the towers carry the towers' own rates into
    the globe; rescaling a band to the ensemble would be tuning to a global total. The module has no frozen-season
-   production (about 3 Tg yr-1 in the north at the towers), and the inundation input is a climatology, so the tropical
-   towers' seasonal cycle is not reproduced (held-out r 0.03) (38, 73).
+   production (about 3 Tg yr-1 in the north at the towers). The learned wetland area follows the observed year-to-year
+   variation (r 0.90 tropics, 0.48 temperate, 0.58 boreal, held out) at damped amplitude (a quarter of the observed
+   swings in the tropics); a prognostic extent needs river routing (38, 73, 80-81; METHANE 8-11).
 4. **GPP north of 30 N in spring and autumn** is 1.5-3 times FLUXCOM while July is close; annual GPP north of 60 N is
    1.8 times FLUXCOM, where FLUXCOM is also lowest against the towers and the campaign has eight polar towers (47-49, 69).
 5. **Soil carbon is 0.71 of the HWSD2 top metre**: the cold zones fall short (boreal 0.59, north of 60 N 0.47). The soil is
@@ -120,11 +128,14 @@ in the CPU environment). The release figures and tables come from `verify/calibr
 
 ## 7. Where things are
 
-- Run: `verify_outputs/final_s31t/` (spin-up, transient, hindcast, `score/`); the reference run of the stage before the
+- Run: `verify_outputs/final_s31t/` (spin-up, transient, hindcast, `score/`), with the release hindcast of the methane
+  configuration `final_s31t_ch4h_learned_r2/` (and its siblings `_clim_r2`, `_obs_r2`); the reference run of the stage before the
   soil stage is `final_s31n/`, the cover-limit run `final_s31r/` (vegetation bit-identical to the release).
 - Figures and tables: `ibis_local_document/figures/final_2026-10-26/` (`tables/scorecard_s31n_s31t.txt`,
   `tables/metrics_s31n_s31t.json`, `tables/mip_compare_s31t.txt`, `tables/gpp_tower_cells_s31t.txt`,
-  `tables/ch4_bands_s31t.txt`, `tables/soil_figure_s31n_s31r_s31t.txt`, `tables/global_spatial_s31t.txt`).
-- Log: [`CALIBRATION.md`](CALIBRATION.md) 70-74 for the final stages; [`FIRE.md`](FIRE.md), [`METHANE.md`](METHANE.md),
+  `tables/ch4_bands_s31t.txt`, `tables/soil_figure_s31n_s31r_s31t.txt`, `tables/global_spatial_s31t.txt`,
+  `tables/wetland_modes_compare_r2.txt`, `tables/wetland_learned_vs_observed_breakdown.txt`,
+  `tables/fire_rescored_registration_fix.txt`; wetland figures in `wetland_2026-10-29/`).
+- Log: [`CALIBRATION.md`](CALIBRATION.md) 70-82 for the final stages; [`FIRE.md`](FIRE.md), [`METHANE.md`](METHANE.md),
   [`BEDROCK.md`](BEDROCK.md), [`GPP.md`](GPP.md) for the modules; [`RUNNING.md`](RUNNING.md) and
   [`ENVIRONMENT.md`](ENVIRONMENT.md) for the machine.

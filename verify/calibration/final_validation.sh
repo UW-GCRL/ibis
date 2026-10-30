@@ -13,6 +13,8 @@
 set -u -o pipefail
 TAG=$1; PAR=$(readlink -f "$2"); V=/shared/nas2/Hangkai/ibis/verify_outputs; R=/shared/nas2/Hangkai/ibis-port
 SPINUP_YEARS=${SPINUP_YEARS:-300}; METHANE=${METHANE:-0}      # CALIBRATION.md 38: SPINUP_YEARS=200 METHANE=1 -> 1701-1900 spin-up, wetland CH4 written in the transient and hindcast
+METHANE_HOURLY=${METHANE_HOURLY:-0}                              # METHANE.md 9: 1 -> the wetland CH4 flux every time step, averaged to the month (the release setting)
+WETLAND_SOURCE=${WETLAND_SOURCE:-climatology}; WETLAND_LEARNED_FILE=${WETLAND_LEARNED_FILE:-}   # METHANE.md 8-11: climatology | observed | learned | observed_learned (learned: the release)
 CROPFRAC=${CROPFRAC:-}                                           # CALIBRATION.md 41: path of the cropland-fraction npz -> cropland as managed grass in every stage
 KOPPEN=${KOPPEN:-}; LARCH_FIX=${LARCH_FIX:-0}                      # CALIBRATION.md 44: Koppen npz -> koppen_file (mask on PFT existence); LARCH_FIX=1 -> larch_gdd_fix
 SOIL_ORGANIC=${SOIL_ORGANIC:-0}; SOIL_FILE=${SOIL_FILE:-}          # CALIBRATION.md 44: SOIL_ORGANIC=1 -> soil_organic (needs the HWSD2 organic soil_file)
@@ -32,6 +34,15 @@ mkcfg() {  # mkcfg <template cfg> <out cfg> <stage dir> ; then per-stage sed on 
   [ "$SOIL_ORGANIC" = 1 ] && { grep -q '^  soil_organic' $2 || sed -i "s|^  isimveg: 1|  isimveg: 1\n  soil_organic: true\n  soil_organic_end_member: $SOIL_ORGANIC_END|" $2; }
   [ -n "$SOIL_FILE" ] && sed -i "s|^  soil_file:.*|  soil_file: $SOIL_FILE|" $2
 }
+ch4cfg() {  # ch4cfg <cfg>: the methane cadence and wetland-area source (METHANE.md 9-11) after enable_methane
+  [ "$METHANE_HOURLY" = 1 ] && sed -i 's|^  enable_methane: true|  enable_methane: true\n  methane_hourly: true|' $1
+  if [ "$WETLAND_SOURCE" != climatology ]; then
+    sed -i "s|^  enable_methane: true|  enable_methane: true\n  wetland_source: $WETLAND_SOURCE|" $1
+    case $WETLAND_SOURCE in *learned) [ -n "$WETLAND_LEARNED_FILE" ] || { echo "WETLAND_SOURCE=$WETLAND_SOURCE needs WETLAND_LEARNED_FILE"; exit 1; }
+      sed -i "s|^  vegtype_dir:|  wetland_learned_file: $WETLAND_LEARNED_FILE\n  vegtype_dir:|" $1;; esac
+  fi
+  grep -E 'methane_hourly|wetland_source|wetland_learned_file' $1 | tr -s ' ' | tr '\n' ';'; echo
+}
 mkdir -p $F/spinup/{out,restart} $F/transient/{out,restart} $F/hindcast/{out,restart}
 # 1. spin-up (SKIP_SPINUP=1: resume from an existing 1900 restart of this TAG)
 if [ "${SKIP_SPINUP:-0}" = 1 ] && [ -f $F/spinup/restart/ibis_restart_1900.npz ]; then echo "=== [$TAG] SPIN-UP skipped (restart present) ==="; else
@@ -45,7 +56,7 @@ fi
 # 2. transient 1901-2000
 mkcfg $V/v11_transient/cfg.yaml $F/transient/cfg.yaml $F/transient
 sed -i -e 's|^  nrun: 110|  nrun: 100|' $F/transient/cfg.yaml; cp $F/spinup/restart/ibis_restart_1900.npz $F/transient/restart/
-[ "$METHANE" = 1 ] && sed -i -e 's|^  enable_fire_emissions: true|  enable_fire_emissions: true\n  enable_methane: true|' $F/transient/cfg.yaml
+[ "$METHANE" = 1 ] && sed -i -e 's|^  enable_fire_emissions: true|  enable_fire_emissions: true\n  enable_methane: true|' $F/transient/cfg.yaml && ch4cfg $F/transient/cfg.yaml
 echo "=== [$TAG] TRANSIENT 1901-2000 start $(date +%H:%M) ==="
 $PY -u python-port/scripts/run_global.py $F/transient/cfg.yaml > $F/transient/run.log 2>&1 || { echo "TRANSIENT FAILED"; tail -5 $F/transient/run.log; exit 1; }
 [ -f $F/transient/restart/ibis_restart_2000.npz ] || { echo "no 2000 restart"; exit 1; }
@@ -53,7 +64,7 @@ $PY -u python-port/scripts/run_global.py $F/transient/cfg.yaml > $F/transient/ru
 mkcfg $V/v11_transient/cfg.yaml $F/hindcast/cfg.yaml $F/hindcast
 sed -i -e 's|^  iyear0: 1901|  iyear0: 2001|' -e 's|^  nrun: 110|  nrun: 10|' -e 's|^  irestart: 1900|  irestart: 2000|' -e 's|^  imonthout: 0|  imonthout: 1|' \
        -e 's|^  transient_co2: true|  transient_co2: true\n  et_components: true|' $F/hindcast/cfg.yaml    # ET components in the yearly files (CALIBRATION.md 15)
-[ "$METHANE" = 1 ] && sed -i -e 's|^  enable_fire_emissions: true|  enable_fire_emissions: true\n  enable_methane: true|' $F/hindcast/cfg.yaml
+[ "$METHANE" = 1 ] && sed -i -e 's|^  enable_fire_emissions: true|  enable_fire_emissions: true\n  enable_methane: true|' $F/hindcast/cfg.yaml && ch4cfg $F/hindcast/cfg.yaml
 cp $F/transient/restart/ibis_restart_2000.npz $F/hindcast/restart/
 echo "=== [$TAG] HINDCAST 2001-2010 (monthly) start $(date +%H:%M) ==="; grep -E "iyear0|nrun|irestart|imonthout" $F/hindcast/cfg.yaml | tr -s ' ' | tr '\n' ';'; echo
 $PY -u python-port/scripts/run_global.py $F/hindcast/cfg.yaml > $F/hindcast/run.log 2>&1 || { echo "HINDCAST FAILED"; tail -5 $F/hindcast/run.log; exit 1; }
