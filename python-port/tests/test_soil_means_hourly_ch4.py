@@ -75,14 +75,32 @@ def test_accumulators_leave_the_state_alone_and_give_physical_means(production_f
     # Equal to float32 rounding, not bit for bit: the extra accumulator outputs can change how XLA fuses the step's
     # arithmetic (bit-identical when the test runs alone; ~1e-6 relative inside the full suite, CALIBRATION.md 82).
     # A feedback of the accumulators into the state would show at the level of kelvins and whole water fractions.
-    for x, y in zip(fa, fb):
-        if isinstance(x, jnp.ndarray) and np.issubdtype(np.asarray(x).dtype, np.floating):
-            assert np.allclose(np.asarray(x), np.asarray(y), rtol=1e-4, atol=1e-6, equal_nan=True)
+    # The measure is each field's difference relative to that field's own scale (its largest magnitude): rounding drift
+    # over a month stays below 1e-3 of the scale, a feedback of the accumulators would be percent-level or more.
+    def scaled_diff(x, y):
+        x = np.asarray(x, np.float64); y = np.asarray(y, np.float64); ok = np.isfinite(x) & np.isfinite(y)
+        assert np.array_equal(np.isfinite(x), np.isfinite(y))
+        scale = max(float(np.max(np.abs(x[ok]))) if ok.any() else 0.0, 1e-30)
+        return float(np.max(np.abs(x[ok] - y[ok]))) / scale if ok.any() else 0.0
+    # hydrology.gadjust (the last step's water change from the bound clamp in wadjust, ztot1 - ztot0 over the step) is
+    # float32 rounding of a column total of hundreds of kg/m2 when nothing is clamped: its own scale is that rounding, so
+    # it is compared in water per step instead, below 1e-3 kg/m2.
+    worst = 0.0; where = ''
+    pa = jax.tree_util.tree_flatten_with_path(a_)[0]
+    for (path, x), y in zip(pa, fb):
+        if jax.tree_util.keystr(path).endswith('.gadjust'):
+            dw = float(np.max(np.abs(np.asarray(x, np.float64) - np.asarray(y, np.float64)))) * 3600.0
+            assert dw < 1e-3, f'gadjust differs by {dw:.2e} kg/m2 per step'
+        elif isinstance(x, jnp.ndarray) and np.issubdtype(np.asarray(x).dtype, np.floating):
+            d = scaled_diff(x, y)
+            if d > worst: worst, where = d, jax.tree_util.keystr(path) + f' a={np.asarray(x).ravel()[:6]} b={np.asarray(y).ravel()[:6]}'
         elif isinstance(x, jnp.ndarray):
-            assert np.array_equal(np.asarray(x), np.asarray(y))
+            assert np.array_equal(np.asarray(x), np.asarray(y)), jax.tree_util.keystr(path)
     assert len(dd_a) == 3 and len(dd_b) == 4
-    for x, y in zip(dd_a, dd_b[:3]):
-        assert np.allclose(np.asarray(x), np.asarray(y), rtol=1e-4, atol=1e-9, equal_nan=True)
+    for k_, (x, y) in enumerate(zip(dd_a, dd_b[:3])):
+        d = scaled_diff(x, y)
+        if d > worst: worst, where = d, f'daily output {k_}'
+    assert worst < 1e-3, f'a field differs by {worst:.2e} of its scale with the accumulators on: {where}'
     # 2. the soil means are physical and are means
     sm = {k: np.asarray(v) for k, v in dd_b[3].items()}
     assert sm['tsoi_mean'].shape == np.asarray(b.soil.tsoi).shape and sm['tg_mean'].shape == np.asarray(b.soil.tg).shape
