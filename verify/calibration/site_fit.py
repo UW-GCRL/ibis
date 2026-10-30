@@ -356,6 +356,7 @@ def setup(a, spin=True, verbose=True):
                 if y in ty: ZWT[yi, :, n_] = np.maximum(-CH4_T['wtd_ch4'][ty.index(y), :, k], 0.0)      # depth below the surface; above-surface = 0
             nrec[s_] = int(np.isfinite(ZWT[:, :, n_]).sum())
         say('water table from the tower (months with a record): ' + ', '.join(f'{s_} {n}' for s_, n in nrec.items()))
+    if FIN is not None:   # explicit --f-inund overrides in every mode (they sat inside the tower-water-table branch until 2026-10-29)
         for item in [x for x in getattr(a, 'f_inund', '').split(';') if x]: s_, v_ = item.split('='); FIN[..., sites.index(s_)] = float(v_)
         say('inundated fraction (annual mean): ' + ', '.join(f'{s_} {float(FIN[..., n_].mean()):.2f}' for n_, s_ in enumerate(sites)))
     ctx0 = dict(i=i, j=j, lat_rad=lat_rad, sp=sp0, pft=pft0, consts=consts, reader=rd, f_inund=FIN, methane_hourly=bool(getattr(a, 'methane_hourly', False))); key0 = jax.random.PRNGKey(0); t0 = time.time()

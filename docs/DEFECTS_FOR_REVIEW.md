@@ -616,3 +616,12 @@ P - ET in the Amazon), all land 60S-60N 1,309 mm/yr of runoff on 969 of rain, an
 WAD2M regression (`logs/wad2m_storage_regression_2026-10-16.md`). Fixed in `loops.py`; `tests/test_water_balance.py`
 closes the soil-plus-puddle water balance of a timestep with the stored fluxes (it failed by 0.55 and 6.1 mm per step
 before the fix).
+
+## The tower harness ignored `--f-inund` outside the tower-water-table mode (found 2026-10-29, fixed)
+
+`verify/calibration/site_fit.py`: the loop applying the explicit `--f-inund SITE=value` overrides, and the log line of the
+inundated fraction, sat inside the `--wtd-mode tower` branch since commit dd7af6d (2026-10-11, section 42), so in the
+default mode the override was silently ignored. Impact: none on any result. Every override on a non-wetland tower ran in
+the 10 October methane batches (r3-r5), before the defect; every later command passed it only for wetland towers, where
+the harness sets the fraction to 1 regardless (checked over all command files, 2026-10-29). Fixed by moving both
+statements out of the branch, guarded by `FIN is not None`.
