@@ -93,6 +93,9 @@ class PhysicsSection:
     #: (default) = the WAD2M 2000-2020 monthly climatology, identical every year; 'observed' = the WAD2M field of that
     #: calendar month for years inside the record (2000-2020; seasonal cycle and year-to-year variation from the
     #: observations) and the climatology outside it. wetland_dynamic adds its anomaly only where the climatology is used.
+    #: 'learned' (docs/METHANE.md 11): the WAD2M seasonal climatology plus the anomaly of a learned model of the month's
+    #: inundation from the model's own month-mean soil state and water totals (forcing.wetland_learned_file), every year;
+    #: needs methane_hourly. 'observed_learned': the observed field inside 2000-2020, the learned fraction outside.
     wetland_source: str = 'climatology'
     #: Evaluate the wetland CH4 flux every time step from the hourly soil temperature, water and ice and the day's
     #: heterotrophic respiration rate, averaged to the month (docs/METHANE.md 9). False: the end-of-month snapshot, as before.
@@ -208,6 +211,9 @@ class ForcingSection:
     #: Root-zone soil-water climatology (mu, sd per cell and month) of a reference hindcast, for wetland_dynamic
     #: (verify/methane/wetland_clim_prep.py).
     wetland_clim_file: str = ""
+    #: The trained learned-wetland file (verify/methane/wetland_learned_train.py --save) for physics.wetland_source
+    #: 'learned' / 'observed_learned' (docs/METHANE.md 11).
+    wetland_learned_file: str = ""
     soil_file: str = ""
     land_mask_file: str = ""
     # Spinup: repeat [spinup_year_start, spinup_year_end] cyclically for nrun years.

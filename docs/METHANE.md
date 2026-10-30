@@ -2481,3 +2481,22 @@ the month-end fields. Test (`tests/test_soil_means_hourly_ch4.py`, real GSWP3 fo
 with `methane_hourly` and `soil_means` on, every leaf of the model state except the wetland diagnostics is bit-identical
 to the default run; the means are physical and differ from the month-end state; the hourly CH4 is booked as the month's
 mean. The section-8 emulator is retrained on the month means before any switch is built on it.
+
+## 11. The learned wetland area as a switch (2026-10-29, built; validation pending the soil-means hindcast)
+
+`physics.wetland_source: learned` (and `observed_learned`: the observed WAD2M field inside 2000-2020, learned outside),
+with `forcing.wetland_learned_file`; needs `methane_hourly`. Off by default. Module `ibis/bgc/wetland_learned.py`:
+- `FeatureBuilder`: the ONE construction of the predictors, stepped month by month in calendar order with explicit
+  buffers (lags 1-3, 3-month means, 5x5-cell land-only neighbourhood means of 3-month precipitation and runoff), from the
+  month-MEAN soil state (section 10) and the month's water totals. The training script
+  (`verify/methane/wetland_learned_train.py`) builds its predictors through this class over the reference hindcast's 120
+  months, so training and runtime features are identical by construction.
+- `LearnedWetland`: the trained file (one XGBoost model per wetland band, monotone increasing in every water variable,
+  stored as JSON; per-cell emulator climatology Pbar, WAD2M climatology, cell maximum, static predictors; per-band
+  inflation lambda cross-fitted on out-of-year anomalies). f = clip(f_clim[m] + lambda_band (P - Pbar[m]), 0, f_max).
+- Runner: in a learned month the methane runs with a unit inundated fraction, the hourly accumulator integrating the
+  flux per unit of wetland; after the month the fraction is computed from that month's means and the month's flux and the
+  annual total are scaled by it (exact: the flux is linear in the fraction, clip(f, 0, 1)). The month's fraction is written
+  as `finund`. No end-of-month state enters anywhere.
+Tests: `tests/test_wetland_learned.py` (the builder against the explicit array definitions on a random series; the hybrid's
+bounds and its climatology limit; a file applies to its own cells only and rejects a feature list that differs).

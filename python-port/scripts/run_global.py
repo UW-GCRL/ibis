@@ -670,8 +670,8 @@ def run_global_simulation(config: IBISConfig) -> None:
         logger.info("  wetland CH4 enabled: WAD2M climatology loaded, "
                     "mean inundated fraction %.4f", float(ch4_clim.mean()))
         _wsrc = str(getattr(p, 'wetland_source', 'climatology'))
-        if _wsrc not in ('climatology', 'observed'):
-            raise ValueError(f"physics.wetland_source must be 'climatology' or 'observed', got {_wsrc!r}")
+        if _wsrc not in ('climatology', 'observed', 'learned', 'observed_learned'):
+            raise ValueError(f"physics.wetland_source must be 'climatology', 'observed', 'learned' or 'observed_learned', got {_wsrc!r}")
         logger.info("  wetland area source: %s%s", _wsrc, ' (WAD2M month of the calendar year inside 2000-2020, climatology outside)' if _wsrc == 'observed' else '')
         logger.info("  CH4 cadence: %s", 'hourly, averaged to the month (methane_hourly)' if getattr(p, 'methane_hourly', False) else 'end-of-month snapshot')
         logger.info("  CH4 params: %s", (f"parameter file ({'with' if _mb else 'without'} band overrides)" if _has_fit else "per-biome r_ch4 and t_ref (docs/METHANE.md 5q)"))
@@ -694,6 +694,21 @@ def run_global_simulation(config: IBISConfig) -> None:
         _lat = np.asarray(lat_land_deg); _band = np.where((_lat > -30.0) & (_lat < 30.0), 0, np.where(_lat >= 60.0, 2, 1))
         if _bi is not None: _band = np.where(np.asarray(_bi) >= 0, np.asarray(_bi), _band)      # the wetland type of the zone
         _wdyn = (_mu, _sd, _fmin, _fmax, _bt[_band])
+
+    # Learned wetland area (docs/METHANE.md 11): each month runs with a unit inundated fraction, so the hourly accumulator
+    # integrates the flux per unit of wetland; after the month the predictors are built from the month's MEAN soil state and
+    # its water totals, the hybrid fraction is computed, and the month's flux and the annual total are scaled by it (the
+    # flux is linear in the fraction). The feature builder is stepped every month so its lags never break.
+    _lw = _fbld = None
+    if ch4_clim is not None and _wsrc in ('learned', 'observed_learned'):
+        from ibis.bgc.wetland_learned import FeatureBuilder, LearnedWetland
+        if not getattr(p, 'methane_hourly', False):
+            raise ValueError("physics.wetland_source 'learned' / 'observed_learned' needs physics.methane_hourly: true")
+        if not getattr(f, 'wetland_learned_file', ''):
+            raise ValueError("physics.wetland_source 'learned' needs forcing.wetland_learned_file (verify/methane/wetland_learned_train.py --save)")
+        _lw = LearnedWetland(f.wetland_learned_file, latindex_sub, lonindex_sub)
+        _fbld = FeatureBuilder(latindex_sub, lonindex_sub, np.asarray(state.soil.poros), np.asarray(state.soil.hsoi), nlat=len(lat_sub), nlon=len(lon_sub))
+        logger.info("  learned wetland area: %s (%d cells of the file on this run's land, %d dropped)", f.wetland_learned_file, len(_lw.pts), _lw.n_dropped)
         logger.info("  dynamic wetland area ON: climatology %s; beta tropical/temperate/boreal %s; cell bounds mean %.4f-%.4f",
                     f.wetland_clim_file, _bt.tolist(), float(_fmin.mean()), float(_fmax.mean()))
 
@@ -760,6 +775,9 @@ def run_global_simulation(config: IBISConfig) -> None:
             monthly_tmean.append(tmean_c)
 
             # Snapshot annual accumulators before the month
+            if _lw is not None:
+                _lw_before = (state.summary.ayprcp, state.summary.ayaet, state.summary.aytrunof, state.summary.aytdrain,
+                              None if state.wetland is None else state.wetland.annual)
             if out.imonthout > 0:
                 prcp_before = state.summary.ayprcp
                 aet_before  = state.summary.ayaet
@@ -773,8 +791,11 @@ def run_global_simulation(config: IBISConfig) -> None:
             _fobs = None
             if ch4_clim is not None and _wsrc == 'observed' and wad2m_in_record(year):
                 _fobs = read_wad2m_month(f.wad2m_file, year, imonth + 1, _wli, _wlo, mlat, mlon, clamp_to_range=False)
+            _learned_now = _lw is not None and not (_wsrc == 'observed_learned' and wad2m_in_record(year))
+            if _wsrc == 'observed_learned' and ch4_clim is not None and wad2m_in_record(year):
+                _fobs = read_wad2m_month(f.wad2m_file, year, imonth + 1, _wli, _wlo, mlat, mlon, clamp_to_range=False)
             _fdyn = None
-            if _wdyn is not None and _fobs is None:
+            if _wdyn is not None and _fobs is None and not _learned_now:
                 _so = state.soil
                 _W = _wa.root_zone_water(np.asarray(_so.wsoi), np.asarray(_so.poros), np.asarray(_so.hsoi), np.asarray(_so.tsoi))
                 _fdyn = _wa.dynamic_fraction(ch4_clim[imonth], _W, _wdyn[0][imonth], _wdyn[1][imonth], _wdyn[4], _wdyn[2], _wdyn[3],
@@ -783,20 +804,32 @@ def run_global_simulation(config: IBISConfig) -> None:
                 state, consts, params, reader,
                 gswp3_latindex, gswp3_lonindex, np.array(lat_rad),
                 forcing_year, imonth, key, t.dtime, leap, grid.nband, nsoilcall,
-                f_inund=(_fobs if _fobs is not None else (_fdyn if _fdyn is not None else (None if ch4_clim is None else ch4_clim[imonth]))),
+                f_inund=(np.ones(len(lat_land_deg), np.float32) if _learned_now else
+                         (_fobs if _fobs is not None else (_fdyn if _fdyn is not None else (None if ch4_clim is None else ch4_clim[imonth])))),
                 methane_params=ch4_params,
                 methane_hourly=bool(getattr(p, 'methane_hourly', False)),
-                soil_means=bool(getattr(out, 'soil_means', False)),
+                soil_means=bool(getattr(out, 'soil_means', False)) or _lw is not None,
             )
-            _soilm = _dd[3] if (getattr(out, 'soil_means', False) and len(_dd) > 3) else None
+            _soilm = _dd[3] if ((getattr(out, 'soil_means', False) or _lw is not None) and len(_dd) > 3) else None
+            _flearn = None
+            if _lw is not None:
+                _feats = _fbld.step(np.asarray(_soilm['tsoi_mean']), np.asarray(_soilm['wsoi_mean']), np.asarray(_soilm['wisoi_mean']), np.asarray(_soilm['tg_mean']),
+                                    np.asarray(state.summary.ayprcp - _lw_before[0]), np.asarray(state.summary.ayaet - _lw_before[1]),
+                                    np.asarray((state.summary.aytrunof - _lw_before[2]) + (state.summary.aytdrain - _lw_before[3])))
+                if _learned_now:
+                    _flearn = _lw.fraction(imonth, _feats, ch4_clim[imonth])
+                    _wl = state.wetland; _a0 = jnp.zeros_like(_wl.annual) if _lw_before[4] is None else _lw_before[4]
+                    _fj = jnp.asarray(_flearn, jnp.float32)
+                    state = eqx.tree_at(lambda s: s.wetland, state, type(_wl)(flux=_wl.flux * _fj, annual=_a0 + (_wl.annual - _a0) * _fj, zwt=_wl.zwt))
 
             # Write monthly output
             if out.imonthout > 0:
                 monthly_fluxes = {
                     'amprcp':   (state.summary.ayprcp   - prcp_before, 'mm',      'Monthly precipitation'),
                     'amaet':    (state.summary.ayaet    - aet_before,  'mm',      'Monthly AET'),
-                    **({'finund': (jnp.asarray(_fobs, jnp.float32), '1', 'Inundated fraction of the month (observed WAD2M field)')} if _fobs is not None else
-                       ({'finund': (jnp.asarray(_fdyn, jnp.float32), '1', 'Inundated fraction of the month (dynamic wetland area)')} if _fdyn is not None else {})),
+                    **({'finund': (jnp.asarray(_flearn, jnp.float32), '1', 'Inundated fraction of the month (learned: WAD2M climatology + learned anomaly)')} if _flearn is not None else
+                       ({'finund': (jnp.asarray(_fobs, jnp.float32), '1', 'Inundated fraction of the month (observed WAD2M field)')} if _fobs is not None else
+                       ({'finund': (jnp.asarray(_fdyn, jnp.float32), '1', 'Inundated fraction of the month (dynamic wetland area)')} if _fdyn is not None else {}))),
                     'amnpptot': (state.summary.aynpptot - npp_before, 'kgC/m2', 'Monthly NPP'),
                     # NEE is only formed at year end, so a monthly value has to
                     # be built from its two parts rather than differenced.
