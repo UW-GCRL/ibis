@@ -701,6 +701,8 @@ def run_global_simulation(config: IBISConfig) -> None:
     # integrates the flux per unit of wetland; after the month the predictors are built from the month's MEAN soil state and
     # its water totals, the hybrid fraction is computed, and the month's flux and the annual total are scaled by it (the
     # flux is linear in the fraction). The feature builder is stepped every month so its lags never break.
+    _ch4p = bool(getattr(p, 'methane_carbon_partition', False)) and ch4_clim is not None
+    if _ch4p: logger.info("  CH4 carbon partition ON: the month's net CH4 emission is taken out of Rh booked as CO2 (methane_carbon_partition)")
     _lw = _fbld = None
     if ch4_clim is not None and _wsrc in ('learned', 'observed_learned'):
         from ibis.bgc.wetland_learned import FeatureBuilder, LearnedWetland
@@ -764,6 +766,7 @@ def run_global_simulation(config: IBISConfig) -> None:
         leap = is_leap_year(forcing_year)
         ndaypm_this = NDAYPM_LEAP if leap else NDAYPM
         monthly_tmean = []   # (npoi,) °C per month — for climate normal update
+        _ch4p_acc = None                                   # this year's CH4 carbon taken out of Rh (methane_carbon_partition)
         for imonth in range(12):
             logger.info("  Month %d/12", imonth + 1)
 
@@ -775,6 +778,9 @@ def run_global_simulation(config: IBISConfig) -> None:
             monthly_tmean.append(tmean_c)
 
             # Snapshot annual accumulators before the month
+            if _ch4p:
+                _ch4p_rh0 = state.summary.ayco2mic
+                _ch4p_w0 = None if state.wetland is None else state.wetland.annual
             if _lw is not None:
                 _lw_before = (state.summary.ayprcp, state.summary.ayaet, state.summary.aytrunof, state.summary.aytdrain,
                               None if state.wetland is None else state.wetland.annual)
@@ -821,6 +827,17 @@ def run_global_simulation(config: IBISConfig) -> None:
                     _wl = state.wetland; _a0 = jnp.zeros_like(_wl.annual) if _lw_before[4] is None else _lw_before[4]
                     _fj = jnp.asarray(_flearn, jnp.float32)
                     state = eqx.tree_at(lambda s: s.wetland, state, type(_wl)(flux=_wl.flux * _fj, annual=_a0 + (_wl.annual - _a0) * _fj, zwt=_wl.zwt))
+
+            # Carbon partition of the wetland CH4 (docs/METHANE.md 12): the month's methane is final here (after the learned
+            # area's scaling); its net emission leaves the soil as CH4, not CO2, so it comes out of the month's Rh booked as
+            # CO2. Never more than that Rh. Accumulators only: the soil pools already lost this carbon in soilbgc.
+            if _ch4p and state.wetland is not None:
+                _w0 = jnp.zeros_like(state.wetland.annual) if _ch4p_w0 is None else _ch4p_w0
+                _mch4 = jnp.maximum(state.wetland.annual - _w0, 0.0)                    # kgC m-2 this month
+                _mrh = jnp.maximum(state.summary.ayco2mic - _ch4p_rh0, 0.0)             # kgC m-2 this month
+                _take = jnp.minimum(_mch4, _mrh)
+                state = eqx.tree_at(lambda s: s.summary.ayco2mic, state, state.summary.ayco2mic - _take)
+                _ch4p_acc = _take if _ch4p_acc is None else _ch4p_acc + _take
 
             # Write monthly output
             if out.imonthout > 0:
@@ -1026,6 +1043,8 @@ def run_global_simulation(config: IBISConfig) -> None:
                                                   "Smoothed upper-canopy stress as stored at the previous year end (0 = not yet seeded)")
             _extra["aynppu"] = (jnp.sum(state.summary.aynpp[:, :8], axis=1), "kgC/m2/yr", "Annual NPP of the upper canopy (PFTs 1-8)")
             _extra["aynppl"] = (jnp.sum(state.summary.aynpp[:, 8:], axis=1), "kgC/m2/yr", "Annual NPP of the lower canopy (PFTs 9-12)")
+            if _ch4p and _ch4p_acc is not None:
+                _extra["ayrh_ch4c"] = (_ch4p_acc, "kgC/m2/yr", "Wetland CH4 carbon taken out of Rh: ayco2mic is Rh as CO2, ayco2mic + ayrh_ch4c the carbon decomposed (docs/METHANE.md 12)")
             path = writer.write_yearly(state, year, extra=_extra)
             logger.info("Wrote yearly output: %s", path)
 

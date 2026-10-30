@@ -100,6 +100,11 @@ class PhysicsSection:
     #: Evaluate the wetland CH4 flux every time step from the hourly soil temperature, water and ice and the day's
     #: heterotrophic respiration rate, averaged to the month (docs/METHANE.md 9). False: the end-of-month snapshot, as before.
     methane_hourly: bool = False
+    #: Carbon partition of the wetland CH4 (docs/METHANE.md 12): the month's net CH4 emission (kgC) is taken out of the
+    #: month's heterotrophic respiration booked as CO2 (summary.ayco2mic), so Rh_CO2 + CH4-C = the soil carbon decomposed
+    #: and the emitted carbon is counted once. Bookkeeping only: no pool, flux of the physics or state the physics reads
+    #: changes. Monthly amco2mic / amneetot and the yearly ayneetot are then CO2-only; the yearly output gains ayrh_ch4c.
+    methane_carbon_partition: bool = False
     #: Mix organic-soil hydraulic and thermal properties by the HWSD2 organic-carbon fraction
     #: (Lawrence & Slater 2008); needs orgcpct and bulkdens in soil_file (scripts/hwsd2_organic_to_nc.py).
     soil_organic: bool | str = False

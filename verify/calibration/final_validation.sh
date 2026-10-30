@@ -14,6 +14,7 @@ set -u -o pipefail
 TAG=$1; PAR=$(readlink -f "$2"); V=/shared/nas2/Hangkai/ibis/verify_outputs; R=/shared/nas2/Hangkai/ibis-port
 SPINUP_YEARS=${SPINUP_YEARS:-300}; METHANE=${METHANE:-0}      # CALIBRATION.md 38: SPINUP_YEARS=200 METHANE=1 -> 1701-1900 spin-up, wetland CH4 written in the transient and hindcast
 METHANE_HOURLY=${METHANE_HOURLY:-0}                              # METHANE.md 9: 1 -> the wetland CH4 flux every time step, averaged to the month (the release setting)
+METHANE_CARBON_PARTITION=${METHANE_CARBON_PARTITION:-0}          # METHANE.md 12: 1 -> the CH4 carbon taken out of Rh booked as CO2 (the release setting)
 WETLAND_SOURCE=${WETLAND_SOURCE:-climatology}; WETLAND_LEARNED_FILE=${WETLAND_LEARNED_FILE:-}   # METHANE.md 8-11: climatology | observed | learned | observed_learned (learned: the release)
 CROPFRAC=${CROPFRAC:-}                                           # CALIBRATION.md 41: path of the cropland-fraction npz -> cropland as managed grass in every stage
 KOPPEN=${KOPPEN:-}; LARCH_FIX=${LARCH_FIX:-0}                      # CALIBRATION.md 44: Koppen npz -> koppen_file (mask on PFT existence); LARCH_FIX=1 -> larch_gdd_fix
@@ -36,12 +37,13 @@ mkcfg() {  # mkcfg <template cfg> <out cfg> <stage dir> ; then per-stage sed on 
 }
 ch4cfg() {  # ch4cfg <cfg>: the methane cadence and wetland-area source (METHANE.md 9-11) after enable_methane
   [ "$METHANE_HOURLY" = 1 ] && sed -i 's|^  enable_methane: true|  enable_methane: true\n  methane_hourly: true|' $1
+  [ "$METHANE_CARBON_PARTITION" = 1 ] && sed -i 's|^  enable_methane: true|  enable_methane: true\n  methane_carbon_partition: true|' $1
   if [ "$WETLAND_SOURCE" != climatology ]; then
     sed -i "s|^  enable_methane: true|  enable_methane: true\n  wetland_source: $WETLAND_SOURCE|" $1
     case $WETLAND_SOURCE in *learned) [ -n "$WETLAND_LEARNED_FILE" ] || { echo "WETLAND_SOURCE=$WETLAND_SOURCE needs WETLAND_LEARNED_FILE"; exit 1; }
       sed -i "s|^  vegtype_dir:|  wetland_learned_file: $WETLAND_LEARNED_FILE\n  vegtype_dir:|" $1;; esac
   fi
-  grep -E 'methane_hourly|wetland_source|wetland_learned_file' $1 | tr -s ' ' | tr '\n' ';'; echo
+  grep -E 'methane_hourly|methane_carbon_partition|wetland_source|wetland_learned_file' $1 | tr -s ' ' | tr '\n' ';'; echo
 }
 mkdir -p $F/spinup/{out,restart} $F/transient/{out,restart} $F/hindcast/{out,restart}
 # 1. spin-up (SKIP_SPINUP=1: resume from an existing 1900 restart of this TAG)

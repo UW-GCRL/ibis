@@ -22,5 +22,6 @@ prev = pools(pairs[0][0])
 for a, b in pairs:
     cur = pools(b); d = xr.open_dataset(f'{run}/out/ibis_yearly_{b}.nc'); g = lambda n: np.asarray(d[n].values, float)[gi, gj]
     npp, rh = P(g('aynpptot')), P(g('ayco2mic')); dL, dS = P(cur[0] - prev[0]), P(cur[1] - prev[1]); cd, fy, fp = P(cur[2]), P(cur[3]), P(prev[3])
+    if 'ayrh_ch4c' in d: rh = rh + P(g('ayrh_ch4c'))     # methane_carbon_partition: the decomposed carbon is Rh as CO2 + the CH4 carbon (METHANE.md 12)
     print(f' {b}   {dL + dS:+7.2f} {npp - rh:+7.2f}  {cd:6.2f}  {dL + dS - (npp - rh - cd):+7.2f} |  {dL:+6.2f} vs {npp - fy - cd:+6.2f} ({dL - (npp - fy - cd):+6.2f})      |  {dS:+6.2f} vs {fp - rh:+6.2f} ({dS - (fp - rh):+6.2f})')
     prev = cur
