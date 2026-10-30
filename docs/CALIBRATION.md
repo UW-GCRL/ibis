@@ -7974,3 +7974,20 @@ starts and ends early); the temperate band is lower in amount (summer median 1.0
 m-2 month-1), because the band median of 24 widely different fits does not give the median tower's flux. The boreal
 winter stays at zero where the towers keep 0.1-0.3 (the frozen-season floor, a post-release item).
 
+
+## 84. The reproduction `rel30` landed: it is the release (2026-10-30 10:09)
+
+The README's protocol command run cold from the release parameter file with every release switch (spin-up 1601-1900,
+transient 1901-2000 and hindcast 2001-2010, 01:38-10:09; scoring to 10:21, no errors). Against the assembled release
+(s31t + `final_s31t_ch4h_learned_r2`), 2001-2010, true-land totals:
+
+- GPP, NPP, vegetation, soil and litter carbon, the land sink (2.91) and every vegetation and tower-cell diagnostic of
+  `gate_compare`: equal to the printed digits in every year (147.59 / 64.17 PgC yr-1; 387 / 1980 / 92 PgC).
+- Wetland CH4: equal by year and by band to four digits (152.5 Tg CH4 yr-1; 135.0 / 10.7 / 6.8).
+- The partition: Rh as CO2 + the CH4 carbon = the release's Rh in every year (55.98 + 0.11 = 56.10 PgC yr-1, the
+  largest year difference 0.001), so NPP - Rh moves from 8.07 to 8.19 and nothing else moves.
+- Carbon closure 2007-2010 (`closure_any.py`, with `ayrh_ch4c`): the same residuals as the release, year by year (live
+  +0.08-0.09, soil -0.34, the leaching). The release documents' numbers stand; RELEASE_3.0 now gives NPP - Rh both ways.
+
+Full test suite at `39d20d4`: 819 passed, 6 skipped, 6 xfailed, 3 xpassed (the hourly-methane state test now compares
+`gadjust`, a rounding residual by construction, in water per step).

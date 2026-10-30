@@ -93,7 +93,7 @@ in the CPU environment). The release figures and tables come from `verify/calibr
 | GPP at 435 tower cells, model / tower | 1.14 | 1 | Köppen A 0.96, B 1.30, C 1.18, D 1.05, E 1.04 |
 | GPP trend, 1900s to 2000s | +21 % | +31 ± 5 % (Campbell et al. 2017); 20-30 % (TRENDY) | |
 | ET, mm yr-1 | 529 | five-product ensemble 508 | 1.04; cell r 0.94; 55 % of cells inside the product spread; by band 1.08 / 0.99 / 0.80 |
-| land sink (change of stored carbon), PgC yr-1 | 2.91 | GCB 2024 2.78 ± 0.69; TRENDY v13 mean 2.83 (1.4-4.4) | NPP - Rh before fire and harvest 8.1; carbon closure to 0.1 PgC yr-1, the soil residual being leaching |
+| land sink (change of stored carbon), PgC yr-1 | 2.91 | GCB 2024 2.78 ± 0.69; TRENDY v13 mean 2.83 (1.4-4.4) | NPP - Rh before fire and harvest 8.1 (8.2 with Rh counted as CO2 only: the 0.11 PgC of wetland CH4 carbon); carbon closure to 0.1 PgC yr-1, the soil residual being leaching |
 | crop harvest, PgC yr-1 | 0.67 | about 1-2 | cropland as managed grass |
 | wetland CH4, Tg CH4 yr-1 | 152 | GMB 2025 bottom-up 153 (116-189), 2000-09 | by band 135 / 11 / 7 against 109 / 32 / 12; hourly flux on the learned wetland area (observed WAD2M area: 156; fixed climatology: 151) |
 | burned area, % of land yr-1 | 2.42 | GFED5 4.62 (products 2.4-4.6) | 0.52; rank r 0.78 (burning cells 0.44), on the corrected GFED5 registration (81); African savanna 0.24 |
