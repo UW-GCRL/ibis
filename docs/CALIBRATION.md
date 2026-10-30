@@ -7897,3 +7897,12 @@ in all three to 0.1-0.4 Tg per month. The learned area against WAD2M (in-sample 
 band against the climatology's 0.52 / 0.46 / 0.80, annual-area r 0.95 / 0.91 / 0.76. With the registration fixed, the
 globe sits on the GMB mean (151-156 against 153) and the tropics inside the model range.
 
+**Learned against observed, broken down (`verify/methane/learned_vs_observed_breakdown.py`;
+`tables/wetland_learned_vs_observed_breakdown.txt`).** Decade means: area -0.8 % globally (-1.7 % tropics, +0.3 % and +1.1 %
+in the north), CH4 -2.2 % (-2.6 % tropics). By year: area within -3.5 to +2.0 % in the tropics, CH4 -0.7 to -5.0 %, the gap
+widening in 2009-2010 as the observed tropical area rises and the learned does not follow fully. By calendar month: tropics
+and 30-60 N within 1-4 %; north of 60 N the learned area is 36-99 % larger from November to April, on a frozen-season area of
+a few hundredths of a Mkm2 that emits nothing (frozen soil). In space: the decade-mean maps agree to cell r 0.999 (2.7 % of
+the area in different cells; 1.8-3.9 % by Koppen group), because both share the seasonal climatology; month by month 11 % of
+the area sits in different cells globally (8 % tropics), which is where the learned anomaly departs from the observed one.
+
