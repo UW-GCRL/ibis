@@ -1,6 +1,6 @@
 # IBIS 3.0: the calibrated model of 30 October 2026
 
-> Documentation edition, 2 November 2026: dated release results remain historical. Descriptions of later corrections refer to the reviewed development implementation; this publication does not update model code on main. See [the edition note](technote/EARLY_EDITION.md).
+> Documentation edition, 2 November 2026: dated release results remain historical. Descriptions of later corrections refer to the reviewed development implementation; this publication does not update model code on main.
 
 
 The short description of the IBIS 3.0 release state: what the model is, which parameter file is the release and where it
@@ -146,7 +146,7 @@ night NEE means, the C4 capacity bounds, solar-time tower forcing). The prelimin
 controlled fire comparison are complete. The energy variants have diagnostic results but no newly adopted defaults.
 The refits (GPP and ET, NEE, methane bands and conditional crop settings), final protocol, wetland retraining and final
 scoring remain. Until then `final_rel30` remains the historical release run, and the diagnostics are not its replacement.
-See [`technote/EARLY_EDITION.md`](technote/EARLY_EDITION.md) and CALIBRATION section 87 for the continuation record.
+See [the technote chapter index](technote/README.md) and CALIBRATION section 87 for the continuation record.
 
 ## 5. What it scores
 

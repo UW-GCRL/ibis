@@ -8289,7 +8289,7 @@ changed production parameters. Technote Table 16.13 summarizes these results and
 fast-forwarded `review-technote` from `75d8935` to `c6698fd`; the inherited binary diff was unchanged. The saved
 journal confirms all nine writers completed, including chapter 17. The latest completed checkers produced 207
 findings; neither chapter 17 checker completed, and no fixer or consistency agent returned success. Some failed
-fixers nevertheless made edits, so the actual text is checked before applying each finding. The early documentation edition and its scope are described in [`technote/EARLY_EDITION.md`](technote/EARLY_EDITION.md).
+fixers nevertheless made edits, so the actual text is checked before applying each finding. The early documentation edition is available from the [chapter index](technote/README.md). Full internal continuation records remain on the project server.
 
 **Remaining scientific work.** Assess the energy variants against the adoption rule; investigate D12/D19 and the
 conditional crop-allocation choice D23; rebuild the NEE targets; perform the D20/D21 checks and step-3 refits; then

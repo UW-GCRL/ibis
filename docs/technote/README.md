@@ -2,7 +2,7 @@
 
 **Early edition · 2 November 2026.** This edition improves the explanations while retaining the scientific content.
 It documents the released model and the corrections reviewed since release. Refits and final evaluation are still
-in progress; Chapter 16 identifies the remaining work. See [the edition note](EARLY_EDITION.md) for its scope.
+in progress; Chapter 16 identifies the remaining work. The model code on GitHub main remains the 30 October release; this publication updates documentation only.
 
 This note describes the Integrated Biosphere Simulator, version 3.0: the equations the model solves, their
 parameters and the data the model reads. Its chapter structure follows the CLM5 Technical Note (Lawrence et al.,
@@ -39,6 +39,8 @@ questions appear in each chapter's closing Notes for developers.
 | 15 | [Cropland](15_cropland.md) | early edition |
 | 16 | [Calibration](16_calibration.md) | early edition |
 | 17 | [Numerical Implementation and Verification against IBIS 2.6b4](17_numerics_verification.md) | early edition |
+
+Chapter 5 continues in [Part 2: energy balance and evapotranspiration](05_surface_fluxes_part2.md).
 
 ## Conventions
 

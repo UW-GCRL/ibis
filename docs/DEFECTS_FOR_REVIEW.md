@@ -1,6 +1,6 @@
 # Defects found in IBIS-JAX, 2026-08-12 → 2026-08-27
 
-> Documentation edition, 2 November 2026: dated release results remain historical. Descriptions of later corrections refer to the reviewed development implementation; this publication does not update model code on main. See [the edition note](technote/EARLY_EDITION.md).
+> Documentation edition, 2 November 2026: dated release results remain historical. Descriptions of later corrections refer to the reviewed development implementation; this publication does not update model code on main.
 
 
 **Audience: anyone using the archived spin-ups or building on `main`.**

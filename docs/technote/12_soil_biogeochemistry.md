@@ -663,7 +663,7 @@ final run remain to be done; their results are not available here. The code of t
 `_run_month_scan`); the routine `soilbgc` and `som_climate_ratio` are in `ibis/physics/biogeochem.py`, which the review
 did not change.
 
-1. *Cells with a tiny leaf area take the mean $`E_{0}`$* (review D45; commit `307d0f8`; no switch). `cell_lt_e0` now
+1. *Cells with a tiny leaf area take the mean* $`E_{0}`$ (review D45; commit `307d0f8`; no switch). `cell_lt_e0` now
    weights by leaf area only where the total leaf area is at least 10⁻⁶. The release divided the leaf-area-weighted sum
    by $`\max(\sum_{j}\Lambda_{c,j}, 10^{-6})`$ wherever the total was above zero, so a total between 0 and 10⁻⁶ scaled
    $`E_{0,c}`$ down towards zero and made $`f_{T} = 1`$, the 15 °C rate, at every temperature. The source is subnormal

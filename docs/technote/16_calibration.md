@@ -987,7 +987,7 @@ earlier diagnostic outputs.
 and `summary_monthly_vs_base.csv` supply the hourly and monthly columns of Table 16.13. The source summary's T/ET
 section failed because it summed the month axis of an array shaped `(year, 12, 4)` instead of the component axis.
 That axis was corrected in `energy_summary.py`; the original file was preserved in the takeover backup described in
-[`CODEX_HANDOFF.md`](CODEX_HANDOFF.md). The missing section was recovered separately from the existing 624 outputs,
+[the calibration record](../CALIBRATION.md). The missing section was recovered separately from the existing 624 outputs,
 without rerunning the model. `codex_20261102_partition_groups.csv` supplies the fractions, and
 `codex_20261102_partition_checks.json` records validation: monthly component sums agree with saved ET within
 0.0022583 mm for the 618 files with a comparison series; six files lack that series. The hourly, monthly and partition

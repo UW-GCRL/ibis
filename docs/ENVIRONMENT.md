@@ -1,6 +1,6 @@
 # Working environment
 
-> Documentation edition, 2 November 2026: dated release results remain historical. Descriptions of later corrections refer to the reviewed development implementation; this publication does not update model code on main. See [the edition note](technote/EARLY_EDITION.md).
+> Documentation edition, 2 November 2026: dated release results remain historical. Descriptions of later corrections refer to the reviewed development implementation; this publication does not update model code on main.
 
 
 Single source of truth for where the code, the data and the Python environment
@@ -167,4 +167,3 @@ so the runtime needs `xgboost` (>= 3.0; and scipy for the neighbourhood filter),
 scikit-learn 1.9.1) and the CPU environment (xgboost 3.3.0). The pip wheel reports "No visible GPU" and trains on the CPU;
 training the release file takes about 4 minutes on 24 threads, so the GPU build was not pursued. The trees load from the
 file's JSON in any xgboost >= 3.0. Default runs (`wetland_source: climatology`) do not import xgboost.
-
