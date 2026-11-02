@@ -30,7 +30,7 @@ $`\phi_{k}\,w^{i}_{k}`$, and the water the layer holds is
 
 ```math
 W_{k} = \rho_{w}\,\phi_{k}\,\Delta z_{k}\left[(1 - w^{i}_{k})\,w_{k} + w^{i}_{k}\right],
-\tag{7.1}
+\qquad\text{(7.1)}
 ```
 
 where $`W_{k}`$ (kg m⁻²) is the liquid and frozen water of layer $`k`$; $`\rho_{w} = 1000`$ kg m⁻³ is the density of water,
@@ -99,7 +99,7 @@ The water that reaches the soil surface in a time step is the rain below the can
 
 ```math
 R = (1 - f_{i})\,R_{g} + \frac{M}{\Delta t},
-\tag{7.2}
+\qquad\text{(7.2)}
 ```
 
 where $`R`$ (kg m⁻² s⁻¹) is the rate of water input; $`f_{i}`$ is the fractional snow cover at the start of the step;
@@ -111,7 +111,7 @@ excess of the puddle capacity leaves as runoff,
 ```math
 Q_{o} = \frac{\min\left[P_{l},\, \max(0,\, P_{l} + P_{i} - P_{max})\right]}{\Delta t}, \qquad
 P_{l} \leftarrow P_{l} - Q_{o}\,\Delta t,
-\tag{7.3}
+\qquad\text{(7.3)}
 ```
 
 where $`Q_{o}`$ (kg m⁻² s⁻¹) is this overflow and $`P_{max}`$ (kg m⁻²) is the puddle capacity (`soil.wpudmax`). $`R`$ is then
@@ -123,12 +123,12 @@ the puddle freezes there (section 7.10):
 ```math
 f_{frz} = \min\left[\max\left(2\,(T_{1} - T_{f} + 0.5),\, 0\right),\, 1\right], \qquad
 f_{r} = f_{frz}\,\min\left[\max\left(\frac{P_{l} + P_{i}}{P_{max}},\, 0\right),\, 1\right],
-\tag{7.4}
+\qquad\text{(7.4)}
 ```
 
 ```math
 P_{l} \leftarrow P_{l} + (1 - f_{r})\,R\,\Delta t, \qquad Q_{s} = Q_{o} + f_{r}\,R,
-\tag{7.5}
+\qquad\text{(7.5)}
 ```
 
 where $`T_{1}`$ (K) is the temperature of the top soil layer at the start of the step; $`T_{f} = 273.16`$ K is the melting
@@ -165,7 +165,7 @@ The puddle covers the fraction
 
 ```math
 a_{p} = \min\left[\max\left(a_{max}\,\frac{P_{l} + P_{i}}{P_{max}},\, 0\right),\, a_{max}\right],
-\tag{7.6}
+\qquad\text{(7.6)}
 ```
 
 of the surface, where $`a_{max}`$ is the cover of a full puddle (`soil.zwpmax`, 0.5); the humidity of the soil surface in
@@ -178,7 +178,7 @@ q_{1} = (1 - a_{p})\,\frac{(1 - w^{i}_{1})\,w_{1}}{\tilde{w}_{1}}, \qquad
 q_{2} = (1 - a_{p})\,\frac{w^{i}_{1}}{\tilde{w}_{1}}, \qquad
 q_{3} = a_{p}\,\frac{P_{l}}{P_{l} + P_{i}}, \qquad
 q_{4} = a_{p}\,\frac{P_{i}}{P_{l} + P_{i}},
-\tag{7.7}
+\qquad\text{(7.7)}
 ```
 
 where $`a_{p}`$ is taken as zero when it is below $`\epsilon`$ (then $`q_{3} = q_{4} = 0`$). The shares sum to 1: the soil and
@@ -208,7 +208,7 @@ of vaporization plus $`(q_{2} + q_{4})`$ times that of sublimation. When $`E_{g}
 F_{top} = -q_{1}\,E_{g}, \quad P_{l} \leftarrow P_{l} - q_{3}\,E_{g}\,\Delta t, \quad
 P_{i} \leftarrow P_{i} - q_{4}\,E_{g}\,\Delta t, \quad
 w^{i}_{1} \leftarrow \max\left(0,\; w^{i}_{1} - \frac{q_{2}\,E_{g}\,\Delta t}{\rho_{w}\,\phi_{1}\,\Delta z_{1}}\right),
-\tag{7.8}
+\qquad\text{(7.8)}
 ```
 
 where $`F_{top}`$ (kg m⁻² s⁻¹) is the flux of liquid water into the top layer, applied in the flow solution of section
@@ -227,7 +227,7 @@ reduces this rate. Liquid water infiltrates at the rate
 
 ```math
 F_{p} = \frac{\max\left[0,\; \min\left(P_{l},\; \rho_{w}\,\Delta t\,\max(0, 1 - w^{i}_{1})^{2}\,K_{s,1}\right)\right]}{\Delta t},
-\tag{7.9}
+\qquad\text{(7.9)}
 ```
 
 where $`F_{p}`$ (kg m⁻² s⁻¹) is the infiltration and $`K_{s,1}`$ (m s⁻¹) is the saturated conductivity of the top layer.
@@ -251,7 +251,7 @@ r_{c,k} & S_{c} \ge 1, \\[2pt]
 \dfrac{r_{c,k}\,\beta_{k}}{\max(S_{c}, \epsilon)} & S_{c} < 1,
 \end{cases}
 \qquad S_{c} = \sum_{k=1}^{6} r_{c,k}\,\beta_{k},
-\tag{7.10}
+\qquad\text{(7.10)}
 ```
 
 where $`U_{c,k}`$ (kg m⁻² s⁻¹) is the uptake of canopy $`c`$ ($`u`$ upper, $`l`$ lower) from layer $`k`$; $`\omega_{c,k}`$ is the
@@ -262,7 +262,7 @@ the stress factor of the layer,
 ```math
 \beta_{k} = \min\left[\max\left(\frac{1 - e^{\,c\,a_{k}}}{1 - e^{\,c}},\, 0\right),\, 1\right], \qquad
 a_{k} = \min\left[\max\left(\frac{(1 - w^{i}_{k})\,w_{k} - s_{w,k}}{s_{f,k} - s_{w,k}},\, 0\right),\, 1\right],
-\tag{7.11}
+\qquad\text{(7.11)}
 ```
 
 with $`a_{k}`$ the plant-available water of the layer, $`s_{f,k}`$ and $`s_{w,k}`$ its field capacity and wilting point as
@@ -277,7 +277,7 @@ this unsupplied water (section 7.11). The uptake is removed before the vertical 
 
 ```math
 w_{k} \leftarrow \max\left[w_{k} - \frac{\Delta t\,(U_{u,k} + U_{l,k})}{\rho_{w}\,\phi^{f}_{k}\,\Delta z_{k}},\; 0\right],
-\tag{7.12}
+\qquad\text{(7.12)}
 ```
 
 where IBIS 3.0 sets a negative result to zero and the water-balance diagnostic records the water added by this floor. The
@@ -301,7 +301,7 @@ written in the liquid content $`w`$:
 ```math
 K(w) = K_{s}\,w^{2b+3}, \qquad \psi(w) = -\psi_{s}\,w^{-b}, \qquad
 D(w) = K(w)\,\frac{d\psi}{dw} = K_{s}\,\psi_{s}\,b\,w^{b+2},
-\tag{7.13}
+\qquad\text{(7.13)}
 ```
 
 where $`K`$ (m s⁻¹) is the hydraulic conductivity, $`\psi`$ (m) the matric potential and $`D`$ (m² s⁻¹) the hydraulic
@@ -311,7 +311,7 @@ $`k`$ ($`k = 2, \ldots, 6`$) is
 ```math
 q_{k} = \chi_{k}\left[K(\bar{w}_{k}) - D(\bar{w}_{k})\,\frac{w_{k} - w_{k-1}}{\bar{\Delta z}_{k}}\right], \qquad
 \bar{\Delta z}_{k} = \frac{\Delta z_{k-1} + \Delta z_{k}}{2},
-\tag{7.14}
+\qquad\text{(7.14)}
 ```
 
 where $`\bar{w}_{k}`$ is the liquid content at the interface, $`\bar{\Delta z}_{k}`$ (m) the distance between the centres of
@@ -319,7 +319,7 @@ the two layers, and $`\chi_{k}`$ a reduction of the flow by ice,
 
 ```math
 \chi_{k} = \left[\max\left(0,\; 1 - \max(w^{i}_{k-1}, w^{i}_{k})\right)\right]^{2},
-\tag{7.15}
+\qquad\text{(7.15)}
 ```
 
 so that a layer filled with ice blocks the flow of liquid water. With the interface properties defined below, the
@@ -328,7 +328,7 @@ solver evaluates (7.13) as
 ```math
 K_{k} = \bar{K}_{s,k}\,\hat{w}_{k}^{\,m_{k}}, \qquad D_{k} = \max\left(\bar{B}_{k}\,\hat{w}_{k}^{\,n_{k}},\; D_{min}\right),
 \qquad m_{k} = 2\,\mathrm{nint}(\bar{b}_{k}) + 3, \qquad n_{k} = \mathrm{nint}(\bar{b}_{k}) + 2,
-\tag{7.16}
+\qquad\text{(7.16)}
 ```
 
 where the exponents use the Campbell exponent of the interface rounded to the nearest integer (halves away from zero);
@@ -359,7 +359,7 @@ water at the end of the step is interpolated linearly to the interface position,
 
 ```math
 \bar{w}^{+}_{k} = \lambda_{k}\,w^{+}_{k-1} + (1 - \lambda_{k})\,w^{+}_{k},
-\tag{7.17}
+\qquad\text{(7.17)}
 ```
 
 where the superscript $`+`$ marks the end of the step (each layer is weighted by the half-thickness of the other). The
@@ -370,7 +370,7 @@ q_{k} = \chi_{k}\left[K_{k} + K'_{k}\,(\bar{w}^{+}_{k} - \hat{w}_{k})
 - D'_{k}\,G_{k}\,(\bar{w}^{+}_{k} - \hat{w}_{k})
 - D_{k}\,\frac{w^{+}_{k} - w^{+}_{k-1}}{\bar{\Delta z}_{k}}\right], \qquad
 G_{k} = \frac{w_{k} - w_{k-1}}{\bar{\Delta z}_{k}},
-\tag{7.18}
+\qquad\text{(7.18)}
 ```
 
 where $`K'_{k} = m_{k}\,\bar{K}_{s,k}\,\hat{w}_{k}^{\,m_{k}-1}`$ and
@@ -383,7 +383,7 @@ The linearization point is the interface water at the start of the flow solution
 \quad \text{(release)}, \qquad
 \hat{w}_{k} = \min\left[(1 - \lambda_{k})\,w_{k-1} + \lambda_{k}\,w_{k},\; 1\right]
 \quad \text{(IBIS 2.6b4)}.
-\tag{7.19}
+\qquad\text{(7.19)}
 ```
 
 The two forms differ in how they weight the two layers. The release form uses the same weights as (7.17), so that for a
@@ -412,7 +412,7 @@ drains freely, at a reduced rate:
 
 ```math
 q_{7} = b_{perm}\,\max(0, 1 - w^{i}_{6})^{2}\,K_{s,6}\,\min(w_{6}, 1)^{\,2\,\mathrm{nint}(b_{6}) + 3},
-\tag{7.20}
+\qquad\text{(7.20)}
 ```
 
 where $`q_{7}`$ (m s⁻¹) is the drainage, evaluated with the water of the bottom layer at the start of the flow solution
@@ -423,7 +423,7 @@ the step is
 ```math
 \phi^{f}_{k}\,\Delta z_{k}\,\frac{w^{+}_{k} - w_{k}}{\Delta t} = q_{k} - q_{k+1}
 + \delta_{k1}\,\frac{F_{top} + F_{p}}{\rho_{w}},
-\tag{7.21}
+\qquad\text{(7.21)}
 ```
 
 where $`\phi^{f}_{k}`$ (m³ m⁻³) is the pore space open to liquid flow (Table 7.1), $`w_{k}`$ is the liquid content after
@@ -453,7 +453,7 @@ this excess upward through successive layers. Excess water from the top layer re
 w^{+}_{k} \leftarrow w^{+}_{k} + \frac{X_{k+1}\,\Delta t}{Z_{k}}, \qquad
 X_{k} = \frac{\max(w^{+}_{k} - 1,\, 0)\,Z_{k}}{\Delta t}, \qquad w^{+}_{k} \leftarrow \min(w^{+}_{k}, 1), \qquad
 Z_{k} = \rho_{w}\,\phi_{k}\,\max(\epsilon, 1 - w^{i}_{k})\,\Delta z_{k},
-\tag{7.22}
+\qquad\text{(7.22)}
 ```
 
 for $`k = 6, 5, \ldots, 1`$ with $`X_{7} = 0`$, where $`X_{k}`$ (kg m⁻² s⁻¹) is the excess that leaves layer $`k`$ upward and
@@ -462,7 +462,7 @@ the infiltration:
 
 ```math
 P_{l} \leftarrow \max\left[P_{l} + (X_{1} - F_{p})\,\Delta t,\; 0\right].
-\tag{7.23}
+\qquad\text{(7.23)}
 ```
 
 IBIS 3.0 adds the floor at zero to guard against rounding; the water-balance diagnostic records any water it adds
@@ -473,7 +473,7 @@ layer, which carries heat in the soil temperature solution (Chapter 6), follows 
 ```math
 Q_{7} = \rho_{w}\,q_{7}, \qquad Q_{k} = Q_{k+1} + \frac{(w^{+}_{k} - w_{k})\,Z_{k}}{\Delta t}\quad (k = 6, \ldots, 1),
 \qquad Q_{1} \leftarrow Q_{1} + X_{1} - F_{p},
-\tag{7.24}
+\qquad\text{(7.24)}
 ```
 
 where $`Q_{k}`$ (kg m⁻² s⁻¹) is the flow at the top of layer $`k`$ and $`Q_{7}`$ the drainage at the base. The last correction
@@ -498,7 +498,7 @@ w^{i}_{k} \leftarrow
 0 & w^{i}_{k} < \epsilon, \\
 \min(w^{i}_{k}, 1) & \text{otherwise},
 \end{cases}
-\tag{7.25}
+\qquad\text{(7.25)}
 ```
 
 where the condition on $`w^{i}_{k}`$ in the first case uses the bounded ice content. A negative liquid content left by
@@ -537,7 +537,7 @@ Water conservation over a step or a year requires the following cell balance:
 
 ```math
 \Delta W = P - E - Q_{s} - Q_{d} + A,
-\tag{7.26}
+\qquad\text{(7.26)}
 ```
 
 where every term is an amount over the period, in kg m⁻² (which is mm of water). $`\Delta W`$ is the change of the water
@@ -667,7 +667,7 @@ solids is
 
 ```math
 f_{om} = \min\left[\max\left(\frac{0.01\,C_{org} \times 1.724 \times 1000\,\rho_{b}}{\rho_{om,max}},\, 0\right),\, 1\right],
-\tag{7.27}
+\qquad\text{(7.27)}
 ```
 
 where $`C_{org}`$ (% by mass) is the organic carbon and $`\rho_{b}`$ (g cm⁻³) the bulk density of the layer from HWSD
@@ -686,7 +686,7 @@ f_{perc} =
 \left(\dfrac{f_{om} - f_{c}}{1 - f_{c}}\right)^{\beta_{c}} f_{om} & f_{om} > f_{c}, \\
 0 & \text{otherwise},
 \end{cases}
-\tag{7.28}
+\qquad\text{(7.28)}
 ```
 
 where $`K_{s,min}`$ and $`K_{s,om}`$ (m s⁻¹) are the mineral and organic saturated conductivities, $`f_{perc}`$ is the

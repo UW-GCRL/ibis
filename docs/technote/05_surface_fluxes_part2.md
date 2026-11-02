@@ -14,7 +14,7 @@ x_{liq} = \frac{w_{liq}}{\max\left(w^{max}_{liq}, 0.01\right)}, \quad
 x_{tot} = x_{liq} + \frac{w_{sno}}{\max\left(w^{max}_{sno}, 0.01\right)}, \quad
 f_{wet} = \min\left(f_{max}, x_{tot}\right), \quad
 r_{liq} = \frac{x_{liq}}{\max\left(x_{tot}, \epsilon\right)},
-\tag{5.29}
+\qquad\text{(5.29)}
 ```
 
 where $`f_{wet}`$ is the wetted fraction, at most $`f_{max} = 0.25`$ (`interception.fmax`), so that a soaked canopy still
@@ -41,7 +41,7 @@ water held after interception,
 C_{u} = c_{h,u} + c_{w}\,w_{liq,u} + c_{i}\,w_{sno,u}, \qquad
 C_{s} = c_{h,s} + c_{w}\,w_{liq,s} + c_{i}\,w_{sno,s}, \qquad
 C_{l} = c_{h,l} + c_{w}\,w_{liq,l} + c_{i}\,w_{sno,l},
-\tag{5.30}
+\qquad\text{(5.30)}
 ```
 
 where $`C_{u}`$, $`C_{s}`$ and $`C_{l}`$ (J m⁻² K⁻¹, per unit surface area) are the heat capacities of the upper leaves,
@@ -65,7 +65,7 @@ the start of the step. For the canopy surfaces and the soil surface the weight, 
 1 & \text{otherwise},
 \end{cases}
 \qquad H = C\,(T^{(i-1)} - T_{f}),
-\tag{5.31}
+\qquad\text{(5.31)}
 ```
 
 where $`\omega^{(i)}`$ is the implicit fraction of iteration $`i`$, $`T^{(i-1)}`$ (K) the temperature of the previous
@@ -84,7 +84,7 @@ For the snow surface (`impexp2`)
 \omega^{(i)}_{i} = \min\left[1,\, \max\left(0,\, \frac{T_{f} - T^{o}_{i}}{T^{(i-1)}_{i} - T^{o}_{i}}\right)\right]
 \;\; \text{if } T^{(i-1)}_{i} - T^{o}_{i} > \epsilon', \qquad
 \omega^{(i)}_{i} = \omega^{(i-1)}_{i} \;\; \text{otherwise},
-\tag{5.32}
+\qquad\text{(5.32)}
 ```
 
 which makes the warming of a snow surface past the melting point explicit. The temperature about which each balance is
@@ -94,7 +94,7 @@ linearized is
 T^{*}_{v} = \omega_{v}\,T^{(i-1)}_{v} + (1 - \omega_{v})\,T^{o}_{v}, \qquad
 q^{*}_{v} = q_{sat}(T^{*}_{v}, p), \qquad
 q'_{v} = \min\left[q'_{sat}(T^{*}_{v}, p),\; 0.1\,q^{*}_{v}\right] \qquad (v = u, s, l, g, i),
-\tag{5.33}
+\qquad\text{(5.33)}
 ```
 
 where $`T^{o}_{v}`$ is the temperature at the start of the step, $`T^{(0)}_{v} = T^{o}_{v}`$, and $`q^{*}_{v}`$ and $`q'_{v}`$
@@ -105,7 +105,7 @@ that enter the fluxes are
 ```math
 \hat{T}_{v} = \omega_{v}\,T_{v} + (1 - \omega_{v})\,T^{*}_{v}, \qquad
 \hat{q}_{v} = q^{*}_{v} + \omega_{v}\,q'_{v}\,(T_{v} - T^{*}_{v}),
-\tag{5.34}
+\qquad\text{(5.34)}
 ```
 
 with $`T_{v}`$ the unknown temperature of the iteration.
@@ -123,7 +123,7 @@ z_{tot} = a_{p} + (1 - a_{p})\left[(1 - w^{i}_{1})\,w_{1} + w^{i}_{1}\right], \q
 a_{p} = \min\left[\max\left(\frac{a_{max}\,(P_{l} + P_{i})}{P_{max}},\, 0\right),\, a_{max}\right], \quad
 h_{1} = \exp\left(\frac{-g\,\psi_{s,1}\,z_{tot}^{-b_{1}}}{R_{v}\,T^{*}_{g}}\right), \quad
 h_{2} = \frac{q_{34}}{\max(q^{*}_{g}, \epsilon)},
-\tag{5.35}
+\qquad\text{(5.35)}
 ```
 
 where $`z_{tot}`$ is the water and ice of the top layer and the puddle as a fraction of the pore space and $`a_{p}`$ the
@@ -139,14 +139,14 @@ factor of the top layer and its correction for the surface energy balance (Milly
 \qquad
 \beta_{s} = \frac{\beta_{w}}{1 + \gamma\,(1 - \beta_{w})}, \qquad
 \gamma = \frac{h_{v}\,q'_{sat}(T_{34}, p)}{c_{p} + 4\times0.95\,\sigma_{SB}\,T_{34}^{3}/s_{g}},
-\tag{5.36}
+\qquad\text{(5.36)}
 ```
 
 the humidity factor is
 
 ```math
 \alpha = \beta_{s}\,h_{1} + (1 - \beta_{s})\,h_{2} \;\; (\beta_{s} > 0), \qquad \alpha = h_{2} \;\; (\beta_{s} = 0),
-\tag{5.37}
+\qquad\text{(5.37)}
 ```
 
 where $`s_{w,1}`$ is the wilting point of the top layer as a fraction of its pore space; $`p_{\beta}`$ is the exponent
@@ -180,7 +180,7 @@ f'_{wet,l} = 1 \;\; (q_{34} > q^{*}_{l} + 10^{-10}), \quad
 s'_{g} = 0 \;\; (\text{store rule on},\; \tilde{w}_{1} < \epsilon,\; a_{p} < \epsilon,\; q_{34} \le q^{*}_{g} + 10^{-10}), \qquad
 s'_{g} = s_{g} \;\; \text{otherwise},
 \end{gathered}
-\tag{5.38}
+\qquad\text{(5.38)}
 ```
 
 and otherwise $`f'_{wet} = f_{wet}`$ of (5.29), with $`q_{12}`$ and $`q_{34}`$ of the previous iteration. A wetted fraction of
@@ -219,7 +219,7 @@ s_{lw} = \min\left[f'_{wet,l}\,s_{l},\; \frac{0.8\,(w_{liq,l} + w_{sno,l})}{\max
 s^{0}_{lt} = \max\left[0,\; (1 - f'_{wet,l})\,\tfrac{1}{2}\left(G_{ls}\,(\phi_{9} + \phi_{10}) + G_{l4}\,\phi_{11} + G_{l3}\,\phi_{12}\right)\right], \qquad
 s_{lt} = \frac{L_{l}}{\max(L_{l} + S_{l},\, \epsilon)}\,s^{0}_{lt},
 \end{gathered}
-\tag{5.39}
+\qquad\text{(5.39)}
 ```
 
 where $`s_{uw}`$, $`s_{sw}`$ and $`s_{lw}`$ (kg m⁻² s⁻¹) are the coefficients of the wet parts of the upper leaves, the upper
@@ -252,7 +252,7 @@ The latent heat coefficients of the canopy surfaces are
 + s_{ut}\,\lambda_{v}(T^{*}_{u}, T_{a}), \qquad
 \eta_{s} = s_{sw}\left[r_{liq,s}\,\lambda_{v} + (1 - r_{liq,s})\,\lambda_{s}\right], \qquad
 \eta_{l} = s_{lw}\left[r_{liq,l}\,\lambda_{v} + (1 - r_{liq,l})\,\lambda_{s}\right] + s_{lt}\,\lambda_{v},
-\tag{5.40}
+\qquad\text{(5.40)}
 ```
 
 where $`\eta_{u}`$, $`\eta_{s}`$ and $`\eta_{l}`$ (W m⁻² per kg kg⁻¹) multiply the humidity difference between the surface and
@@ -273,7 +273,7 @@ The remaining energy warms or cools the surface. The energy balances of the cano
 R_{u} = \frac{\mathrm{SW}_{u} + \mathrm{LW}_{u}}{2L_{u}}, \;
 R_{s} = \frac{\mathrm{SW}_{s} + \mathrm{LW}_{s}}{2S_{u}}, \;
 R_{l} = \frac{\mathrm{SW}_{l} + \mathrm{LW}_{l}}{2(L_{l} + S_{l})},
-\tag{5.41}
+\qquad\text{(5.41)}
 ```
 
 where $`R_{u}`$, $`R_{s}`$ and $`R_{l}`$ (W m⁻²) are the solar and net longwave radiation absorbed per unit surface area
@@ -288,7 +288,7 @@ start of the step, and $`\Pi_{u}`$, $`\Pi_{s}`$ and $`\Pi_{l}`$ (W m⁻²) are t
 0 &= c_{u}\left(q_{a} - q_{12}\right) + c_{l}\left(q_{34} - q_{12}\right) + x_{u}\left(s_{uw} + s_{ut}\right)\left(\hat{q}_{u} - q_{12}\right) + x_{s}\,s_{sw}\left(\hat{q}_{s} - q_{12}\right), \\
 0 &= c_{l}\left(q_{12} - q_{34}\right) + x_{l}\left(s_{lw} + s_{lt}\right)\left(\hat{q}_{l} - q_{34}\right) + (1 - f_{i})\,s'_{g}\left(\alpha\,\hat{q}_{g} - q_{34}\right) + f_{i}\,s_{i}\left(\hat{q}_{i} - q_{34}\right).
 \end{aligned}
-\tag{5.42}
+\qquad\text{(5.42)}
 ```
 
 The soil and snow surfaces have no heat capacity and conduct heat to the top soil and snow layers:
@@ -300,7 +300,7 @@ The soil and snow surfaces have no heat capacity and conduct heat to the top soi
 \mathrm{SW}_{i} + \mathrm{LW}_{i} - \zeta_{i}\left(T_{i} - T^{o}_{i}\right) &= c_{p}\,s_{i}\left(T_{i} - T_{34}\right)
 + \lambda_{i}\,s_{i}\left[q^{*}_{i} + q'_{i}(T_{i} - T^{*}_{i}) - q_{34}\right] + k_{i}\left(T_{i} - T_{sno,1}\right),
 \end{aligned}
-\tag{5.43}
+\qquad\text{(5.43)}
 ```
 
 where $`\mathrm{SW}_{g}`$, $`\mathrm{LW}_{g}`$, $`\mathrm{SW}_{i}`$ and $`\mathrm{LW}_{i}`$ (W m⁻²) are the absorbed solar and net
@@ -336,7 +336,7 @@ H_{s} = c_{p}\,s_{s}\left(\hat{T}_{s} - T_{12}\right), \quad
 H_{l} = c_{p}\,s_{l}\left(\hat{T}_{l} - T_{34}\right), \quad
 H_{g} = c_{p}\,s_{g}\left(\hat{T}_{g} - T_{34}\right), \quad
 H_{i} = c_{p}\,s_{i}\left(\hat{T}_{i} - T_{34}\right),
-\tag{5.44}
+\qquad\text{(5.44)}
 ```
 
 where $`H_{a}`$ (W m⁻², per unit area of the cell, positive downward; `fsena`) is the flux from the reference level into
@@ -357,7 +357,7 @@ e_{lt} = \max\left[0,\; s^{0}_{lt}\left(\hat{q}_{l} - q_{34}\right)\right], \qua
 E_{g} = s'_{g}\left(\alpha\,\hat{q}_{g} - q_{34}\right), \quad
 E_{i} = s_{i}\left(\hat{q}_{i} - q_{34}\right),
 \end{gathered}
-\tag{5.45}
+\qquad\text{(5.45)}
 ```
 
 where $`E_{a}`$ (kg m⁻² s⁻¹, per unit area of the cell, positive downward; `fvapa`) is the flux from the reference level;
@@ -371,7 +371,7 @@ evaporation of the soil and the snow surfaces and the transpiration are
 E_{w} = x_{u}\,e_{uw} + x_{s}\,e_{sw} + x_{l}\,e_{lw}, \qquad
 E_{gs} = (1 - f_{i})\,E_{g} + f_{i}\,E_{i}, \qquad
 E_{t,u} = x_{u}\,e_{ut}, \qquad E_{t,l} = 2\,L_{l}\,f_{l}\,(1 - f_{i})\,e_{lt},
-\tag{5.46}
+\qquad\text{(5.46)}
 ```
 
 (kg m⁻² s⁻¹; the energy solver's `ginvap`, `gsuvap`, `gtransu` and `gtransl`). The values retained in
@@ -385,7 +385,7 @@ upward longwave radiation above the cell (4.30) are corrected for the change of 
 \mathrm{LW}'_{g} = \mathrm{LW}_{g} - \omega_{g}\,\zeta_{g}\left(T_{g} - T^{o}_{g}\right), \qquad
 \mathrm{LW}'_{i} = \mathrm{LW}_{i} - \omega_{i}\,\zeta_{i}\left(T_{i} - T^{o}_{i}\right), \qquad
 F'_{b} = F_{b} + (1 - f_{i})\,\omega_{g}\,\zeta_{g}\left(T_{g} - T^{o}_{g}\right) + f_{i}\,\omega_{i}\,\zeta_{i}\left(T_{i} - T^{o}_{i}\right).
-\tag{5.47}
+\qquad\text{(5.47)}
 ```
 
 The heat fluxes into the soil surface and into the snow surface are
@@ -398,7 +398,7 @@ E'_{g} =
 E_{g} & (1 - f_{i})\,|E_{g}| \le E_{max}, \\
 \operatorname{sign}(E_{g})\,E_{max}/\max(1 - f_{i},\, \epsilon) & \text{otherwise},
 \end{cases}
-\tag{5.48}
+\qquad\text{(5.48)}
 ```
 
 where $`G_{g}`$ and $`G_{i}`$ (W m⁻²) enter the soil (8.21) and the snowpack (8.4), with $`\mathrm{LW}'`$ and $`H`$ each limited
@@ -435,7 +435,7 @@ each canopy surface's stores (`cascad2`, `steph2o2`):
 w_{liq} \leftarrow w_{liq} - \Delta t\,r_{liq}\,e_{w}, \qquad
 w_{sno} \leftarrow w_{sno} - \Delta t\,(1 - r_{liq})\,e_{w}, \qquad
 D_{c} = \frac{1}{\Delta t}\sum_{v = u, s, l} x_{v}\left[\max\left(0, -w_{liq,v}\right) + \max\left(0, -w_{sno,v}\right)\right],
-\tag{5.49}
+\qquad\text{(5.49)}
 ```
 
 where $`e_{w}`$ is $`e_{uw}`$, $`e_{sw}`$ or $`e_{lw}`$, $`r_{liq}`$ the liquid part of the wetted fraction after interception,
@@ -461,7 +461,7 @@ T_{v} \leftarrow T_{f} - \frac{\bar{C}(T_{f} - T_{v}) - h_{f}\,\delta w}{\bar{C}
 w_{sno} \leftarrow w_{sno} - \delta w, \quad w_{liq} \leftarrow w_{liq} + \delta w, \quad
 T_{v} \leftarrow T_{f} + \frac{\bar{C}(T_{v} - T_{f}) - h_{f}\,\delta w}{\bar{C}'},
 \end{aligned}
-\tag{5.50}
+\qquad\text{(5.50)}
 ```
 
 where $`T_{v}`$ (K) is the temperature of the surface, $`\bar{C} = c_{h,v} + c_{w}w_{liq} + c_{i}w_{sno}`$ (J m⁻² K⁻¹) its
@@ -470,7 +470,7 @@ are $`10^{-9}`$ K. An absent surface is assigned a nominal temperature and holds
 
 ```math
 T_{u} = (1 - f_{i})\,T_{g} + f_{i}\,T_{i}, \quad w_{liq,u} = w_{sno,u} = 0 \qquad \text{where } L_{u} = 0 \text{ or } f_{u} = 0,
-\tag{5.51}
+\qquad\text{(5.51)}
 ```
 
 and likewise the upper stems where $`S_{u} = 0`$ or $`f_{u} = 0`$ and the lower canopy where $`L_{l} + S_{l} = 0`$ or
@@ -485,7 +485,7 @@ observations. The evapotranspiration of a step that IBIS 3.0 adds to its output 
 
 ```math
 ET = \left(E_{w} - D_{c} + E'_{gs} + E_{t,u} + E_{t,l}\right)\Delta t, \qquad E'_{gs} = (1 - f_{i})\,E'_{g} + f_{i}\,E_{i},
-\tag{5.52}
+\qquad\text{(5.52)}
 ```
 
 where $`ET`$ (kg m⁻², or mm) is the water evaporated, sublimated and transpired in the step (`loops_gswp3.py`, the
@@ -502,7 +502,7 @@ release run), the model also accumulates the components (`ibis/state/et_parts.py
 ```math
 ET_{t} = (E_{t,u} + E_{t,l})\,\Delta t, \qquad ET_{w} = (E_{w} - D_{c})\,\Delta t, \qquad
 ET_{snow} = f_{i}\,E_{i}\,\Delta t, \qquad ET_{soil} = (1 - f_{i})\,E'_{g}\,\Delta t,
-\tag{5.53}
+\qquad\text{(5.53)}
 ```
 
 with the snow cover $`f_{i}`$ at the start of the step, the cover with which the fluxes of the step are computed. The four

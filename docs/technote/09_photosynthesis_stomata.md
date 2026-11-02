@@ -65,7 +65,7 @@ model depend on the leaf temperature $`T`$ (K) as
 ```math
 \tau = \tau_{15}\,e^{-4500\,r}, \qquad K_{c} = K_{c,15}\,e^{6000\,r}, \qquad K_{o} = K_{o,15}\,e^{1500\,r}, \qquad
 \Gamma_{*} = \frac{o}{2\,\tau}, \qquad r = 3.47 \times 10^{-3} - \frac{1}{T},
-\tag{9.1}
+\qquad\text{(9.1)}
 ```
 
 where $`\tau`$ is the CO2/O2 specificity ratio of Rubisco (how strongly the enzyme prefers CO2 to O2); $`K_{c}`$ and $`K_{o}`$
@@ -79,7 +79,7 @@ factor,
 ```math
 f_{3}(T) = \frac{e^{3500\,r}}{\left[1 + e^{0.4\,(5 - T_{c})}\right]\left[1 + e^{0.4\,(T_{c} - 50)}\right]}, \qquad
 f_{4}(T) = \frac{e^{3500\,r}}{\left[1 + e^{0.4\,(10 - T_{c})}\right]\left[1 + e^{0.4\,(T_{c} - 50)}\right]},
-\tag{9.2}
+\qquad\text{(9.2)}
 ```
 
 where $`f_{3}`$ applies to the C3 and $`f_{4}`$ to the C4 big leaf, and $`T_{c} = T - 273.16`$ (°C) is the leaf temperature in
@@ -91,7 +91,7 @@ The rates of a big leaf are computed from its capacity at 15 °C, $`V_{m}`$ (mol
 
 ```math
 V = V_{m}\,f(T)\,\beta, \qquad R_{d} = \gamma\,V_{m}\,f(T),
-\tag{9.3}
+\qquad\text{(9.3)}
 ```
 
 where $`V`$ (mol CO2 m⁻² s⁻¹) is the maximum carboxylation rate under the current conditions; $`f`$ is $`f_{3}`$ or $`f_{4}`$;
@@ -107,7 +107,7 @@ A C3 leaf has three limiting rates,
 J_{e} = 4.59 \times 10^{-6}\,\alpha_{3}\,Q\,\frac{c_{i} - \Gamma_{*}}{c_{i} + 2\,\Gamma_{*}}, \qquad
 J_{c} = V\,\frac{c_{i} - \Gamma_{*}}{c_{i} + K_{c}\,(1 + o/K_{o})}, \qquad
 J_{s} = \frac{V}{2.2},
-\tag{9.4}
+\qquad\text{(9.4)}
 ```
 
 where $`J_{e}`$, $`J_{c}`$ and $`J_{s}`$ (mol CO2 m⁻² s⁻¹) are the light-limited, the Rubisco-limited and the sink-limited
@@ -119,7 +119,7 @@ taking the smaller root of a quadratic,
 ```math
 \theta_{3}\,J_{p}^{2} - (J_{e} + J_{c})\,J_{p} + J_{e}\,J_{c} = 0, \qquad
 \beta_{3}\,A_{g}^{2} - (J_{p} + J_{s})\,A_{g} + J_{p}\,J_{s} = 0, \qquad A_{n} = A_{g} - R_{d},
-\tag{9.5}
+\qquad\text{(9.5)}
 ```
 
 where $`J_{p}`$ (mol CO2 m⁻² s⁻¹) is the intermediate rate; $`A_{g}`$ and $`A_{n}`$ (mol CO2 m⁻² s⁻¹) are the gross and the
@@ -132,7 +132,7 @@ A C4 leaf has the limiting rates
 
 ```math
 J_{e} = 4.59 \times 10^{-6}\,\alpha_{4}\,Q, \qquad J_{c} = V, \qquad J_{i} = 18 \times 10^{3}\,V\,c_{i},
-\tag{9.6}
+\qquad\text{(9.6)}
 ```
 
 where $`J_{i}`$ (mol CO2 m⁻² s⁻¹) is the CO2-limited rate; $`18 \times 10^{3}`$ (mol mol⁻¹)⁻¹ is the initial slope of the
@@ -167,7 +167,7 @@ The capacity at 15 °C of position $`j`$ in cell $`c`$ is
 
 ```math
 V_{m,j} = V^{0}_{c,j}\,f_{S,j}\,g_{j},
-\tag{9.7}
+\qquad\text{(9.7)}
 ```
 
 where $`V^{0}_{c,j}`$ (mol CO2 m⁻² s⁻¹) is the capacity given in the parameter file, gathered for the type that occupies
@@ -183,7 +183,7 @@ capacity is the mean over its positions, weighted by their displayed leaf area,
 
 ```math
 V_{m,b} = \frac{\sum_{j \in b} \phi_{j}\,V_{m,j}}{\sum_{j \in b} \phi_{j}},
-\tag{9.8}
+\qquad\text{(9.8)}
 ```
 
 where $`\phi_{j}`$ is the share of position $`j`$ in the displayed leaf area of its canopy (`vegetation.frac`, set by the
@@ -206,7 +206,7 @@ temperature described by Mäkelä et al. (2004), in the discrete daily form used
 ```math
 X_{d} = X_{d-1} + \frac{T_{d} - X_{d-1}}{\tau_{S}}, \qquad
 f_{S,j} = \min\left[\max\left(\frac{X_{d} - S_{0,j}}{S_{max,j}},\, 0\right),\, 1\right],
-\tag{9.9}
+\qquad\text{(9.9)}
 ```
 
 where $`X_{d}`$ (°C) is the state of acclimation of the cell on day $`d`$ (`seasonal.acclim_x`); $`T_{d}`$ (°C) is the daily
@@ -264,7 +264,7 @@ layer depends on the plant-available water of the layer,
 ```math
 a_{k} = \min\left[\max\left(\frac{w_{k}\,(1 - w_{i,k}) - w_{w,k}}{w_{f,k} - w_{w,k}},\, 0\right),\, 1\right], \qquad
 \beta_{k} = \min\left[\max\left(\frac{1 - e^{s\,a_{k}}}{1 - e^{s}},\, 0\right),\, 1\right],
-\tag{9.10}
+\qquad\text{(9.10)}
 ```
 
 where $`a_{k}`$ is the available water of layer $`k`$; $`w_{k}`$ is the liquid water content of the layer as a fraction of the
@@ -277,7 +277,7 @@ counts, so a frozen layer reads as dry. The stress factors of the two canopies a
 
 ```math
 \beta_{u} = \sum_{k=1}^{6} r_{u,k}\,\beta_{k}, \qquad \beta_{l} = \sum_{k=1}^{6} r_{l,k}\,\beta_{k},
-\tag{9.11}
+\qquad\text{(9.11)}
 ```
 
 where $`r_{u,k}`$ and $`r_{l,k}`$ are the root fractions of the upper and the lower canopy in layer $`k`$, (2.8). The layer
@@ -305,7 +305,7 @@ Stomata open wider during rapid photosynthesis in humid air and close as photosy
 
 ```math
 g_{s} = m\,\frac{A_{n}\,h_{a}}{c_{s}} + b\,\beta,
-\tag{9.12}
+\qquad\text{(9.12)}
 ```
 
 where $`g_{s}`$ (mol m⁻² s⁻¹) is the stomatal conductance to water vapour per unit leaf area; $`m`$ is the slope; $`h_{a}`$
@@ -324,7 +324,7 @@ c_{s} &\leftarrow \max\left[c_{s,min},\; \tfrac{1}{2}\left(c_{s} + c_{a} - \frac
 g_{s} &\leftarrow \max\left[g_{s,min},\; b\,\beta,\; \tfrac{1}{2}\left(g_{s} + m\,\frac{A_{n}\,h_{a}}{c_{s}} + b\,\beta\right)\right], \\
 c_{i} &\leftarrow \min\left\{\max\left[c_{i,min},\; \tfrac{1}{2}\left(c_{i} + c_{s} - 1.6\,\frac{A_{n}}{g_{s}}\right)\right],\; c_{i,max}\right\},
 \end{aligned}
-\tag{9.13}
+\qquad\text{(9.13)}
 ```
 
 where $`c_{a}`$ (mol mol⁻¹) is the atmospheric CO2 mole fraction (section 3.10); $`g_{s,min}`$ (mol m⁻² s⁻¹) is the minimum
@@ -335,7 +335,7 @@ one, which damps oscillations between iterations. The boundary-layer conductance
 ```math
 g_{b} = \min\left[\max\left(25.5\,s_{v},\; 0.1\right),\; 10\right], \qquad
 h_{a} = \max\left[\frac{q_{c}}{q_{sat}(T_{c,a}, p)},\; 0.30\right],
-\tag{9.14}
+\qquad\text{(9.14)}
 ```
 
 where $`g_{b}`$ (mol m⁻² s⁻¹) is the boundary-layer conductance for CO2; $`s_{v}`$ (kg m⁻² s⁻¹) is the transfer coefficient
@@ -352,7 +352,7 @@ of its positions, as in (9.8),
 
 ```math
 m_{b} = \frac{\sum_{j \in b} \phi_{j}\,m_{j}}{\sum_{j \in b} \phi_{j}},
-\tag{9.15}
+\qquad\text{(9.15)}
 ```
 
 where $`m_{j}`$ is the slope of position $`j`$, gathered by (2.1) from the base values of Table 9.4 (`stomata.coefm_pft`)
@@ -376,7 +376,7 @@ cumulative plant area $`x`$ from the top of the canopy is, as (4.24),
 
 ```math
 P(x) = A\,e^{-Kx} + B\,e^{-hx} + C\,e^{hx},
-\tag{9.16}
+\qquad\text{(9.16)}
 ```
 
 where $`A`$, $`B`$ and $`C`$ (W m⁻²) are the coefficients (4.25) of the visible two-stream solution of the canopy
@@ -394,7 +394,7 @@ sunlit leaves per unit area of the canopy is
 ```math
 Q_{tot} = f_{L}\,\max\left[A\,E(K) + B\,E(h) + C\,E(-h),\; 0\right], \qquad
 Q_{sun} = f_{L}\,\left[A\,E(2K) + B\,E(K + h) + C\,E(K - h) + Q_{beam}\,\bigl(E(K) - E(2K)\bigr)\right],
-\tag{9.17}
+\qquad\text{(9.17)}
 ```
 
 with $`Q_{sun}`$ held to $`[0,\, Q_{tot}]`$; the shaded leaves absorb $`Q_{sha} = Q_{tot} - Q_{sun}`$ (W m⁻²). Leaves deeper in a canopy have less capacity than those at the top. Capacity per unit leaf area declines
@@ -405,7 +405,7 @@ of a leaf at the top of the canopy ("top leaves"):
 ```math
 L_{sun} = f_{L}\,E(K), \quad L_{sha} = \max(L - L_{sun},\, 0), \quad
 v_{sun} = f_{L}\,E(K_{n}f_{L} + K), \quad v_{sha} = \max\left[f_{L}\,E(K_{n}f_{L}) - v_{sun},\, 0\right],
-\tag{9.18}
+\qquad\text{(9.18)}
 ```
 
 where $`v_{sun} + v_{sha} = (1 - e^{-K_{n}L})/K_{n}`$ (m² m⁻²). The leaf model is applied once to the sunlit and once to
@@ -424,7 +424,7 @@ the diffuse share of the light. The canopy-mean rates per unit leaf area are
 
 ```math
 A_{g,c} = \frac{A_{g,sun} + A_{g,sha}}{L}, \qquad A_{n,c} = \frac{A_{n,sun} + A_{n,sha}}{L},
-\tag{9.19}
+\qquad\text{(9.19)}
 ```
 
 and zero without leaves. Both use the $`c_{i}`$ of the big leaf at the start of the iteration, and the relaxation (9.13)
@@ -445,7 +445,7 @@ exponential with the coefficient
 
 ```math
 k_{e} = \min\left[\max\left(\frac{K\,A + h\,B - h\,C}{A + B + C},\; 0.1\right),\; 10\right],
-\tag{9.20}
+\qquad\text{(9.20)}
 ```
 
 the slope of $`-\ln P`$ at the top of the canopy. During the day ($`P_{top} > 10`$ W m⁻²) and where the canopy has leaves,
@@ -455,7 +455,7 @@ the scaling factor and two running means are
 \Lambda = \frac{1 - e^{-k_{e}(L + S)}}{k_{e}\,L}, \qquad
 \overline{\Lambda P} \leftarrow w\,\overline{\Lambda P} + (1 - w)\,\Lambda\,P_{top}, \qquad
 \overline{P} \leftarrow w\,\overline{P} + (1 - w)\,P_{top}, \qquad w = e^{-\Delta t/(10 \cdot 86400\ \mathrm{s})},
-\tag{9.21}
+\qquad\text{(9.21)}
 ```
 
 and otherwise $`\Lambda = \overline{\Lambda P}/\max(\overline{P},\, 10^{-7})`$ with the running means unchanged;
@@ -530,7 +530,7 @@ net photosynthesis to compute its canopy-mean surface CO2, stomatal conductance 
 c_{s,c} = \max\left(c_{s,min},\; c_{a} - \frac{A_{n,c}}{g_{b}}\right), \qquad
 g_{s,c} = \max\left(g_{s,min},\; b\,\beta,\; m\,\frac{A_{n,c}\,h_{a}}{c_{s,c}} + b\,\beta\right), \qquad
 G = \left(\frac{1}{s_{v}} + \frac{1}{0.029\,g_{s,c}}\right)^{-1},
-\tag{9.22}
+\qquad\text{(9.22)}
 ```
 
 where $`c_{s,c}`$ (mol mol⁻¹) and $`g_{s,c}`$ (mol m⁻² s⁻¹) are the canopy-mean surface CO2 and stomatal conductance, and
@@ -544,7 +544,7 @@ wetted fraction of the canopy's leaves,
 
 ```math
 A_{g,b} = (1 - f_{wet})\,A_{g,c}, \qquad A_{n,b} = (1 - f_{wet})\,A_{n,c},
-\tag{9.23}
+\qquad\text{(9.23)}
 ```
 
 where $`f_{wet}`$ is the wetted fraction of the upper or the lower canopy's leaves (Chapter 5), and $`A_{g,b}`$ and
@@ -560,7 +560,7 @@ gross photosynthesis of the cell per unit ground area is
 ```math
 A_{g,cell} = f_{u}\,L_{u} \sum_{b \in \{ub,\,uc\}} A_{g,b}\,\Phi_{b} + (1 - f_{i})\,f_{l}\,L_{l} \sum_{b \in \{ls,\,l3,\,l4\}}
 A_{g,b}\,\Phi_{b}, \qquad \Phi_{b} = \sum_{j \in b} \phi_{j},
-\tag{9.24}
+\qquad\text{(9.24)}
 ```
 
 where $`A_{g,cell}`$ (mol CO2 m⁻² s⁻¹) is the gross primary production of the time step; $`f_{u}`$ and $`f_{l}`$ are the
@@ -572,7 +572,7 @@ mol⁻¹. The net photosynthesis is divided among the positions; position $`j`$ 
 ```math
 A_{n,j} = A_{n,b}\,\psi_{j}\,L\,f\;[\times (1 - f_{i})\ \text{in the lower canopy}], \qquad
 \psi_{j} = \frac{\phi_{j}\,V_{m,j}}{\sum_{i \in b} \phi_{i}\,V_{m,i}}\;\Phi_{b},
-\tag{9.25}
+\qquad\text{(9.25)}
 ```
 
 where $`A_{n,j}`$ (mol CO2 m⁻² s⁻¹, per unit ground area) is the net photosynthesis of position $`j`$; $`L`$ and $`f`$ are the

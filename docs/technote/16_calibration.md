@@ -133,7 +133,7 @@ for latent heat (`LE_F_MDS_QC` ≥ 0.5). The GPP target and uncertainty are
 ```math
 G = \max\left(\tfrac{1}{2}\left(G_{NT} + G_{DT}\right),\, 0\right), \qquad
 \sigma_{G} = \max\left(\tfrac{1}{2}\left|G_{NT} - G_{DT}\right|,\; 0.1\,|G|,\; 5\right),
-\tag{16.1}
+\qquad\text{(16.1)}
 ```
 
 where $`G`$ (gC m⁻² month⁻¹) is the target (the 10 % term uses the mean before it is floored at zero); $`G_{NT}`$ and
@@ -145,7 +145,7 @@ the latent heat flux corrected for the closure of the tower's energy balance,
 ```math
 E = \frac{86400\, n_{d}\, Q_{c}}{\lambda}, \qquad
 \sigma_{E} = \max\left(\tfrac{1}{2}\left|E - E_{MDS}\right|,\; 0.1\,|E|,\; 3\right),
-\tag{16.2}
+\qquad\text{(16.2)}
 ```
 
 where $`E`$ (mm month⁻¹) is the target; $`Q_{c}`$ (W m⁻²) is the monthly mean of the energy-balance-corrected latent heat
@@ -164,7 +164,7 @@ good-quality estimates, are retained. For each month and each part,
 ```math
 \bar{N}_{p} = \frac{1}{n_{p}} \sum_{h \in K_{p}} F_{h}, \qquad
 \sigma_{N,p} = \max\left(0.15\,|\bar{N}_{p}|,\; \frac{5}{M_{C}\,\tau_{p}}\right), \qquad p \in \{\text{night}, \text{day}\},
-\tag{16.3}
+\qquad\text{(16.3)}
 ```
 
 where $`\bar{N}_{p}`$ (µmol m⁻² s⁻¹, positive for a release) is the target of part $`p`$, the mean NEE over the set $`K_{p}`$
@@ -189,7 +189,7 @@ parameter sets. The normalised residual for month $`m`$ of a scored year is
 
 ```math
 r_{m} = \frac{X^{mod}_{m} - X^{obs}_{m}}{\sigma_{m}},
-\tag{16.4}
+\qquad\text{(16.4)}
 ```
 
 where $`X^{mod}_{m}`$ and $`X^{obs}_{m}`$ are the model and the target of a series and $`\sigma_{m}`$ is its uncertainty, the
@@ -197,7 +197,7 @@ plain objective of one tower is
 
 ```math
 L_{0} = \left\langle r_{G}^{2} \right\rangle + w_{E} \left\langle r_{E}^{2} \right\rangle,
-\tag{16.5}
+\qquad\text{(16.5)}
 ```
 
 where $`\langle \cdot \rangle`$ denotes the mean over scored months in the fitted years and $`w_{E} = 0.5`$ is the ET
@@ -207,7 +207,7 @@ weight. The campaign objective is bounded to prevent any month or tower from dom
 L = \min\left\{ \left\langle \min(r_{G}^{2}, c_{m}) \right\rangle + w_{E} \left\langle \min(r_{E}^{2}, c_{m}) \right\rangle
 + w_{a} \sum_{s} \min\left[ \left( \frac{1}{\delta} \ln \frac{\sum_{m \in s} G^{mod}_{m}}{\sum_{m \in s} G_{m}} \right)^{2},
 c_{m} \right],\; c_{t} \right\},
-\tag{16.6}
+\qquad\text{(16.6)}
 ```
 
 where the sum over $`s`$ covers two sets: all scored months and scored summer months (June to August
@@ -234,7 +234,7 @@ L_{N} = \min\left\{ \left\langle \min(r_{n}^{2}, c_{m}) \right\rangle + w_{d} \l
 \right\rangle + w_{a} \sum_{p \in \{n, d\}} \mu_{p},\; c_{t} \right\}, \qquad
 \mu_{p} = \begin{cases} \min\left[\left(\frac{1}{\delta} \ln \left|\frac{\sum_{m} \bar{N}^{mod}_{p,m}\,\tau_{p,m}}{\sum_{m} \bar{N}_{p,m}\,\tau_{p,m}}\right|\right)^{2}, c_{m}\right]
 & \text{same sign,} \\ c_{m} & \text{opposite sign,} \end{cases}
-\tag{16.7}
+\qquad\text{(16.7)}
 ```
 
 where $`r_{n}`$ and $`r_{d}`$ are the residuals (16.4) of the night-time and the day-time means; $`w_{d} = 0.5`$ is the weight
@@ -257,7 +257,7 @@ around a mean, then adapts the mean and spread using the best samples. The searc
 
 ```math
 \theta_{i} = g_{i}^{-1}\!\left( \ell_{i} + z_{i} \left( u_{i} - \ell_{i} \right) \right), \qquad z_{i} \in [0, 1],
-\tag{16.8}
+\qquad\text{(16.8)}
 ```
 
 where $`\theta_{i}`$ is parameter $`i`$ in its own units, $`z_{i}`$ its coordinate in the search, $`\ell_{i} = g_{i}(\theta_{i}^{lo})`$
@@ -279,7 +279,7 @@ temperature of 15 °C (Chapter 9) using its temperature function for the positio
 ```math
 V^{15} = V^{25}\, \frac{f_{V}(15\,^{\circ}\text{C})}{f_{V}(25\,^{\circ}\text{C})}, \qquad
 \frac{f_{V}(25\,^{\circ}\text{C})}{f_{V}(15\,^{\circ}\text{C})} = 1.5298 \;(\text{C3}), \quad 1.7019 \;(\text{C4}),
-\tag{16.9}
+\qquad\text{(16.9)}
 ```
 
 where $`V^{25}`$ and $`V^{15}`$ (µmol m⁻² s⁻¹) are a bound at 25 °C and at 15 °C, and $`f_{V}`$ is the temperature factor
@@ -370,7 +370,7 @@ $`t`$ is
 
 ```math
 p_{t} = \operatorname{median}\left\{ \hat{p}_{s} : s \in S_{t}(p) \right\},
-\tag{16.10}
+\qquad\text{(16.10)}
 ```
 
 where $`\hat{p}_{s}`$ is the value fitted at tower $`s`$ and $`S_{t}(p)`$ the set of towers that attribute a value of $`p`$
@@ -459,7 +459,7 @@ primary production is therefore
 
 ```math
 k = a_{leaf}\, \tau_{leaf}\, \sigma_{leaf},
-\tag{16.11}
+\qquad\text{(16.11)}
 ```
 
 where $`k`$ (m² yr kgC⁻¹) is the leaf coefficient, $`a_{leaf}`$ the share of net primary production allocated to leaves,
@@ -527,7 +527,7 @@ the model's annual stress factors $`u^{y}`$ in (11.15) over those two years, usi
 ```math
 \left(u_{0}, \Delta u, p\right) = \arg\min \sum_{k} A_{k} \left\{ \left[\min\left(\max\left(\frac{\bar{u}_{k} - u_{0}}{\Delta u},
 0\right), 1\right)\right]^{p} - \tilde{c}_{k} \right\}^{2},
-\tag{16.12}
+\qquad\text{(16.12)}
 ```
 
 where $`k`$ runs over the bins with at least 20 cells; $`A_{k}`$ (m²) is the land area of bin $`k`$ (cell area times the land
@@ -577,7 +577,7 @@ Fire parameters control how much of each zone burns. They were fitted using an o
 
 ```math
 J_{fire} = \left[ \frac{1}{11} \sum_{z} \left( \ln \frac{\bar{B}^{mod}_{z}}{\bar{B}^{obs}_{z}} \right)^{2} \right]^{1/2},
-\tag{16.13}
+\qquad\text{(16.13)}
 ```
 
 where $`J_{fire}`$ is the objective; $`z`$ runs over the eleven vegetated zones (all but D_extreme and E_ice); and

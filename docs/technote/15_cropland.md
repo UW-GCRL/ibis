@@ -89,7 +89,7 @@ a cell-level factor (9.7):
 
 ```math
 g = 1 + f_{crop}\left(\bar{s} - 1\right), \qquad \bar{s} = (1 - q)\, s_{C3} + q\, s_{C4}, \qquad 0 \le q \le 1,
-\tag{15.1}
+\qquad\text{(15.1)}
 ```
 
 where $`g`$ is the factor on the capacity of both grass positions (1 in the other positions); $`f_{crop}`$ is the cropland
@@ -105,7 +105,7 @@ sown there. With $`q < 0`$, each scale applies to its corresponding position:
 
 ```math
 g_{11} = 1 + f_{crop}\left(s_{C4} - 1\right), \qquad g_{12} = 1 + f_{crop}\left(s_{C3} - 1\right),
-\tag{15.2}
+\qquad\text{(15.2)}
 ```
 
 where $`g_{11}`$ and $`g_{12}`$ are the factors of the C4 and the C3 position: a cell whose cropland is prescribed as C4
@@ -154,7 +154,7 @@ to the natural share of the cell, (11.23):
 f_{u} = \min\left\{0.975,\; \max\left[f^{min}_{u},\; \min\left(f^{max}_{u},\; (1 - f_{crop})\,
 \frac{1 - \exp\left(-W' / k_{w}\right)}{1 - \exp\left(-W_{n} / k_{w}\right)} \left(1 - \bar{D}\right)\right)\right]\right\},
 \qquad W' = \frac{W}{\max\left(1 - f_{crop},\, 0.01\right)},
-\tag{15.3}
+\qquad\text{(15.3)}
 ```
 
 where $`f_{u}`$ is the cover of the upper canopy, a fraction of the cell; $`W`$ (kg C m⁻²) is 0.001 plus the wood carbon of
@@ -199,7 +199,7 @@ allocation, (11.10):
 
 ```math
 N'_{j} = e_{j}\, N^{y}_{j}\, (1 - f_{crop}), \qquad S = f_{crop} \sum_{j=9}^{10} \max\left(0,\, e_{j}\, N^{y}_{j}\right),
-\tag{15.4}
+\qquad\text{(15.4)}
 ```
 
 where $`N'_{j}`$ (kg C m⁻² yr⁻¹) is the NPP the shrub position is allocated; $`e_{j}`$ is its existence (section 11.3.3);
@@ -222,7 +222,7 @@ with `pft.exact_litterfall` on, as in the release:
 ```math
 F_{l,j} = C_{l,j}\left(1 - e^{-1/\tau_{l,j}}\right) + a_{l,j} \max\left(0,\, N'_{j}\right)
 \left[1 - \tau_{l,j}\left(1 - e^{-1/\tau_{l,j}}\right)\right], \qquad j = 11, 12,
-\tag{15.5}
+\qquad\text{(15.5)}
 ```
 
 where $`F_{l,j}`$ (kg C m⁻² yr⁻¹) is the leaf litterfall of the grass position, per unit area of the cell; $`C_{l,j}`$
@@ -234,7 +234,7 @@ allocation of the type in the position (0.25 to 0.30 for the eight grass types, 
 ```math
 H = f_{crop}\, h \left(F_{l,11} + F_{l,12}\right), \qquad F_{l} \leftarrow \max\left(0,\, F_{l} - H\right), \qquad
 E \mathrel{+}= H + S,
-\tag{15.6}
+\qquad\text{(15.6)}
 ```
 
 where $`H`$ (kg C m⁻² yr⁻¹) is the harvest, per unit area of the cell; $`h`$ = 0.45 is the harvest index
@@ -261,7 +261,7 @@ positions' allocation fractions toward the crop values in proportion to the crop
 a'_{l,j} = (1 - f_{crop})\, a_{l,j} + f_{crop}\, a_{crop}, \qquad
 a'_{r,j} = (1 - f_{crop})\, a_{r,j} + f_{crop}\, (1 - a_{crop}), \qquad
 a'_{w,j} = (1 - f_{crop})\, a_{w,j}, \qquad j = 11, 12,
-\tag{15.7}
+\qquad\text{(15.7)}
 ```
 
 where $`a'_{l,j}`$, $`a'_{r,j}`$ and $`a'_{w,j}`$ are the leaf, root and wood fractions the position uses in the allocation
@@ -279,7 +279,7 @@ which the release does not set. When it is set, the maximum of the lower canopy 
 
 ```math
 \Lambda^{max}_{l} = (1 - f_{crop})\, \bar{\Lambda}^{max}_{l} + f_{crop}\, \Lambda^{max}_{crop},
-\tag{15.8}
+\qquad\text{(15.8)}
 ```
 
 where $`\Lambda^{max}_{l}`$ (m² m⁻²) is the limit applied to the lower canopy; $`\bar{\Lambda}^{max}_{l}`$ is the

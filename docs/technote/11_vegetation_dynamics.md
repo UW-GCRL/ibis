@@ -76,7 +76,7 @@ $`j`$ per unit area of the cell is
 ```math
 A_{j} = A_{n,b(j)}\, \psi_{j}\, \Lambda_{u}\, f_{u} \quad (j \le 8), \qquad
 A_{j} = A_{n,b(j)}\, \psi_{j}\, \Lambda_{l}\, f_{l}\, (1 - f_{i}) \quad (j \ge 9),
-\tag{11.1}
+\qquad\text{(11.1)}
 ```
 
 where $`A_{j}`$ (mol CO2 m⁻² s⁻¹) is the net assimilation of the position; $`A_{n,b}`$ (mol CO2 per m² of leaf per s) is
@@ -94,7 +94,7 @@ the share of a position in the broadleaf, conifer and shrub big leaves is weight
 
 ```math
 \psi_{j} = \frac{\phi_{j}\, V_{m,j}}{\sum_{i \in b(j)} \phi_{i}\, V_{m,i}} \sum_{i \in b(j)} \phi_{i},
-\tag{11.2}
+\qquad\text{(11.2)}
 ```
 
 where $`\phi_{j}`$ is the fraction of its canopy's displayed leaf area held by position $`j`$ (Chapter 10), and $`V_{m,j}`$
@@ -119,7 +119,7 @@ R_{j} =
 \kappa\, r_{r,j}\, C_{r,j}\, g_{b} & j = 11, 12,
 \end{cases}
 \qquad \kappa = \frac{1000}{12\, n_{d}\, 86400},
-\tag{11.3}
+\qquad\text{(11.3)}
 ```
 
 where $`R_{j}`$ (mol C m⁻² s⁻¹) is the maintenance respiration; $`r_{w,j}`$ and $`r_{r,j}`$ (yr⁻¹) are the maintenance
@@ -133,7 +133,7 @@ sapwood fraction of the tree wood (section 11.9), one value for all tree positio
 g_{a} = \exp\left[3500 \left(\frac{1}{288.16} - \frac{1}{\max(T_{s}, 200)}\right)\right], \qquad
 g_{b} = \exp\left[3500 \left(\frac{1}{288.16} - \frac{1}{\max(T_{r}, 200)}\right)\right], \qquad
 T_{r} = \sum_{k=1}^{6} T_{k}\, \frac{r^{l}_{k} + r^{u}_{k}}{2},
-\tag{11.4}
+\qquad\text{(11.4)}
 ```
 
 where $`g_{a}`$ and $`g_{b}`$ are the factors of the stems and the roots; $`T_{s}`$ (K) is the stem temperature of the upper
@@ -156,7 +156,7 @@ N_{j} =
 (1 - r_{g,j}) \left(A_{j} - R_{j}\right) & A_{j} - R_{j} > 0, \\
 A_{j} - R_{j} & \text{otherwise},
 \end{cases}
-\tag{11.5}
+\qquad\text{(11.5)}
 ```
 
 where $`N_{j}`$ (mol C m⁻² s⁻¹) is the NPP and $`r_{g,j}`$ is the growth respiration coefficient, the share of the carbon
@@ -178,7 +178,7 @@ The NPP is summed over every time step of the year,
 
 ```math
 N^{y}_{j} = \sum_{t} 0.012\, \Delta t\, N_{j}, \qquad N^{y} = \sum_{j=1}^{12} N^{y}_{j},
-\tag{11.6}
+\qquad\text{(11.6)}
 ```
 
 where $`N^{y}_{j}`$ (kg C m⁻² yr⁻¹) is the annual NPP of the position; $`\Delta t`$ = 3600 s is the time step;
@@ -204,7 +204,7 @@ day by day, as in IBIS 2.6b4,
 T^{y}_{c} = \min_{n} \bar{T}^{\,n-1}_{10} - 273.16, \qquad T^{y}_{w} = \max_{n} \bar{T}^{\,n-1}_{10} - 273.16, \qquad
 G^{y}_{0} = \sum_{n} \max\left(0,\; T^{\,n}_{d} - 273.16\right), \qquad
 G^{y}_{5} = \sum_{n} \max\left(0,\; T^{\,n}_{d} - 278.16\right),
-\tag{11.7}
+\qquad\text{(11.7)}
 ```
 
 where the extremes and the sums run over the days $`n`$ of the year; $`T^{y}_{c}`$ and $`T^{y}_{w}`$ (°C) are the year's
@@ -229,7 +229,7 @@ T'_{d} = \bar{T}_{m'} + \omega_{d} \left(\bar{T}_{m''} - \bar{T}_{m'}\right), \q
 \left(m,\; m + 1,\; \dfrac{d_{m} - 0.5}{n_{m}} - 0.5\right) & \text{otherwise},
 \end{cases}
 \end{gathered}
-\tag{11.8}
+\qquad\text{(11.8)}
 ```
 
 where $`\bar{T}_{m}`$ (°C) is the mean of `tas` over month $`m`$ less 273.16 K, taken to stand for the middle of the month;
@@ -265,7 +265,7 @@ with a 30-year exponential running mean, updated once a year,
 ```math
 X \leftarrow e^{-1/30} X + \left(1 - e^{-1/30}\right) X^{y}, \qquad X \in \{T_{c}, T_{w}, G_{0}, G_{5}\}, \qquad
 T_{c,min} = T_{c} + \Delta T,
-\tag{11.9}
+\qquad\text{(11.9)}
 ```
 
 where $`X`$ is the running mean of statistic $`X^{y}`$ of (11.7) or (11.8), so that each year moves the mean by 3.3 % of
@@ -326,7 +326,7 @@ each pool to litter. Together these processes determine vegetation biomass and t
 
 ```math
 N'_{j} = e_{j}\, N^{y}_{j}\, (1 - c\,\delta_{j}),
-\tag{11.10}
+\qquad\text{(11.10)}
 ```
 
 where $`N'_{j}`$ (kg C m⁻² yr⁻¹) is the NPP the position may grow with; $`c`$ is the cropland fraction of the cell
@@ -338,7 +338,7 @@ with the exact solution over one year of $`dC/dt = a_{x,j} N'_{j} - C/\tau_{x,j}
 ```math
 C_{x,j} \leftarrow C_{x,j}\, e^{-1/\tau_{x,j}} + a_{x,j}\, \tau_{x,j} \max\left(0, N'_{j}\right) \left(1 - e^{-1/\tau_{x,j}}\right),
 \qquad \tau_{w,j} = \frac{\tau^{0}_{w,j}}{2} \left(1 + e_{j}\right),
-\tag{11.11}
+\qquad\text{(11.11)}
 ```
 
 where $`C_{x,j}`$ (kg C m⁻²) is the carbon of pool $`x`$ of position $`j`$; $`a_{x,j}`$ is the fraction of NPP allocated to the
@@ -357,7 +357,7 @@ Litterfall from each pool enters the litter pools of Chapter 12. The model accou
 
 ```math
 F_{x,j} = C_{x,j} \left(1 - e^{-1/\tau_{x,j}}\right) + a_{x,j} \max\left(0, N'_{j}\right) \left[1 - \tau_{x,j}\left(1 - e^{-1/\tau_{x,j}}\right)\right],
-\tag{11.12}
+\qquad\text{(11.12)}
 ```
 
 where $`F_{x,j}`$ (kg C m⁻² yr⁻¹) is the litterfall and $`C_{x,j}`$ is the pool before the update, so that the pool changes
@@ -365,7 +365,7 @@ by exactly $`a_{x,j} \max(0, N'_{j}) - F_{x,j}`$. IBIS 2.6b4 instead records
 
 ```math
 F_{x,j} = C_{x,j} / \tau_{x,j},
-\tag{11.13}
+\qquad\text{(11.13)}
 ```
 
 which equals (11.12) only at equilibrium, $`C_{x,j} = a_{x,j} \tau_{x,j} N'_{j}`$. While a pool grows, (11.13) records less litterfall than the pool loses, leaving the difference unaccounted for in
@@ -376,7 +376,7 @@ position's own pools,
 ```math
 F_{l} \mathrel{+}= \max\left(0, N^{y}_{j}\right) (1 - e_{j}), \qquad
 d_{j} = \max\left(0, -N^{y}_{j}\right) \;\text{taken from}\; C_{w,j},\; \text{then}\; C_{r,j},\; \text{then}\; C_{l,j},
-\tag{11.14}
+\qquad\text{(11.14)}
 ```
 
 where $`F_{l}`$ (kg C m⁻² yr⁻¹) is cell leaf litterfall and $`d_{j}`$ (kg C m⁻² yr⁻¹) is the deficit. Each pool supplies
@@ -510,7 +510,7 @@ zone is unstressed and 0 when it is fully stressed; Chapter 9), is averaged each
 u^{y} = \frac{\sum_{d} \gamma_{d}\, u_{d}}{\max\left(1, \sum_{d} \gamma_{d}\right)}, \qquad
 \gamma_{d} =
 \begin{cases} 1 & T_{a,d} > 273.16 + T_{g} \\ 0 & \text{otherwise} \end{cases},
-\tag{11.15}
+\qquad\text{(11.15)}
 ```
 
 where $`u^{y}`$ is the year's mean stress factor (written to the yearly output as `aystressu`); $`u_{d}`$ is the factor at
@@ -521,7 +521,7 @@ soil reads as fully stressed; the threshold keeps most frozen days out of the me
 ```math
 \tilde{u} =
 \begin{cases} \tilde{u}' + \left(u^{y} - \tilde{u}'\right) / Y & \tilde{u}' > 0, \\ u^{y} & \text{otherwise}, \end{cases}
-\tag{11.16}
+\qquad\text{(11.16)}
 ```
 
 where $`\tilde{u}`$ is the smoothed stress factor of the year, stored at the end of the year (`aystressu_smooth` in the
@@ -532,7 +532,7 @@ cell, takes the next year's mean without smoothing. The maximum tree cover is
 
 ```math
 f^{max}_{u} = \left[\min\left(\max\left(\frac{\tilde{u} - u_{0}}{\Delta u}, 0\right), 1\right)\right]^{p},
-\tag{11.17}
+\qquad\text{(11.17)}
 ```
 
 where $`f^{max}_{u}`$ is the maximum fraction of the cell covered by the upper canopy; $`u_{0}`$ is the stress factor below
@@ -601,7 +601,7 @@ year,
 
 ```math
 C_{x,j} \leftarrow \max\left[0,\; C_{x,j} \left(1 - D_{j}\right)\right], \qquad D_{j} = d_{f}\, m_{j} + d_{o},
-\tag{11.18}
+\qquad\text{(11.18)}
 ```
 
 where $`D_{j}`$ is the share of position $`j`$ disturbed in the year; $`d_{f}`$ is the fraction of the cell burned in the
@@ -619,7 +619,7 @@ With fire on, the season-length scheme divides the fire-killed carbon between th
 ```math
 E \mathrel{+}= \sum_{j} \left[ \varepsilon_{l}\, d_{f} m_{j} C_{l,j} + \varepsilon_{w}\, d_{f} m_{j} C_{w,j}
 + d_{o} \left(C_{l,j} + C_{w,j} + C_{r,j}\right) \right],
-\tag{11.19}
+\qquad\text{(11.19)}
 ```
 
 where $`E`$ (kg C m⁻² yr⁻¹) is the carbon removed from the cell to the atmosphere in the year (written to the yearly
@@ -638,7 +638,7 @@ On the cropland share of a cell (section 2.7; Chapter 15) a share of the grass l
 ```math
 H = c\, h \left(F_{l,11} + F_{l,12}\right), \qquad F_{l} \leftarrow \max\left(0, F_{l} - H\right), \qquad
 E \mathrel{+}= H + c \sum_{j=9}^{10} \max\left(0, e_{j} N^{y}_{j}\right),
-\tag{11.20}
+\qquad\text{(11.20)}
 ```
 
 where $`H`$ (kg C m⁻² yr⁻¹) is the harvest; $`h`$ = 0.45 is the harvest index (`crop.harvest_index`); $`F_{l,11}`$ and
@@ -653,7 +653,7 @@ allows,
 ```math
 C_{l,j} \leftarrow \max\left(C_{l,j},\; e_{j}\, \lambda_{j}\, \frac{L_{min}}{\sigma_{j}}\right), \qquad
 \lambda_{j} = \begin{cases} 1 & f^{max}_{u} > 0 \text{ or } j \ge 9, \\ 0 & \text{otherwise}, \end{cases}
-\tag{11.21}
+\qquad\text{(11.21)}
 ```
 
 where $`C_{l,j}`$ (kg C m⁻²) is the leaf carbon; $`L_{min}`$ = 0.01 m² m⁻² is the minimum leaf area index (`pft.xminlai`);
@@ -664,7 +664,7 @@ that factor is 0. As in IBIS 2.6b4, carbon added by this floor is excluded from 
 
 ```math
 L_{j} = \sigma_{j}\, C_{l,j}, \qquad B_{j} = C_{l,j} + C_{w,j} + C_{r,j},
-\tag{11.22}
+\qquad\text{(11.22)}
 ```
 
 where $`L_{j}`$ (m² m⁻²) is the leaf area index of the position at full leaf, per unit area of the cell, and $`B_{j}`$
@@ -681,7 +681,7 @@ heat exchange (Chapters 4 and 5). The fraction of the cell covered by the upper 
 f_{u} = \min\left\{0.975,\; \max\left[f^{min}_{u},\; \min\left(f^{max}_{u},\;
 (1 - c)\, \frac{1 - \exp\left[-W / \left(\max(1 - c, 0.01)\, k_{w}\right)\right]}{1 - \exp\left(-W_{n} / k_{w}\right)}
 \left(1 - \bar{D}\right)\right)\right]\right\},
-\tag{11.23}
+\qquad\text{(11.23)}
 ```
 
 where $`f_{u}`$ is the cover of the upper canopy; $`W`$ (kg C m⁻²) is 0.001 plus the wood carbon of the tree positions
@@ -694,7 +694,7 @@ share of the cell,
 
 ```math
 \bar{D} = d_{f}\, \frac{\sum_{j} L^{0}_{j} m_{j}}{\sum_{j} L^{0}_{j}} + d_{o},
-\tag{11.24}
+\qquad\text{(11.24)}
 ```
 
 with $`L^{0}_{j}`$ the leaf area index of the positions before the update. With fire off, under the `legacy` scheme or
@@ -705,7 +705,7 @@ The cover of the lower canopy follows from its leaf area,
 
 ```math
 f_{l} = \min\left\{0.975,\; \max\left[f^{min}_{l},\; \left(1 - e^{-k L_{l}}\right)\left(1 - \bar{D}\right)\right]\right\},
-\tag{11.25}
+\qquad\text{(11.25)}
 ```
 
 where $`f_{l}`$ is the cover of the lower canopy; $`L_{l} = \sum_{j=9}^{12} L_{j}`$ (m² m⁻²) is the leaf area index of the
@@ -737,7 +737,7 @@ tree biomass per unit of cover,
 
 ```math
 z_{bot,u} = 3, \qquad z_{top,u} = \max\left(z_{bot,u} + 1,\; 0.75 \times 2.5\, \frac{B_{u}}{f_{u}}\right),
-\tag{11.26}
+\qquad\text{(11.26)}
 ```
 
 where $`z_{bot,u}`$ and $`z_{top,u}`$ (m) are the bottom and top heights of the upper canopy; $`B_{u} = \sum_{j \le 8} B_{j}`$ (kg C m⁻²) is the biomass of the tree positions; and 2.5 (m m² kg C⁻¹) is the coefficient of IBIS 2.6b4. The
@@ -748,7 +748,7 @@ The stem area indices are
 
 ```math
 S_{l} = 0.05\, L_{l}, \qquad S_{u} = 0.25\, L_{u},
-\tag{11.27}
+\qquad\text{(11.27)}
 ```
 
 where $`S_{l}`$ and $`S_{u}`$ (m² m⁻²) are the stem area indices of the lower and the upper canopy, computed from the leaf
@@ -759,7 +759,7 @@ fraction of the tree wood, which enters the wood respiration (11.3) of the next 
 
 ```math
 \phi_{s} = \min\left[0.50,\; \max\left(0.05,\; \frac{q}{v}\, 0.75\, z_{top,u}\, \frac{\rho_{w}}{W}\right)\right],
-\tag{11.28}
+\qquad\text{(11.28)}
 ```
 
 where $`q`$ = 0.0025 m d⁻¹ is a transpiration rate and $`v`$ = 25 m d⁻¹ a sap velocity, whose ratio is the sapwood area
@@ -776,7 +776,7 @@ and harvest,
 
 ```math
 \mathrm{NEE} = N^{y} - R^{y}_{h} - E,
-\tag{11.29}
+\qquad\text{(11.29)}
 ```
 
 where NEE (kg C m⁻² yr⁻¹; `ayneetot` in the yearly output) is positive for a carbon sink; $`N^{y}`$ is the NPP of the

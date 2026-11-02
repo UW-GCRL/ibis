@@ -22,7 +22,7 @@ The pack has uniform density, so its water equivalent per unit cell area is
 
 ```math
 W = \rho_{s}\,f_{i}\,H, \qquad H = \sum_{k=1}^{3} h_{k},
-\tag{8.1}
+\qquad\text{(8.1)}
 ```
 
 where $`W`$ (kg m⁻²) is the cell-mean snow water equivalent, $`\rho_{s}`$ (kg m⁻³) is the snow density and $`H`$ (m) is the
@@ -109,7 +109,7 @@ layer, $`k_{i}(T_{i} - T_{1})`$, with conductance
 
 ```math
 k_{i} = \frac{\lambda_{s}}{0.5\,\max(h_{1},\, h_{top})},
-\tag{8.2}
+\qquad\text{(8.2)}
 ```
 
 where $`k_{i}`$ (W m⁻² K⁻¹) is computed with the top-layer thickness $`h_{1}`$ (m) at the start of the step; with
@@ -119,7 +119,7 @@ corrected for the temperatures of the air and the snow,
 
 ```math
 \lambda_{i} = h_{s} + c_{v}\,(T_{a} - 273.16) - c_{i}\,(T_{1} - 273.16),
-\tag{8.3}
+\qquad\text{(8.3)}
 ```
 
 where $`\lambda_{i}`$ (J kg⁻¹) is the latent heat, $`T_{a}`$ (K) is the air temperature of the step and $`T_{1}`$ (K) is the
@@ -129,7 +129,7 @@ top-layer temperature at the start of the step. The heat flux into the top layer
 F_{top} = S_{i} + L_{i} - H_{i} - \lambda_{i}E_{i}
 + P_{r,l}\left[c_{w}\,(T_{r,l} - T_{f}) + h_{f} + c_{i}\,(T_{f} - T_{1})\right]
 + P_{s,l}\,c_{i}\,(T_{s,l} - T_{1}),
-\tag{8.4}
+\qquad\text{(8.4)}
 ```
 
 where $`F_{top}`$ (W m⁻²) is the flux into the top layer; $`S_{i}`$ (W m⁻²) is the solar radiation absorbed by the snow
@@ -142,7 +142,7 @@ the thickness of the top layer,
 
 ```math
 h_{1} \leftarrow h_{1} + \left(P_{r,l} + P_{s,l} - E_{i}\right)\frac{\Delta t}{\rho_{s}} \qquad (f_{i}^{o} > 0),
-\tag{8.5}
+\qquad\text{(8.5)}
 ```
 
 where $`\Delta t = 3600`$ s is the time step. Rain is thus added to the pack as ice at the snow density; the latent heat
@@ -157,7 +157,7 @@ pack forms a fourth layer whose heat capacity and thermal resistance grow with i
 
 ```math
 x_{l} = 2\,f_{l}\,(L_{l} + S_{l}),
-\tag{8.6}
+\qquad\text{(8.6)}
 ```
 
 where $`x_{l}`$ (m² m⁻²) is the two-sided leaf and stem area of the lower vegetation per unit area of the cell,
@@ -168,7 +168,7 @@ of its cover ((10.3) and (11.27)). The conductances between the layers are
 k_{k-1,k} = \left(\frac{\tilde{h}_{k-1} + \tilde{h}_{k}}{2\,\lambda_{s}}\right)^{-1} (k = 2, 3), \qquad
 k_{3b} = \left(\frac{\tilde{h}_{3}}{2\,\lambda_{s}} + \frac{x_{l}}{2\,k_{b}}\right)^{-1}, \qquad
 k_{bs} = \left(\frac{x_{l}}{2\,k_{b}} + \frac{\Delta z_{1}}{2\,\lambda_{1}}\right)^{-1},
-\tag{8.7}
+\qquad\text{(8.7)}
 ```
 
 where $`k_{k-1,k}`$, $`k_{3b}`$ and $`k_{bs}`$ (W m⁻² K⁻¹) are the conductances between snow layers, between the bottom snow
@@ -180,7 +180,7 @@ conducts like 0.1 m of snow ($`k_{b} = \lambda_{s}/0.1`$ m). The temperatures at
 \rho_{s}\,c_{i}\,\tilde{h}_{k}\,\frac{T_{k}^{n+1} - T_{k}^{n}}{\Delta t} = F_{k-1/2} - F_{k+1/2} \quad (k = 1, 2, 3),
 \qquad
 x_{l}\,c_{l}\,\frac{T_{b}^{n+1} - T_{b}^{n}}{\Delta t} = F_{7/2} - k_{bs}\left(T_{b}^{n+1} - T_{s,1}^{n}\right),
-\tag{8.8}
+\qquad\text{(8.8)}
 ```
 
 with $`F_{1/2} = F_{top}`$, $`F_{k+1/2} = k_{k,k+1}\,(T_{k}^{n+1} - T_{k+1}^{n+1})`$ for $`k = 1, 2`$, and $`F_{7/2} = k_{3b}\,(T_{3}^{n+1} - T_{b}^{n+1})`$, where the superscripts $`n`$ and $`n+1`$ mark the start and the end of the step,
@@ -193,7 +193,7 @@ soil beneath the pack is
 F_{s} = F_{top} - \sum_{k=1}^{3} \rho_{s}\,c_{i}\,h_{k}\,\frac{T_{k}^{n+1} - T_{k}^{n}}{\Delta t}
 - x_{l}\,c_{l}\,\frac{T_{b}^{n+1} - T_{b}^{n}}{\Delta t} \quad (H < H_{deep}), \qquad
 F_{s} = k_{bs}\left(T_{b}^{n+1} - T_{s,1}^{n}\right) \quad (H \ge H_{deep}),
-\tag{8.9}
+\qquad\text{(8.9)}
 ```
 
 where $`F_{s}`$ (W m⁻²) is the flux per unit area of the snow-covered part and $`H`$ the total thickness after (8.5). For a pack thinner than $`H_{deep}`$ = 10 m, including every seasonal pack, the flux is calculated from the heat gained
@@ -219,7 +219,7 @@ at the pack's current thickness, increasing its cover without changing its thick
 \Delta f_{i} = \min\left[\frac{(1 - f_{i})\,P_{s,g}\,\Delta t}{\rho_{s}\,H},\; 1 - f_{i}\right], \qquad
 \Delta h_{x} = (1 - f_{i})\,\frac{P_{s,g}\,\Delta t}{\rho_{s}} - \Delta f_{i}\,H,
 \qquad H = h_{min} \;\text{ where the cell has no snow},
-\tag{8.10}
+\qquad\text{(8.10)}
 ```
 
 where $`\Delta f_{i}`$ is the increase of the cover, $`P_{s,g}`$ (kg m⁻² s⁻¹) is the snowfall reaching the ground
@@ -229,7 +229,7 @@ exceeds $`\rho_{s}H`$, which is at least 37.5 kg m⁻². The layer temperatures 
 
 ```math
 T_{k} \leftarrow \frac{f_{i}\,T_{k} + \Delta f_{i}\,T_{s,g}}{f_{i} + \Delta f_{i}}, \qquad f_{i} \leftarrow f_{i} + \Delta f_{i},
-\tag{8.11}
+\qquad\text{(8.11)}
 ```
 
 where $`T_{s,g}`$ (K) is the temperature of that snowfall. A new pack (where the cell had no snow) is given the layer
@@ -249,7 +249,7 @@ heat above the melting point melts snow:
 Q_{k} = \rho_{s}\,h_{k}\,c_{i}\,\max(T_{k} - T_{f},\, 0), \qquad
 M_{k} = \min\left(\rho_{s}\,h_{k},\; \frac{Q_{k}}{h_{f}}\right), \qquad
 h_{k} \leftarrow h_{k} - \frac{M_{k}}{\rho_{s}}, \qquad T_{k} \leftarrow \min(T_{k},\, T_{f}),
-\tag{8.12}
+\qquad\text{(8.12)}
 ```
 
 where $`Q_{k}`$ (J m⁻²) is the heat of layer $`k`$ above the melting point and $`M_{k}`$ (kg m⁻²) the snow it melts, per
@@ -263,7 +263,7 @@ cover and thickness. Below full cover, thickness increases linearly with cover,
 
 ```math
 H = h_{min} + \left(h_{ruf} - h_{min}\right) f_{i} \qquad (f_{i} < f_{max}),
-\tag{8.13}
+\qquad\text{(8.13)}
 ```
 
 from $`h_{min}`$ at vanishing cover to $`h_{ruf}`$ at full cover, where $`h_{ruf}`$ (m) is the snow thickness that buries
@@ -271,7 +271,7 @@ the lower canopy,
 
 ```math
 h_{ruf} = \min\left[0.70,\; \max\left(h_{min} + 0.05,\; f_{l}\,z_{top,l}\right)\right],
-\tag{8.14}
+\qquad\text{(8.14)}
 ```
 
 with $`z_{top,l}`$ (m) the height of the top of the lower canopy, set daily by the phenology (10.13). After melt, the model preserves snow volume per unit cell area, $`V = f_{i}H`$, and finds the cover and thickness that
@@ -281,7 +281,7 @@ satisfy (8.13) at that volume:
 f_{i}' = \min\left[\max\left(\frac{-\tfrac{1}{2}h_{min} + \sqrt{\tfrac{1}{4}h_{min}^{2} + (h_{ruf} - h_{min})\,V}}
 {h_{ruf} - h_{min}},\; 0\right),\; f_{max}\right], \qquad
 h_{k} \leftarrow h_{k}\,\frac{f_{i}}{f_{i}'}, \qquad f_{i} \leftarrow f_{i}',
-\tag{8.15}
+\qquad\text{(8.15)}
 ```
 
 where $`f_{i}'`$ is the new cover; the rescaling of the thicknesses keeps the volume (and so $`W`$) and the temperatures.
@@ -298,14 +298,14 @@ the top layer is $`h_{top}`$ thick and the two others share the rest (`vadapt`),
 ```math
 h_{1}' = h_{top}, \quad h_{2}' = h_{3}' = \frac{H - h_{top}}{2} \qquad (H \ge 3\,h_{top}); \qquad
 h_{k}' = \max\left(\frac{H}{3},\, 10^{-7}\right) \qquad (H < 3\,h_{top}),
-\tag{8.16}
+\qquad\text{(8.16)}
 ```
 
 and the temperatures are remapped to preserve the depth integral of temperature,
 
 ```math
 T_{k}' = \frac{1}{h_{k}'} \sum_{m=1}^{3} T_{m}\, \max\left[0,\; \min(z_{m}, z_{k}') - \max(z_{m-1}, z_{k-1}')\right],
-\tag{8.17}
+\qquad\text{(8.17)}
 ```
 
 where $`z_{m}`$ and $`z_{k}'`$ (m) are the depths of the bottoms of the old layer $`m`$ and the new layer $`k`$ below the snow
@@ -332,7 +332,7 @@ A pack whose cover has fallen below $`f_{min}`$ is melted completely:
 M_{r} = \rho_{s}\,f_{i}\sum_{k} h_{k}, \qquad
 Z_{r} = -\rho_{s}\,f_{i}\sum_{k} h_{k}\left[c_{i}\,(T_{f} - T_{k}) + h_{f}\right], \qquad
 h_{k} \leftarrow 0, \quad T_{k} \leftarrow T_{f}, \quad f_{i} \leftarrow 0 \qquad (f_{i} < f_{min}),
-\tag{8.18}
+\qquad\text{(8.18)}
 ```
 
 where $`M_{r}`$ (kg m⁻²) is the water that goes to the soil and $`Z_{r}`$ (J m⁻²) the heat taken from the soil to warm
@@ -351,7 +351,7 @@ T_{b} \leftarrow \frac{f_{i}^{o}\,T_{b} + \Delta f\,T_{l}}{f_{i}}, \qquad
 h_{3} \leftarrow h_{3} + \frac{\Delta f\,x_{l}\,(w_{l} + s_{l})}{\rho_{s}\,f_{i}}, \qquad
 Z_{b} = \Delta f\,x_{l}\left\{w_{l}\left[c_{w}(T_{l} - T_{f}) + h_{f} + c_{i}(T_{f} - T_{3})\right]
 + s_{l}\,c_{i}\,(T_{l} - T_{3})\right\} \quad (\Delta f > 0),
-\tag{8.19}
+\qquad\text{(8.19)}
 ```
 
 where $`w_{l}`$ and $`s_{l}`$ (kg m⁻² of leaf and stem area) are the liquid water and the snow held on the lower canopy
@@ -363,7 +363,7 @@ the larger exposed area:
 Z_{b} = -\Delta f\,x_{l}\,c_{l}\,(T_{b} - T_{l}), \qquad
 w_{l} \leftarrow w_{l}\,\frac{1 - f_{i}^{o}}{1 - f_{i}}, \qquad s_{l} \leftarrow s_{l}\,\frac{1 - f_{i}^{o}}{1 - f_{i}}
 \quad (\Delta f < 0).
-\tag{8.20}
+\qquad\text{(8.20)}
 ```
 
 The water held on the lower canopy is counted on its snow-free part only, $`x_{l}(1 - f_{i})(w_{l} + s_{l})`$ per unit
@@ -378,7 +378,7 @@ the cell with the cover at the start of the step. The heat flux into the soil su
 
 ```math
 G = (1 - f_{i}^{o})\,G_{g} + f_{i}^{o}\,F_{s} + \frac{Z}{\Delta t},
-\tag{8.21}
+\qquad\text{(8.21)}
 ```
 
 where $`G`$ (W m⁻²) is the flux into the soil; $`G_{g}`$ (W m⁻²) is the net flux at the snow-free ground surface
@@ -393,7 +393,7 @@ and the meltwater,
 ```math
 R = (1 - f_{i}^{o})\,R_{g} + \frac{M}{\Delta t}, \qquad
 T_{R} = \frac{(1 - f_{i}^{o})\,R_{g}\,T_{r,g} + (M/\Delta t)\,T_{f}}{R},
-\tag{8.22}
+\qquad\text{(8.22)}
 ```
 
 where $`R`$ (kg m⁻² s⁻¹) and $`T_{R}`$ (K) are the rate and the temperature of the water entering the soil surface; $`R_{g}`$
@@ -410,7 +410,7 @@ Snow albedo therefore depends on top-layer temperature and, for the direct beam,
 ```math
 x_{\Lambda} = \min\left[\alpha_{c,\Lambda},\; \max\left(\alpha_{w,\Lambda},\;
 \frac{\alpha_{w,\Lambda}\,(T_{1} - T_{f} + 15) + \alpha_{c,\Lambda}\,(T_{f} - T_{1})}{15}\right)\right],
-\tag{8.23}
+\qquad\text{(8.23)}
 ```
 
 so that the albedo falls linearly from its cold value $`\alpha_{c,\Lambda}`$ at $`T_{f} - 15`$ K to its melting value
@@ -421,7 +421,7 @@ The albedos for diffuse and for direct radiation are
 \alpha^{dif}_{\Lambda} = \min(1,\, x_{\Lambda}), \qquad
 \alpha^{dir}_{\Lambda} = \min\left[0.99,\; x_{\Lambda} + (1 - x_{\Lambda})\,g(\mu)\right], \qquad
 g(\mu) = \max\left(0,\; \frac{1.5}{1 + 4\mu} - 0.5\right),
-\tag{8.24}
+\qquad\text{(8.24)}
 ```
 
 where $`\mu`$ is the cosine of the solar zenith angle, by default at the middle of the step (Chapter 3); $`g`$ raises the

@@ -70,7 +70,7 @@ vapour pressure:
 ```math
 e_{a} = \frac{q_{a}\,p_{s}}{0.622 + 0.378\,q_{a}}, \qquad
 \delta_{e} = \max\left[e_{sat}(T_{a}) - e_{a},\; 0\right],
-\tag{13.1}
+\qquad\text{(13.1)}
 ```
 
 where $`e_{a}`$ (Pa) is the vapour pressure of the air; $`q_{a}`$ (kg kg⁻¹), $`T_{a}`$ (K) and $`p_{s}`$ (Pa) are the specific
@@ -81,7 +81,7 @@ pressure deficit. The model converts this deficit to a flammability between 0 an
 
 ```math
 F = \min\left(\frac{\delta_{e}}{\delta_{ref}},\; 1\right),
-\tag{13.2}
+\qquad\text{(13.2)}
 ```
 
 where $`F`$ is the flammability of the step and $`\delta_{ref} = 3`$ kPa (`fire.vpd_ref`) is the deficit at which it reaches 1.
@@ -90,7 +90,7 @@ A step is fire-prone when its flammability exceeds $`F_{c} = 0.33`$ (`fire.d_cri
 
 ```math
 N \leftarrow N + H(F - F_{c})\,\chi, \qquad S \leftarrow S + F\,H(F - F_{c})\,\chi, \qquad n \leftarrow n + 1,
-\tag{13.3}
+\qquad\text{(13.3)}
 ```
 
 where $`N`$ is the number of fire-prone steps, $`S`$ the sum of their flammability and $`n`$ the number of steps since the
@@ -126,7 +126,7 @@ N / \max(n, 1) & \text{by default (every step),} \\
 \min[1, N / \max(n/2, 1)] & \text{with the daylight-only option,}
 \end{cases}
 \qquad D = \frac{S}{\max(N, 1)},
-\tag{13.4}
+\qquad\text{(13.4)}
 ```
 
 where $`s`$ is the fire season, the fraction of all the year's steps that were fire-prone under the default rule, and
@@ -140,7 +140,7 @@ Litter represents the fuel supply:
 
 ```math
 f = \min\left(1,\; \frac{L}{L_{ref}}\right),
-\tag{13.5}
+\qquad\text{(13.5)}
 ```
 
 where $`f`$ is the litter factor; $`L`$ (kg C m⁻²) is the total litter carbon at the end of the year, the sum of the
@@ -149,7 +149,7 @@ litter of IBIS 2.6b4 at which the factor saturates (a constant of the code). The
 
 ```math
 V = \min\left(1,\; \frac{\Lambda}{\Lambda_{ref}}\right), \qquad \Lambda = \sum_{j=1}^{12} \max(\Lambda_{j}, 0),
-\tag{13.6}
+\qquad\text{(13.6)}
 ```
 
 where $`V`$ is the leaf-area factor; $`\Lambda_{j}`$ (m² m⁻²) is the leaf area index of position $`j`$ per unit area of the
@@ -165,7 +165,7 @@ x =
 x_{c} & \text{in the cells of the closed-canopy zones,} \\
 f_{u} & \text{elsewhere,}
 \end{cases}
-\tag{13.7}
+\qquad\text{(13.7)}
 ```
 
 where $`\ell`$ is the logistic factor; $`f_{u}`$ is the fractional cover of the upper canopy as the previous annual update
@@ -184,7 +184,7 @@ b =
 \dfrac{\sum_{j \in \mathcal{B}} \max(\Lambda_{j}, 0)}{\sum_{j=1}^{8} \max(\Lambda_{j}, 0)} & \text{if } \sum_{j=1}^{8} \max(\Lambda_{j}, 0) > 10^{-9}, \\
 0 & \text{otherwise,}
 \end{cases}
-\tag{13.8}
+\qquad\text{(13.8)}
 ```
 
 where $`d`$ is the damping factor; $`b`$ is the broadleaf share of the leaf area of the upper canopy; and $`\mathcal{B} = \{1, 2, 3, 5, 7\}`$ are the broadleaf tree positions (Table 2.1; the climate-zone types keep the leaf form of their
@@ -196,7 +196,7 @@ The burned fraction of the year is
 
 ```math
 A = \min\left[\max\left(1 - e^{-B},\; 0\right),\; 1\right], \qquad B = k_{b}\,s^{p}\,D\,f\,V\,d,
-\tag{13.9}
+\qquad\text{(13.9)}
 ```
 
 where $`A`$ is the fraction of the cell burned in the year (the variable `disturbf`); $`B`$ is the burn index; $`k_{b} = 0.44`$ (`fire.k_b`) is its scale; and $`p = 1`$ (`fire.p`) is the exponent on the fire season. The exponential form is
@@ -257,7 +257,7 @@ disturbance that acts on every position. The leaf, wood and root carbon of posit
 
 ```math
 C_{x,j}' = \max\left[0,\; C_{x,j}\,(1 - A\,m_{j} - \beta)\right], \qquad x \in \{\text{leaf}, \text{wood}, \text{root}\},
-\tag{13.10}
+\qquad\text{(13.10)}
 ```
 
 where $`C_{x,j}`$ (kg C m⁻²) is the carbon of pool $`x`$ of position $`j`$ after the year's allocation and turnover
@@ -276,7 +276,7 @@ litter:
 \Delta F_{leaf} = \sum_{j=1}^{12} A\,m_{j}\,(1 - c_{l})\,C_{leaf,j}, \qquad
 \Delta F_{wood} = \sum_{j=1}^{12} A\,m_{j}\,(1 - c_{w})\,C_{wood,j}, \qquad
 \Delta F_{root} = \sum_{j=1}^{12} A\,m_{j}\,C_{root,j},
-\tag{13.11}
+\qquad\text{(13.11)}
 ```
 
 where $`\Phi_{f}`$ (kg C m⁻² yr⁻¹) is the carbon that the fire burns (combusts); $`\Phi_{b}`$ (kg C m⁻² yr⁻¹) is the carbon
@@ -294,7 +294,7 @@ model, leaves out the fire of cropland. The carbon removed from the ecosystem in
 
 ```math
 C_{dist} = \Phi_{f} + \Phi_{b} + H_{c}, \qquad N_{yr} = P_{n} - R_{h} - C_{dist},
-\tag{13.12}
+\qquad\text{(13.12)}
 ```
 
 where $`C_{dist}`$ (kg C m⁻² yr⁻¹; the variable `cdisturb`, written as `aycdisturb` in runs with a cropland map) is the carbon removed from the
@@ -334,7 +334,7 @@ Fire also reduces both canopies' cover. The model first calculates each canopy's
 ```math
 1 - A\,\bar{m} - \beta, \qquad
 \bar{m} = \frac{\sum_{j=1}^{12} \max(\Lambda_{j}, 0)\,m_{j}}{\max\left[\sum_{j=1}^{12} \max(\Lambda_{j}, 0),\; 10^{-12}\right]},
-\tag{13.13}
+\qquad\text{(13.13)}
 ```
 
 where $`\bar{m}`$ is the mortality of the cell, weighted by the leaf area of the positions as the previous annual update
@@ -342,7 +342,7 @@ set it. The same factor applies to the upper and the lower canopy:
 
 ```math
 f_{u} \leftarrow f_{u}\,(1 - A\,\bar{m} - \beta), \qquad f_{l} \leftarrow f_{l}\,(1 - A\,\bar{m} - \beta),
-\tag{13.14}
+\qquad\text{(13.14)}
 ```
 
 where $`f_{l}`$ is the fractional cover of the lower canopy.
@@ -364,14 +364,14 @@ and NOx. The carbon burned from position $`j`$ is its contribution to $`\Phi_{f}
 
 ```math
 \Phi_{j} = A\,m_{j}\left(c_{l}\,C_{leaf,j} + c_{w}\,C_{wood,j}\right), \qquad \Phi_{f} = \sum_{j=1}^{12} \Phi_{j},
-\tag{13.15}
+\qquad\text{(13.15)}
 ```
 
 where $`\Phi_{j}`$ (kg C m⁻² yr⁻¹) is the carbon that the fire burns from position $`j`$. The emission of species $`x`$ is
 
 ```math
 E_{x} = \sum_{j=1}^{12} \frac{\Phi_{j}}{0.45}\,\epsilon_{x,k(j)},
-\tag{13.16}
+\qquad\text{(13.16)}
 ```
 
 where $`E_{x}`$ (g m⁻² yr⁻¹) is the emission of the species (NOx counted as NO); 0.45 kg C (kg dry matter)⁻¹ is the carbon
@@ -416,7 +416,7 @@ With `physics.fire_scheme: legacy` the model uses the fire routine of IBIS 2.6b4
 ```math
 \phi = \min\left[\max\left(-2\left(\frac{\theta - \theta_{w}}{1 - \theta_{w}} - 0.5\right),\; 0\right),\; 1\right], \qquad
 \theta = \theta_{i} + (1 - \theta_{i})\,\theta_{l},
-\tag{13.17}
+\qquad\text{(13.17)}
 ```
 
 where $`\phi`$ is the fuel dryness; $`\theta_{l}`$ is the liquid water of the top soil layer as a fraction of its ice-free
@@ -427,7 +427,7 @@ saturation, and is 0 in wetter soil. Its mean over the steps of the year is kept
 
 ```math
 \Phi_{n} = \frac{(n - 1)\,\Phi_{n-1} + \phi}{n},
-\tag{13.18}
+\qquad\text{(13.18)}
 ```
 
 where $`\Phi_{n}`$ is the mean after step $`n`$ of the year (the variable `firefac`), which restarts at $`\Phi_{1} = \phi`$ each
@@ -435,7 +435,7 @@ year and includes every step, day and night, as in IBIS 2.6b4. At the end of the
 
 ```math
 A = \min\left[\max\left(1 - \exp\left(-0.5\,\Phi\,f\right),\; 0\right),\; 1\right],
-\tag{13.19}
+\qquad\text{(13.19)}
 ```
 
 with $`f`$ from (13.5) and $`\Phi`$ the year's mean dryness. Under the `legacy` scheme every position loses the same share
@@ -458,7 +458,7 @@ a ramp in the fine fuel,
 
 ```math
 f = \min\left[\max\left(\frac{L_{a} + w_{t}\sum_{j=1}^{10} C_{leaf,j} + w_{g}\sum_{j=11}^{12} C_{leaf,j} - L_{lo}}{L_{hi} - L_{lo}},\; 0\right),\; 1\right],
-\tag{13.20}
+\qquad\text{(13.20)}
 ```
 
 where $`L_{a}`$ (kg C m⁻²) is the above-ground (leaf and wood) litter; $`w_{t} = 0.3`$ and $`w_{g} = 1`$ are the weights of
@@ -470,7 +470,7 @@ density $`P_{d}`$ (persons km⁻²):
 ```math
 I = I_{0} + (I_{max} - I_{0})\left(1 - e^{-a\,P_{d}}\right), \qquad
 U = 0.2 + 0.8\,\exp\left[-\pi\left(\frac{P_{d}}{450}\right)^{1/2}\right],
-\tag{13.21}
+\qquad\text{(13.21)}
 ```
 
 where $`I`$ is the ignition factor, with $`I_{0} = 1`$, $`I_{max} = 3`$ and $`a = 0.01`$ km² person⁻¹ (`fire.ig0`,

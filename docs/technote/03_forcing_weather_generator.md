@@ -51,7 +51,7 @@ orbital angle
 
 ```math
 \theta = \frac{2\pi J}{365.2425},
-\tag{3.1}
+\qquad\text{(3.1)}
 ```
 
 where $`J`$ is the day of the year (1 on 1 January), the solar declination $`\delta`$ (rad) is
@@ -59,21 +59,21 @@ where $`J`$ is the day of the year (1 on 1 January), the solar declination $`\de
 ```math
 \delta = 0.006918 - 0.399912\cos\theta + 0.070257\sin\theta - 0.006758\cos 2\theta + 0.000907\sin 2\theta
 - 0.002697\cos 3\theta + 0.001480\sin 3\theta,
-\tag{3.2}
+\qquad\text{(3.2)}
 ```
 
 and the solar irradiance at the top of the atmosphere on a surface facing the sun, $`S`$ (W m⁻²), is
 
 ```math
 S = S_{0}\left(1.000110 + 0.034221\cos\theta + 0.001280\sin\theta + 0.000719\cos 2\theta + 0.000077\sin 2\theta\right),
-\tag{3.3}
+\qquad\text{(3.3)}
 ```
 
 where $`S_{0} = 1370`$ W m⁻² is the solar constant. The cosine of the solar zenith angle is
 
 ```math
 \mu = \max\left[0,\; \sin\phi\,\sin\delta + \cos\phi\,\cos\delta\,\cos h\right], \qquad h = \frac{2\pi\,(t - 12)}{24},
-\tag{3.4}
+\qquad\text{(3.4)}
 ```
 
 where $`\phi`$ (rad) is the latitude of the cell, $`h`$ (rad) is the hour angle and $`t`$ (h) is the local solar time at which
@@ -87,7 +87,7 @@ transmissivity is the fraction of sunlight that passes through the atmosphere (F
 
 ```math
 \tau = 0.251 + 0.509\,(1 - c),
-\tag{3.5}
+\qquad\text{(3.5)}
 ```
 
 and the share of it that arrives as diffuse light (Nikolov and Zeller, 1992) is
@@ -98,14 +98,14 @@ f_{d} =
 1.0045 + 0.0435\,\tau - 3.5227\,\tau^{2} + 2.6313\,\tau^{3} & \tau \le 0.75, \\
 0.166 & \tau > 0.75.
 \end{cases}
-\tag{3.6}
+\qquad\text{(3.6)}
 ```
 
 The direct and diffuse radiation incident on the surface in waveband $`\Lambda`$ are
 
 ```math
 S^{\mu}_{\Lambda} = S\,\mu\,\nu_{\Lambda}\,\tau\,(1 - f_{d}), \qquad S_{\Lambda} = S\,\mu\,\nu_{\Lambda}\,\tau\,f_{d},
-\tag{3.7}
+\qquad\text{(3.7)}
 ```
 
 where $`S^{\mu}_{\Lambda}`$ and $`S_{\Lambda}`$ (W m⁻²) are the direct and the diffuse radiation and $`\nu_{\Lambda}`$ is the
@@ -117,7 +117,7 @@ daily mean shortwave radiation, $`R`$ (W m⁻²), by inverting (3.5):
 ```math
 c = \min\left[\max\left(1 - \frac{\tau_{obs} - 0.251}{0.509},\, 0\right),\, 1\right], \qquad
 \tau_{obs} = \min\left[\max\left(\frac{R}{S\,\bar{\mu}},\, 0\right),\, 1\right],
-\tag{3.8}
+\qquad\text{(3.8)}
 ```
 
 where $`\tau_{obs}`$ is the transmissivity of the day and $`\bar{\mu}`$ is the mean of $`\mu`$ over the 24 hours,
@@ -125,7 +125,7 @@ where $`\tau_{obs}`$ is the transmissivity of the day and $`\bar{\mu}`$ is the m
 ```math
 \bar{\mu} = \max\left[0,\; \frac{h_{s}\sin\phi\,\sin\delta + \cos\phi\,\cos\delta\,\sin h_{s}}{\pi}\right], \qquad
 \cos h_{s} = \min\left[\max\left(-\tan\phi\,\tan\delta,\, -1\right),\, 1\right],
-\tag{3.9}
+\qquad\text{(3.9)}
 ```
 
 with $`h_{s}`$ (rad) the hour angle of sunset. Where $`\bar{\mu} < 0.01`$ (the polar night and the days next to it) the
@@ -150,7 +150,7 @@ temperature cycle (Campbell and Norman, 1998):
 ```math
 T_{a} = \gamma\,T_{max} + (1 - \gamma)\,T_{min}, \qquad
 \gamma = 0.44 - 0.46\sin\left(\frac{\pi t}{12} + 0.9\right) + 0.11\sin\left(\frac{2\pi t}{12} + 0.9\right),
-\tag{3.10}
+\qquad\text{(3.10)}
 ```
 
 where $`T_{a}`$ (K) is the step's air temperature; $`T_{max}`$ and $`T_{min}`$ (K) are the forcing's daily maximum and
@@ -169,7 +169,7 @@ preserves the daily mean specific humidity where that limit allows:
 q_{min} = \min\left[\bar{q},\; 0.99\,q_{sat}(T_{min}, p)\right], \qquad
 q_{max} = \frac{\bar{q} - 0.56\,q_{min}}{0.44}, \qquad
 q_{a} = \min\left[0.99\,q_{sat}(T_{a}, p),\; \gamma\,q_{max} + (1 - \gamma)\,q_{min}\right],
-\tag{3.11}
+\qquad\text{(3.11)}
 ```
 
 where $`q_{a}`$ (kg kg⁻¹) is the specific humidity of the step, $`\bar{q}`$ (kg kg⁻¹) is the daily mean specific humidity
@@ -178,7 +178,7 @@ temperature, $`p`$ (Pa) is the surface pressure and $`q_{sat}(T, p)`$ (kg kg⁻�
 
 ```math
 q_{sat} = \frac{0.622\,e_{sat}(T)}{\max\left[p - 0.378\,e_{sat}(T),\; 0.622\,e_{sat}(T)\right]},
-\tag{3.12}
+\qquad\text{(3.12)}
 ```
 
 with $`e_{sat}(T)`$ (Pa) the saturation vapour pressure over water or ice from the polynomials of Lowe (1977) (Chapter 5).
@@ -202,7 +202,7 @@ EPIC weather generator (Sharpley and Williams, 1990):
 
 ```math
 u_{a} = \min\left[\max\left(1.13989\,\bar{u}\,(-\ln \xi)^{0.30},\; 2.5\right),\; 10\right],
-\tag{3.13}
+\qquad\text{(3.13)}
 ```
 
 where $`u_{a}`$ (m s⁻¹) is the wind speed of the step, $`\bar{u}`$ (m s⁻¹) is the daily mean wind speed of the forcing and
@@ -220,7 +220,7 @@ $`\langle u_a\rangle`$ is that day's expected value from (3.13),
 \langle u_a\rangle = 2.5\left(1 - e^{-x_{1}}\right) + 10\,e^{-x_{2}}
 + a\,\Gamma(1.3)\left[P_\Gamma(1.3, x_{2}) - P_\Gamma(1.3, x_{1})\right], \qquad
 a = 1.13989\,\bar{u}, \quad x_{1} = \left(\frac{2.5}{a}\right)^{1/0.3}, \quad x_{2} = \left(\frac{10}{a}\right)^{1/0.3},
-\tag{3.13a}
+\qquad\text{(3.13a)}
 ```
 
 and $`P_\Gamma`$ is the regularized lower incomplete gamma function. The rescaled wind keeps the daily mean of the forcing on
@@ -241,7 +241,7 @@ The day's precipitation falls as one event at a constant rate. The event lasts $
 L = \min\left[\max\left(L_{r},\; \left\lceil P/15 \right\rceil\right),\; L_{max}\right], \qquad
 L_{min} = 1 + \left\lfloor \frac{4 \cdot 3600 - 1}{\Delta t} \right\rfloor, \qquad
 L_{max} = \max\left(\left\lfloor \frac{86400}{\Delta t} \right\rfloor,\; L_{min}\right),
-\tag{3.14}
+\qquad\text{(3.14)}
 ```
 
 where $`P`$ (mm) is the daily precipitation and $`L_{r}`$ is a random whole number between $`L_{min}`$ and $`L_{max}`$ (4 and
@@ -251,7 +251,7 @@ during steps $`n_{0}`$ to $`n_{0} + L - 1`$ the precipitation rate is
 
 ```math
 P_{a} = \frac{P}{L\,\Delta t},
-\tag{3.15}
+\qquad\text{(3.15)}
 ```
 
 where $`P_{a}`$ (mm s⁻¹, or kg m⁻² s⁻¹) falls as rain when $`T_{a}`$ of the step exceeds 2.5 °C and as snow otherwise
@@ -320,7 +320,7 @@ f_{d} =
 r & k_{t} > K,
 \end{cases}
 \qquad r = 0.847 - 1.61\,\mu + 1.04\,\mu^{2}, \qquad K = \frac{1.47 - r}{1.66},
-\tag{3.16}
+\qquad\text{(3.16)}
 ```
 
 with $`f_{d}`$ limited to $`[0, 1]`$ and set to 1 when the sun is below the horizon. The two parts are then divided into the
@@ -334,7 +334,7 @@ Tower records use local standard time; the model uses local apparent solar time 
 t_{sol} = t_{std} + \frac{\lambda - 15\,u}{15} + E_t, \qquad
 E_t = \frac{229.18}{60}\left(0.000075 + 0.001868\cos\theta - 0.032077\sin\theta - 0.014615\cos 2\theta
 - 0.040849\sin 2\theta\right),
-\tag{3.17}
+\qquad\text{(3.17)}
 ```
 
 where $`t_{sol}`$ and $`t_{std}`$ (h) are the solar time and the time on the tower's clock, $`\lambda`$ (degrees east) is the

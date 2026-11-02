@@ -135,7 +135,7 @@ processes in Table 1.3 are solved sequentially, each over the full step using th
 
 ```math
 \mathbf{x}^{n+1} = \mathcal{S}_{12} \circ \mathcal{S}_{11} \circ \cdots \circ \mathcal{S}_{1}\left(\mathbf{x}^{n};\, \mathbf{f}^{n}\right),
-\tag{17.1}
+\qquad\text{(17.1)}
 ```
 
 where $`\mathbf{x}^{n}`$ is the model state at the start of step $`n`$, $`\mathbf{f}^{n}`$ is the forcing of the step from the
@@ -165,7 +165,7 @@ ground and snow surface. This sequence is repeated three times. Each pass $`i = 
 ```math
 \mathbf{A}^{(i)}\,\mathbf{y}^{(i)} = \mathbf{b}^{(i)}, \qquad
 \mathbf{y} = \left(T_u, T_s, T_l, T_{12}, T_{34}, q_{12}, q_{34}, T_g, T_i\right)^{\mathsf{T}},
-\tag{17.2}
+\qquad\text{(17.2)}
 ```
 
 where $`T_u`$, $`T_s`$ and $`T_l`$ (K) are the temperatures of the upper-canopy leaves, the upper-canopy stems and the
@@ -187,7 +187,7 @@ routine `linsolve` (`math.f`):
 b_{j} \leftarrow b_{j} - \ell_{jk}\,b_{k} \quad (k = 1, \ldots, 8;\; j = k+1, \ldots, 9;\; m = 1, \ldots, 9),
 \qquad
 y_{k} = \frac{b_{k} - \sum_{m > k} a_{km}\,y_{m}}{a_{kk}} \quad (k = 9, \ldots, 1),
-\tag{17.3}
+\qquad\text{(17.3)}
 ```
 
 where $`a_{jm}`$ and $`b_{j}`$ are the elements of $`\mathbf{A}`$ and $`\mathbf{b}`$ and $`\ell_{jk}`$ is the multiplier of row
@@ -206,7 +206,7 @@ tridiagonal system per cell,
 
 ```math
 a_{k}\,x_{k-1} + b_{k}\,x_{k} + c_{k}\,x_{k+1} = r_{k}, \qquad k = 1, \ldots, K, \quad a_{1} = c_{K} = 0,
-\tag{17.4}
+\qquad\text{(17.4)}
 ```
 
 where $`x_{k}`$ is the unknown of layer $`k`$ at the end of the step (a temperature in K, or a volumetric water content as
@@ -220,7 +220,7 @@ Fortran routine `tridia` of `math.f`):
 \gamma_{k} = \frac{c_{k}}{b_{k} - a_{k}\gamma_{k-1}}, \quad x'_{k} = \frac{r_{k} - a_{k}x'_{k-1}}{b_{k} - a_{k}\gamma_{k-1}}
 \quad (k = 2, \ldots, K), \qquad
 x_{K} = x'_{K}, \quad x_{k} = x'_{k} - \gamma_{k}\,x_{k+1} \quad (k = K-1, \ldots, 1),
-\tag{17.5}
+\qquad\text{(17.5)}
 ```
 
 where $`\gamma_{k}`$ and $`x'_{k}`$ are the coefficients of the forward sweep. With the three bedrock layers of the release
@@ -263,7 +263,7 @@ under conditions not sampled by Fortran verification. Each has the form
 
 ```math
 \phi' = \min\left[\max\left(\phi,\; \phi_{lo}\right),\; \phi_{hi}\right],
-\tag{17.6}
+\qquad\text{(17.6)}
 ```
 
 where $`\phi`$ is the value computed by the step, $`\phi'`$ the value used, and $`\phi_{lo}`$ and $`\phi_{hi}`$ the limits of
@@ -347,7 +347,7 @@ precision), so every operation of its time step was in single precision. The rel
 
 ```math
 u_{32} = 2^{-24} \approx 6.0 \times 10^{-8}, \qquad u_{64} = 2^{-53} \approx 1.1 \times 10^{-16},
-\tag{17.7}
+\qquad\text{(17.7)}
 ```
 
 where $`u`$ is the unit roundoff. Near the melting point (273.16 K), neighbouring single-precision numbers are $`2^{-15} \approx 3.05 \times 10^{-5}`$ K apart, and double-precision numbers $`2^{-44} \approx 5.7 \times 10^{-14}`$ K apart.
@@ -425,7 +425,7 @@ array entries to cells can change a cell's weather. Global runs start with key 4
 ```math
 \left(k_{d+1},\, k^{p}_{d},\, k^{s}_{d,0}\right) = \operatorname{split}(k_{d}), \qquad
 \left(k^{s}_{d,n+1},\, \kappa_{d,n}\right) = \operatorname{split}\left(k^{s}_{d,n}\right), \quad n = 0, \ldots, 23,
-\tag{17.8}
+\qquad\text{(17.8)}
 ```
 
 where $`k_{d}`$ is the key carried into day $`d`$, $`k^{p}_{d}`$ the key of the day's precipitation event (split again into
@@ -729,7 +729,7 @@ For each cell, quantity and year the harness kept the largest absolute differenc
 
 ```math
 D_{c,y} = \max_{n \in y} \left| x^{F}_{c,n} - x^{J}_{c,n} \right|,
-\tag{17.9}
+\qquad\text{(17.9)}
 ```
 
 where $`x^{F}_{c,n}`$ and $`x^{J}_{c,n}`$ are the Fortran's and the port's values of the quantity in cell $`c`$ after step $`n`$

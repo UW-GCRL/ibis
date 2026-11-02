@@ -56,7 +56,7 @@ The displayed leaf area of the upper and the lower canopy is
 
 ```math
 L^{d}_{u} = \sum_{j=1}^{8} \eta_{j}\,L_{j}, \qquad L^{d}_{l} = \sum_{j=9}^{12} \eta_{j}\,L_{j},
-\tag{10.1}
+\qquad\text{(10.1)}
 ```
 
 where $`L_{j}`$ (m² m⁻²) is the leaf area index of position $`j`$ (`vegetation.plai`; Chapter 11), and $`L^{d}_{u}`$ and
@@ -65,7 +65,7 @@ displayed leaf area of its canopy is
 
 ```math
 \omega_{j} = \frac{\eta_{j}\,L_{j}}{\max\left(L^{d}_{c(j)},\, \varepsilon\right)},
-\tag{10.2}
+\qquad\text{(10.2)}
 ```
 
 where $`\omega_{j}`$ (`vegetation.frac`; written $`\phi_{j}`$ in Chapter 9) is the share; $`c(j)`$ is the canopy of position
@@ -76,7 +76,7 @@ photosynthesis among its positions (Chapter 9). The leaf area of each canopy per
 ```math
 \Lambda_{u} = \min\left[\frac{L^{d}_{u}}{\max(f_{u}, \varepsilon)},\; 12\right], \qquad
 \Lambda_{l} = \min\left[\frac{L^{d}_{l}}{\max(f_{l}, \varepsilon)},\; 12\right],
-\tag{10.3}
+\qquad\text{(10.3)}
 ```
 
 where $`\Lambda_{u}`$ and $`\Lambda_{l}`$ (m² m⁻²; `vegetation.lai`) are the leaf area indices of the upper and the lower
@@ -94,7 +94,7 @@ each of four big leaves are updated at the end of each day,
 \bar{T}_{10}^{\,n} = w\,\bar{T}_{10}^{\,n-1} + (1 - w)\,T_{d}^{\,n}, \qquad
 \bar{A}_{10,b}^{\,n} = w\,\bar{A}_{10,b}^{\,n-1} + (1 - w)\,\frac{1}{86400}\sum_{k=1}^{24} A_{b,k}\,\Delta t,
 \qquad w = e^{-1/10},
-\tag{10.4}
+\qquad\text{(10.4)}
 ```
 
 where $`n`$ is the day; $`\bar{T}_{10}`$ (K; `summary.a10td`) is the ten-day mean air temperature; $`T_{d}`$ (K) is the daily
@@ -111,7 +111,7 @@ leaves in autumn. The model starts to drop their leaves when the ten-day mean te
 
 ```math
 T^{*}_{u} = \max\left(T_{f},\; T_{c} + \Delta T_{u} + T_{f},\; T_{abs} + T_{f}\right),
-\tag{10.5}
+\qquad\text{(10.5)}
 ```
 
 where $`T^{*}_{u}`$ (K) is the leaf-drop temperature of the upper canopy; $`T_{f} = 273.16`$ K; $`\Delta T_{u}`$ (K;
@@ -132,7 +132,7 @@ G^{\,n}_{u} =
 G^{\,n-1}_{u} + T^{\,n}_{d} - T^{g}_{u} & \text{otherwise,}
 \end{cases}
 \qquad T^{g}_{u} = \Theta^{g}_{u} + T_{f},
-\tag{10.6}
+\qquad\text{(10.6)}
 ```
 
 where $`G_{u}`$ (K d; `vegetation.agddu`) is the degree-day sum of the upper canopy; $`\Theta^{g}_{u}`$ (°C;
@@ -147,7 +147,7 @@ December). The display factor of the cold-deciduous trees is
 \max\left(0,\; \phi^{\,n-1}_{u} - 1/\tau_{d}\right) & \bar{T}_{10}^{\,n-1} < T^{*}_{u} \;\text{ or }\; \sigma^{n}_{u}, \\[4pt]
 \min\left[1,\; \max\left(0,\; G^{\,n}_{u} - G^{*}_{u}\right)/R_{u}\right] & \text{otherwise,}
 \end{cases}
-\tag{10.7}
+\qquad\text{(10.7)}
 ```
 
 where $`\phi_{u}`$ (`vegetation.tempu`) is the cold-phenology factor of the upper canopy; $`\tau_{d}`$ (d; `pheno.ddays`)
@@ -172,7 +172,7 @@ G^{\,n-1}_{l} + T^{\,n}_{d} - T^{g}_{l} & \text{otherwise,}
 \max\left(0,\; \phi^{\,n-1}_{l} - 1/\tau_{d}\right) & \bar{T}_{10}^{\,n-1} < T^{*}_{l} \;\text{ or }\; \sigma^{n}_{l}, \\[4pt]
 \min\left[1,\; \max\left(0,\; G^{\,n}_{l} - G^{*}_{l}\right)/R_{l}\right] & \text{otherwise,}
 \end{cases}
-\tag{10.8}
+\qquad\text{(10.8)}
 ```
 
 with $`T^{*}_{l} = \Theta_{l} + T_{f}`$ and $`T^{g}_{l} = \Theta^{g}_{l} + T_{f}`$, where $`G_{l}`$ (K d;
@@ -195,7 +195,7 @@ Vitasse et al., 2011). The day length is
 ```math
 N(J) = \frac{24}{\pi}\arccos\left\{\min\left[\max\left(-\tan\vartheta\,\tan\delta_{p},\; -1\right),\; 1\right]\right\},
 \qquad \delta_{p} = 0.40910518\,\sin\left[\frac{2\pi\,(J - 81)}{365}\right],
-\tag{10.9}
+\qquad\text{(10.9)}
 ```
 
 where $`N`$ (h) is the astronomical day length on day of the year $`J`$; $`\vartheta`$ (rad) is the latitude of the cell
@@ -209,7 +209,7 @@ Y^{\,n}_{c} =
 Y^{\,n-1}_{c} + \max\left(T_{b,c} - T^{\,n}_{d,C},\; 0\right) & N(J) < N(J - 1) \;\text{ and }\; N(J) < P_{start,c}, \\
 0 & \text{otherwise,}
 \end{cases}
-\tag{10.10}
+\qquad\text{(10.10)}
 ```
 
 where $`Y_{c}`$ (K d; `seasonal.ssen_u`, `seasonal.ssen_l`) is the senescence sum; $`T_{d,C}`$ (°C) is the daily mean air
@@ -218,7 +218,7 @@ temperature; $`T_{b,c}`$ (°C; `pheno.sen_tb_u`, `pheno.sen_tb_l`) is the base t
 
 ```math
 \sigma^{n}_{c} = \left(Y^{\,n}_{c} \ge Y_{crit,c}\right),
-\tag{10.11}
+\qquad\text{(10.11)}
 ```
 
 with $`Y_{crit,c}`$ (K d; `pheno.sen_ycrit_u`, `pheno.sen_ycrit_l`) the critical sum, acts in (10.6)-(10.8) like a cold
@@ -257,7 +257,7 @@ D^{\,n}_{b} =
 \max\left(D_{min},\; D^{\,n-1}_{b} - 1/\tau_{d}\right) & \bar{A}^{\,n-1}_{10,b} < A^{*} \;\text{ or }\; \left(\beta_{c(b)} < \beta^{*} \;\text{ and }\; g^{n}_{b}\right), \\[4pt]
 \min\left(1,\; D^{\,n-1}_{b} + 1/\tau_{d}\right) & \text{otherwise,}
 \end{cases}
-\tag{10.12}
+\qquad\text{(10.12)}
 ```
 
 where $`D_{b}`$ (`vegetation.dropu`, `dropls`, `dropl4`, `dropl3`) is the drought factor of big leaf $`b`$; $`D_{min}`$
@@ -336,7 +336,7 @@ The phenology also sets the height of the lower canopy, which grows with its lea
 ```math
 z_{bot,l} = 0.05, \qquad
 z_{top,l} = \min\left[\max\left(0.25,\; 0.25\,\Lambda_{l}\right),\; z_{bot,u} - 0.5\right],
-\tag{10.13}
+\qquad\text{(10.13)}
 ```
 
 where $`z_{bot,l}`$ and $`z_{top,l}`$ (m) are the bottom and top heights of the lower canopy, and $`z_{bot,u}`$ (m) is the
@@ -493,7 +493,7 @@ canopy's soil-water stress factor on growing-season days, after daily decomposit
 ```math
 U_{u} = \sum_{n} \beta^{\,n}_{u}\,g^{n}, \qquad U_{l} = \sum_{n} \beta^{\,n}_{l}\,g^{n}, \qquad N_{g} = \sum_{n} g^{n},
 \qquad g^{n} = \left(T^{\,n}_{d} > T_{f} + T_{g}\right),
-\tag{10.14}
+\qquad\text{(10.14)}
 ```
 
 where $`U_{u}`$ and $`U_{l}`$ (d; `stress.aystressu`, `stress.aystressl`) are the sums; $`N_{g}`$ (d; `stress.nday`) is the

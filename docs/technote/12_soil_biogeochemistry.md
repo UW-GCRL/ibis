@@ -74,7 +74,7 @@ Each source is divided into its three chemical fractions using the Verberne mode
 f_{lig} = \frac{f_{max}\,c^{2}}{r + c^{2}}, \qquad
 f_{str} = \frac{1/c - f_{lig}/c_{lig} - (1 - f_{lig})/c_{met}}{1/c_{str} - 1/c_{met}}, \qquad
 f_{met} = 1 - f_{lig} - f_{str},
-\tag{12.1}
+\qquad\text{(12.1)}
 ```
 
 where $`f_{lig}`$, $`f_{str}`$ and $`f_{met}`$ are the lignin, structural and metabolic fractions of the litter; $`c`$ is the
@@ -86,7 +86,7 @@ accelerated spin-up (section 12.7), litter pool $`x`$ of source $`q`$ receives
 
 ```math
 \Delta C_{x} = f_{x,q}\,\frac{L_{q}}{n_{d}},
-\tag{12.2}
+\qquad\text{(12.2)}
 ```
 
 where $`f_{x,q}`$ is the fraction (12.1) of pool $`x`$ in the litter of source $`q`$ and $`n_{d}`$ is the number of days of the
@@ -120,7 +120,7 @@ The temperature factor follows Lloyd and Taylor (1994), with a base temperature 
 
 ```math
 f_{T}(T) = \min\left\{\exp\left[E_{0}\left(\frac{1}{T_{b} - T_{0}} - \frac{1}{\max(T,\, T_{0} + 10) - T_{0}}\right)\right],\; 10\right\},
-\tag{12.3}
+\qquad\text{(12.3)}
 ```
 
 where $`T`$ (K) is the soil temperature; $`T_{b} = 288.16`$ K is the base temperature, at which $`f_{T} = 1`$;
@@ -141,7 +141,7 @@ E_{0,c} =
 \dfrac{\sum_{j} \Lambda_{c,j}\,E_{0,c,j}}{\sum_{j} \Lambda_{c,j}} & \sum_{j} \Lambda_{c,j} \ge 10^{-6}, \\[2ex]
 \dfrac{1}{12}\sum_{j} E_{0,c,j} & \text{otherwise},
 \end{cases}
-\tag{12.4}
+\qquad\text{(12.4)}
 ```
 
 where $`E_{0,c,j}`$ (K) is the value of position $`j`$ in cell $`c`$, and $`\Lambda_{c,j}`$ (m² m⁻²) is the leaf area index of
@@ -199,7 +199,7 @@ f_{W}(\theta) =
 \end{cases}
 \qquad
 \theta = 100\,(1 - w_{i})\,w - (\theta_{opt} - 60),
-\tag{12.5}
+\qquad\text{(12.5)}
 ```
 
 where $`\theta`$ (%) is the water-filled pore space; $`w`$ is the liquid water content of the soil as a share of the pore
@@ -225,7 +225,7 @@ and wood litter lie. The soil factor uses the top metre, which contains the root
 ```math
 f_{l} = \operatorname{clip}\left[f_{T}(T_{1})\,f_{W}(\theta_{1})\,\kappa,\; 0.001,\; 10\right], \qquad
 f_{s} = \operatorname{clip}\left[f_{T}(\bar{T})\,f_{W}(\bar{\theta})\,\kappa,\; 0.001,\; 10\right],
-\tag{12.6}
+\qquad\text{(12.6)}
 ```
 
 where $`T_{1}`$ and $`\theta_{1}`$ are the temperature and the water-filled pore space of the top soil layer; $`\bar{T}`$
@@ -255,7 +255,7 @@ s_{c} = \sigma_{c}\,\rho_{c}, \qquad
 \exp\left[E_{s}\left(\dfrac{1}{T_{r} - T_{0}} - \dfrac{1}{\max(\bar{T}, T_{0} + 10) - T_{0}}\right)\right]\dfrac{f_{T}(T_{r})}{\max\left[f_{T}(\bar{T}),\, 10^{-12}\right]} & E_{s} > 0, \\[2ex]
 1 & E_{s} \le 0,
 \end{cases}
-\tag{12.7}
+\qquad\text{(12.7)}
 ```
 
 where $`s_{c}`$ is the turnover factor of the soil organic matter in cell $`c`$; $`\sigma_{c}`$ is the turnover factor of
@@ -314,7 +314,7 @@ total carbon, and a non-protected remainder,
 
 ```math
 B_{p} = \min\left(B,\; \phi\,C_{tot}\right), \qquad B_{n} = \max\left(0,\; B - \phi\,C_{tot}\right),
-\tag{12.8}
+\qquad\text{(12.8)}
 ```
 
 where $`C_{tot}`$ (kg C m⁻²) is the sum of the thirteen pools before the litter is added, and $`\phi = 0.017`$
@@ -323,7 +323,7 @@ and each pool of soil organic matter $`x`$ is
 
 ```math
 O_{x} = \min\left(k_{x}\,\gamma_{x}\,C_{x},\; C_{x}\right),
-\tag{12.9}
+\qquad\text{(12.9)}
 ```
 
 where $`C_{x}`$ (kg C m⁻²) is the carbon of the pool after the litter input; $`k_{x}`$ (d⁻¹) is its rate constant
@@ -335,7 +335,7 @@ by (12.9) from its source pool. Microbial biomass turnover has no climate factor
 
 ```math
 D_{p} = \varepsilon\,\min\left(k_{bp}\,B_{p},\; B_{p}\right), \qquad D_{n} = \varepsilon\,\min\left(k_{bn}\,B_{n},\; B_{n}\right),
-\tag{12.10}
+\qquad\text{(12.10)}
 ```
 
 where $`D_{p}`$ and $`D_{n}`$ (kg C m⁻² d⁻¹) are the dead biomass leaving the protected and non-protected biomass pools,
@@ -350,7 +350,7 @@ changes in biomass and soil organic matter are
 \Delta P &= \lambda \sum_{x \in \mathcal{L}} y_{x}\,O_{x} + \beta\left(y_{bn}\,D_{n} + y_{bp}\,D_{p}\right) - O_{pb} - O_{ps} - \ell\,P, \\
 \Delta S &= y_{ns}\,O_{ns} + y_{ps}\,O_{ps} - O_{sb} - \ell\,S,
 \end{aligned}
-\tag{12.11}
+\qquad\text{(12.11)}
 ```
 
 where $`\mathcal{M}`$ is the set of six metabolic and structural litter pools and $`\mathcal{L}`$ is the set of three
@@ -362,7 +362,7 @@ and $`\ell`$ (d⁻¹) is the leaching coefficient,
 
 ```math
 \ell = \frac{h}{18}\,\left(0.01 + 0.04\,\chi\right),
-\tag{12.12}
+\qquad\text{(12.12)}
 ```
 
 with $`h = 0.30 \times 10^{-3}`$, a constant of the code that IBIS 2.6b4 describes as relating to the flow of water
@@ -375,7 +375,7 @@ then updated:
 C_{x} \leftarrow \max\left(0,\; C_{x} - O_{x}\right) \;\; (\text{litter}), \qquad
 B \leftarrow \max\left(0,\; B + \Delta B\right), \quad N \leftarrow \max\left(0,\; N + \Delta N\right), \quad
 P \leftarrow \max\left(0,\; P + \Delta P\right), \quad S \leftarrow \max\left(0,\; S + \Delta S\right).
-\tag{12.13}
+\qquad\text{(12.13)}
 ```
 
 Leached carbon, $`\ell\,(N + P + S)`$, leaves the cell. It does not enter respiration or any other model flux.
@@ -422,7 +422,7 @@ and the carbon leached,
 
 ```math
 R_{h} = \frac{C_{tot} + (L_{l} + L_{r} + L_{w})/n_{d} - C_{tot}' - \ell\,(N + P + S)}{86400 \times 0.012},
-\tag{12.14}
+\qquad\text{(12.14)}
 ```
 
 where $`R_{h}`$ (mol CO₂ m⁻² s⁻¹; `vegetation.tco2mic`) is the day's mean rate; $`C_{tot}`$ and $`C_{tot}'`$ (kg C m⁻²) are
@@ -470,7 +470,7 @@ mineralization is
 
 ```math
 m_{x} = \left(\frac{1}{c_{x}} - \frac{y_{x}}{c_{B}}\right) O_{x},
-\tag{12.15}
+\qquad\text{(12.15)}
 ```
 
 where $`m_{x}`$ (kg N m⁻² d⁻¹) counts as mineralization when $`y_{x}/c_{B} \le 1/c_{x}`$ and as immobilization otherwise;
@@ -514,7 +514,7 @@ n_{acc} & \text{if } \sigma_{spin} \ne 0,\; n_{acc} > 1 \text{ and } i < N_{run}
 n_{tail} & N_{run} > n_{tail}, \\
 0 & \text{otherwise},
 \end{cases}
-\tag{12.16}
+\qquad\text{(12.16)}
 ```
 
 where $`\sigma_{spin}`$ is `physics.soilcspin` (1 = accelerate), $`n_{acc}`$ is `physics.nsoilcall` (default 1) and
@@ -536,7 +536,7 @@ the year of the run counted from 0 as in (12.16), it calls the routine 40 times 
 
 ```math
 n_{i} = \max\left[\operatorname{int}\left(40 - 1.6\,(i - 75)\right),\; 1\right] \quad (75 < i < 100),
-\tag{12.17}
+\qquad\text{(12.17)}
 ```
 
 and once a day from $`i = 100`$ on, whatever the length of the run. The first 150 years of such a run hold about 3,560

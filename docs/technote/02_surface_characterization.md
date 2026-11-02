@@ -204,7 +204,7 @@ p_{\tau} & \text{if position } j \text{ holds type } \tau \text{ and the paramet
 p^{0}_{\pi(\tau)} & \text{if position } j \text{ holds type } \tau \text{ and the parameter file gives no } p \text{ for } \tau, \\
 p^{0}_{j} & \text{if position } j \text{ is off or keeps its base parameters,}
 \end{cases}
-\tag{2.1}
+\qquad\text{(2.1)}
 ```
 
 where $`\tau`$ is the type that the zone of cell $`c`$ places in position $`j`$ (Table 2.4); $`p_{\tau}`$ is the value of the
@@ -220,7 +220,7 @@ $`s`$ in cell $`c`$ is the median over the types of the cell's zone that set it,
 
 ```math
 s_{c} = \operatorname{median}\left\{ s_{\tau} : \tau \in T_{s}(z_{c}) \right\},
-\tag{2.2}
+\qquad\text{(2.2)}
 ```
 
 where $`s_{\tau}`$ is the value set for type $`\tau`$; $`z_{c}`$ is the zone of the cell; and $`T_{s}(z)`$ is the set of the
@@ -278,7 +278,7 @@ year (1701) precedes the mapped period. Each vegetation type specifies an initia
 
 ```math
 L_{j} = e_{j}\,\frac{L_{g}(v)}{n_{g}},
-\tag{2.3}
+\qquad\text{(2.3)}
 ```
 
 where $`L_{j}`$ (m² m⁻²) is the leaf area index of position $`j`$; $`e_{j}`$ is its existence flag, which is 1 in every
@@ -289,7 +289,7 @@ the warmest-month temperature,
 
 ```math
 f_{C4} = \frac{0.8}{1 + \exp\left[-(T_{w} - 22)/1.5\right]},
-\tag{2.4}
+\qquad\text{(2.4)}
 ```
 
 where $`f_{C4}`$ is the share of the grass leaf area given to the C4 grass (position 11), the rest going to the C3 grass
@@ -300,7 +300,7 @@ position then receives at least the minimum leaf area index of 0.01. The carbon 
 ```math
 C_{leaf,j} = \frac{L_{j}}{\sigma_{j}}, \qquad C_{root,j} = 0.5\,C_{leaf,j}, \qquad
 C_{wood,j} = \frac{10}{6}\,L_{j} \;\;(j \le 8), \qquad C_{wood,j} = 0 \;\;(j > 8),
-\tag{2.5}
+\qquad\text{(2.5)}
 ```
 
 where $`C_{leaf,j}`$, $`C_{root,j}`$ and $`C_{wood,j}`$ (kg C m⁻²) are the leaf, root and wood carbon of position $`j`$ and
@@ -318,7 +318,7 @@ The fractional cover of the upper and the lower canopy at the cold start is
 ```math
 f_{u} = \min\left[\max\left(\frac{1 - e^{-W}}{1 - e^{-7.5}},\, 0.25\right),\, 0.975\right], \qquad
 f_{l} = \min\left[\max\left(L_{l},\, 0.25\right),\, 0.975\right],
-\tag{2.6}
+\qquad\text{(2.6)}
 ```
 
 where $`f_{u}`$ is the fraction of the cell covered by the upper canopy and $`f_{l}`$ the fraction of the snow-free part
@@ -331,7 +331,7 @@ heights at the cold start are
 ```math
 z_{bot,l} = 0.05, \quad z_{top,l} = \max(0.25,\, 0.25\,\Lambda_{l}), \quad z_{bot,u} = z_{top,l} + 1, \quad
 z_{top,u} = \max\left(z_{bot,u} + 1,\; 0.75 \cdot 2.5\,\frac{B_{u}}{f_{u}}\right),
-\tag{2.7}
+\qquad\text{(2.7)}
 ```
 
 where $`z_{bot}`$ and $`z_{top}`$ (m) are the bottom and top heights of the lower ($`l`$) and upper ($`u`$) canopy;
@@ -371,7 +371,7 @@ layer is fixed, with separate profiles for the two canopies. These follow the as
 
 ```math
 r_{k} = \frac{\left(1 - \beta^{d_{k}}\right) - \left(1 - \beta^{d_{k-1}}\right)}{1 - \beta^{d_{N}}},
-\tag{2.8}
+\qquad\text{(2.8)}
 ```
 
 where $`r_{k}`$ is the fraction of the roots in soil layer $`k`$; $`d_{k}`$ (cm) is the depth of the bottom of layer $`k`$
@@ -427,7 +427,7 @@ The density and the specific heat of the soil solids are
 
 ```math
 \rho_{s} = 2650\,(1 - f_{om}) + 1300\,f_{om}, \qquad c_{s} = 870\,(1 - f_{om}) + 1920\,f_{om},
-\tag{2.9}
+\qquad\text{(2.9)}
 ```
 
 where $`\rho_{s}`$ (kg m⁻³) is the density and $`c_{s}`$ (J kg⁻¹ K⁻¹) the specific heat of the solids (Campbell and
@@ -437,7 +437,7 @@ following the BATS table as in IBIS 2.6b4,
 
 ```math
 \alpha_{vis} = 0.120\,f_{sand} + 0.085\,f_{silt} + 0.050\,f_{clay}, \qquad \alpha_{nir} = 2\,\alpha_{vis},
-\tag{2.10}
+\qquad\text{(2.10)}
 ```
 
 where $`\alpha_{vis}`$ and $`\alpha_{nir}`$ are the visible and near-infrared albedos of the saturated soil and
@@ -459,7 +459,7 @@ share the grass positions 11 and 12 stand for the crops. Their photosynthetic ca
 
 ```math
 g = 1 + f_{crop}\left(\bar{s} - 1\right), \qquad \bar{s} = (1 - q)\,s_{C3} + q\,s_{C4},
-\tag{2.11}
+\qquad\text{(2.11)}
 ```
 
 where $`g`$ is the factor on the capacity of both grass positions; $`f_{crop}`$ is the cropland fraction of the cell;

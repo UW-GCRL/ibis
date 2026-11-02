@@ -77,7 +77,7 @@ rather than absorbs:
 
 ```math
 \omega_{0} = \rho_{\Lambda} + \tau_{\Lambda}.
-\tag{4.1}
+\qquad\text{(4.1)}
 ```
 
 The fractions of the scattered radiation that go into the upward hemisphere, for diffuse ($`\beta`$) and for direct
@@ -89,7 +89,7 @@ The fractions of the scattered radiation that go into the upward hemisphere, for
 + o_{r}\left(\frac{2}{3}\rho_{\Lambda} + \frac{1}{3}\tau_{\Lambda}\right), \qquad
 \omega_{0}\,\beta_{0} = o_{v}\,\frac{\rho_{\Lambda} + \tau_{\Lambda}}{2} + o_{h}\,\rho_{\Lambda}
 + o_{r}\left[(1 - \zeta)\,\rho_{\Lambda} + \zeta\,\tau_{\Lambda}\right], \qquad \zeta = \frac{1}{2} - \frac{\mu}{3},
-\tag{4.2}
+\qquad\text{(4.2)}
 ```
 
 where $`o_{v}`$ and $`o_{h}`$ are the fractions of the elements oriented vertically and horizontally and
@@ -100,7 +100,7 @@ coefficient of the direct beam (its optical depth per unit plant area), $`K`$, a
 ```math
 G = o_{v}\,\frac{2}{\pi}\sqrt{\max\left(0,\,1 - \mu^{2}\right)} + o_{h}\,\mu + \frac{o_{r}}{2}, \qquad
 K = \frac{G}{\max(\mu,\, 0.01)},
-\tag{4.3}
+\qquad\text{(4.3)}
 ```
 
 and the average inverse diffuse optical depth per unit plant area, $`\bar{\mu}`$, is 1. IBIS 2.6b4 takes $`\zeta`$ of
@@ -129,7 +129,7 @@ with those of snow in proportion to the fraction of plant area that holds snow. 
 y_{l} = f_{wet,l}\,(1 - r_{liq,l}), \qquad
 y_{u} = \lambda_{u}\,f_{wet,u}\,(1 - r_{liq,u}) + (1 - \lambda_{u})\,f_{wet,s}\,(1 - r_{liq,s}), \qquad
 \lambda_{u} = \frac{L_{u}}{\max(L_{u} + S_{u},\,\epsilon)},
-\tag{4.4}
+\qquad\text{(4.4)}
 ```
 
 where $`f_{wet}`$ is the wetted fraction of the leaves of the lower canopy ($`l`$), the leaves of the upper canopy ($`u`$) or
@@ -150,7 +150,7 @@ the melting point $`T_{m} = 273.16`$ K by the factor
 \phi_{l} = 0.6 + 0.4\,\min\left[1,\, \max\left(0,\, \frac{T_{m} - T_{l}}{1\ \mathrm{K}}\right)\right], \qquad
 \phi_{u} = \lambda_{u}\,\min\left[1,\, \max\left(0.6,\, \frac{T_{m} - T_{u}}{0.1\ \mathrm{K}}\right)\right]
 + (1 - \lambda_{u})\,\min\left[1,\, \max\left(0.6,\, \frac{T_{m} - T_{s}}{0.1\ \mathrm{K}}\right)\right],
-\tag{4.5}
+\qquad\text{(4.5)}
 ```
 
 where $`T_{l}`$, $`T_{u}`$ and $`T_{s}`$ (K) are the temperatures of the lower canopy, the upper leaves and the upper stems
@@ -163,7 +163,7 @@ of the layer are then
 \omega = (1 - y)\,\omega_{0} + y\,\phi\,\omega_{sno}, \qquad
 \beta_{0} \leftarrow \frac{(1 - y)\,\omega_{0}\,\beta_{0} + y\,\phi\,\omega_{sno}\,\beta_{sno}}{\omega}, \qquad
 \beta \leftarrow \frac{(1 - y)\,\omega_{0}\,\beta + y\,\phi\,\omega_{sno}\,\beta_{sno}}{\omega},
-\tag{4.6}
+\qquad\text{(4.6)}
 ```
 
 with $`y`$ and $`\phi`$ of the layer and $`\beta_{sno} = 0.5`$ for direct and diffuse radiation. Snow does not change $`G`$ or
@@ -182,7 +182,7 @@ $`I^{\uparrow}`$ and $`I^{\downarrow}`$ (per unit incident flux) satisfy the two
 ```math
 -\bar{\mu}\,\frac{dI^{\uparrow}}{dx} + b\,I^{\uparrow} - c\,I^{\downarrow} = \omega\,\bar{\mu}\,K\,\beta_{0}\,e^{-Kx}, \qquad
 \bar{\mu}\,\frac{dI^{\downarrow}}{dx} + b\,I^{\downarrow} - c\,I^{\uparrow} = \omega\,\bar{\mu}\,K\,(1 - \beta_{0})\,e^{-Kx},
-\tag{4.7}
+\qquad\text{(4.7)}
 ```
 
 with $`b = 1 - \omega(1 - \beta)`$ and $`c = \omega\beta`$, for a unit direct beam, whose unscattered part $`e^{-Kx}`$ is
@@ -193,7 +193,7 @@ of direct albedo $`\alpha^{\mu}`$ and diffuse albedo $`\alpha`$, and the model s
 \text{direct:}\quad I^{\downarrow}(0) = 0, \quad I^{\uparrow}(X) = \alpha^{\mu}\left[e^{-KX} + I^{\downarrow}(X)\right];
 \qquad
 \text{diffuse:}\quad I^{\downarrow}(0) = 1, \quad I^{\uparrow}(X) = \alpha\,I^{\downarrow}(X).
-\tag{4.8}
+\qquad\text{(4.8)}
 ```
 
 In the solution for a direct beam, the diffuse radiation scattered out of the beam is therefore reflected at the
@@ -204,7 +204,7 @@ surface with the direct albedo $`\alpha^{\mu}`$, as in IBIS 2.6b4. The solutions
 I^{\downarrow} = \frac{h_{4}}{\sigma}e^{-Kx} + h_{5}e^{-hx} + h_{6}e^{hx};
 \qquad
 \text{diffuse:}\quad I^{\uparrow} = h_{7}e^{-hx} + h_{8}e^{hx}, \quad I^{\downarrow} = h_{9}e^{-hx} + h_{10}e^{hx},
-\tag{4.9}
+\qquad\text{(4.9)}
 ```
 
 with the coefficients used in the code,
@@ -218,7 +218,7 @@ s_{1} = e^{-hX}, \quad s_{2} = e^{-KX}, \\
 p_{1} = b + q, \quad p_{2} = b - q, \quad p_{3} = b + p, \quad p_{4} = b - p, \quad
 D_{1} = \frac{p_{1}(u_{1} - q)}{s_{1}} - p_{2}(u_{1} + q)\,s_{1}, \quad D_{2} = \frac{u_{2} + q}{s_{1}} - (u_{2} - q)\,s_{1},
 \end{gathered}
-\tag{4.10}
+\qquad\text{(4.10)}
 ```
 
 where $`\alpha^{*}`$ is $`\alpha^{\mu}`$ in the coefficients $`h_{1}`$-$`h_{6}`$ of the direct solution and $`\alpha`$ in the
@@ -236,7 +236,7 @@ h_{6} = \frac{1}{D_{2}}\left[\frac{h_{4}\,s_{1}(u_{2} - q)}{\sigma} + r_{2}\righ
 h_{7} = \frac{c\,(u_{1} - q)}{D_{1}\,s_{1}}, \qquad h_{8} = -\frac{c\,s_{1}(u_{1} + q)}{D_{1}}, \qquad
 h_{9} = \frac{u_{2} + q}{D_{2}\,s_{1}}, \qquad h_{10} = -\frac{s_{1}(u_{2} - q)}{D_{2}}.
 \end{gathered}
-\tag{4.11}
+\qquad\text{(4.11)}
 ```
 
 The direct solution divides by $`\sigma`$, which vanishes where $`p = q`$: the point at which the beam extinction coefficient
@@ -262,7 +262,7 @@ $`T^{\mu\mu}`$, the diffuse flux from a unit direct beam $`T^{\mu}`$, and the di
 \rho^{\mu} = \frac{h_{1}}{\sigma} + h_{2} + h_{3}, \quad \rho = h_{7} + h_{8}, \quad
 T^{\mu\mu} = s_{2}, \quad T^{\mu} = \frac{h_{4}}{\sigma}s_{2} + h_{5}s_{1} + \frac{h_{6}}{s_{1}}, \quad
 T = h_{9}s_{1} + \frac{h_{10}}{s_{1}},
-\tag{4.12}
+\qquad\text{(4.12)}
 ```
 
 and the fractions of a unit direct and a unit diffuse flux absorbed by the layer,
@@ -270,7 +270,7 @@ and the fractions of a unit direct and a unit diffuse flux absorbed by the layer
 ```math
 a^{\mu} = \max\left[0,\; 1 - \rho^{\mu} - (1 - \alpha^{\mu})\,T^{\mu\mu} - (1 - \alpha)\,T^{\mu}\right], \qquad
 a = \max\left[0,\; 1 - \rho - (1 - \alpha)\,T\right].
-\tag{4.13}
+\qquad\text{(4.13)}
 ```
 
 Absorption is calculated as a residual: the layer absorbs the radiation that is neither reflected back to the sky nor
@@ -321,7 +321,7 @@ the top soil layer dries,
 ```math
 \alpha_{soil,\Lambda} = \min\left\{\alpha_{sat,\Lambda}\left[1 + \min\left(1,\, \max\left(0,\,
 1 - \frac{\theta_{1}}{0.5}\right)\right)\right],\; 0.80\right\}, \qquad \theta_{1} = w_{1}\,(1 - w_{i,1}),
-\tag{4.14}
+\qquad\text{(4.14)}
 ```
 
 where $`\alpha_{sat,\Lambda}`$ is the albedo of the saturated soil from the texture of the top layer (`soil.albsav`,
@@ -340,7 +340,7 @@ x_{\Lambda} = \min\left\{\max\left[\frac{\alpha_{w,\Lambda}(T_{sno} - T_{m} + 15
 \alpha_{w,\Lambda}\right],\; \alpha_{c,\Lambda}\right\}, \qquad
 \alpha^{\mu}_{sno,\Lambda} = \min\left[0.99,\; x_{\Lambda} + (1 - x_{\Lambda})\,g(\mu)\right], \qquad
 \alpha_{sno,\Lambda} = x_{\Lambda},
-\tag{4.15}
+\qquad\text{(4.15)}
 ```
 
 with $`g(\mu) = \max[0,\, 1.5/(1 + 4\mu) - 0.5]`$, where $`x_{\Lambda}`$ is the diffuse albedo of the snow,
@@ -367,7 +367,7 @@ area-mean albedos of the ground system beneath the upper canopy are
 ```math
 \alpha^{\mu}_{g} = f_{l}(1 - f_{i})\,\rho^{\mu}_{l} + (1 - f_{l})(1 - f_{i})\,\alpha_{soil} + f_{i}\,\alpha^{\mu}_{sno}, \qquad
 \alpha_{g} = f_{l}(1 - f_{i})\,\rho_{l} + (1 - f_{l})(1 - f_{i})\,\alpha_{soil} + f_{i}\,\alpha_{sno},
-\tag{4.16}
+\qquad\text{(4.16)}
 ```
 
 and the upper canopy is solved over a surface with $`\alpha^{\mu} = \alpha^{\mu}_{g}`$ and $`\alpha = \alpha_{g}`$, giving
@@ -376,7 +376,7 @@ $`\rho^{\mu}_{u}`$ and $`\rho_{u}`$. The albedos of the cell for direct and diff
 ```math
 \alpha^{\mu}_{\Lambda} = f_{u}\,\rho^{\mu}_{u} + (1 - f_{u})\,\alpha^{\mu}_{g}, \qquad
 \alpha_{\Lambda} = f_{u}\,\rho_{u} + (1 - f_{u})\,\alpha_{g}.
-\tag{4.17}
+\qquad\text{(4.17)}
 ```
 
 ## 4.7 Absorbed solar radiation
@@ -389,7 +389,7 @@ of its cover and divided between leaves and stems in proportion to their shares 
 A_{u,\Lambda} = S^{\mu}_{\Lambda}\,a^{\mu}_{u} + S_{\Lambda}\,a_{u}, \qquad
 \mathrm{SW}_{u} = \sum_{\Lambda} \lambda_{u}\,A_{u,\Lambda}, \qquad
 \mathrm{SW}_{s} = \sum_{\Lambda} (1 - \lambda_{u})\,A_{u,\Lambda}
-\tag{4.18}
+\qquad\text{(4.18)}
 ```
 
 (W m⁻²), with $`\lambda_{u}`$ of (4.4). The direct and diffuse fluxes incident on the ground system, averaged over the
@@ -398,14 +398,14 @@ canopy and its gaps, are
 ```math
 S^{\mu}_{3,\Lambda} = f_{u}\,S^{\mu}_{\Lambda}\,T^{\mu\mu}_{u} + (1 - f_{u})\,S^{\mu}_{\Lambda}, \qquad
 S_{3,\Lambda} = f_{u}\left(S^{\mu}_{\Lambda}\,T^{\mu}_{u} + S_{\Lambda}\,T_{u}\right) + (1 - f_{u})\,S_{\Lambda},
-\tag{4.19}
+\qquad\text{(4.19)}
 ```
 
 and the lower canopy absorbs, per unit area of its cover,
 
 ```math
 \mathrm{SW}_{l} = \sum_{\Lambda}\left(S^{\mu}_{3,\Lambda}\,a^{\mu}_{l} + S_{3,\Lambda}\,a_{l}\right).
-\tag{4.20}
+\qquad\text{(4.20)}
 ```
 
 The soil absorbs, per unit snow-free area,
@@ -413,14 +413,14 @@ The soil absorbs, per unit snow-free area,
 ```math
 \mathrm{SW}_{g} = \sum_{\Lambda}(1 - \alpha_{soil,\Lambda})\left[\left(f_{l}\,T^{\mu\mu}_{l} + 1 - f_{l}\right)S^{\mu}_{3,\Lambda}
 + f_{l}\left(S^{\mu}_{3,\Lambda}\,T^{\mu}_{l} + S_{3,\Lambda}\,T_{l}\right) + (1 - f_{l})\,S_{3,\Lambda}\right],
-\tag{4.21}
+\qquad\text{(4.21)}
 ```
 
 and the snow, per unit area of snow,
 
 ```math
 \mathrm{SW}_{i} = \sum_{\Lambda}\left[(1 - \alpha^{\mu}_{sno,\Lambda})\,S^{\mu}_{3,\Lambda} + (1 - \alpha_{sno,\Lambda})\,S_{3,\Lambda}\right].
-\tag{4.22}
+\qquad\text{(4.22)}
 ```
 
 Because the absorptions (4.13) are residuals, the components and the reflected radiation add up to the incident
@@ -430,7 +430,7 @@ radiation,
 f_{u}(\mathrm{SW}_{u} + \mathrm{SW}_{s}) + (1 - f_{i})\,f_{l}\,\mathrm{SW}_{l} + (1 - f_{i})\,\mathrm{SW}_{g} + f_{i}\,\mathrm{SW}_{i}
 + \sum_{\Lambda}\left(\alpha^{\mu}_{\Lambda}S^{\mu}_{\Lambda} + \alpha_{\Lambda}S_{\Lambda}\right)
 = \sum_{\Lambda}\left(S^{\mu}_{\Lambda} + S_{\Lambda}\right),
-\tag{4.23}
+\qquad\text{(4.23)}
 ```
 
 wherever the bounds at zero in (4.13) do not bind. At 4,000 random states of the column (computed in double
@@ -458,14 +458,14 @@ area $`x`$ above, $`P(x)`$ (W m⁻²), is
 
 ```math
 P(x) = A\,e^{-Kx} + B\,e^{-hx} + C\,e^{hx},
-\tag{4.24}
+\qquad\text{(4.24)}
 ```
 
 ```math
 A = t_{1}\,S^{\mu}_{top}, \quad B = t_{2}\,S^{\mu}_{top} + t_{3}\,S_{top}, \quad C = t_{4}\,S^{\mu}_{top} + t_{5}\,S_{top}, \qquad
 t_{1} = K\left(1 + \frac{h_{4} - h_{1}}{\sigma}\right), \; t_{2} = h(h_{5} - h_{2}), \; t_{3} = h(h_{9} - h_{7}), \;
 t_{4} = h(h_{3} - h_{6}), \; t_{5} = h(h_{8} - h_{10}),
-\tag{4.25}
+\qquad\text{(4.25)}
 ```
 
 where $`S^{\mu}_{top}`$ and $`S_{top}`$ are the visible fluxes incident on the canopy: $`S^{\mu}_{vis}`$ and $`S_{vis}`$ for
@@ -478,7 +478,7 @@ and
 
 ```math
 P_{top} = (A + B + C)\,\frac{L}{\max(L + S,\, \epsilon)}, \qquad Q_{beam} = (1 - \omega)\,K\,S^{\mu}_{top},
-\tag{4.26}
+\qquad\text{(4.26)}
 ```
 
 where $`P_{top}`$ (W m⁻²) is the visible radiation absorbed per unit plant area at the top of the canopy times the
@@ -502,7 +502,7 @@ With $`\bar{\mu} = 1`$ their emissivities are
 
 ```math
 \varepsilon_{u} = 1 - e^{-L_{u}}, \qquad \varepsilon_{s} = 1 - e^{-S_{u}}, \qquad \varepsilon_{l} = 1 - e^{-(L_{l} + S_{l})},
-\tag{4.27}
+\qquad\text{(4.27)}
 ```
 
 and those of the soil and the snow are $`\varepsilon_{g} = \varepsilon_{i} = 0.95`$. With $`L^{\downarrow}`$ (W m⁻²) the
@@ -515,7 +515,7 @@ beneath the upper and the lower canopy are
 F_{d} = (1 - f_{u})\,L^{\downarrow} + f_{u}\left[(1 - \varepsilon_{u})(1 - \varepsilon_{s})\,L^{\downarrow}
 + \varepsilon_{u}(1 - \varepsilon_{s})\,\sigma_{SB}T_{u}^{4} + \varepsilon_{s}\,\sigma_{SB}T_{s}^{4}\right], \qquad
 F_{dg} = (1 - \varepsilon_{l})\,F_{d} + \varepsilon_{l}\,\sigma_{SB}T_{l}^{4},
-\tag{4.28}
+\qquad\text{(4.28)}
 ```
 
 the upward fluxes above the soil beneath the lower canopy, above the bare soil, above the snow, and beneath the upper
@@ -529,7 +529,7 @@ F_{ui} = (1 - \varepsilon_{i})\,F_{d} + \varepsilon_{i}\,\sigma_{SB}T_{i}^{4}, \
 F_{u} = (1 - f_{i})\left\{f_{l}\left[\varepsilon_{l}\,\sigma_{SB}T_{l}^{4} + (1 - \varepsilon_{l})\,F_{ug}\right]
 + (1 - f_{l})\,F_{ugb}\right\} + f_{i}\,F_{ui},
 \end{gathered}
-\tag{4.29}
+\qquad\text{(4.29)}
 ```
 
 and the upward longwave radiation above the cell, emitted and reflected, is
@@ -537,7 +537,7 @@ and the upward longwave radiation above the cell, emitted and reflected, is
 ```math
 F_{b} = (1 - f_{u})\,F_{u} + f_{u}\left[(1 - \varepsilon_{u})(1 - \varepsilon_{s})\,F_{u} + \varepsilon_{u}\,\sigma_{SB}T_{u}^{4}
 + \varepsilon_{s}(1 - \varepsilon_{u})\,\sigma_{SB}T_{s}^{4}\right].
-\tag{4.30}
+\qquad\text{(4.30)}
 ```
 
 Each plane absorbs the fraction $`\varepsilon`$ of the radiation that reaches it from either side and emits
@@ -555,7 +555,7 @@ and by the snow (per unit area of snow) is
 \mathrm{LW}_{g} = f_{l}\,(F_{dg} - F_{ug}) + (1 - f_{l})\,(F_{d} - F_{ugb}), \qquad
 \mathrm{LW}_{i} = F_{d} - F_{ui}.
 \end{gathered}
-\tag{4.31}
+\qquad\text{(4.31)}
 ```
 
 By construction, these terms sum to the net longwave radiation of the cell,

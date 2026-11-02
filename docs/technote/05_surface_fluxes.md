@@ -40,7 +40,7 @@ of its two-sided area. Per unit area of the cell, the three canopy surfaces have
 
 ```math
 x_{u} = 2\,L_{u}\,f_{u}, \qquad x_{s} = 2\,S_{u}\,f_{u}, \qquad x_{l} = 2\,(L_{l} + S_{l})\,f_{l}\,(1 - f_{i}),
-\tag{5.1}
+\qquad\text{(5.1)}
 ```
 
 where $`x_{u}`$, $`x_{s}`$ and $`x_{l}`$ (m² m⁻²) are the surface areas of the upper leaves, the upper stems and the lower
@@ -112,7 +112,7 @@ e_{sat}(T) = 100 \times
 \sum_{k=0}^{6} b_{k}\,t_{i}^{\,k}, & T < T_{f},
 \end{cases}
 \qquad t_{l} = \min(T - T_{f},\, 100), \qquad t_{i} = \max(T - T_{f},\, -60),
-\tag{5.2}
+\qquad\text{(5.2)}
 ```
 
 where $`e_{sat}`$ (Pa) is the saturation vapour pressure at the temperature $`T`$ (K), $`T_{f} = 273.16`$ K is the melting
@@ -127,7 +127,7 @@ and $`a_{k}`$ and $`b_{k}`$ (hPa K⁻ᵏ) are the coefficients over water and ov
 \sum_{k=0}^{6} c_{k}\,t_{l}^{\,k}, & T \ge T_{f}, \\[2pt]
 \sum_{k=0}^{6} d_{k}\,t_{i}^{\,k}, & T < T_{f},
 \end{cases}
-\tag{5.3}
+\qquad\text{(5.3)}
 ```
 
 with the coefficients $`c_{k}`$ and $`d_{k}`$ of Table 5.3. The saturation specific humidity $`q_{sat}(T, p)`$ is (3.12), and
@@ -135,7 +135,7 @@ its derivative with respect to temperature is
 
 ```math
 q'_{sat}(T, p) = \frac{de_{sat}}{dT}\,\frac{q_{sat}\left[1 + q_{sat}\left(1/0.622 - 1\right)\right]}{e_{sat}},
-\tag{5.4}
+\qquad\text{(5.4)}
 ```
 
 where $`q'_{sat}`$ (K⁻¹) is computed with $`e_{sat}`$ and $`q_{sat}`$ at $`T`$ and the pressure $`p`$ (Pa).
@@ -159,7 +159,7 @@ assuming that the phase change occurs at $`T_{f}`$ (comment of `comsat.h`):
 ```math
 \lambda_{v}(T, T_{a}) = h_{v} + c_{vap}\,(T_{a} - T_{f}) - c_{w}\,(T - T_{f}), \qquad
 \lambda_{s}(T, T_{a}) = h_{s} + c_{vap}\,(T_{a} - T_{f}) - c_{i}\,(T - T_{f}),
-\tag{5.5}
+\qquad\text{(5.5)}
 ```
 
 where $`\lambda_{v}`$ and $`\lambda_{s}`$ (J kg⁻¹) are the latent heats of vaporization and of sublimation, $`T`$ (K) is the
@@ -177,7 +177,7 @@ there has the density, specific heat and potential-temperature factor
 \rho_{a} = \frac{\sigma\,p}{R_{d}\,T_{a}\left[1 + \left(R_{v}/R_{d} - 1\right)q_{a}\right]}, \qquad
 c_{p} = c_{pd}\left[1 + \left(c_{vap}/c_{pd} - 1\right)q_{a}\right], \qquad
 \theta = \sigma^{-\kappa},
-\tag{5.6}
+\qquad\text{(5.6)}
 ```
 
 where $`\rho_{a}`$ (kg m⁻³) is the air density, $`c_{p}`$ (J kg⁻¹ K⁻¹) the specific heat of the moist air, $`R_{d}`$ and
@@ -187,7 +187,7 @@ $`\kappa = R_{d}/c_{pd}`$ (Table 5.7). The height of the reference level is
 
 ```math
 z_{a} = \max\left[\frac{(1 - \sigma)\,p}{\rho_{a}\,g},\; z_{top,u} + \Delta z_{a}\right],
-\tag{5.7}
+\qquad\text{(5.7)}
 ```
 
 where $`z_{a}`$ (m) is the reference height, $`g`$ (m s⁻²) the acceleration of gravity, $`z_{top,u}`$ (m) the height of the
@@ -222,7 +222,7 @@ density (`canini`) is its two-sided leaf and stem area per unit area of the cell
 \xi_{l} = \min\left[\frac{2\,f_{l}\,(1 - f_{i})\,(L_{l} + S_{l})}{\Lambda_{l}},\; 3\right], \qquad
 \xi_{u} = \min\left[\frac{2\,f_{u}\,(L_{u} + S_{u})}{\Lambda_{u}},\; 3\right], \qquad
 \xi'_{l} = \min(\xi_{l}, 1), \quad \xi'_{u} = \min(\xi_{u}, 1),
-\tag{5.8}
+\qquad\text{(5.8)}
 ```
 
 where $`\xi_{l}`$ and $`\xi_{u}`$ are the densities of the lower and the upper canopy and $`\Lambda_{l} = \Lambda_{u} = 8`$
@@ -235,7 +235,7 @@ h_{v} = \max\left(z_{top,v} - z_{bot,v},\, 0.01\right), \quad
 a_{v} = \frac{0.4}{h_{v}}\max\left(10^{-5}, \xi_{v}\right), \quad
 m_{v} = \frac{0.1\,h_{v}}{\max\left(10^{-5}, \xi_{v}, \xi_{v}^{2}\right)}, \quad
 b_{v} = \sqrt{\frac{2\,a_{v}}{m_{v}}}, \quad \beta_{v} = \tfrac{1}{2}\,b_{v}\,m_{v},
-\tag{5.9}
+\qquad\text{(5.9)}
 ```
 
 where $`h_{v}`$ (m) is the depth of the layer between its bottom $`z_{bot,v}`$ and its top $`z_{top,v}`$ (equations 10.13
@@ -255,7 +255,7 @@ d_{u} = 0.7\,\xi'_{u}\,z_{1} + (1 - \xi'_{u})\,d_{l}, \\
 z_{12} = \tfrac{1}{2}(z_{1} + z_{2}), \qquad z_{34} = \tfrac{1}{2}(z_{3} + z_{4}), \qquad
 E_{l} = e^{\,b_{l}(z_{3} - z_{4})}, \qquad E_{u} = e^{\,b_{u}(z_{1} - z_{2})},
 \end{gathered}
-\tag{5.10}
+\qquad\text{(5.10)}
 ```
 
 where $`z_{1}`$, $`z_{2}`$, $`z_{3}`$ and $`z_{4}`$ (m) are the top and the bottom of the upper and of the lower canopy,
@@ -272,7 +272,7 @@ height then becomes that of the layer below (zero for the lower canopy). The log
 \ell_{4} = \ln\max\left(z_{4}, 1.1\,z_{0,g}, 1.1\,z_{0,i}\right), \quad
 \ell_{3} = \ln(z_{3} - d_{l}), \quad \ell_{2} = \ln(z_{2} - d_{l}), \quad
 \ell_{1} = \ln(z_{1} - d_{u}), \quad \ell_{a} = \ln(z_{a} - d_{u}),
-\tag{5.11}
+\qquad\text{(5.11)}
 ```
 
 with heights in metres; $`\ell_{0,g}`$ is the logarithm of the roughness length of the ground beneath the lower canopy.
@@ -288,7 +288,7 @@ this effect with bulk Richardson numbers and the stratification factors of Louis
 \mathrm{Ri} = \min\left\{\max\left[\frac{g\,\max(z_{t} - z_{b},\, 0)\,(\Theta_{t} - \Theta_{b})}
 {\tfrac{1}{2}(\Theta_{t} + \Theta_{b})\,u^{2}},\; -2\right],\; 1\right\}, \qquad
 \Theta_{t} = T_{t}\,\theta_{t}\,(1 + 0.622\,q_{t}), \quad \Theta_{b} = T_{b}\,(1 + 0.622\,q_{b}),
-\tag{5.12}
+\qquad\text{(5.12)}
 ```
 
 where Ri is the bulk Richardson number, limited to $`[-2, 1]`$ (negative in unstable air, positive in stable air);
@@ -305,7 +305,7 @@ X_{m,h} = \max\left(\ell_{t} - \ell_{0},\, 0.5\right) & (\mathrm{Ri} \le 0), \\
 F_{m} &= \left[1 + \frac{10\,\mathrm{Ri}}{\sqrt{1 + 5\,\mathrm{Ri}}}\right]^{-1}, \quad
 F_{h} = \left[1 + 15\,\mathrm{Ri}\,\sqrt{1 + 5\,\mathrm{Ri}}\right]^{-1} & (\mathrm{Ri} > 0),
 \end{aligned}
-\tag{5.13}
+\qquad\text{(5.13)}
 ```
 
 where $`F_{m}`$ and $`F_{h}`$ multiply the transfer coefficients of neutral air for momentum and for heat; $`k = 0.4`$ is the
@@ -326,7 +326,7 @@ iteration on, each factor is the mean of its new value and its value from the pr
 
 ```math
 F^{(i)} = \tfrac{1}{2}\left(F^{(i)}_{new} + F^{(i-1)}\right) \qquad (i = 2, 3),
-\tag{5.14}
+\qquad\text{(5.14)}
 ```
 
 This averaging damps oscillations between stable and unstable stratification (comment of `canopy.f`). For $`X = 2`$ the factors
@@ -344,14 +344,14 @@ the whole canopy, seen from the reference level, are (`turcof`)
 N_{l} = \left(\frac{\ell_{4} - \ell_{0,g}}{k}\right)^{2}\beta_{l}, \quad
 y_{l} = \frac{(N_{l} + 1)E_{l} + (N_{l} - 1)E_{l}^{-1}}{(N_{l} + 1)E_{l} - (N_{l} - 1)E_{l}^{-1}}, \quad
 \ell_{0,l} = \ell_{3} - k\sqrt{\frac{y_{l}}{\beta_{l}}},
-\tag{5.15}
+\qquad\text{(5.15)}
 ```
 
 ```math
 N_{u} = \left(\frac{\ell_{2} - \ell_{0,l}}{k}\right)^{2}\frac{\beta_{u}}{F_{m,l}}, \quad
 y_{u} = \frac{(N_{u} + 1)E_{u} + (N_{u} - 1)E_{u}^{-1}}{(N_{u} + 1)E_{u} - (N_{u} - 1)E_{u}^{-1}}, \quad
 \ell_{0,u} = \ell_{1} - k\sqrt{\frac{y_{u}}{\beta_{u}}},
-\tag{5.16}
+\qquad\text{(5.16)}
 ```
 
 where $`N_{l}`$ and $`N_{u}`$ compare $`\beta_{v}`$ of each canopy with the drag coefficient $`[k/(\ell - \ell_{0})]^{2}`$ of the
@@ -376,7 +376,7 @@ u_{3} = U(A_{l} + B_{l}), \quad u_{34} = U\!\left(\frac{A_{l}}{E_{l}^{1/2}} + B_
 u_{4} = U\!\left(\frac{A_{l}}{E_{l}} + B_{l}E_{l}\right), \\
 U(x) = \max\left[0.01,\; \sqrt{\max(0, x)}\right],
 \end{gathered}
-\tag{5.17}
+\qquad\text{(5.17)}
 ```
 
 where $`\tau_{u}`$ and $`\tau_{l}`$ (m² s⁻²) are the kinematic momentum fluxes at the top of the upper and of the lower
@@ -396,7 +396,7 @@ combines the resistances of the logarithmic layers and the two halves of each ca
 ```math
 c_{a} = \min\left[c_{max},\; \frac{u_{a}\,F_{h,u}\,k^{2}}{(\ell_{a} - \ell_{0,u})(\ell_{a} - \ell_{1})}\right],
 \qquad c_{max} = \frac{300}{2\,\Delta t} \;\;\text{(limit on, the default)}, \qquad c_{max} = \infty \;\;\text{(limit lifted)},
-\tag{5.18}
+\qquad\text{(5.18)}
 ```
 
 ```math
@@ -409,7 +409,7 @@ r_{e} = \frac{z_{3} - z_{34}}{\rho_{a}\,m_{l}\,\tfrac{1}{2}(u_{3} + u_{34})}, \q
 r_{f} = \frac{z_{34} - z_{4}}{\rho_{a}\,m_{l}\,\tfrac{1}{2}(u_{34} + u_{4})}, \qquad
 c_{u} = \frac{1}{r_{a} + r_{b}}, \quad c_{l} = \frac{1}{r_{c} + r_{d} + r_{e}},
 \end{gathered}
-\tag{5.19}
+\qquad\text{(5.19)}
 ```
 
 where $`c_{a}`$ (m s⁻¹) is the transfer velocity of the logarithmic layer between $`z_{1}`$ and $`z_{a}`$, and $`c_{max}`$
@@ -425,7 +425,7 @@ those of the leaf boundary layer (Pollard and Thompson, 1995),
 s_{u} = \rho_{a}\,C_{leaf}\sqrt{\frac{u_{12}}{D_{leaf,u}}}, \qquad
 s_{s} = \rho_{a}\,C_{stem}\sqrt{\frac{u_{12}}{D_{stem,u}}}, \qquad
 s_{l} = \rho_{a}\,C_{grass}\sqrt{\frac{u_{34}}{D_{leaf,l}}},
-\tag{5.20}
+\qquad\text{(5.20)}
 ```
 
 where $`C_{leaf}`$, $`C_{stem}`$ and $`C_{grass}`$ (m s⁻¹ᐟ²) are empirical coefficients and $`D_{leaf}`$ and $`D_{stem}`$ (m) the
@@ -435,7 +435,7 @@ coefficients are
 ```math
 s_{g} = \left[r_{f} + \frac{1}{\rho_{a}\,(0.004 + 0.012\,u_{4})}\right]^{-1}, \qquad
 s_{i} = \left[r_{f} + \frac{1}{\rho_{a}\,(0.003 + 0.010\,u_{4})}\right]^{-1},
-\tag{5.21}
+\qquad\text{(5.21)}
 ```
 
 an empirical form that IBIS 2.6b4 uses instead of the logarithmic profile of LSX. For the soil, this form is the soil-surface
@@ -509,7 +509,7 @@ melting point
 ```math
 T_{r,u} = \max\left(T_{w}, T_{f}\right) \;\; (T_{a} > T_{f}), \qquad T_{r,u} = T_{f} \;\; (T_{a} \le T_{f}), \qquad
 T_{s,u} = \min\left(T_{a}, T_{f}\right),
-\tag{5.22}
+\qquad\text{(5.22)}
 ```
 
 where $`T_{r,u}`$ and $`T_{s,u}`$ (K) are the temperatures of the rain and the snow above the upper canopy and $`T_{w}`$ (K)
@@ -521,7 +521,7 @@ in very dry or very moist air:
 T_{w}^{(0)} = T_{f} + (T_{a} - T_{f})\,\frac{q_{a}}{q_{sat}(T_{a}, p)}, \qquad
 T_{w}^{(n)} = T_{w}^{(n-1)} + 0.2\left\{ T_{a} - T_{f} - \frac{\lambda_{v}(T_{w}^{(n-1)}, T_{a})}{c_{pd}}
 \left[q_{sat}(T_{w}^{(n-1)}, p) - q_{a}\right] - \left(T_{w}^{(n-1)} - T_{f}\right)\right\},
-\tag{5.23}
+\qquad\text{(5.23)}
 ```
 
 for $`n = 1, \ldots, 20`$, stopping at the first $`n`$ for which $`|T_{w}^{(n)} - T_{w}^{(n-1)}| < 0.02`$ K. If the iteration does not meet this criterion
@@ -538,7 +538,7 @@ the water it holds (`steph2o`). Let $`\chi`$ (m² m⁻²) be the two-sided area 
 
 ```math
 f_{int} = \frac{1 - e^{-\chi/2}}{\chi} \quad (\chi \ge \epsilon), \qquad f_{int} = 0.5 \quad (\chi < \epsilon),
-\tag{5.24}
+\qquad\text{(5.24)}
 ```
 
 so the surface catches the fraction $`\chi f_{int} = 1 - e^{-\chi/2}`$ of the precipitation falling on its cover;
@@ -553,7 +553,7 @@ w_{liq} = \begin{cases} \min\left(\tilde{w}_{liq},\, w^{max}_{liq}\right) & \til
 0 & \tilde{w}_{liq} < w^{min}_{liq} \end{cases}, \qquad
 D \leftarrow D + \frac{\chi\,(\tilde{w}_{liq} - w_{liq})}{\Delta t},
 \end{gathered}
-\tag{5.25}
+\qquad\text{(5.25)}
 ```
 
 where $`w^{o}_{liq}`$ (kg m⁻²) is the liquid water held at the start of the step, $`\tau_{drip}`$ (s) the time scale of
@@ -568,7 +568,7 @@ surface, and to freeze or melt the whole store when the surface is below or abov
 \Pi = P_{r}\,f_{int}\,c_{w}\,(T^{o}_{v} - T_{r}) + P_{s}\,f_{int}\,c_{i}\,(T^{o}_{v} - T_{s})
 + \frac{w_{liq}}{\Delta t}\left[(c_{w} - c_{i})(T_{f} - T^{o}_{v}) - h_{f}\right]_{T^{o}_{v} < T_{f}}
 + \frac{w_{sno}}{\Delta t}\left[(c_{w} - c_{i})(T^{o}_{v} - T_{f}) + h_{f}\right]_{T^{o}_{v} > T_{f}},
-\tag{5.26}
+\qquad\text{(5.26)}
 ```
 
 where $`\Pi`$ (W m⁻², per unit surface area; `pfluxu`, `pfluxs`, `pfluxl`) is the heat taken from the surface, negative
@@ -582,7 +582,7 @@ the surface mixes what passes through with the drip and blow-off at the surface 
 ```math
 P''_{r} = P'_{r} + D, \qquad T''_{r} = \frac{P'_{r}\,T_{r} + D\,T^{o}_{v}}{P''_{r}}, \qquad
 P''_{s} = P'_{s} + B, \qquad T''_{s} = \frac{P'_{s}\,T_{s} + B\,T^{o}_{v}}{P''_{s}},
-\tag{5.27}
+\qquad\text{(5.27)}
 ```
 
 where a rate below $`\epsilon`$ (kg m⁻² s⁻¹) is set to zero together with its temperature (`mix`).
@@ -593,7 +593,7 @@ Precipitation passes successively through the upper leaves, the upper stems and 
 
 ```math
 P_{r,l} = f_{u}\,P''_{r,us} + (1 - f_{u})\,P_{r,u}, \qquad P_{r,g} = f_{l}\,P''_{r,ll} + (1 - f_{l})\,P_{r,l},
-\tag{5.28}
+\qquad\text{(5.28)}
 ```
 
 where $`P_{r,u}`$ (kg m⁻² s⁻¹) is the rain above the canopy (the rain of the generator), $`P''_{r,us}`$ the rain below the

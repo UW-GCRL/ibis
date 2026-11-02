@@ -63,7 +63,7 @@ the wetland water table directly from that profile. Instead, it places the water
 \theta_{k} = \min\left[\max\left(s_{k}\,(1 - i_{k}) + i_{k},\; 0\right),\; 1\right], \qquad
 \bar{\theta} = \frac{\sum_{k} \omega_{k}\,\theta_{k}}{\sum_{k} \omega_{k}}, \qquad
 \omega_{k} = \min\left[\max\left(z_{ref} - d_{k-1},\; 0\right),\; \Delta z_{k}\right],
-\tag{14.1}
+\qquad\text{(14.1)}
 ```
 
 where $`\theta_{k}`$ is the share of the pore space of layer $`k`$ that holds liquid water or ice; $`s_{k}`$ is the liquid
@@ -76,7 +76,7 @@ thick). The depth of the water table is
 
 ```math
 z_{w} = z_{w,max}\left[1 - \min\left(\max\left(\frac{\bar{\theta}}{\theta_{c}},\; 0\right),\; 1\right)\right],
-\tag{14.2}
+\qquad\text{(14.2)}
 ```
 
 where $`z_{w}`$ (m) is the depth of the water table below the surface, $`z_{w,max} = 0.30`$ m is its largest depth, and
@@ -104,7 +104,7 @@ lies below the water table is
 
 ```math
 a_{k} = \min\left[\max\left(\frac{d_{k} - \max(z_{w},\, d_{k-1})}{\Delta z_{k}},\; 0\right),\; 1\right],
-\tag{14.3}
+\qquad\text{(14.3)}
 ```
 
 so the part of layer $`k`$ below the water table runs from the depth $`\max(z_{w}, d_{k-1})`$ to the depth
@@ -124,7 +124,7 @@ a_{k}\,\Delta z_{k} & \text{(switch off: the release run)},
 1 & T_{k} \ge T_{f}, \\
 0 & T_{k} < T_{f},
 \end{cases}
-\tag{14.4}
+\qquad\text{(14.4)}
 ```
 
 where $`T_{a}`$ (K) is the production temperature (not the air temperature, which Chapters 3 and 5 also write $`T_{a}`$);
@@ -165,7 +165,7 @@ The heterotrophic respiration below the water table and the gross methane produc
 
 ```math
 R_{an} = \max(R_{h},\, 0)\; e^{-z_{w}/z_{\tau}},
-\tag{14.5}
+\qquad\text{(14.5)}
 ```
 
 ```math
@@ -175,7 +175,7 @@ P = r\; R_{an}\; Q_{10}^{(T_{a} - T_{ref})/10}\; \delta_{a}, \qquad
 1 & T_{a} \ge T_{f}\ \text{and thawed thickness below the water table} > 10^{-12}\ {\rm m}, \\
 0 & \text{otherwise},
 \end{cases}
-\tag{14.6}
+\qquad\text{(14.6)}
 ```
 
 where $`R_{h}`$ (kg C m⁻² d⁻¹) is the heterotrophic respiration of the cell (section 14.5); $`R_{an}`$ (kg C m⁻² d⁻¹) is
@@ -196,7 +196,7 @@ escapes is $`e^{-z_{w}/\tau_{ox}}`$, and the emission of the cell is
 
 ```math
 F = \min\left[\max(f,\, 0),\; 1\right]\; P\; e^{-z_{w}/\tau_{ox}},
-\tag{14.7}
+\qquad\text{(14.7)}
 ```
 
 where $`F`$ (kg C m⁻² d⁻¹) is the methane emission per square metre of the grid cell, counted as carbon; $`f`$ is the
@@ -229,7 +229,7 @@ heterotrophic respiration of (14.5) is the rate of the most recent call of the d
 
 ```math
 R_{h} = 0.012 \times 86400\; C_{mic},
-\tag{14.8}
+\qquad\text{(14.8)}
 ```
 
 where $`C_{mic}`$ (mol C m⁻² s⁻¹) is the carbon released by decomposition (`vegetation.tco2mic`; Chapter 12), 0.012 kg
@@ -241,7 +241,7 @@ monthly amount is then accumulated:
 ```math
 \bar{F} = \frac{1}{N_{d}} \sum_{d=1}^{N_{d}} \frac{\Delta t}{86400} \sum_{n=1}^{86400/\Delta t} F_{d,n}, \qquad
 A \leftarrow A + N_{d}\,\bar{F},
-\tag{14.9}
+\qquad\text{(14.9)}
 ```
 
 where $`\bar{F}`$ (kg C m⁻² d⁻¹) is the mean emission of the month; $`N_{d}`$ is the number of days in the month;
@@ -356,7 +356,7 @@ years for each calendar month,
 
 ```math
 f_{clim,m} = \min\left[\max\left(\frac{1}{21}\sum_{y=2000}^{2020} f^{obs}_{y,m},\; 0\right),\; 1\right],
-\tag{14.10}
+\qquad\text{(14.10)}
 ```
 
 where $`f_{clim,m}`$ is the climatological inundated fraction of calendar month $`m`$ and $`f^{obs}_{y,m}`$ is the WAD2M
@@ -380,7 +380,7 @@ trained file use the WAD2M climatology plus this anomaly (`ibis/bgc/wetland_lear
 
 ```math
 f = \min\left[\max\left(f_{clim,m} + \lambda_{b}\,\left(\hat{f} - \bar{\hat{f}}_{m}\right),\; 0\right),\; f_{max}\right],
-\tag{14.11}
+\qquad\text{(14.11)}
 ```
 
 where $`\hat{f}`$ is the fraction that the learned model of the cell's band $`b`$ predicts from the month's predictors,
@@ -451,7 +451,7 @@ month's water totals, computes the inundated fraction using (14.11) and scales t
 
 ```math
 \bar{F} \leftarrow f\,\bar{F}^{(1)}, \qquad A \leftarrow A_{0} + f\,\left(A - A_{0}\right),
-\tag{14.12}
+\qquad\text{(14.12)}
 ```
 
 where $`\bar{F}^{(1)}`$ is the month's mean emission at $`f = 1`$ and $`A_{0}`$ is the annual emission accumulated before the
@@ -509,7 +509,7 @@ after (14.12):
 ```math
 \Delta C = \min\left[\max\left(A - A_{0},\, 0\right),\; \max\left(R_{h,y} - R_{h,y,0},\, 0\right)\right], \qquad
 R_{h,y} \leftarrow R_{h,y} - \Delta C,
-\tag{14.13}
+\qquad\text{(14.13)}
 ```
 
 where $`\Delta C`$ (kg C m⁻²) is the methane carbon of the month; $`R_{h,y}`$ (kg C m⁻²) is the heterotrophic respiration

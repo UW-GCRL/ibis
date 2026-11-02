@@ -59,12 +59,12 @@ The thermal conductivity of a soil layer depends on its texture and on the volum
 
 ```math
 \lambda_{k} = \lambda_{dry,k}\; 56^{\,\phi_{k}(1 - w^{i}_{k})\,w_{k}}\; 224^{\,\phi_{k}\,w^{i}_{k}},
-\tag{6.1}
+\qquad\text{(6.1)}
 ```
 
 ```math
 \lambda_{dry,k} = 0.300\,f_{sand,k} + 0.265\,f_{silt,k} + 0.250\,f_{clay,k},
-\tag{6.2}
+\qquad\text{(6.2)}
 ```
 
 where $`\lambda_{k}`$ (W m⁻¹ K⁻¹) is the conductivity of layer $`k`$; $`\lambda_{dry,k}`$ (W m⁻¹ K⁻¹) is its dry
@@ -95,12 +95,12 @@ The heat capacity of a layer per unit area is
 ```math
 C_{k} = \Delta z_{k}\left[(1 - \phi_{k})\,\rho_{s}\,c_{s} + \phi_{k}(1 - w^{i}_{k})\,w_{k}\,\rho_{w}\,c_{w}
 + \phi_{k}\,w^{i}_{k}\,\rho_{w}\,c_{i}\right] + \delta_{k1}\,C_{p},
-\tag{6.3}
+\qquad\text{(6.3)}
 ```
 
 ```math
 C_{p} = c_{w}\,P_{l} + c_{i}\,P_{i},
-\tag{6.4}
+\qquad\text{(6.4)}
 ```
 
 where $`C_{k}`$ (J m⁻² K⁻¹) is the heat capacity of layer $`k`$; $`\Delta z_{k}`$ (m) is its thickness (Table 1.2);
@@ -171,7 +171,7 @@ The temperatures at the end of the step satisfy, for $`k = 1, \ldots, K`$,
 ```math
 C_{k}^{n+1}\,T_{k}^{n+1} - C_{k}^{n}\,T_{k}^{*} = \Delta t\left[\kappa_{k}\left(T_{k-1}^{n+1} - T_{k}^{n+1}\right)
 - \kappa_{k+1}\left(T_{k}^{n+1} - T_{k+1}^{n+1}\right) + H_{k} - H_{k+1} + \delta_{k1}\,G_{top}\right],
-\tag{6.5}
+\qquad\text{(6.5)}
 ```
 
 where the superscripts $`n`$ and $`n+1`$ mark the start and the end of the step; $`\Delta t = 3600`$ s; $`T_{k}^{*}`$ (K) is the
@@ -189,7 +189,7 @@ Thomas algorithm (equation 17.5). The conductance between two layers combines th
 ```math
 \kappa_{k} = \left[\frac{1}{2}\left(\frac{\Delta z_{k-1}}{\lambda_{k-1}} + \frac{\Delta z_{k}}{\lambda_{k}}\right)\right]^{-1},
 \qquad 2 \le k \le K,
-\tag{6.6}
+\qquad\text{(6.6)}
 ```
 
 with $`\lambda_{k} = \lambda_{b}`$ in the bedrock. The water flow carries heat at the temperature of the interface it
@@ -200,7 +200,7 @@ H_{k} = c_{w}\,Q_{k}\,\tilde{T}_{k}, \qquad
 \tilde{T}_{1} = T_{1}^{*}, \qquad
 \tilde{T}_{k} = \frac{\Delta z_{k}\,T_{k-1}^{*} + \Delta z_{k-1}\,T_{k}^{*}}{\Delta z_{k-1} + \Delta z_{k}}\;\;(2 \le k \le 6),
 \qquad \tilde{T}_{7} = T_{6}^{*},
-\tag{6.7}
+\qquad\text{(6.7)}
 ```
 
 where $`Q_{k}`$ (kg m⁻² s⁻¹) is the downward flow of liquid water across the top of soil layer $`k`$ (equation 7.24).
@@ -216,7 +216,7 @@ its base. The heat flux into the top of the column is
 
 ```math
 G_{top} = G + R\,c_{w}\left(T_{R} - T_{1}^{n}\right) - Q_{s}\,c_{w}\,\max\left(T_{f} - T_{1}^{n},\, 0\right),
-\tag{6.8}
+\qquad\text{(6.8)}
 ```
 
 where $`G`$ (W m⁻²) is the heat flux into the soil surface, averaged over the snow-free and the snow-covered parts of the
@@ -247,7 +247,7 @@ For diagnostics, the model infers a flux from the heat stored above each soil la
 ```math
 F_{1} = G_{top}, \qquad F_{k+1} = F_{k} - \frac{C_{k}^{n+1}\,T_{k}^{n+1} - C_{k}^{n}\,T_{k}^{*}}{\Delta t}
 \quad (k = 1, \ldots, 6),
-\tag{6.9}
+\qquad\text{(6.9)}
 ```
 
 where $`F_k`$ (W m⁻²; `soil.hflo`) is the flux deduced from the heat stored above layer $`k`$, as in IBIS 2.6b4.
@@ -265,7 +265,7 @@ the heat equation, it adjusts each soil layer's temperature for root uptake
 
 ```math
 T_{k}^{*} = T_{k}^{n} - \frac{\Delta t\,c_{w}\left[U_{u,k}\left(T_{u} - T_{k}^{n}\right) + U_{l,k}\left(T_{l} - T_{k}^{n}\right)\right]}{C_{k}},
-\tag{6.10}
+\qquad\text{(6.10)}
 ```
 
 where $`U_{u,k}`$ and $`U_{l,k}`$ (kg m⁻² s⁻¹) are the root uptake of the upper and the lower canopy from layer $`k`$
@@ -288,7 +288,7 @@ water. The heat capacity of the layer per unit volume, divided by the density of
 ```math
 \bar{c}_{k} = \frac{\delta_{k1}\,C_{p}^{n+1}}{\rho_{w}\,\Delta z_{k}} + \frac{(1 - \phi'_{k})\,\rho_{s}\,c_{s}}{\rho_{w}}
 + \phi'_{k}\,(1 - w^{i}_{k})\,w_{k}\,c_{w} + \phi'_{k}\,w^{i}_{k}\,c_{i},
-\tag{6.11}
+\qquad\text{(6.11)}
 ```
 
 where $`\bar{c}_{k}`$ (J kg⁻¹ K⁻¹) is evaluated with the current contents and $`\phi'_{k} = \max(\phi_{k}, \epsilon)`$, with
@@ -303,7 +303,7 @@ $`\epsilon = 10^{-7}`$. First, where liquid water exists below the melting point
 w^{i}_{k} \leftarrow w^{i}_{k} + \frac{\Delta m}{\phi'_{k}}, \quad
 w_{k} \leftarrow w_{k} - \frac{\Delta m}{\phi'_{k}}\,\frac{1 - \min(w_{k}, 1)}{\max(\epsilon,\, 1 - w^{i}_{k})}, \quad
 T_{k} \leftarrow T_{f} - \frac{\Delta h - L_{f}\,\Delta m}{\bar{c}_{k}},
-\tag{6.12}
+\qquad\text{(6.12)}
 ```
 
 where $`\Delta h`$ (J kg⁻¹) is the sensible heat, per unit volume of the layer divided by $`\rho_{w}`$, that the layer
@@ -321,7 +321,7 @@ above the melting point, some or all of it melts:
 w^{i}_{k} \leftarrow w^{i}_{k} - \frac{\Delta m}{\phi'_{k}}, \quad
 w_{k} \leftarrow w_{k} + \frac{\Delta m}{\phi'_{k}}\,\frac{1 - w_{k}}{\max(\epsilon,\, 1 - w^{i}_{k})}, \quad
 T_{k} \leftarrow T_{f} + \frac{\Delta h - L_{f}\,\Delta m}{\bar{c}_{k}},
-\tag{6.13}
+\qquad\text{(6.13)}
 ```
 
 with the same conventions. The updates of $`w_{k}`$ preserve the layer's water, $`\phi_{k}[(1 - w^{i}_{k})w_{k} + w^{i}_{k}]`$, because $`w_{k}`$ measures liquid water as a fraction of the pore space not filled by ice. They also conserve the layer's heat,
@@ -339,7 +339,7 @@ c' = c_{w}\,P_{l} + c_{i}\,P_{i} + C'_{1}, \quad
 \Delta P = \min\left[P_{l},\, \max\left(0, \frac{\Delta h}{L_{f}}\right)\right], \quad
 P_{i} \leftarrow P_{i} + \Delta P, \quad P_{l} \leftarrow P_{l} - \Delta P, \quad
 T_{1} \leftarrow T_{f} - \frac{\Delta h - L_{f}\,\Delta P}{c'},
-\tag{6.14}
+\qquad\text{(6.14)}
 ```
 
 followed by the melting of puddle ice above the melting point with the signs reversed. Here $`c'`$ (J m⁻² K⁻¹) is the
@@ -359,7 +359,7 @@ $`\exp(-z/d)`$ in a uniform half-space (Carslaw and Jaeger, 1959), with the damp
 
 ```math
 d = \sqrt{\frac{2\,\lambda}{C_{v}\,\omega}},
-\tag{6.15}
+\qquad\text{(6.15)}
 ```
 
 where $`d`$ (m) is the depth over which the amplitude falls by the factor $`e`$; $`\lambda`$ (W m⁻¹ K⁻¹) and $`C_{v}`$
@@ -385,7 +385,7 @@ On a cold start the bedrock temperatures are set from the bottom soil layer,
 
 ```math
 T_{6+j} = T_{6} + \gamma\,z'_{j}, \qquad j = 1, 2, 3,
-\tag{6.16}
+\qquad\text{(6.16)}
 ```
 
 where $`z'_{j}`$ (m) is the depth of node $`6 + j`$ below node 6 and $`\gamma`$ (K m⁻¹) is `BedrockParams.dtdz`, 0 in the code
