@@ -14,12 +14,12 @@ phenology of Chapter 10, and the cell retains one set of carbon pools per positi
 
 ## 15.1 The cropland share
 
-The model needs to know how much of each cell is cropland. The cropland fraction $f_{crop}$ of a cell ($c$ in
+The model needs to know how much of each cell is cropland. The cropland fraction $`f_{crop}`$ of a cell ($`c`$ in
 Chapter 11) is the share of the cell's 300 m land pixels (water and no-data pixels excluded) in the cropland classes of
 the ESA CCI land cover map of 2000 (ESA, 2017), the two mosaic classes counted as half (section 2.7, Figure 2.5). The
 run configuration names the file (`forcing.cropfrac_file`, `cropfrac_esacci_2000_05deg.npz`). The driver reads the file once
 and uses the same values in the spin-up, transient and hindcast. Without this file, it skips every cropland term below
-and runs without cropland. The annual update clips the fraction to $[0, 1]$; the
+and runs without cropland. The annual update clips the fraction to $`[0, 1]`$; the
 capacity factor used at every time step uses the fraction as read.
 
 Of the 95,333 land cells, 47,304 have cropland, 8,338 on at least half of the cell and 34 entirely (Table 15.1). The
@@ -43,7 +43,7 @@ cells, and the area-weighted mean fraction of the bin (`figures/make_ch15.py`, `
 Two crop types, C01 (C3 crop) and C02 (C4 crop), complete the type list in Table 2.3. They occupy no cell position and
 have no parameters of their own. Type placement skips the growth form `crop`, and the parameters named by these types
 come from the `crop` section of the parameter file (Table 15.4). There is no map distinguishing the two crops; a single
-global share $q$ of C4 crops applies everywhere (section 15.3).
+global share $`q`$ of C4 crops applies everywhere (section 15.3).
 
 ## 15.2 The cell with cropland
 
@@ -54,17 +54,17 @@ natural grass on the rest of the cell. The model applies cropland terms as area-
 (Figure 15.1). The grass capacity is the mean of the natural and the crop value over the two shares (15.1). Tree
 cover is calculated from the trees' wood density and multiplied by the natural share (15.3). The shrubs receive the
 natural share of their NPP (15.4). The harvest is the cropland share of the grass leaf litterfall times a harvest index
-(15.6). The fire (Chapter 13) and the background disturbance have no cropland term: the fire share $d_{f} m_{j}$ and
-the background share $d_{o}$ of (11.18) act on the grass pools, crops included, as on every other pool of the cell.
+(15.6). The fire (Chapter 13) and the background disturbance have no cropland term: the fire share $`d_{f} m_{j}`$ and
+the background share $`d_{o}`$ of (11.18) act on the grass pools, crops included, as on every other pool of the cell.
 Table 15.2 lists the terms in the order of the calculations of Tables 1.3 and 1.4.
 
 ![Figure 15.1](figures/fig_15_1_cropland_cell.png)
 
-**Figure 15.1** A cell with cropland. The trees and shrubs live on the natural share $1 - f_{crop}$; the grass
-positions 11 and 12 cover both shares with one set of pools, their capacity scaled by $g$ of (15.1). Grass leaf
-litterfall on the cropland share is divided: a share $h$ leaves the cell as harvest $H$ (15.6), and the rest enters
-litter with the other litterfall. The shrub NPP of the cropland share, $S$ (15.4; the dashed shrub), is
-counted in the cell's NPP but no pool receives it. $H$ and $S$ are added to the carbon removed from the ecosystem, $E$, as a flux
+**Figure 15.1** A cell with cropland. The trees and shrubs live on the natural share $`1 - f_{crop}`$; the grass
+positions 11 and 12 cover both shares with one set of pools, their capacity scaled by $`g`$ of (15.1). Grass leaf
+litterfall on the cropland share is divided: a share $`h`$ leaves the cell as harvest $`H`$ (15.6), and the rest enters
+litter with the other litterfall. The shrub NPP of the cropland share, $`S`$ (15.4; the dashed shrub), is
+counted in the cell's NPP but no pool receives it. $`H`$ and $`S`$ are added to the carbon removed from the ecosystem, $`E`$, as a flux
 to the atmosphere. The values are those of the release parameter file.
 
 **Table 15.2** The cropland terms in the order of the calculations. Steps 2 to 8 are the annual update `dynaveg`
@@ -72,11 +72,11 @@ to the atmosphere. The values are those of the release parameter file.
 
 | Step | Time scale | Operation | Equation | Section |
 |---|---|---|---|---|
-| 1 | time step | capacity of the grass positions times $g$ | (15.1), (15.2) | 15.3 |
-| 2 | year | shrub NPP scaled to the natural share; the rest counted as removed, $S$ | (15.4) | 15.5 |
+| 1 | time step | capacity of the grass positions times $`g`$ | (15.1), (15.2) | 15.3 |
+| 2 | year | shrub NPP scaled to the natural share; the rest counted as removed, $`S`$ | (15.4) | 15.5 |
 | 3 | year | allocation of the NPP and litterfall of every position; the grass allocation blended toward the crops' where `crop.aleaf` is set (not in the release) | (11.11)-(11.14), (15.7) | 11.4, 15.6 |
 | 4 | year | removal of the trees where the maximum cover is zero; disturbance | (11.15)-(11.19) | 11.5, 11.6 |
-| 5 | year | harvest from the grass leaf litterfall; $H$ and $S$ added to the removed carbon | (15.5), (15.6) | 15.6 |
+| 5 | year | harvest from the grass leaf litterfall; $`H`$ and $`S`$ added to the removed carbon | (15.5), (15.6) | 15.6 |
 | 6 | year | minimum leaf carbon, leaf-area limit (off in the release), leaf area and biomass | (15.8) | 11.7, 15.7 |
 | 7 | year | net ecosystem exchange less the removed carbon | (15.6) | 11.10 |
 | 8 | year | upper-canopy cover on the natural share; lower-canopy cover | (15.3), (11.25) | 15.4, 11.8 |
@@ -87,39 +87,39 @@ Crops and natural grass differ in their leaves' photosynthetic rates. The model 
 on the photosynthetic capacity of both grass positions. At every time step, it multiplies their capacity at 15 °C by
 a cell-level factor (9.7):
 
-$$
+```math
 g = 1 + f_{crop}\left(\bar{s} - 1\right), \qquad \bar{s} = (1 - q)\, s_{C3} + q\, s_{C4}, \qquad 0 \le q \le 1,
 \tag{15.1}
-$$
+```
 
-where $g$ is the factor on the capacity of both grass positions (1 in the other positions); $f_{crop}$ is the cropland
-fraction of the cell; $s_{C3}$ = 0.329 and $s_{C4}$ = 1.158 are the capacities of the C3 and the C4 crop relative to the
-natural grass of the position (`crop.vmax_scale_c3`, `crop.vmax_scale_c4`); and $q$ = 0.2 is the share of C4 crops in
-the cropland (`crop.c4_share`). In the release, therefore, $\bar{s}$ = 0.495: the grass of a fully cropland cell has
+where $`g`$ is the factor on the capacity of both grass positions (1 in the other positions); $`f_{crop}`$ is the cropland
+fraction of the cell; $`s_{C3}`$ = 0.329 and $`s_{C4}`$ = 1.158 are the capacities of the C3 and the C4 crop relative to the
+natural grass of the position (`crop.vmax_scale_c3`, `crop.vmax_scale_c4`); and $`q`$ = 0.2 is the share of C4 crops in
+the cropland (`crop.c4_share`). In the release, therefore, $`\bar{s}`$ = 0.495: the grass of a fully cropland cell has
 half the capacity of the natural grass, and that of a cell with 20 % cropland 0.899 of it (Figure 15.2a). The factor is
-the area-weighted mean of the natural value 1 and crop value $\bar{s}$ across the cell's two shares. It is applied to
+the area-weighted mean of the natural value 1 and crop value $`\bar{s}`$ across the cell's two shares. It is applied to
 each position's single grass pool. The same mixed value acts on the C4 and the C3 position, because the model's
-grass competition (the C4 grass requires a warmest-temperature statistic $T_{w}$ above 22 °C, section 11.3 and
+grass competition (the C4 grass requires a warmest-temperature statistic $`T_{w}`$ above 22 °C, section 11.3 and
 Table 11.2) does not specify what crop is
-sown there. With $q < 0$, each scale applies to its corresponding position:
+sown there. With $`q < 0`$, each scale applies to its corresponding position:
 
-$$
+```math
 g_{11} = 1 + f_{crop}\left(s_{C4} - 1\right), \qquad g_{12} = 1 + f_{crop}\left(s_{C3} - 1\right),
 \tag{15.2}
-$$
+```
 
-where $g_{11}$ and $g_{12}$ are the factors of the C4 and the C3 position: a cell whose cropland is prescribed as C4
-grass is then a maize field. This is the setting of the tower fits (section 15.8; the code default is $q$ = −1). A $q$
+where $`g_{11}`$ and $`g_{12}`$ are the factors of the C4 and the C3 position: a cell whose cropland is prescribed as C4
+grass is then a maize field. This is the setting of the tower fits (section 15.8; the code default is $`q`$ = −1). A $`q`$
 above 1 is clipped to 1 in (15.1).
 
 The model combines the crop and acclimation factors of section 9.3.3 into one factor per position, then applies it to
-the capacity $V^{0}_{c,j}$ in the parameter file. Grasses do not acclimate, so their factor
-is $g$ alone. It multiplies $V_{m}$ of (9.3) and with it every rate proportional to it: the Rubisco- and the
+the capacity $`V^{0}_{c,j}`$ in the parameter file. Grasses do not acclimate, so their factor
+is $`g`$ alone. It multiplies $`V_{m}`$ of (9.3) and with it every rate proportional to it: the Rubisco- and the
 sink-limited rates of the C3 grass (9.4), the capacity- and the CO2-limited rates of the C4 grass (9.6), and the leaf
-dark respiration $R_{d}$ of both (9.3). The factor does not scale the light-limited rate. The option
+dark respiration $`R_{d}`$ of both (9.3). The factor does not scale the light-limited rate. The option
 `stomata.acclim_light` (off in the release) scales that rate by the acclimation factor alone, which is 1 for the
 grasses. One exception remains: with `acclim_light` on and the acclimation off (`stomata.acclim_on` false; on in the
-release), the grasses' light-limited rate takes $g$ (section 15.12).
+release), the grasses' light-limited rate takes $`g`$ (section 15.12).
 
 By changing net assimilation, the factor also changes
 stomatal conductance (section 9.5), and therefore transpiration. It also changes the ten-day mean net assimilation
@@ -133,15 +133,15 @@ position. The factor applies at every time step whether or not the annual update
 
 ![Figure 15.2](figures/fig_15_2_capacity_cover.png)
 
-**Figure 15.2** (a) The factor $g$ on the capacity of the grass positions against the cropland fraction, computed by
-the model with the release crop parameters: the release setting, $q$ = 0.2, one factor for both grasses (15.1); and the
-setting of the tower fits, $q$ = −1, the C4 scale on position 11 and the C3 scale on position 12 (15.2). (b) The cover
-of the upper canopy against the wood $W$ of (15.3), the wood carbon of the tree positions before the disturbance,
-computed by the model's annual update on synthetic cells with the release parameters, fire off so that $\bar{D}$ = 0.01,
+**Figure 15.2** (a) The factor $`g`$ on the capacity of the grass positions against the cropland fraction, computed by
+the model with the release crop parameters: the release setting, $`q`$ = 0.2, one factor for both grasses (15.1); and the
+setting of the tower fits, $`q`$ = −1, the C4 scale on position 11 and the C3 scale on position 12 (15.2). (b) The cover
+of the upper canopy against the wood $`W`$ of (15.3), the wood carbon of the tree positions before the disturbance,
+computed by the model's annual update on synthetic cells with the release parameters, fire off so that $`\bar{D}`$ = 0.01,
 and no maximum tree cover, for cells with 0, 25, 50 and 75 % cropland. The dotted lines are the limits
-$(1 - f_{crop})(1 - \bar{D})$; without cropland the cap 0.975 holds the cover below its limit 0.99. At
-$W$ = 1 kg C m⁻² the cover is 0.626, 0.547, 0.428 and 0.243; above $W$ = 3.7 kg C m⁻² every curve is within 1 % of its
-final level, 0.975, 0.743, 0.495 and 0.248; as $W$ goes to zero every curve ends at the floor 0.05.
+$`(1 - f_{crop})(1 - \bar{D})`$; without cropland the cap 0.975 holds the cover below its limit 0.99. At
+$`W`$ = 1 kg C m⁻² the cover is 0.626, 0.547, 0.428 and 0.243; above $`W`$ = 3.7 kg C m⁻² every curve is within 1 % of its
+final level, 0.975, 0.743, 0.495 and 0.248; as $`W`$ goes to zero every curve ends at the floor 0.05.
 
 ## 15.4 Trees on the natural share
 
@@ -150,30 +150,30 @@ wood and limits tree cover: it clears no trees and updates tree-position pools a
 assigns the tree positions' wood to the natural share, calculates cover from that wood, and applies the resulting cover
 to the natural share of the cell, (11.23):
 
-$$
+```math
 f_{u} = \min\left\{0.975,\; \max\left[f^{min}_{u},\; \min\left(f^{max}_{u},\; (1 - f_{crop})\,
 \frac{1 - \exp\left(-W' / k_{w}\right)}{1 - \exp\left(-W_{n} / k_{w}\right)} \left(1 - \bar{D}\right)\right)\right]\right\},
 \qquad W' = \frac{W}{\max\left(1 - f_{crop},\, 0.01\right)},
 \tag{15.3}
-$$
+```
 
-where $f_{u}$ is the cover of the upper canopy, a fraction of the cell; $W$ (kg C m⁻²) is 0.001 plus the wood carbon of
-the tree positions after the allocation and before the disturbance (11.18), as in (11.23); $W'$ (kg C m⁻²) is the wood
-density of the natural share, with the denominator bounded below by 0.01; $k_{w}$ = 1.0 kg C m⁻² is the wood scale of the
-cover (`pft.fu_k`, the code default; the parameter file does not set it); $W_{n}$ = 7.5 kg C m⁻² is the wood of a
-closed canopy (`pft.woodnorm`); $\bar{D}$ is the disturbed share of the cell (11.24); $f^{max}_{u}$ is the
-water-limited maximum tree cover (11.17); and $f^{min}_{u}$ = 0.05 is the floor of the cover (`pft.fu_min`). The cover
-rule saturates: $f_{u}$ reaches 0.975 at $W$ = 4.2 kg C m⁻² without cropland (Figure 11.4a). A forest therefore reaches full cover on the natural
+where $`f_{u}`$ is the cover of the upper canopy, a fraction of the cell; $`W`$ (kg C m⁻²) is 0.001 plus the wood carbon of
+the tree positions after the allocation and before the disturbance (11.18), as in (11.23); $`W'`$ (kg C m⁻²) is the wood
+density of the natural share, with the denominator bounded below by 0.01; $`k_{w}`$ = 1.0 kg C m⁻² is the wood scale of the
+cover (`pft.fu_k`, the code default; the parameter file does not set it); $`W_{n}`$ = 7.5 kg C m⁻² is the wood of a
+closed canopy (`pft.woodnorm`); $`\bar{D}`$ is the disturbed share of the cell (11.24); $`f^{max}_{u}`$ is the
+water-limited maximum tree cover (11.17); and $`f^{min}_{u}`$ = 0.05 is the floor of the cover (`pft.fu_min`). The cover
+rule saturates: $`f_{u}`$ reaches 0.975 at $`W`$ = 4.2 kg C m⁻² without cropland (Figure 11.4a). A forest therefore reaches full cover on the natural
 share once its wood exceeds a few kg C m⁻² of that share, and the cell's cover
-is then $(1 - f_{crop})(1 - \bar{D})$ (Figure 15.2b). The gross photosynthesis of the upper canopy is the cover times
+is then $`(1 - f_{crop})(1 - \bar{D})`$ (Figure 15.2b). The gross photosynthesis of the upper canopy is the cover times
 the photosynthesis per unit cover (9.24), so tree NPP, and consequently tree wood, adjusts to the trees' share of the
 cell without removing carbon. The yearly output still carries a variable for cleared tree carbon
 (`ayclearing`); it is always zero.
 
-Three limits of (15.3) act on the cell cover after the factor $1 - f_{crop}$: the maximum tree cover $f^{max}_{u}$,
-the floor $f^{min}_{u}$ and the cap 0.975. On a cell with cropland the maximum therefore bounds the cover of the cell,
-not that of the natural share, which may reach $f^{max}_{u} / (1 - f_{crop})$. The floor can exceed the natural share:
-in the release run of 2010, 940 of the 47,304 cells with cropland have an upper-canopy cover above $1 - f_{crop}$, all
+Three limits of (15.3) act on the cell cover after the factor $`1 - f_{crop}`$: the maximum tree cover $`f^{max}_{u}`$,
+the floor $`f^{min}_{u}`$ and the cap 0.975. On a cell with cropland the maximum therefore bounds the cover of the cell,
+not that of the natural share, which may reach $`f^{max}_{u} / (1 - f_{crop})`$. The floor can exceed the natural share:
+in the release run of 2010, 940 of the 47,304 cells with cropland have an upper-canopy cover above $`1 - f_{crop}`$, all
 of them cells with more than 95 % cropland, where the floor 0.05 is above the natural share. The floor maintains a
 productive canopy in these cells: in 2010 their upper-canopy NPP is 0.108 Pg C yr⁻¹, about half of it on the cover
 above the natural share when the NPP is divided in proportion to the cover, against a harvest of 0.072 Pg C yr⁻¹ on the
@@ -183,11 +183,11 @@ its cover.
 
 Where wood determines cover, upper-canopy height (11.26) is that of the stand on the natural share, because the height
 calculation divides tree biomass by cell cover. The sapwood fraction (11.28), however, divides the sapwood volume by
-the cell's wood $W$, not by $W'$. The trees of a cell with cropland therefore carry about $1/(1 - f_{crop})$ times the
+the cell's wood $`W`$, not by $`W'`$. The trees of a cell with cropland therefore carry about $`1/(1 - f_{crop})`$ times the
 sapwood fraction of the same stand without cropland, up to the cap 0.5, and their wood respiration (11.3) per unit of
 wood rises with it. In the release state at the end of 2010, among the cells with more than 0.5 kg C m⁻² of tree wood,
 the median sapwood fraction is 0.066 in the cells without cropland and 0.087, 0.128 and 0.326 in the bins 0.1-0.3,
-0.3-0.6 and 0.6-1 of the cropland fraction, where 28 % of the cells of the last bin are at the cap. With $W'$ in
+0.3-0.6 and 0.6-1 of the cropland fraction, where 28 % of the cells of the last bin are at the cap. With $`W'`$ in
 (11.28) the median over cells between the floor 0.05 and the cap 0.5 would be 0.063 to 0.065 in each of the three bins (`figures/make_ch15.py`,
 `N15`; release run, to be updated after the final run of the revised model). These three properties of (15.3) and
 (11.28) were reviewed and retained (section 15.12).
@@ -197,18 +197,18 @@ the median sapwood fraction is 0.066 in the cells without cropland and 0.087, 0.
 Like trees, shrub positions 9 and 10 grow only on the natural share. The model scales their annual NPP before
 allocation, (11.10):
 
-$$
+```math
 N'_{j} = e_{j}\, N^{y}_{j}\, (1 - f_{crop}), \qquad S = f_{crop} \sum_{j=9}^{10} \max\left(0,\, e_{j}\, N^{y}_{j}\right),
 \tag{15.4}
-$$
+```
 
-where $N'_{j}$ (kg C m⁻² yr⁻¹) is the NPP the shrub position is allocated; $e_{j}$ is its existence (section 11.3.3);
-$N^{y}_{j}$ (kg C m⁻² yr⁻¹) is its annual NPP, per unit area of the cell (11.6); and $S$ (kg C m⁻² yr⁻¹) is the
-positive part of the shrub NPP on the cropland share, which the cell's NPP total counts but no pool receives. $S$
+where $`N'_{j}`$ (kg C m⁻² yr⁻¹) is the NPP the shrub position is allocated; $`e_{j}`$ is its existence (section 11.3.3);
+$`N^{y}_{j}`$ (kg C m⁻² yr⁻¹) is its annual NPP, per unit area of the cell (11.6); and $`S`$ (kg C m⁻² yr⁻¹) is the
+positive part of the shrub NPP on the cropland share, which the cell's NPP total counts but no pool receives. $`S`$
 leaves the cell with the harvest (15.6), so the net ecosystem exchange accounts for it; its yearly total is written as
 `aycropshrub`. Negative shrub NPP is drawn from the pools without scaling (11.14), because this calculation uses NPP before scaling.
 Only the above-ground NPP output (`ayanpptot`) uses the scaled value. Under constant NPP the shrub
-pools tend to $(1 - f_{crop})$ times the density the natural share would carry (11.11), so shrubs remain on their
+pools tend to $`(1 - f_{crop})`$ times the density the natural share would carry (11.11), so shrubs remain on their
 share, as trees do. The grasses, which are the crops, have no such term. Without the scaling, shrubs from the
 natural competition would grow on the cropland share as well and fill much of the lower canopy of the cropland cells,
 unaffected by the crop-capacity adjustment, which acts only on grasses (section 15.12).
@@ -216,59 +216,59 @@ unaffected by the crop-capacity adjustment, which acts only on grasses (section 
 ## 15.6 Harvest and the crops' allocation
 
 Harvest is crop carbon removed from the field. In IBIS 3.0, it is a share of the two grass positions' leaf litterfall.
-The model calculates position $j$'s litterfall before disturbance from its leaf pool and the year's NPP, using (11.12)
+The model calculates position $`j`$'s litterfall before disturbance from its leaf pool and the year's NPP, using (11.12)
 with `pft.exact_litterfall` on, as in the release:
 
-$$
+```math
 F_{l,j} = C_{l,j}\left(1 - e^{-1/\tau_{l,j}}\right) + a_{l,j} \max\left(0,\, N'_{j}\right)
 \left[1 - \tau_{l,j}\left(1 - e^{-1/\tau_{l,j}}\right)\right], \qquad j = 11, 12,
 \tag{15.5}
-$$
+```
 
-where $F_{l,j}$ (kg C m⁻² yr⁻¹) is the leaf litterfall of the grass position, per unit area of the cell; $C_{l,j}$
-(kg C m⁻²) is its leaf carbon before the update; $N'_{j}$ is its NPP, which has no cropland term; $a_{l,j}$ is the leaf
+where $`F_{l,j}`$ (kg C m⁻² yr⁻¹) is the leaf litterfall of the grass position, per unit area of the cell; $`C_{l,j}`$
+(kg C m⁻²) is its leaf carbon before the update; $`N'_{j}`$ is its NPP, which has no cropland term; $`a_{l,j}`$ is the leaf
 allocation of the type in the position (0.25 to 0.30 for the eight grass types, Table 11.5, or the blended value of
-(15.7) where `crop.aleaf` is set); and $\tau_{l,j}$ (yr) is the leaf turnover time (0.6 to 0.8 yr for the grass types;
-1.0 yr for the base positions). With the switch off the litterfall is $C_{l,j} / \tau_{l,j}$ (11.13). The harvest is
+(15.7) where `crop.aleaf` is set); and $`\tau_{l,j}`$ (yr) is the leaf turnover time (0.6 to 0.8 yr for the grass types;
+1.0 yr for the base positions). With the switch off the litterfall is $`C_{l,j} / \tau_{l,j}`$ (11.13). The harvest is
 
-$$
+```math
 H = f_{crop}\, h \left(F_{l,11} + F_{l,12}\right), \qquad F_{l} \leftarrow \max\left(0,\, F_{l} - H\right), \qquad
 E \mathrel{+}= H + S,
 \tag{15.6}
-$$
+```
 
-where $H$ (kg C m⁻² yr⁻¹) is the harvest, per unit area of the cell; $h$ = 0.45 is the harvest index
-(`crop.harvest_index`); $F_{l}$ (kg C m⁻² yr⁻¹) is the leaf litterfall of the cell, the sum over the positions, from
-which the harvest is taken before the litterfall enters the litter pools (Chapter 12); and $E$ (kg C m⁻² yr⁻¹) is the
+where $`H`$ (kg C m⁻² yr⁻¹) is the harvest, per unit area of the cell; $`h`$ = 0.45 is the harvest index
+(`crop.harvest_index`); $`F_{l}`$ (kg C m⁻² yr⁻¹) is the leaf litterfall of the cell, the sum over the positions, from
+which the harvest is taken before the litterfall enters the litter pools (Chapter 12); and $`E`$ (kg C m⁻² yr⁻¹) is the
 carbon removed from the ecosystem in the year. Fire combustion and background disturbance also contribute to this total
 (11.19), which is subtracted from annual net ecosystem exchange (section 11.10). The harvest and the shrub NPP of the
-cropland share leave the cell as a flux to the atmosphere in the year they are recorded, like combusted carbon. $E$
+cropland share leave the cell as a flux to the atmosphere in the year they are recorded, like combusted carbon. $`E`$
 is written as `aycdisturb` and the harvest as `ayharvest`. The harvest is bounded by the grass leaf litterfall, so the
 second step of (15.6) never removes other litter.
 
 Harvest leaves the plant intact: the grass retains its leaves, roots and NPP. It diverts only carbon that would have
 entered litter. Under constant NPP, when the leaf pool is at its equilibrium
-$a_{l,j} \tau_{l,j} N'_{j}$, (15.5) and (11.13) both give $F_{l,j} = a_{l,j} N'_{j}$, so the harvest is $h\, a_{l,j}$
-of the grass NPP on the cropland share: 0.11 to 0.135 of it for the release values of $h$ and $a_{l,j}$. Grass root
-turnover, 0.70 to 0.75 of NPP, enters litter in full. No residue beyond the share $h$ of leaf litterfall is removed,
+$`a_{l,j} \tau_{l,j} N'_{j}`$, (15.5) and (11.13) both give $`F_{l,j} = a_{l,j} N'_{j}`$, so the harvest is $`h\, a_{l,j}`$
+of the grass NPP on the cropland share: 0.11 to 0.135 of it for the release values of $`h`$ and $`a_{l,j}`$. Grass root
+turnover, 0.70 to 0.75 of NPP, enters litter in full. No residue beyond the share $`h`$ of leaf litterfall is removed,
 and nothing is returned to the field.
 
 Crops put more of their production above ground than the grass types of the release, which send 70-75 % of their NPP
 to the roots. The model can therefore assign a crop-specific allocation to the cropland share (`crop.aleaf`). It blends both grass
 positions' allocation fractions toward the crop values in proportion to the cropland fraction, as for capacity (15.1):
 
-$$
+```math
 a'_{l,j} = (1 - f_{crop})\, a_{l,j} + f_{crop}\, a_{crop}, \qquad
 a'_{r,j} = (1 - f_{crop})\, a_{r,j} + f_{crop}\, (1 - a_{crop}), \qquad
 a'_{w,j} = (1 - f_{crop})\, a_{w,j}, \qquad j = 11, 12,
 \tag{15.7}
-$$
+```
 
-where $a'_{l,j}$, $a'_{r,j}$ and $a'_{w,j}$ are the leaf, root and wood fractions the position uses in the allocation
-(11.11), the litterfall (15.5) and the above-ground NPP; $a_{l,j}$, $a_{r,j}$ and $a_{w,j}$ are those of the type in
-the position (Table 11.5; $a_{w,j}$ = 0 for the grasses); and $a_{crop}$ is the leaf share of the crops' allocation
+where $`a'_{l,j}`$, $`a'_{r,j}`$ and $`a'_{w,j}`$ are the leaf, root and wood fractions the position uses in the allocation
+(11.11), the litterfall (15.5) and the above-ground NPP; $`a_{l,j}`$, $`a_{r,j}`$ and $`a_{w,j}`$ are those of the type in
+the position (Table 11.5; $`a_{w,j}`$ = 0 for the grasses); and $`a_{crop}`$ is the leaf share of the crops' allocation
 (`crop.aleaf`), the rest going to the roots. The blended fractions still sum to 1. At equilibrium on a cell that is all
-cropland, the harvest is then $h\, a_{crop}$ of the crop NPP. The harvest index keeps its value of 0.45, which, as for
+cropland, the harvest is then $`h\, a_{crop}`$ of the crop NPP. The harvest index keeps its value of 0.45, which, as for
 real crops, is a share of the above-ground production. The release does not set this parameter, so grasses retain
 their own allocation. Like the other annual cropland terms, it acts only with dynamic vegetation (section 15.8).
 
@@ -277,13 +277,13 @@ their own allocation. Like the other annual cropland terms, it acts only with dy
 The code can limit each canopy's leaf area per unit cover to a per-type maximum (`pft.lai_max`; section 11.7),
 which the release does not set. When it is set, the maximum of the lower canopy on a cell with cropland is
 
-$$
+```math
 \Lambda^{max}_{l} = (1 - f_{crop})\, \bar{\Lambda}^{max}_{l} + f_{crop}\, \Lambda^{max}_{crop},
 \tag{15.8}
-$$
+```
 
-where $\Lambda^{max}_{l}$ (m² m⁻²) is the limit applied to the lower canopy; $\bar{\Lambda}^{max}_{l}$ is the
-leaf-area-weighted mean of the maxima of the lower positions, shrubs and grasses; and $\Lambda^{max}_{crop}$ is the
+where $`\Lambda^{max}_{l}`$ (m² m⁻²) is the limit applied to the lower canopy; $`\bar{\Lambda}^{max}_{l}`$ is the
+leaf-area-weighted mean of the maxima of the lower positions, shrubs and grasses; and $`\Lambda^{max}_{crop}`$ is the
 maximum of the crops (`crop.lai_max`). The blend is applied only when both `pft.lai_max` and `crop.lai_max` are set; the
 release sets neither, so the parameter has no effect.
 
@@ -293,9 +293,9 @@ With `physics.isimveg` = 0 the annual update is the fixed-vegetation update of s
 term: shrub NPP is unscaled, no harvest is recorded, no carbon is removed, covers use no cropland factor, and crop
 allocation (15.7) does not apply. The capacity factor (15.1) or (15.2) still applies at every time step,
 regardless of the annual update. The tower runs of the calibration are of this kind (Chapter 16). Every
-cropland tower (IGBP class CRO) runs as a fully cropland cell, $f_{crop}$ = 1, with the code default $q$ = −1. A tower
-prescribed as C3 grass is then a C3 crop with $s_{C3}$ times the capacity of the natural grass, and the four maize
-towers, prescribed as C4 grass, are C4 crops with $s_{C4}$ times it (section 16.12). The release scales are the medians
+cropland tower (IGBP class CRO) runs as a fully cropland cell, $`f_{crop}`$ = 1, with the code default $`q`$ = −1. A tower
+prescribed as C3 grass is then a C3 crop with $`s_{C3}`$ times the capacity of the natural grass, and the four maize
+towers, prescribed as C4 grass, are C4 crops with $`s_{C4}`$ times it (section 16.12). The release scales are the medians
 of the fits at the twelve C3 and the four C4 towers. Four of the twelve C3 fits lie at the lower bound 0.30 of the fit
 and four more within 0.05 of it, indicating that the fit lowers capacity to reduce the annual sum of a grass without a
 crop season to that of a crop (section 16.14). The towers ran with the leaf carbon held at the MODIS cell maximum, a
@@ -317,7 +317,7 @@ give the cover and the removed carbon by bin of the cropland fraction.
 The upper-canopy cover of the cells that are more than 60 % cropland is 0.159, against a natural share of 0.191; in
 the cells with 30-60 % cropland it is 0.368 against 0.561. The lower-canopy cover is 0.38 to 0.43 in the bins of
 Figure 15.3b above a cropland fraction of 0.3 (0.425 and 0.399 in those of Table 15.3): the crops, which have the cover
-rule of the natural grass (11.25) with $k$ = 0.5, cover less than half of their own field. The harvest per unit of
+rule of the natural grass (11.25) with $`k`$ = 0.5, cover less than half of their own field. The harvest per unit of
 cropland rises with the cropland fraction to 35 g C m⁻² in the bins 0.4-0.5 and 0.5-0.6 and falls slowly above them,
 to 30-31 g C m⁻² in the bins above 0.8 (Figure 15.3c). The shrub NPP removed per unit of cropland, which is the shrub
 NPP per unit area of the cell, falls from 28.7 g C m⁻² in the first bin to 5-7 g C m⁻² in the bins above 0.4; this decline
@@ -338,17 +338,17 @@ The review evidence for these cell and zone statistics is identified in the deve
 ![Figure 15.3](figures/fig_15_3_release_cropland.png)
 
 **Figure 15.3** The release hindcast, 2001-2010 means (release run; to be updated after the final run of the revised
-model). (a) Harvest $H$ per unit area of the cell; grey cells have no cropland or a harvest of 0.001 g C m⁻² yr⁻¹ or
+model). (a) Harvest $`H`$ per unit area of the cell; grey cells have no cropland or a harvest of 0.001 g C m⁻² yr⁻¹ or
 less (9,333 cells with cropland, none of them more than 11 % cropland). (b) The cover of the upper and the lower canopy
 of the cells with cropland, by bins of 0.1 of the cropland fraction, weighted by the land area of the cells and drawn
-at the mean cropland fraction of each bin, where the dashed line $1 - f_{crop}$ is the mean natural share of the bin.
-(c) The harvest $H$ and the shrub NPP removed $S$ per unit area of cropland, by the same bins.
+at the mean cropland fraction of each bin, where the dashed line $`1 - f_{crop}`$ is the mean natural share of the bin.
+(c) The harvest $`H`$ and the shrub NPP removed $`S`$ per unit area of cropland, by the same bins.
 
 **Table 15.3** The release hindcast by bin of the cropland fraction, 2001-2010 means weighted by the land area of the
 cells: the cover of the two canopies, the natural share, and the harvest and the shrub NPP removed per unit area of
 cropland (`figures/make_ch15.py`, `T15.3`; release run, to be updated after the final run of the revised model).
 
-| Cropland fraction | Cells | $f_{u}$ | $f_{l}$ | $1 - f_{crop}$ | $H$ (g C m⁻² of cropland yr⁻¹) | $S$ (g C m⁻² of cropland yr⁻¹) |
+| Cropland fraction | Cells | $`f_{u}`$ | $`f_{l}`$ | $`1 - f_{crop}`$ | $`H`$ (g C m⁻² of cropland yr⁻¹) | $`S`$ (g C m⁻² of cropland yr⁻¹) |
 |---|---|---|---|---|---|---|
 | 0 to 0.1 | 26,633 | 0.388 | 0.247 | 0.979 | 19.2 | 28.7 |
 | 0.1 to 0.3 | 7,845 | 0.450 | 0.321 | 0.814 | 22.8 | 16.2 |
@@ -366,7 +366,7 @@ only 25-30 % of their NPP into leaves (Table 11.5), so at equilibrium the harves
 An earlier calibration stage of IBIS 3.0, the parameter set of 12 October 2026, had the same crop
 parameters and the same map but the linear cover rule of IBIS 2.6b4 and the grass allocation, leaf turnover and
 specific leaf area of IBIS 2.6b4 in both grass positions (Table 11.4), among them the leaf allocation 0.45, so that at
-equilibrium its harvest was $h\,a_{l}$ = 0.20 of the grass NPP on the cropland share. It also ran without the
+equilibrium its harvest was $`h\,a_{l}`$ = 0.20 of the grass NPP on the cropland share. It also ran without the
 climate-zone types. Its harvest was 1.39 Pg C yr⁻¹. On the cells with more than 10 % cropland, in 2001-2010, the
 lower-canopy cover fell from 0.94 in that set to 0.38 in the release (weighted by land area). Weighted by cropland
 area, the harvest fell from 65.5 to 31.0 g C per m² of cropland per year, its ratio to the cell's NPP by 40 % (0.0925
@@ -374,7 +374,7 @@ to 0.0550), and the cell's NPP by 20 %, from 0.71 to 0.56 kg C m⁻² yr⁻¹ (`
 
 No run isolates the two
 causes. A crop that covered its own share would change the lower-canopy cover, and through it the NPP of the grasses,
-the water balance and the fire, of every cell with cropland, but not the share $h\,a_{l}$ of the grass NPP that the
+the water balance and the fire, of every cell with cropland, but not the share $`h\,a_{l}`$ of the grass NPP that the
 harvest takes; the crops' allocation of section 15.6 changes that share. In the release the crops' cover was left for a
 crop model with its own phenology and cover, and the low harvest is a recorded limitation of the release
 (`docs/RELEASE_3.0.md`).
@@ -394,30 +394,30 @@ per-tower fits of section 16.12.
 
 | Parameter | Symbol | Release value | Meaning | Origin | Equation |
 |---|---|---|---|---|---|
-| `crop.harvest_index` | $h$ | 0.45 | share of the grass leaf litterfall of the cropland share removed as harvest | set | (15.6) |
-| `crop.vmax_scale_c3` | $s_{C3}$ | 0.329 | capacity of the C3 crop relative to the natural C3 grass | fitted, 12 C3 towers | (15.1), (15.2) |
-| `crop.vmax_scale_c4` | $s_{C4}$ | 1.158 | capacity of the C4 crop relative to the natural C4 grass | fitted, 4 maize towers | (15.1), (15.2) |
-| `crop.c4_share` | $q$ | 0.2 | share of C4 crops in the cropland; negative: the scales act per position | set | (15.1), (15.2) |
-| `crop.aleaf` | $a_{crop}$ | not set | leaf share of the crops' allocation on the cropland share, the rest to roots; not set: the grasses' own allocation | from the crop literature, at the next crop calibration | (15.7) |
-| `crop.lai_max` | $\Lambda^{max}_{crop}$ | not set | maximum leaf area per unit cover of the crops, with `pft.lai_max` only | – | (15.8) |
+| `crop.harvest_index` | $`h`$ | 0.45 | share of the grass leaf litterfall of the cropland share removed as harvest | set | (15.6) |
+| `crop.vmax_scale_c3` | $`s_{C3}`$ | 0.329 | capacity of the C3 crop relative to the natural C3 grass | fitted, 12 C3 towers | (15.1), (15.2) |
+| `crop.vmax_scale_c4` | $`s_{C4}`$ | 1.158 | capacity of the C4 crop relative to the natural C4 grass | fitted, 4 maize towers | (15.1), (15.2) |
+| `crop.c4_share` | $`q`$ | 0.2 | share of C4 crops in the cropland; negative: the scales act per position | set | (15.1), (15.2) |
+| `crop.aleaf` | $`a_{crop}`$ | not set | leaf share of the crops' allocation on the cropland share, the rest to roots; not set: the grasses' own allocation | from the crop literature, at the next crop calibration | (15.7) |
+| `crop.lai_max` | $`\Lambda^{max}_{crop}`$ | not set | maximum leaf area per unit cover of the crops, with `pft.lai_max` only | – | (15.8) |
 
 **Table 15.5** Parameters of other sections that the cropland terms use, with their release values.
 
 | Parameter | Symbol | Release value | Meaning | Equation |
 |---|---|---|---|---|
-| `pft.fu_k` | $k_{w}$ | 1.0 kg C m⁻² (code default) | wood scale of the upper-canopy cover | (15.3) |
-| `pft.woodnorm` | $W_{n}$ | 7.5 kg C m⁻² | wood of a closed canopy | (15.3) |
-| `pft.fu_min` | $f^{min}_{u}$ | 0.05 | floor of the upper-canopy cover | (15.3) |
-| `pft.cover_k`, `pft.fl_min` | $k$, $f^{min}_{l}$ | 0.5, 0.05 | lower-canopy cover of the crops and the natural grasses alike | (11.25) |
-| `types.G01-G08.aleaf` | $a_{l,j}$ | 0.25-0.30 | leaf allocation of the grass types | (15.5), (15.7) |
-| `types.G01-G08.tauleaf` | $\tau_{l,j}$ | 0.6-0.8 yr | leaf turnover time of the grass types | (15.5) |
+| `pft.fu_k` | $`k_{w}`$ | 1.0 kg C m⁻² (code default) | wood scale of the upper-canopy cover | (15.3) |
+| `pft.woodnorm` | $`W_{n}`$ | 7.5 kg C m⁻² | wood of a closed canopy | (15.3) |
+| `pft.fu_min` | $`f^{min}_{u}`$ | 0.05 | floor of the upper-canopy cover | (15.3) |
+| `pft.cover_k`, `pft.fl_min` | $`k`$, $`f^{min}_{l}`$ | 0.5, 0.05 | lower-canopy cover of the crops and the natural grasses alike | (11.25) |
+| `types.G01-G08.aleaf` | $`a_{l,j}`$ | 0.25-0.30 | leaf allocation of the grass types | (15.5), (15.7) |
+| `types.G01-G08.tauleaf` | $`\tau_{l,j}`$ | 0.6-0.8 yr | leaf turnover time of the grass types | (15.5) |
 | `pft.exact_litterfall` | – | true | litterfall booked by (15.5); false: (11.13) | (15.5) |
 
 **Table 15.6** Switches of the cropland treatment and their release state.
 
 | Switch | Default | Release | Meaning | Section |
 |---|---|---|---|---|
-| `forcing.cropfrac_file` | none | ESA CCI 2000 | the cropland share; none: $f_{crop}$ = 0 and no cropland term | 15.1 |
+| `forcing.cropfrac_file` | none | ESA CCI 2000 | the cropland share; none: $`f_{crop}`$ = 0 and no cropland term | 15.1 |
 | `physics.isimveg` | 0 | 1 | dynamic annual update: the shrub, cover, allocation and harvest terms (0: the capacity factor only) | 15.8 |
 | `crop.c4_share` sign | −1 | 0.2 | negative: the C4 and C3 scales act per position (the tower setting); 0 to 1: one mixed scale on both grasses | 15.3 |
 | `pft.exact_litterfall` | false | true | booking of the grass leaf litterfall that the harvest is a share of | 15.6 |
@@ -432,7 +432,7 @@ parameter of Jackson et al. (1996, 1997) in `initial.f` and `params.veg` (sectio
 occur. Its dynamic vegetation allows each cell to grow whatever plants its climate permits, and the fifteen vegetation types of the
 cold-start map (section 2.4, Table 2.5) include no cropland. Every treatment in this chapter was added in IBIS 3.0: the
 cropland map (section 15.1); the capacity factor (15.1)-(15.2); the natural share in the cover rule (15.3), where IBIS
-2.6b4 has $f_{u} = \max[0.25, \min(0.975, \phi(W)(1 - \bar{D}))]$ with the cover $\phi$ of the cell's wood; the shrub
+2.6b4 has $`f_{u} = \max[0.25, \min(0.975, \phi(W)(1 - \bar{D}))]`$ with the cover $`\phi`$ of the cell's wood; the shrub
 term (15.4); the harvest (15.6) and its entry in the removed carbon, where IBIS 2.6b4 subtracts the disturbed carbon
 alone from the net ecosystem exchange; the crops' allocation (15.7); and the leaf-area limit (15.8). Without a cropland
 file every one of these terms is skipped. With dynamic vegetation on (`physics.isimveg` = 1), fire off, and the other
@@ -445,7 +445,7 @@ The release run (`final_rel30`) was made with the code of commit `e54e342`. The 
 (`docs/CALIBRATION.md` section 87; `docs/DEFECTS_FOR_REVIEW.md`) changed or settled the following aspects of cropland treatment.
 No result quoted in this chapter comes from a run with these changes.
 
-1. *Crops' allocation* (review D23; `crop.aleaf`, default unset). The harvest takes $h\,a_{l}$ = 0.11-0.135 of the
+1. *Crops' allocation* (review D23; `crop.aleaf`, default unset). The harvest takes $`h\,a_{l}`$ = 0.11-0.135 of the
    crop NPP, and `docs/CALIBRATION.md` section 76 had attributed the halving of the harvest to the saturating cover
    alone; its dated note now names the allocation as a second cause. Decision (c): the cropland share gets a crop
    allocation, blended by the crop share (`dynaveg`, `vegetation_dynamics.py`; test
@@ -470,20 +470,20 @@ No result quoted in this chapter comes from a run with these changes.
    of the release run, the natural-share cover exceeds the cap on 19,016 of the 47,304 cropland cells, and capping the natural share, with
    wood and stress held fixed, would lower their tree-cover area from 17.34 to 14.59 Mkm² (D8); the sapwood fraction
    divides by the cell's wood, which raises the wood maintenance respiration of the cropland cells at 15 °C from 0.338
-   to 0.450 Pg C yr⁻¹ (release run, D22); the cover floor acts after the factor $1 - f_{crop}$ (D48).
+   to 0.450 Pg C yr⁻¹ (release run, D22); the cover floor acts after the factor $`1 - f_{crop}`$ (D48).
 5. *Tower fits* (D31, D81). The C4 scale is the median of four fits; the three Mead (Nebraska) fits ran without the
    towers' hourly shortwave radiation and will be rerun with it (`site_fit --hourly-sw`) in the refit. Four of the twelve
    C3 fits lie within 0.003 of the bound 0.30 and eight within 0.05 (`crop2/*/best.json`); `docs/CALIBRATION.md`
    section 41 counted eight at the bound and carries a dated correction.
 
 History of the treatment (`docs/CALIBRATION.md` sections 41 and 43). The original cropland rule capped cell
-cover at $1 - f_{crop}$ and reduced tree pools to the wood amount corresponding to that cover. Because the cover saturates,
+cover at $`1 - f_{crop}`$ and reduced tree pools to the wood amount corresponding to that cover. Because the cover saturates,
 that cut the wood of a forest of 10 kg C m⁻² on a cell with 5 % cropland to about 3 kg C m⁻² every year, and the first
 global run with cropland had a clearing flux of 12.5 Pg C yr⁻¹; the rule was replaced before the release by (15.3). The
 shrub scaling (15.4) and the mixed capacity of (15.1) were added when the second global run with cropland, the first
 with the sub-grid tree cover, showed the lower canopy of the cropland cells filled with C4 grass and shrubs, so
 very little grass received the C3 crop capacity fitted at the towers. Until the carbon-budget audit, harvest was calculated from the grass leaf pool
-as $C_{l,j} / \tau_{l,j}$ (`docs/CALIBRATION.md` section 63). After a year of growth, this amount could exceed the
+as $`C_{l,j} / \tau_{l,j}`$ (`docs/CALIBRATION.md` section 63). After a year of growth, this amount could exceed the
 litterfall calculated by (15.5), causing the maximum in (15.6) to consume other positions' litter.
 The parameter set of 12 October 2026 (section 15.9) is `params_s7_crop.yaml`; its hindcast is
 `verify_outputs/final_s7_crop`.

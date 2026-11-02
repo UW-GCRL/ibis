@@ -195,9 +195,9 @@ per-PFT parameters become arrays over cells and the twelve positions:
 - fire mortality (Chapter 13).
 
 A seventeenth parameter, maximum leaf area, becomes an array when a type specifies it. No type does so in the
-release, which has no maximum leaf area. The value of such a parameter $p$ in position $j$ of cell $c$ is
+release, which has no maximum leaf area. The value of such a parameter $`p`$ in position $`j`$ of cell $`c`$ is
 
-$$
+```math
 p_{c,j} =
 \begin{cases}
 p_{\tau} & \text{if position } j \text{ holds type } \tau \text{ and the parameter file gives } p \text{ for } \tau, \\
@@ -205,25 +205,25 @@ p^{0}_{\pi(\tau)} & \text{if position } j \text{ holds type } \tau \text{ and th
 p^{0}_{j} & \text{if position } j \text{ is off or keeps its base parameters,}
 \end{cases}
 \tag{2.1}
-$$
+```
 
-where $\tau$ is the type that the zone of cell $c$ places in position $j$ (Table 2.4); $p_{\tau}$ is the value of the
-type in the `types` section of the parameter file; $\pi(\tau)$ is the parent PFT of the type (Table 2.3); and
-$p^{0}_{j}$ is the base value of position $j$ in the twelve-entry vector of the parameter file. A type placed away from
+where $`\tau`$ is the type that the zone of cell $`c`$ places in position $`j`$ (Table 2.4); $`p_{\tau}`$ is the value of the
+type in the `types` section of the parameter file; $`\pi(\tau)`$ is the parent PFT of the type (Table 2.3); and
+$`p^{0}_{j}`$ is the base value of position $`j`$ in the twelve-entry vector of the parameter file. A type placed away from
 its parent's position therefore keeps its parent's values for every parameter it does not set.
 
 Thirteen further parameters that a type may set (the release sets eleven of them) are single values per cell rather
 than per position: the phenology thresholds of the upper and the lower canopy (Chapter 10), the soil-water stress
 factor and the stress threshold of leaf drop (Chapters 9 and 10), the three parameters of the water-limited tree cover
 (Chapter 11) and the turnover factor of the slow and passive soil carbon (Chapter 12). The value of such a parameter
-$s$ in cell $c$ is the median over the types of the cell's zone that set it,
+$`s`$ in cell $`c`$ is the median over the types of the cell's zone that set it,
 
-$$
+```math
 s_{c} = \operatorname{median}\left\{ s_{\tau} : \tau \in T_{s}(z_{c}) \right\},
 \tag{2.2}
-$$
+```
 
-where $s_{\tau}$ is the value set for type $\tau$; $z_{c}$ is the zone of the cell; and $T_{s}(z)$ is the set of the
+where $`s_{\tau}`$ is the value set for type $`\tau`$; $`z_{c}`$ is the zone of the cell; and $`T_{s}(z)`$ is the set of the
 zone's types that set the parameter, chosen among the types the parameter acts on:
 
 - the upper-canopy phenology thresholds: the zone's cold-deciduous tree types;
@@ -276,35 +276,35 @@ year (1701) precedes the mapped period. Each vegetation type specifies an initia
 (Table 2.5): evergreen trees (positions 1, 3, 4 and 6), deciduous trees (2, 5, 7 and 8), shrubs (9 and 10), and grasses
 (11 and 12). Within a group, leaf area is divided equally among the positions,
 
-$$
+```math
 L_{j} = e_{j}\,\frac{L_{g}(v)}{n_{g}},
 \tag{2.3}
-$$
+```
 
-where $L_{j}$ (m² m⁻²) is the leaf area index of position $j$; $e_{j}$ is its existence flag, which is 1 in every
-position at the cold start; $L_{g}(v)$ (m² m⁻²) is the initial leaf area of group $g$ for vegetation type $v$
-(Table 2.5); and $n_{g}$ is the number of positions in the group (4 for each tree group, 2 for the shrubs and for the
+where $`L_{j}`$ (m² m⁻²) is the leaf area index of position $`j`$; $`e_{j}`$ is its existence flag, which is 1 in every
+position at the cold start; $`L_{g}(v)`$ (m² m⁻²) is the initial leaf area of group $`g`$ for vegetation type $`v`$
+(Table 2.5); and $`n_{g}`$ is the number of positions in the group (4 for each tree group, 2 for the shrubs and for the
 grasses). In the savanna and grassland types the grass leaf area is instead divided between the C4 and the C3 grass by
 the warmest-month temperature,
 
-$$
+```math
 f_{C4} = \frac{0.8}{1 + \exp\left[-(T_{w} - 22)/1.5\right]},
 \tag{2.4}
-$$
+```
 
-where $f_{C4}$ is the share of the grass leaf area given to the C4 grass (position 11), the rest going to the C3 grass
-(position 12), and $T_{w}$ (°C) is the mean temperature of the warmest month of the first forcing year of the run
+where $`f_{C4}`$ is the share of the grass leaf area given to the C4 grass (position 11), the rest going to the C3 grass
+(position 12), and $`T_{w}`$ (°C) is the mean temperature of the warmest month of the first forcing year of the run
 (1901 in the release). IBIS 2.6b4 used a step at 22 °C (0.8 above, 0 below) in place of (2.4) (Figure 2.2). Every
 position then receives at least the minimum leaf area index of 0.01. The carbon pools follow from the leaf area,
 
-$$
+```math
 C_{leaf,j} = \frac{L_{j}}{\sigma_{j}}, \qquad C_{root,j} = 0.5\,C_{leaf,j}, \qquad
 C_{wood,j} = \frac{10}{6}\,L_{j} \;\;(j \le 8), \qquad C_{wood,j} = 0 \;\;(j > 8),
 \tag{2.5}
-$$
+```
 
-where $C_{leaf,j}$, $C_{root,j}$ and $C_{wood,j}$ (kg C m⁻²) are the leaf, root and wood carbon of position $j$ and
-$\sigma_{j}$ (m² kg C⁻¹) is its specific leaf area, the leaf area per unit of leaf carbon, in the IBIS 2.6b4 values of
+where $`C_{leaf,j}`$, $`C_{root,j}`$ and $`C_{wood,j}`$ (kg C m⁻²) are the leaf, root and wood carbon of position $`j`$ and
+$`\sigma_{j}`$ (m² kg C⁻¹) is its specific leaf area, the leaf area per unit of leaf carbon, in the IBIS 2.6b4 values of
 the cold-start module (25 for positions 1-3, 5, 7, 8 and 10; 12.5 for positions 4, 6 and 9; 20 for positions 11 and
 12). The litter and soil carbon pools start empty.
 
@@ -315,27 +315,27 @@ and grassland types, as a function of the warmest-month temperature: equation (2
 
 The fractional cover of the upper and the lower canopy at the cold start is
 
-$$
+```math
 f_{u} = \min\left[\max\left(\frac{1 - e^{-W}}{1 - e^{-7.5}},\, 0.25\right),\, 0.975\right], \qquad
 f_{l} = \min\left[\max\left(L_{l},\, 0.25\right),\, 0.975\right],
 \tag{2.6}
-$$
+```
 
-where $f_{u}$ is the fraction of the cell covered by the upper canopy and $f_{l}$ the fraction of the snow-free part
-of the cell covered by the lower canopy (a cold start has no snow, so at first this is the whole cell); $W$ (kg C m⁻²) is
-the wood carbon summed over the tree positions; and $L_{l}$ (m² m⁻²) is the leaf area index summed over the lower
+where $`f_{u}`$ is the fraction of the cell covered by the upper canopy and $`f_{l}`$ the fraction of the snow-free part
+of the cell covered by the lower canopy (a cold start has no snow, so at first this is the whole cell); $`W`$ (kg C m⁻²) is
+the wood carbon summed over the tree positions; and $`L_{l}`$ (m² m⁻²) is the leaf area index summed over the lower
 positions. The leaf area of each canopy per unit of its own cover is its summed leaf area divided by its cover, and
 the stem area index is 0.25 times the summed leaf area for the upper canopy and 0.05 times for the lower. The canopy
 heights at the cold start are
 
-$$
+```math
 z_{bot,l} = 0.05, \quad z_{top,l} = \max(0.25,\, 0.25\,\Lambda_{l}), \quad z_{bot,u} = z_{top,l} + 1, \quad
 z_{top,u} = \max\left(z_{bot,u} + 1,\; 0.75 \cdot 2.5\,\frac{B_{u}}{f_{u}}\right),
 \tag{2.7}
-$$
+```
 
-where $z_{bot}$ and $z_{top}$ (m) are the bottom and top heights of the lower ($l$) and upper ($u$) canopy;
-$\Lambda_{l}$ (m² m⁻²) is the leaf area of the lower canopy per unit of its cover; and $B_{u}$ (kg C m⁻²) is the
+where $`z_{bot}`$ and $`z_{top}`$ (m) are the bottom and top heights of the lower ($`l`$) and upper ($`u`$) canopy;
+$`\Lambda_{l}`$ (m² m⁻²) is the leaf area of the lower canopy per unit of its cover; and $`B_{u}`$ (kg C m⁻²) is the
 total biomass of the tree positions. From the first annual update on, the cover, the heights and the pools evolve as
 described in Chapter 11.
 
@@ -369,16 +369,16 @@ The root distribution determines which soil layers supply water to a plant. In t
 layer is fixed, with separate profiles for the two canopies. These follow the asymptotic profile of Gale and Grigal
 (1987), as used by Jackson et al. (1996),
 
-$$
+```math
 r_{k} = \frac{\left(1 - \beta^{d_{k}}\right) - \left(1 - \beta^{d_{k-1}}\right)}{1 - \beta^{d_{N}}},
 \tag{2.8}
-$$
+```
 
-where $r_{k}$ is the fraction of the roots in soil layer $k$; $d_{k}$ (cm) is the depth of the bottom of layer $k$
-($d_{0} = 0$); $d_{N} = 400$ cm is the depth of the soil column; and $\beta$, a shape parameter, is 0.950 for the lower
+where $`r_{k}`$ is the fraction of the roots in soil layer $`k`$; $`d_{k}`$ (cm) is the depth of the bottom of layer $`k`$
+($`d_{0} = 0`$); $`d_{N} = 400`$ cm is the depth of the soil column; and $`\beta`$, a shape parameter, is 0.950 for the lower
 canopy and 0.975 for the upper canopy, values chosen after Jackson et al. (1996, 1997). The root fractions weight the
 soil water stress of each canopy (Chapter 9) and distribute its transpiration among the soil layers (Chapter 7). With
-the larger $\beta$ the roots of the trees reach deeper than those of the lower canopy (Figure 2.3).
+the larger $`\beta`$ the roots of the trees reach deeper than those of the lower canopy (Figure 2.3).
 
 ![Figure 2.3](figures/fig_2_3_root_profiles.png)
 
@@ -400,7 +400,7 @@ of pore space by dividing by porosity. This is the form used for soil water in t
 
 **Table 2.6** Soil properties by texture class (Rawls et al., 1992).
 
-| Texture class | Porosity (m³ m⁻³) | Field capacity (m³ m⁻³) | Wilting point (m³ m⁻³) | Campbell exponent $b$ | Saturated suction (m) | Saturated conductivity (m s⁻¹) |
+| Texture class | Porosity (m³ m⁻³) | Field capacity (m³ m⁻³) | Wilting point (m³ m⁻³) | Campbell exponent $`b`$ | Saturated suction (m) | Saturated conductivity (m s⁻¹) |
 |---|---|---|---|---|---|---|
 | sand | 0.437 | 0.091 | 0.033 | 1.7 | 0.07 | 5.833 × 10⁻⁵ |
 | loamy sand | 0.437 | 0.125 | 0.055 | 2.1 | 0.09 | 1.6972 × 10⁻⁵ |
@@ -425,23 +425,23 @@ south of 60°S and 2,781 others, most of them in the zone E_ice), are one point 
 
 The density and the specific heat of the soil solids are
 
-$$
+```math
 \rho_{s} = 2650\,(1 - f_{om}) + 1300\,f_{om}, \qquad c_{s} = 870\,(1 - f_{om}) + 1920\,f_{om},
 \tag{2.9}
-$$
+```
 
-where $\rho_{s}$ (kg m⁻³) is the density and $c_{s}$ (J kg⁻¹ K⁻¹) the specific heat of the solids (Campbell and
-Norman, 1998), and $f_{om} = 0.01$ is the organic fraction of the solids, a constant as in IBIS 2.6b4. This gives
+where $`\rho_{s}`$ (kg m⁻³) is the density and $`c_{s}`$ (J kg⁻¹ K⁻¹) the specific heat of the solids (Campbell and
+Norman, 1998), and $`f_{om} = 0.01`$ is the organic fraction of the solids, a constant as in IBIS 2.6b4. This gives
 2636.5 kg m⁻³ and 880.5 J kg⁻¹ K⁻¹. The albedo of the saturated soil surface is set from the texture of the top layer,
 following the BATS table as in IBIS 2.6b4,
 
-$$
+```math
 \alpha_{vis} = 0.120\,f_{sand} + 0.085\,f_{silt} + 0.050\,f_{clay}, \qquad \alpha_{nir} = 2\,\alpha_{vis},
 \tag{2.10}
-$$
+```
 
-where $\alpha_{vis}$ and $\alpha_{nir}$ are the visible and near-infrared albedos of the saturated soil and
-$f_{sand}$, $f_{silt}$ and $f_{clay}$ are the fractions of sand, silt and clay in the top layer. The soil albedo rises
+where $`\alpha_{vis}`$ and $`\alpha_{nir}`$ are the visible and near-infrared albedos of the saturated soil and
+$`f_{sand}`$, $`f_{silt}`$ and $`f_{clay}`$ are the fractions of sand, silt and clay in the top layer. The soil albedo rises
 to as much as twice these values as the top layer dries (Chapter 4). The roughness length of the bare soil is 0.005 m.
 
 With `physics.soil_organic` enabled (off in the release), the model derives the organic fraction of soil solids from
@@ -457,24 +457,24 @@ Much of the land is farmed, and crops grow, use water and lose carbon at harvest
 land cover of the year 2000 and held fixed through the run (`forcing.cropfrac_file`; Figure 2.5). On the cropland
 share the grass positions 11 and 12 stand for the crops. Their photosynthetic capacity is multiplied by
 
-$$
+```math
 g = 1 + f_{crop}\left(\bar{s} - 1\right), \qquad \bar{s} = (1 - q)\,s_{C3} + q\,s_{C4},
 \tag{2.11}
-$$
+```
 
-where $g$ is the factor on the capacity of both grass positions; $f_{crop}$ is the cropland fraction of the cell;
-$s_{C3}$ and $s_{C4}$ are the capacity scales of the C3 and the C4 crop relative to the natural grass (0.329 and 1.158
-in the release); and $q$ is the share of C4 crops (0.2 in the release, so that $\bar{s} = 0.495$). With $q < 0$ the C3
+where $`g`$ is the factor on the capacity of both grass positions; $`f_{crop}`$ is the cropland fraction of the cell;
+$`s_{C3}`$ and $`s_{C4}`$ are the capacity scales of the C3 and the C4 crop relative to the natural grass (0.329 and 1.158
+in the release); and $`q`$ is the share of C4 crops (0.2 in the release, so that $`\bar{s} = 0.495`$). With $`q < 0`$ the C3
 scale acts on position 12 and the C4 scale on position 11 instead. The trees take their cover on the natural share of
-the cell only, the shrubs' net primary production is scaled by $1 - f_{crop}$, and a share of the grass leaf
+the cell only, the shrubs' net primary production is scaled by $`1 - f_{crop}`$, and a share of the grass leaf
 litterfall on the cropland share is removed as harvest (Chapter 15).
 
 Crops can also have a separate carbon allocation. The parameter `crop.aleaf` specifies the crop leaf share and is
 unset by default and in the release. When supplied, it blends the allocation of both grass positions toward the crop
 allocation in proportion to cropland fraction, just as (2.11) blends capacity. The leaf share becomes
-$(1 - f_{crop})\,a_{l} + f_{crop}\,a_{crop}$ and the root share becomes
-$(1 - f_{crop})\,a_{r} + f_{crop}\,(1 - a_{crop})$, where $a_{l}$ and $a_{r}$ are the grass's own leaf and root shares,
-and $a_{crop}$ is the value of `crop.aleaf` (Chapter 15).
+$`(1 - f_{crop})\,a_{l} + f_{crop}\,a_{crop}`$ and the root share becomes
+$`(1 - f_{crop})\,a_{r} + f_{crop}\,(1 - a_{crop})`$, where $`a_{l}`$ and $`a_{r}`$ are the grass's own leaf and root shares,
+and $`a_{crop}`$ is the value of `crop.aleaf` (Chapter 15).
 
 ![Figure 2.5](figures/fig_2_5_cropland.png)
 
@@ -502,7 +502,7 @@ Changes after the release (code `e54e342`), with the decision numbers of `docs/C
    position 4 and 700 K d for positions 6–8 after mapping the monthly thresholds to daily-statistic quantiles
    (release: 900 and 600 K d). This updates the preset, not the general parameter fallback; the final global run
    still needs comparison with observed tree cover. The cold start still seeds the statistics, and
-   $T_{w}$ of (2.4), from the monthly means of the first forcing year; IBIS 2.6b4 also seeds them from monthly means.
+   $`T_{w}`$ of (2.4), from the monthly means of the first forcing year; IBIS 2.6b4 also seeds them from monthly means.
 3. **Section 2.3.5 numbers.** The earlier text gave "about 4 %" of the C-zone cells with a coldest month below 0 °C;
    its definition was not recorded. Recomputed over GSWP3 1901-1930 with the zones of 1901-1930 (8,248 C-zone cells):
    6.0 % for the 30-year mean of the year's coldest monthly mean, 2.7 % for the coldest month of the 30-year mean annual

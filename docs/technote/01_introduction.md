@@ -107,8 +107,8 @@ conduct heat only and extend the column to 12 m (Figure 1.1).
 
 ![Figure 1.1](figures/fig_1_1_model_structure.png)
 
-**Figure 1.1** (a) The structure of a grid cell: the upper canopy of trees, which covers the fraction $f_u$ of the
-cell, and the lower canopy of shrubs and grasses, which covers the fraction $f_l$ of its snow-free part, above a
+**Figure 1.1** (a) The structure of a grid cell: the upper canopy of trees, which covers the fraction $`f_u`$ of the
+cell, and the lower canopy of shrubs and grasses, which covers the fraction $`f_l`$ of its snow-free part, above a
 snowpack of three layers, six soil layers to 4 m and, in the release, three bedrock layers to 12 m (Table 1.2); the
 layers are not drawn to scale. (b) The time scales of the calculations (Tables 1.3 and 1.4): sums and means of the
 hourly calculations, with the daily forcing, drive the daily, monthly and yearly ones. In turn, the daily and the

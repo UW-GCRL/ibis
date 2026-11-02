@@ -31,14 +31,14 @@ their calibration data, and Figure 16.1 shows the sequence of stages.
 
 | Stage | Parameters | Data | Method | Section |
 |---|---|---|---|---|
-| GPP and ET at flux towers | capacity $V_{max}$ and stomatal slope of the prescribed positions, acclimation of the evergreen conifers, phenology thresholds, drought trigger, soil-water stress factor | monthly GPP and ET of 356 flux towers | per-tower CMA-ES, last year held out | 16.2-16.6 |
+| GPP and ET at flux towers | capacity $`V_{max}`$ and stomatal slope of the prescribed positions, acclimation of the evergreen conifers, phenology thresholds, drought trigger, soil-water stress factor | monthly GPP and ET of 356 flux towers | per-tower CMA-ES, last year held out | 16.2-16.6 |
 | NEE at flux towers | growth and fine-root respiration, temperature sensitivity of decomposition (and a soil-pool scale not carried over) | monthly day-time and night-time NEE of 358 towers | per-tower CMA-ES on spun-up pools | 16.3-16.6 |
 | plant types | one value per type and parameter | the per-tower fits | median over the type's towers | 16.6 |
 | leaf area and allocation | leaf, wood and root allocation, leaf lifetime, specific leaf area, wood residence time | product leaf area by zone, biomass maps | trait-based values adjusted per type in protocol runs | 16.7 |
 | water-limited tree cover | the ramp of the maximum tree cover per zone | CLM / MODIS tree cover on natural land | least squares on the median cover by stress bin (75th percentile for B_cold) | 16.8 |
-| fire | closed-canopy damping and the scale $k_{b}$ of the burned fraction | GFED5 burned area 2003-2005 | zone objective, offline on yearly states | 16.9 |
+| fire | closed-canopy damping and the scale $`k_{b}`$ of the burned fraction | GFED5 burned area 2003-2005 | zone objective, offline on yearly states | 16.9 |
 | soil carbon | turnover factor of the slow and passive pools per zone group | HWSD2 organic carbon 0-1 m | two-member bracket through the protocol | 16.10 |
-| wetland methane | production ratio, $Q_{10}$, decomposition and oxic-zone depth scales per wetland band | monthly CH4 flux of 48 wetland towers | per-tower CMA-ES, band medians | 16.11 |
+| wetland methane | production ratio, $`Q_{10}`$, decomposition and oxic-zone depth scales per wetland band | monthly CH4 flux of 48 wetland towers | per-tower CMA-ES, band medians | 16.11 |
 | wetland area | the learned model of the anomaly of the inundated fraction, one per wetland band | WAD2M v2.0 monthly inundated fraction 2001-2010 | gradient-boosted trees on the predictors of a reference hindcast; judged on years held out of the training | 14.7.2 |
 | cropland | capacity scales of the C3 and the C4 crop | monthly GPP of 16 cropland towers | per-tower CMA-ES, medians | 16.12 |
 
@@ -70,11 +70,11 @@ global state for 2010 (the restart of `v11_transient`), with vegetation replaced
    Phenology still determines the displayed leaf area (Chapter 10).
 3. *Vegetation dynamics off.* The annual update is the fixed-vegetation update of section 11.12.1 (`isimveg` = 0).
    After this update, wood and root pools in the prescribed positions are set to their steady-state values for annual net
-   primary production, $a_{wood}\,\tau_{wood}\,N$ and $a_{root}\,\tau_{root}\,N$, and the three litterfall fluxes to the
-   allocated production $a_{leaf}N$, $a_{root}N$ and $a_{wood}N$ (`site_run.enforce_prescription`). Litterfall
-   therefore equals annual production, as at steady state. Here $N$ (kgC m⁻² yr⁻¹) is annual net primary production of
-   the position (its positive part), $a_{leaf}$, $a_{root}$ and $a_{wood}$ are the allocation fractions, and
-   $\tau_{wood}$ and $\tau_{root}$ (yr) are the residence times of wood and fine roots (`tauwood0`, `tauroot`;
+   primary production, $`a_{wood}\,\tau_{wood}\,N`$ and $`a_{root}\,\tau_{root}\,N`$, and the three litterfall fluxes to the
+   allocated production $`a_{leaf}N`$, $`a_{root}N`$ and $`a_{wood}N`$ (`site_run.enforce_prescription`). Litterfall
+   therefore equals annual production, as at steady state. Here $`N`$ (kgC m⁻² yr⁻¹) is annual net primary production of
+   the position (its positive part), $`a_{leaf}`$, $`a_{root}`$ and $`a_{wood}`$ are the allocation fractions, and
+   $`\tau_{wood}`$ and $`\tau_{root}`$ (yr) are the residence times of wood and fine roots (`tauwood0`, `tauroot`;
    Chapter 11).
 
 Each tower is driven by its own daily meteorology in FLUXNET format (`tower_forcing.py`): air temperature and its
@@ -87,7 +87,7 @@ generated radiation (`--hourly-sw`, section 3.12), and CO2 concentration follows
 
 Tower records use local standard time, while the model uses local apparent solar time. Each hourly step
 covers one solar hour with the sun evaluated at its middle (Chapter 3). The reader therefore shifts the half-hourly
-record to solar time: step $k$ uses mean shortwave radiation over the solar hour from $k$ to $k + 1$, and
+record to solar time: step $`k`$ uses mean shortwave radiation over the solar hour from $`k`$ to $`k + 1`$, and
 the daily temperature range is calculated over the solar day. The tower clock offset comes from site metadata (the
 UTC offset in FLUXNET and ICOS site files), checked against the record's potential radiation.
 Where these disagree, the reader chooses the offset closer to the timing of measured shortwave radiation. Other daily inputs,
@@ -130,28 +130,28 @@ GPP and ET targets are read from the tower's monthly FLUXNET file. GPP is scored
 half the NEE data measured or filled with good-quality estimates (`NEE_VUT_REF_QC` ≥ 0.5). ET uses the same criterion
 for latent heat (`LE_F_MDS_QC` ≥ 0.5). The GPP target and uncertainty are
 
-$$
+```math
 G = \max\left(\tfrac{1}{2}\left(G_{NT} + G_{DT}\right),\, 0\right), \qquad
 \sigma_{G} = \max\left(\tfrac{1}{2}\left|G_{NT} - G_{DT}\right|,\; 0.1\,|G|,\; 5\right),
 \tag{16.1}
-$$
+```
 
-where $G$ (gC m⁻² month⁻¹) is the target (the 10 % term uses the mean before it is floored at zero); $G_{NT}$ and
-$G_{DT}$ (gC m⁻² month⁻¹) are the monthly GPP of the night-time and the day-time flux partitioning (`GPP_NT_VUT_REF`,
-`GPP_DT_VUT_REF`, filled from their constant-u* twins where a record lacks them); and $\sigma_{G}$ (gC m⁻² month⁻¹) is
+where $`G`$ (gC m⁻² month⁻¹) is the target (the 10 % term uses the mean before it is floored at zero); $`G_{NT}`$ and
+$`G_{DT}`$ (gC m⁻² month⁻¹) are the monthly GPP of the night-time and the day-time flux partitioning (`GPP_NT_VUT_REF`,
+`GPP_DT_VUT_REF`, filled from their constant-u* twins where a record lacks them); and $`\sigma_{G}`$ (gC m⁻² month⁻¹) is
 the uncertainty. Where one partition is missing, the other is the target and the spread term drops out. The ET target is
 the latent heat flux corrected for the closure of the tower's energy balance,
 
-$$
+```math
 E = \frac{86400\, n_{d}\, Q_{c}}{\lambda}, \qquad
 \sigma_{E} = \max\left(\tfrac{1}{2}\left|E - E_{MDS}\right|,\; 0.1\,|E|,\; 3\right),
 \tag{16.2}
-$$
+```
 
-where $E$ (mm month⁻¹) is the target; $Q_{c}$ (W m⁻²) is the monthly mean of the energy-balance-corrected latent heat
-flux (`LE_CORR`); $E_{MDS}$ (mm month⁻¹) is the gap-filled latent heat flux (`LE_F_MDS`) converted in the same way;
-$\lambda = 2.45 \times 10^{6}$ J kg⁻¹ is the latent heat of vaporisation; $n_{d}$ is the number of days in the month;
-and $\sigma_{E}$ (mm month⁻¹) is the uncertainty. In the campaign the ET term is used only at towers that report
+where $`E`$ (mm month⁻¹) is the target; $`Q_{c}`$ (W m⁻²) is the monthly mean of the energy-balance-corrected latent heat
+flux (`LE_CORR`); $`E_{MDS}`$ (mm month⁻¹) is the gap-filled latent heat flux (`LE_F_MDS`) converted in the same way;
+$`\lambda = 2.45 \times 10^{6}`$ J kg⁻¹ is the latent heat of vaporisation; $`n_{d}`$ is the number of days in the month;
+and $`\sigma_{E}`$ (mm month⁻¹) is the uncertainty. In the campaign the ET term is used only at towers that report
 `LE_CORR` (`--et-corr-only`); elsewhere the ET weight is zero.
 
 At night, measured NEE represents ecosystem respiration. Night-time NEE therefore isolates respiration,
@@ -161,16 +161,16 @@ horizon at its middle, using local apparent solar time on the tower's clock (sec
 latitude. The model uses the same night criterion. Half-hours with `NEE_VUT_REF_QC` ≤ 1, measured or filled with
 good-quality estimates, are retained. For each month and each part,
 
-$$
+```math
 \bar{N}_{p} = \frac{1}{n_{p}} \sum_{h \in K_{p}} F_{h}, \qquad
 \sigma_{N,p} = \max\left(0.15\,|\bar{N}_{p}|,\; \frac{5}{M_{C}\,\tau_{p}}\right), \qquad p \in \{\text{night}, \text{day}\},
 \tag{16.3}
-$$
+```
 
-where $\bar{N}_{p}$ (µmol m⁻² s⁻¹, positive for a release) is the target of part $p$, the mean NEE over the set $K_{p}$
-of the part's kept half-hours in the month; $n_{p}$ is their number; $F_{h}$ (µmol m⁻² s⁻¹) is the NEE of half-hour
-$h$; $\tau_{p}$ (s) is the length of the part in the month, kept or not: its share of the month's records times the
-length of the calendar month; $M_{C} = 12.011 \times 10^{-6}$ gC µmol⁻¹; and $\sigma_{N,p}$ (µmol m⁻² s⁻¹) is the
+where $`\bar{N}_{p}`$ (µmol m⁻² s⁻¹, positive for a release) is the target of part $`p`$, the mean NEE over the set $`K_{p}`$
+of the part's kept half-hours in the month; $`n_{p}`$ is their number; $`F_{h}`$ (µmol m⁻² s⁻¹) is the NEE of half-hour
+$`h`$; $`\tau_{p}`$ (s) is the length of the part in the month, kept or not: its share of the month's records times the
+length of the calendar month; $`M_{C} = 12.011 \times 10^{-6}`$ gC µmol⁻¹; and $`\sigma_{N,p}`$ (µmol m⁻² s⁻¹) is the
 uncertainty, whose floor is 5 gC m⁻² spread over the part's length in the month. The model's counterpart is the mean NEE
 over the month's steps with the sun below the horizon at the middle of the step, and over the others. The NEE of a step
 is the heterotrophic respiration, spread evenly over the day, minus the step's net primary production. Unlike a sum,
@@ -178,45 +178,45 @@ a mean does not shrink simply because fewer half-hours are available. This makes
 month possible, although gaps can still bias the mean if the missing conditions differ from the observed ones. The fits of the
 release used sums over the kept half-hours instead, split by FLUXNET's night flag (section 16.14, item 3).
 
-The wetland methane target $M$ (gC m⁻² month⁻¹) is the monthly sum of the gap-filled CH4 flux of the
-Fluxnet-Methane_V2.0 records, with $\sigma_{M} = \max(\sigma_{gf}, 0.15|M|, 0.05)$, where $\sigma_{gf}$ is the
+The wetland methane target $`M`$ (gC m⁻² month⁻¹) is the monthly sum of the gap-filled CH4 flux of the
+Fluxnet-Methane_V2.0 records, with $`\sigma_{M} = \max(\sigma_{gf}, 0.15|M|, 0.05)`$, where $`\sigma_{gf}`$ is the
 gap-filling uncertainty summed in quadrature over the month.
 
 ## 16.4 Objective functions
 
 An objective function combines monthly departures from the targets so that the optimizer can rank
-parameter sets. The normalised residual for month $m$ of a scored year is
+parameter sets. The normalised residual for month $`m`$ of a scored year is
 
-$$
+```math
 r_{m} = \frac{X^{mod}_{m} - X^{obs}_{m}}{\sigma_{m}},
 \tag{16.4}
-$$
+```
 
-where $X^{mod}_{m}$ and $X^{obs}_{m}$ are the model and the target of a series and $\sigma_{m}$ is its uncertainty, the
+where $`X^{mod}_{m}`$ and $`X^{obs}_{m}`$ are the model and the target of a series and $`\sigma_{m}`$ is its uncertainty, the
 plain objective of one tower is
 
-$$
+```math
 L_{0} = \left\langle r_{G}^{2} \right\rangle + w_{E} \left\langle r_{E}^{2} \right\rangle,
 \tag{16.5}
-$$
+```
 
-where $\langle \cdot \rangle$ denotes the mean over scored months in the fitted years and $w_{E} = 0.5$ is the ET
+where $`\langle \cdot \rangle`$ denotes the mean over scored months in the fitted years and $`w_{E} = 0.5`$ is the ET
 weight. The campaign objective is bounded to prevent any month or tower from dominating:
 
-$$
+```math
 L = \min\left\{ \left\langle \min(r_{G}^{2}, c_{m}) \right\rangle + w_{E} \left\langle \min(r_{E}^{2}, c_{m}) \right\rangle
 + w_{a} \sum_{s} \min\left[ \left( \frac{1}{\delta} \ln \frac{\sum_{m \in s} G^{mod}_{m}}{\sum_{m \in s} G_{m}} \right)^{2},
 c_{m} \right],\; c_{t} \right\},
 \tag{16.6}
-$$
+```
 
-where the sum over $s$ covers two sets: all scored months and scored summer months (June to August
+where the sum over $`s`$ covers two sets: all scored months and scored summer months (June to August
 north of the equator, December to February south of it). A set contributes only if it contains at least three months
-and has a positive target sum. Here $c_{m} = 25$ caps each monthly and magnitude term; $c_{t} = 30$ caps the
-tower total; $w_{a} = 1$ weights the magnitude terms; and $\delta = 0.15$ is the tolerance of the logarithmic
+and has a positive target sum. Here $`c_{m} = 25`$ caps each monthly and magnitude term; $`c_{t} = 30`$ caps the
+tower total; $`w_{a} = 1`$ weights the magnitude terms; and $`\delta = 0.15`$ is the tolerance of the logarithmic
 ratio (`site_fit --robust 25,30,1,0.15`). The model sum in the ratio is floored at 10⁻³ gC m⁻². A starting
-loss at the cap would leave the optimizer with a flat objective, so the campaign lifted the caps in those cases to $c_{m} = 400$ and
-$c_{t} = 10^{9}$ before the fit (`--robust-auto`). This happened at 126 of the 356 towers of the GPP and ET stage and at
+loss at the cap would leave the optimizer with a flat objective, so the campaign lifted the caps in those cases to $`c_{m} = 400`$ and
+$`c_{t} = 10^{9}`$ before the fit (`--robust-auto`). This happened at 126 of the 356 towers of the GPP and ET stage and at
 58 of the 275 refits of section 16.6 (counted in the fits' run logs by `figures/make_ch16.py numbers`). Figure 16.2
 shows (16.5) and (16.6) for a tower whose model GPP is a fixed multiple of the target in every month.
 
@@ -224,26 +224,26 @@ shows (16.5) and (16.6) for a tower whose model GPP is a fixed multiple of the t
 
 **Figure 16.2** The loss of one tower, computed by the harness's own objective function (`site_fit.misfit`) for a
 synthetic tower with a temperate seasonal cycle of GPP (three fitted years, the uncertainty at its floor of 10 % or
-5 gC m⁻² month⁻¹), against the ratio $R$ of the model's to the tower's GPP in every month: the plain objective (16.5),
+5 gC m⁻² month⁻¹), against the ratio $`R`$ of the model's to the tower's GPP in every month: the plain objective (16.5),
 the bounded objective (16.6) and its capped monthly part, and the objective with the caps lifted. ET is not scored here.
 
 The NEE objective uses the same form for night-time and day-time means:
 
-$$
+```math
 L_{N} = \min\left\{ \left\langle \min(r_{n}^{2}, c_{m}) \right\rangle + w_{d} \left\langle \min(r_{d}^{2}, c_{m})
 \right\rangle + w_{a} \sum_{p \in \{n, d\}} \mu_{p},\; c_{t} \right\}, \qquad
 \mu_{p} = \begin{cases} \min\left[\left(\frac{1}{\delta} \ln \left|\frac{\sum_{m} \bar{N}^{mod}_{p,m}\,\tau_{p,m}}{\sum_{m} \bar{N}_{p,m}\,\tau_{p,m}}\right|\right)^{2}, c_{m}\right]
 & \text{same sign,} \\ c_{m} & \text{opposite sign,} \end{cases}
 \tag{16.7}
-$$
+```
 
-where $r_{n}$ and $r_{d}$ are the residuals (16.4) of the night-time and the day-time means; $w_{d} = 0.5$ is the weight
-of the day-time part; and the sums in $\mu_{p}$ run over the scored months of the fitted years (at least three), each
-month's mean weighted by the duration $\tau_{p,m}$ of that part, making the sums its totals over those years.
+where $`r_{n}`$ and $`r_{d}`$ are the residuals (16.4) of the night-time and the day-time means; $`w_{d} = 0.5`$ is the weight
+of the day-time part; and the sums in $`\mu_{p}`$ run over the scored months of the fitted years (at least three), each
+month's mean weighted by the duration $`\tau_{p,m}`$ of that part, making the sums its totals over those years.
 A month is not scored for a part with no model steps (polar day or polar night). The campaign used
-$c_{m} = 25$ and no tower cap ($c_{t} = 10^{9}$). A month whose half-hours were all kept weighs in (16.7) as it did in
-the release's objective on sums. The methane objective has the same form with the one series $M$ of monthly totals
-(each month weighted equally in its magnitude term), $c_{m} = 400$ and no tower cap; the cropland objective is (16.6)
+$`c_{m} = 25`$ and no tower cap ($`c_{t} = 10^{9}`$). A month whose half-hours were all kept weighs in (16.7) as it did in
+the release's objective on sums. The methane objective has the same form with the one series $`M`$ of monthly totals
+(each month weighted equally in its magnitude term), $`c_{m} = 400`$ and no tower cap; the cropland objective is (16.6)
 with the same lifted caps.
 
 ## 16.5 Optimizer and parameter coding
@@ -255,13 +255,13 @@ Each fit minimises its objective using the covariance matrix adaptation evolutio
 Ostermeier, 2001), implemented in the `cma` package. CMA-ES requires no gradients: it samples parameter sets
 around a mean, then adapts the mean and spread using the best samples. The search operates within a unit box,
 
-$$
+```math
 \theta_{i} = g_{i}^{-1}\!\left( \ell_{i} + z_{i} \left( u_{i} - \ell_{i} \right) \right), \qquad z_{i} \in [0, 1],
 \tag{16.8}
-$$
+```
 
-where $\theta_{i}$ is parameter $i$ in its own units, $z_{i}$ its coordinate in the search, $\ell_{i} = g_{i}(\theta_{i}^{lo})$
-and $u_{i} = g_{i}(\theta_{i}^{hi})$ the coded bounds, and $g_{i}$ is the natural logarithm for parameters coded
+where $`\theta_{i}`$ is parameter $`i`$ in its own units, $`z_{i}`$ its coordinate in the search, $`\ell_{i} = g_{i}(\theta_{i}^{lo})`$
+and $`u_{i} = g_{i}(\theta_{i}^{hi})`$ the coded bounds, and $`g_{i}`$ is the natural logarithm for parameters coded
 logarithmically and the identity otherwise (Table 16.3). The search starts from each parameter's base value, clipped
 to the nearer bound if necessary, and retains the best evaluation. For a per-position parameter, the base value is
 that position's value. For a parameter fitted as a scalar but specified per position in the base file, as the three
@@ -270,27 +270,27 @@ When an earlier fit for the same tower is supplied (`--start`), its values first
 values. The two refits in section 16.6 therefore start from the tower's GPP and ET fit, called stage S2; the NEE stage
 also uses those values.
 
-The capacity bounds for $V_{max}$ are the mean ± one standard deviation of leaf capacity at 25 °C for the
+The capacity bounds for $`V_{max}`$ are the mean ± one standard deviation of leaf capacity at 25 °C for the
 position's plant functional type, using the TRY-based values of Kattge et al. (2009) tabulated by Chen et al. (2022,
 their Table 2): for example, 57.7 ± 21.2 µmol m⁻² s⁻¹ for temperate deciduous trees. That source gives no C4 grass value,
 so its range of 10-75 µmol m⁻² s⁻¹ was set by hand. The bounds are converted to the model's reference
 temperature of 15 °C (Chapter 9) using its temperature function for the position's photosynthetic pathway,
 
-$$
+```math
 V^{15} = V^{25}\, \frac{f_{V}(15\,^{\circ}\text{C})}{f_{V}(25\,^{\circ}\text{C})}, \qquad
 \frac{f_{V}(25\,^{\circ}\text{C})}{f_{V}(15\,^{\circ}\text{C})} = 1.5298 \;(\text{C3}), \quad 1.7019 \;(\text{C4}),
 \tag{16.9}
-$$
+```
 
-where $V^{25}$ and $V^{15}$ (µmol m⁻² s⁻¹) are a bound at 25 °C and at 15 °C, and $f_{V}$ is the temperature factor
-$f_{3}$ of the C3 capacity or $f_{4}$ of the C4 capacity, equation (9.2), evaluated with the base parameters of the fit
+where $`V^{25}`$ and $`V^{15}`$ (µmol m⁻² s⁻¹) are a bound at 25 °C and at 15 °C, and $`f_{V}`$ is the temperature factor
+$`f_{3}`$ of the C3 capacity or $`f_{4}`$ of the C4 capacity, equation (9.2), evaluated with the base parameters of the fit
 (each fit's log prints the ratio used). The C4 range of 10-75 µmol m⁻² s⁻¹ at 25 °C therefore becomes 5.9-44.1 at 15 °C.
 The release fits converted every bound with the C3 factor, including C4 grass, giving a C4 range of 6.5-49.0 at
 15 °C. Table 16.3 lists the campaign's fitted parameters and bounds, and Table 16.4 lists each stage's settings.
 
-**Table 16.3** Parameters fitted at the towers, their bounds and coding (log: $g = \ln$). The capacity bounds are given
+**Table 16.3** Parameters fitted at the towers, their bounds and coding (log: $`g = \ln`$). The capacity bounds are given
 at 25 °C (the TRY ranges of section 16.5; for the C4 grass the range set by hand) and at 15 °C by (16.9). Fitted set
-of a tower (`towers31_cmds.fit_set`): $V_{max}$ and slope of every prescribed position; the acclimation onset and range
+of a tower (`towers31_cmds.fit_set`): $`V_{max}`$ and slope of every prescribed position; the acclimation onset and range
 of positions 4 and 6; the upper-canopy phenology where position 5, 7 or 8 is prescribed; the lower-canopy thresholds
 where a lower position is; the drought trigger where position 2, 9, 10 or 11 is; the stress factor always.
 
@@ -311,12 +311,12 @@ where a lower position is; the drought trigger where position 2, 9, 10 or 11 is;
 | lower-canopy temperature threshold | `tthresh_l_c` | −5 to 8 °C | linear | 10 |
 | drought trigger of leaf drop | `drop_stress_thresh` | 0.05-0.85 | linear | 10 |
 | soil-water stress factor | `stressfac` | −10 to −2.5 | linear | 9 |
-| temperature sensitivity of decomposition $E_{0}$ | `bgc_e0` (`lt_e0`) | 150-600 K | linear | 12 |
+| temperature sensitivity of decomposition $`E_{0}`$ | `bgc_e0` (`lt_e0`) | 150-600 K | linear | 12 |
 | growth respiration fraction | `rgrowth` | 0.10-0.50 | linear | 11 |
 | fine-root respiration coefficient | `rroot` | 0.3-5 yr⁻¹ | log | 11 |
 | soil-pool scale (state, not carried over) | `som_scale` | 0.1-3 | log | – |
 | molar CH4:CO2 ratio of anaerobic decomposition | `ch4_r` (`r_ch4`) | 0.03-0.8 | log | 14 |
-| $Q_{10}$ of the ratio | `ch4_q10` (`q10p`) | 1.2-6 | log | 14 |
+| $`Q_{10}`$ of the ratio | `ch4_q10` (`q10p`) | 1.2-6 | log | 14 |
 | e-folding depth of decomposition | `ch4_ztau` (`z_tau`) | 0.08-1.0 m | log | 14 |
 | e-folding depth of the oxic zone | `ch4_tauox` (`tau_oxid`) | 0.02-0.6 m | log | 14 |
 | capacity scale of the C3 / C4 crop | `crop_vmax_scale_c3`, `_c4` | 0.3-3 | log | 15 |
@@ -324,7 +324,7 @@ where a lower position is; the drought trigger where position 2, 9, 10 or 11 is;
 **Table 16.4** Settings of the tower stages: initial step size in the unit box, population, evaluations, the caps
 of (16.6)-(16.7) and the base parameter file the fits started from.
 
-| Stage | Towers | Step size | Population | Evaluations | $c_{m}$, $c_{t}$ | Base |
+| Stage | Towers | Step size | Population | Evaluations | $`c_{m}`$, $`c_{t}`$ | Base |
 |---|---|---|---|---|---|---|
 | GPP and ET (S2) | 356 | 0.15 | 6 | 80 | 25, 30 (lifted when the start is at the cap) | `params_s7_crop.yaml` |
 | open-vegetation refit | 147 | 0.15 | 6 | 48 | 25, 30 (lifted when the start is at the cap) | `params_s7_crop_lpjcover.yaml`, warm start |
@@ -366,15 +366,15 @@ slope and acclimation go to the tower's own type with the corresponding canopy r
 a shrub, or a grass with the same pathway. If none matches, they go to the type assigned to that position by the
 tower's zone. Upper-canopy phenology goes to its tree types; lower-canopy thresholds go to shrub and grass types;
 the drought trigger, stress factor and three respiration parameters go to every type at the tower. The value for type
-$t$ is
+$`t`$ is
 
-$$
+```math
 p_{t} = \operatorname{median}\left\{ \hat{p}_{s} : s \in S_{t}(p) \right\},
 \tag{16.10}
-$$
+```
 
-where $\hat{p}_{s}$ is the value fitted at tower $s$ and $S_{t}(p)$ the set of towers that attribute a value of $p$
-to $t$. The fits used are the S2 fits, with the open-vegetation and bound-relaxed refits in place of the earlier fit of
+where $`\hat{p}_{s}`$ is the value fitted at tower $`s`$ and $`S_{t}(p)`$ the set of towers that attribute a value of $`p`$
+to $`t`$. The fits used are the S2 fits, with the open-vegetation and bound-relaxed refits in place of the earlier fit of
 the same tower (`site_fit/t31_s2_merged_relax`; two bound-relaxed refits that stopped early retain their previous
 values), together with the NEE fits. Rebuilding the reduction from these records yields values for all 35 tree, shrub
 and grass types; 298 of the 305 resulting type values match the release. The seven exceptions are capacities assigned from
@@ -386,7 +386,7 @@ which no tower of that set fitted (the IBIS 2.6b4 capacity and the slope of the 
 
 ![Figure 16.3](figures/fig_16_3_type_values.png)
 
-**Figure 16.3** Per-type values from the tower campaign of the release: (a) the photosynthetic capacity $V_{max}$ at
+**Figure 16.3** Per-type values from the tower campaign of the release: (a) the photosynthetic capacity $`V_{max}`$ at
 15 °C and (b) the growth respiration fraction. Dots: the median (16.10) over the type's towers, rebuilt from the fit
 records by `towers31_types_yaml.py`; bars: the inter-quartile range of the towers; numbers: the towers behind the
 capacity (section 16.6.1 gives the largest number over all parameters of a type); ×: the release value where it is not
@@ -454,17 +454,17 @@ pools releases more carbon than the towers do. Individual fits match the tower s
 ## 16.7 Leaf area, allocation and wood
 
 Tower fits hold leaf area fixed, so the model's own leaf area, cover and wood were set through the global protocol.
-At equilibrium, a position's leaf pool (Chapter 11) contains $a_{leaf}\,\tau_{leaf}\,N$ carbon. Leaf area per unit net
+At equilibrium, a position's leaf pool (Chapter 11) contains $`a_{leaf}\,\tau_{leaf}\,N`$ carbon. Leaf area per unit net
 primary production is therefore
 
-$$
+```math
 k = a_{leaf}\, \tau_{leaf}\, \sigma_{leaf},
 \tag{16.11}
-$$
+```
 
-where $k$ (m² yr kgC⁻¹) is the leaf coefficient, $a_{leaf}$ the share of net primary production allocated to leaves,
-$\tau_{leaf}$ (yr) the leaf lifetime, $\sigma_{leaf}$ (m² kgC⁻¹) the specific leaf area and $N$ (kgC m⁻² yr⁻¹) the net
-primary production of the position. Adjusting $k$ brought leaf area toward the products' peak values without
+where $`k`$ (m² yr kgC⁻¹) is the leaf coefficient, $`a_{leaf}`$ the share of net primary production allocated to leaves,
+$`\tau_{leaf}`$ (yr) the leaf lifetime, $`\sigma_{leaf}`$ (m² kgC⁻¹) the specific leaf area and $`N`$ (kgC m⁻² yr⁻¹) the net
+primary production of the position. Adjusting $`k`$ brought leaf area toward the products' peak values without
 imposing a leaf-area cap. Base specific leaf area was set to 0.65 of the TRY species mean (a canopy-mean leaf mass).
 Leaf lifetime was set to the TRY lifespan for evergreens, one year for deciduous trees and half a year for grasses;
 allocation fractions and wood residence times came from literature syntheses by biome. The types' leaf allocation
@@ -481,7 +481,7 @@ type. Table 16.6 compares the release base values with IBIS 2.6b4.
 2.6b4 (`fortran/params.can`): capacity at 15 °C, specific leaf area, leaf lifetime, wood residence time and allocation to
 leaves, roots and wood. The plant types override these for the positions they occupy (Table 16.7).
 
-| Position | $V_{max}$ (µmol m⁻² s⁻¹) | $\sigma_{leaf}$ (m² kgC⁻¹) | $\tau_{leaf}$ (yr) | $\tau_{wood}$ (yr) | $a_{leaf}$ / $a_{root}$ / $a_{wood}$ |
+| Position | $`V_{max}`$ (µmol m⁻² s⁻¹) | $`\sigma_{leaf}`$ (m² kgC⁻¹) | $`\tau_{leaf}`$ (yr) | $`\tau_{wood}`$ (yr) | $`a_{leaf}`$ / $`a_{root}`$ / $`a_{wood}`$ |
 |---|---|---|---|---|---|
 | 1 tropical broadleaf evergreen | 39.5 (65.0) | 12.8 (25.0) | 1.4 (1.01) | 50 (25) | 0.35 / 0.27 / 0.38 (0.30 / 0.20 / 0.50) |
 | 2 tropical broadleaf drought-deciduous | 65.0 (65.0) | 20.9 (25.0) | 1.0 (1.00) | 40 (25) | 0.30 / 0.25 / 0.45 (0.30 / 0.20 / 0.50) |
@@ -505,10 +505,10 @@ and the range of their values.
 
 | Parameter | Types that set it | Range over those types |
 |---|---|---|
-| $a_{leaf}$ | 25 | 0.154 (T07, T13) to 0.32 (S04) |
-| $a_{root}$ | 23 | 0.325 (T02) to 0.75 (G01-G05) |
-| $a_{wood}$ | 18 | 0.23 (S04) to 0.525 (T03); 0.35 for T06-T16 and T21 |
-| $\tau_{leaf}$ (yr) | 24 | 0.6 (G06) to 3.3 (T07, T10, T13, T16, T17) |
+| $`a_{leaf}`$ | 25 | 0.154 (T07, T13) to 0.32 (S04) |
+| $`a_{root}`$ | 23 | 0.325 (T02) to 0.75 (G01-G05) |
+| $`a_{wood}`$ | 18 | 0.23 (S04) to 0.525 (T03); 0.35 for T06-T16 and T21 |
+| $`\tau_{leaf}`$ (yr) | 24 | 0.6 (G06) to 3.3 (T07, T10, T13, T16, T17) |
 
 No type specifies its own specific leaf area or wood or root residence time. A type specifying one or two allocation
 fractions inherits the others from its position's base values; the three sum to one for every type.
@@ -516,31 +516,31 @@ fractions inherits the others from its position's base values; the three sum to 
 ## 16.8 The water-limited maximum tree cover
 
 Water scarcity limits tree cover. The model caps upper-canopy cover using a ramp in the
-smoothed upper-canopy soil-water stress factor, equations (11.15)-(11.17), with onset $u_{0}$, width
-$\Delta u$ and the power $p$ (`pft.tree_cover_min`, `tree_cover_ramp`, `tree_cover_power`). The three parameters were
+smoothed upper-canopy soil-water stress factor, equations (11.15)-(11.17), with onset $`u_{0}`$, width
+$`\Delta u`$ and the power $`p`$ (`pft.tree_cover_min`, `tree_cover_ramp`, `tree_cover_power`). The three parameters were
 fitted by zone group (`verify/calibration/diagnostics/gate_2026-10-27/ramp_fit_zones.py`) on the 2008 and 2010 output
 of the preceding protocol stage (s31n), which used the survival factor in section 11.5 instead of the
-cover limit. Natural land in each zone group (cells with cropland share below 0.3) is binned by $\bar{u}$, the mean of
-the model's annual stress factors $u^{y}$ in (11.15) over those two years, using bin edges 0, 0.3, 0.4, 0.5, 0.55, 0.6,
+cover limit. Natural land in each zone group (cells with cropland share below 0.3) is binned by $`\bar{u}`$, the mean of
+the model's annual stress factors $`u^{y}`$ in (11.15) over those two years, using bin edges 0, 0.3, 0.4, 0.5, 0.55, 0.6,
 …, 0.95 and 1.01, and
 
-$$
+```math
 \left(u_{0}, \Delta u, p\right) = \arg\min \sum_{k} A_{k} \left\{ \left[\min\left(\max\left(\frac{\bar{u}_{k} - u_{0}}{\Delta u},
 0\right), 1\right)\right]^{p} - \tilde{c}_{k} \right\}^{2},
 \tag{16.12}
-$$
+```
 
-where $k$ runs over the bins with at least 20 cells; $A_{k}$ (m²) is the land area of bin $k$ (cell area times the land
-fraction); $\bar{u}_{k}$ is its area-weighted mean stress factor; and $\tilde{c}_{k}$ is an area-weighted percentile
-over its cells of the CLM / MODIS tree cover on the natural share of the cell, $\min[c/\max(1 - f_{crop}, 0.05), 1]$,
-with $c$ the product's tree cover and $f_{crop}$ the cropland share. The minimum is found on the grid
-$u_{0} \in \{0.20, 0.22, \ldots, 0.78\}$, $\Delta u \in \{0.10, 0.12, \ldots, 0.68\}$,
-$p \in \{0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5\}$.
+where $`k`$ runs over the bins with at least 20 cells; $`A_{k}`$ (m²) is the land area of bin $`k`$ (cell area times the land
+fraction); $`\bar{u}_{k}`$ is its area-weighted mean stress factor; and $`\tilde{c}_{k}`$ is an area-weighted percentile
+over its cells of the CLM / MODIS tree cover on the natural share of the cell, $`\min[c/\max(1 - f_{crop}, 0.05), 1]`$,
+with $`c`$ the product's tree cover and $`f_{crop}`$ the cropland share. The minimum is found on the grid
+$`u_{0} \in \{0.20, 0.22, \ldots, 0.78\}`$, $`\Delta u \in \{0.10, 0.12, \ldots, 0.68\}`$,
+$`p \in \{0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5\}`$.
 
 A_humid, A_savanna, the four C zones pooled together and D_temperate use fits to the median (Figure 16.4). B_cold uses
 the 75th percentile of the five pooled cold zones (D_temperate, D_subarctic, D_extreme, B_cold and E_tundra). That fit
-excludes trees below $\bar{u} = 0.70$. Within B_cold alone, the product's median cover is 0 in every stress bin, its 75th
-percentile is at most 0.01, and no bin above $\bar{u}$ = 0.75 contains 20 cells (printed by `figures/make_ch16.py numbers`).
+excludes trees below $`\bar{u} = 0.70`$. Within B_cold alone, the product's median cover is 0 in every stress bin, its 75th
+percentile is at most 0.01, and no bin above $`\bar{u}`$ = 0.75 contains 20 cells (printed by `figures/make_ch16.py numbers`).
 The base ramp (0.30, 0.65, 1.75), fitted at an earlier stage to the pooled tropics' 75th percentile, is retained in
 B_hot and zones where cold rather than water limits product cover (D_subarctic, D_extreme, E_tundra).
 
@@ -551,13 +551,13 @@ the figure script returns the release values of all five groups (area-weighted r
 0.088 in A_savanna, 0.041 in the C zones, 0.039 in D_temperate and 0.034 for the cold zones).
 
 In A_humid, every bin lies
-above $\bar{u}$ = 0.6, with median covers of 0.8 to 1, and 292 points of the grid fit the bins with a root-mean-square
+above $`\bar{u}`$ = 0.6, with median covers of 0.8 to 1, and 292 points of the grid fit the bins with a root-mean-square
 error below 0.005, their onsets ranging from 0.20 to 0.58: the product fixes the A_humid ramp only above
-$\bar{u}$ = 0.6.
+$`\bar{u}`$ = 0.6.
 
 In the first ten-year check of the fitted ramps, using each year's stress factor in the cover limit removed whole
 forest cells during individual dry years (266 cells and 1.16 PgC in 2010). The release limit therefore uses the
-five-year-smoothed stress factor, $\tilde{u}$ in (11.16), although the ramps were fitted to $\bar{u}$,
+five-year-smoothed stress factor, $`\tilde{u}`$ in (11.16), although the ramps were fitted to $`\bar{u}`$,
 the mean of two individual years' factors.
 
 ![Figure 16.4](figures/fig_16_4_cover_ramp_fit.png)
@@ -567,7 +567,7 @@ percentile (open) of the CLM / MODIS tree cover on the natural share of the cell
 each bin of the model's stress factor (the mean of the annual stress factors of 2008 and 2010 of the protocol run s31n);
 dot area grows with the bin's share of the panel's land area (scaled per panel); bins with fewer than 20 cells are left
 out. Black: the release ramp (11.17) of the zone, resolved from the release parameter file by the model's
-`apply_types`, with its parameters $u_{0}$, $\Delta u$ and $p$; grey dashed: the base ramp. Panel (e) shows the bins of
+`apply_types`, with its parameters $`u_{0}`$, $`\Delta u`$ and $`p`$; grey dashed: the base ramp. Panel (e) shows the bins of
 the five cold zones together, on whose 75th percentile the B_cold ramp was fitted; (f) B_hot keeps the base ramp.
 
 ## 16.9 Fire
@@ -575,22 +575,22 @@ the five cold zones together, on whose 75th percentile the B_cold ramp was fitte
 Fire parameters control how much of each zone burns. They were fitted using an objective based on zone means
 (`diagnostics/fire_f7_fit.py`):
 
-$$
+```math
 J_{fire} = \left[ \frac{1}{11} \sum_{z} \left( \ln \frac{\bar{B}^{mod}_{z}}{\bar{B}^{obs}_{z}} \right)^{2} \right]^{1/2},
 \tag{16.13}
-$$
+```
 
-where $J_{fire}$ is the objective; $z$ runs over the eleven vegetated zones (all but D_extreme and E_ice); and
-$\bar{B}^{mod}_{z}$ and $\bar{B}^{obs}_{z}$ (fraction yr⁻¹) are the cos(latitude)-weighted means over the zone's cells of
+where $`J_{fire}`$ is the objective; $`z`$ runs over the eleven vegetated zones (all but D_extreme and E_ice); and
+$`\bar{B}^{mod}_{z}`$ and $`\bar{B}^{obs}_{z}`$ (fraction yr⁻¹) are the cos(latitude)-weighted means over the zone's cells of
 the burned fraction predicted from annual model states and that in GFED5 for 2003-2005. Predictions apply the model's
 fire term (`ibis.ml.fire_calibration.predict_burned_fraction`) to fire-season counters, litter and canopy in each
 year-end state of a protocol run with annual counter resets. They reproduce the states' own burned
 fraction at a ratio of 1.003. No cell-level objective was used. African savannas dominate GFED5 burned area,
 but the scheme has no ignition term for their grass fires; matching the GFED5 total overburns every other zone. Table
-16.8 lists the resulting parameters. Closed-canopy cover $x_{c}$ was then chosen through a sweep against GFED5 in
+16.8 lists the resulting parameters. Closed-canopy cover $`x_{c}`$ was then chosen through a sweep against GFED5 in
 humid regions. An offline refit on a later run's states tested a lower leaf-area saturation of the
-leaf-area factor (`lai_ref_vd` 3.5 and 3.0) and a lower closed-canopy cover, with $k_{b}$ refitted for each. Only the
-latter lowered (16.13) (0.88: $J_{fire}$ 0.601 against 0.613), placing the humid Amazon at 1.37 times GFED5, so the
+leaf-area factor (`lai_ref_vd` 3.5 and 3.0) and a lower closed-canopy cover, with $`k_{b}`$ refitted for each. Only the
+latter lowered (16.13) (0.88: $`J_{fire}`$ 0.601 against 0.613), placing the humid Amazon at 1.37 times GFED5, so the
 parameters were retained. Parameters in Chapter 13 but absent from Table 16.8 retain their code defaults.
 
 These values were fitted when every step of the year could count as fire-prone. That counting rule remains the
@@ -607,7 +607,7 @@ revised-model run (Chapter 13; evidence and settings in section 16.15).
 | `fire.use_canopy_damping` | true | damping of fire under a closed broadleaf canopy |
 | `fire.damp_broadleaf_only` | true | closed conifer forest burns undamped (boreal fire 0.5 of GFED5 when all canopies are damped) |
 | `fire.fu_half` | 0.85 | upper-canopy cover at half damping, from the zone fit |
-| `fire.fu_width` | 0.05 | width of the damping logistic: 0.10 chosen at the fit over the lowest-$J_{fire}$ 0.06, then 0.05 at equal $J_{fire}$ |
+| `fire.fu_width` | 0.05 | width of the damping logistic: 0.10 chosen at the fit over the lowest-$`J_{fire}`$ 0.06, then 0.05 at equal $`J_{fire}`$ |
 | `fire.k_b` | 0.44 | scale of the burned fraction, fitted with (16.13) |
 | `fire.closed_canopy_zones` | A_humid | zone damped as a closed canopy whatever the cell's cover |
 | `fire.closed_canopy_fu` | 0.90 | cover at which that zone is damped: humid Amazon on GFED5 |
@@ -615,7 +615,7 @@ revised-model run (Chapter 13; evidence and settings in section 16.15).
 ## 16.10 Soil carbon
 
 Soil carbon storage depends on turnover in the slow pools. In the release, slow and passive soil organic matter
-decomposes at the Chapter 12 rates multiplied by the cell's climate-zone turnover factor $\sigma$
+decomposes at the Chapter 12 rates multiplied by the cell's climate-zone turnover factor $`\sigma`$
 (`bgc.som_k_scale`, equation (12.7)), specified on the zone's types and resolved by (2.2). Litter and microbial pools
 are not scaled (Table 12.5). Two candidate factor sets bracketed the choice and were run through the full protocol
 (s31t and s31u). They were judged against HWSD2 top-metre organic carbon by zone group and latitude band, the
@@ -623,7 +623,7 @@ literature range of global stocks to 1 m (1500-2400 PgC), and the land sink. The
 the resulting stock was 0.71 of HWSD2 on the HWSD2 cells, 0.80 between 30°N and 60°N and 0.47 north of 60°N
 (Table 16.11). These are release-run scores; they must be updated after the final run of the revised model.
 
-**Table 16.9** The turnover factor $\sigma$ of (12.7) by zone group in the release, as resolved by the model, and in
+**Table 16.9** The turnover factor $`\sigma`$ of (12.7) by zone group in the release, as resolved by the model, and in
 the bracket's milder member (`params_31s_soil_mild.yaml`).
 
 | Zone group | Zones | Release | Milder member |
@@ -651,7 +651,7 @@ over their fitted years, which the module cannot reproduce because its flux is n
 (Chapter 14). Their magnitude term remains capped in every methane-objective evaluation, so only monthly
 terms inform their fits (counts printed by `figures/make_ch16.py numbers`). Each tower runs fully inundated (an inundated
 fraction of 1), with the vegetation of Table 16.2, its pools spun up for the tower, the flux evaluated every time step
-(`--methane-hourly`), the last year of its record held out, and the reference temperature of $Q_{10}$ held at
+(`--methane-hourly`), the last year of its record held out, and the reference temperature of $`Q_{10}`$ held at
 295.15 K. Each tower belongs to the wetland band of its Köppen zone (W01 tropical and subtropical, W02 temperate, W03
 boreal and arctic; Table 2.3), and the band's value of each parameter is the median over its towers
 (`ch4_class_yaml.py --band-csv`; 12, 24 and 12 towers). The band values (Table 16.10) were not scaled to match any budget.
@@ -659,10 +659,10 @@ The release parameter file's `methane` section contains medians over all 48 wetl
 without its own value. Every band specifies all four parameters, so no release cell uses those all-tower medians.
 
 **Table 16.10** The methane parameters of the release by wetland band (`methane_bands` section; symbols as in Chapter
-14: $r$ the molar CH4:CO2 ratio of anaerobic decomposition, $Q_{10}$ its temperature factor per 10 K, $z_{\tau}$ the
-e-folding depth of decomposition, $\tau_{ox}$ the e-folding depth of the oxic zone).
+14: $`r`$ the molar CH4:CO2 ratio of anaerobic decomposition, $`Q_{10}`$ its temperature factor per 10 K, $`z_{\tau}`$ the
+e-folding depth of decomposition, $`\tau_{ox}`$ the e-folding depth of the oxic zone).
 
-| Band | Towers | $r$ | $Q_{10}$ | $z_{\tau}$ (m) | $\tau_{ox}$ (m) |
+| Band | Towers | $`r`$ | $`Q_{10}`$ | $`z_{\tau}`$ (m) | $`\tau_{ox}`$ (m) |
 |---|---|---|---|---|---|
 | tropical (W01) | 12 | 0.0997 | 2.17 | 0.770 | 0.128 |
 | temperate (W02) | 24 | 0.1186 | 2.25 | 0.701 | 0.111 |
@@ -753,7 +753,7 @@ The current code does not reproduce the release run. The soil texture classes we
 IBIS 2.6b4 ships one parameter set (the files `params.can`, `params.veg` and `params.soi`, kept in `fortran/`, and
 constants in the code) and no calibration procedure. Table 16.6 compares the base values. In addition, the release
 replaces the stress factor −5.0 (`physiology.f`), the growth respiration fraction 0.30, the fine-root respiration
-coefficient 1.25 yr⁻¹ and the temperature sensitivity of decomposition $E_{0}$ = 344 K (`tconst`; all three in
+coefficient 1.25 yr⁻¹ and the temperature sensitivity of decomposition $`E_{0}`$ = 344 K (`tconst`; all three in
 `stats.f`) with per-position and per-type values (section 16.6 and Figure 16.3).
 
 The calibration of the release has the following known limitations.
@@ -770,7 +770,7 @@ The calibration of the release has the following known limitations.
    are below theirs; these values remain within the widened bounds (Figure 16.3a). Of the 358 NEE fits, 45 end within 0.001 of the lower
    bound of the growth respiration fraction (0.10) and 10 within 0.005 of its upper bound (0.50); the release values of
    T12, T13 and T21 lie within 0.003 of the lower bound (Figure 16.3b). The release's fits converted the C4 bounds with
-   the C3 temperature factor, 6.5-49.0 µmol m⁻² s⁻¹ at 15 °C against 5.9-44.1 with the C4 factor $f_{4}$ of (9.2) that
+   the C3 temperature factor, 6.5-49.0 µmol m⁻² s⁻¹ at 15 °C against 5.9-44.1 with the C4 factor $`f_{4}`$ of (9.2) that
    the tool now uses (section 16.5).
 3. *Day-time and night-time NEE.* The release's NEE targets were sums over the half-hours with `NEE_VUT_REF_QC` ≤ 1,
    split by FLUXNET's night flag, while the model summed every step of the month. In the campaign's target file
@@ -837,10 +837,10 @@ contains 73 tower records, including 45 forest records; the monthly summary cont
 Unavailable values are excluded separately for each metric. Transpiration fractions use model outputs from all 104.
 These sample differences matter when comparing columns.
 
-Hourly comparisons use the monthly mean daily cycles of sensible heat ($H$), latent heat ($LE$) and net radiation,
+Hourly comparisons use the monthly mean daily cycles of sensible heat ($`H`$), latent heat ($`LE`$) and net radiation,
 aligned to local apparent solar time. A tower is excluded if the center of its measured shortwave cycle is more than
 half an hour from solar noon; none was excluded by that test in this dataset. A variant is adopted only when it improves
-hourly $H$ and $LE$ without worsening monthly GPP and ET, assessed by plant type and month. The table is a compact
+hourly $`H`$ and $`LE`$ without worsening monthly GPP and ET, assessed by plant type and month. The table is a compact
 summary of those diagnostics, not a replacement for that assessment.
 
 **Table 16.13** Energy-test summary. The hourly columns are year-round changes in RMSE, in W m⁻², relative to the
@@ -920,10 +920,10 @@ part of the release calibration history, not new fits made in this review.
   month (`nee_night`, `nee_day`), the kept counts (`n_*`) and the part's length in the month (`nall_*`, in half-hours,
   from the share of the month's records); the sums (`sum_*`) stay as diagnostics. The model's state module `NEEParts`
   counts its night and day steps; `site_transient.nee_daynight_diag` gives the monthly means; `site_fit --target nee`
-  scores the means with $\sigma$ = max(15 % of the mean, 5 gC m⁻² over the part's length), weights the magnitude terms
+  scores the means with $`\sigma`$ = max(15 % of the mean, 5 gC m⁻² over the part's length), weights the magnitude terms
   by the length, and refuses a target file without `nall_*`. Reason: in gappy months the release's targets were partial
   sums against whole-month model sums. The review identified this as the likeliest common cause of `rgrowth` accumulating at
-  0.10 (D4, to be checked after the refit). The length-scaled floor of $\sigma$ was confirmed after the implementation
+  0.10 (D4, to be checked after the refit). The length-scaled floor of $`\sigma`$ was confirmed after the implementation
   (decisions of 2026-11-01). The campaign's target file must be rebuilt with the new script before the NEE refit.
 - *Night by the sun (D3, with D34).* The night of the targets is the sun below the horizon at the middle of the
   half-hour, on the tower's solar clock and at the cell's latitude (`tower_forcing.solar_night`), matching the model's
@@ -935,7 +935,7 @@ part of the release calibration history, not new fits made in this review.
   hours of hourly records), and 8-9 % of the half-hours at the 9 Australian towers.
 - *Solar-time tower forcing (D34).* `tower_forcing.py` moves the record to local apparent solar time (the longitude's
   distance from the zone meridian plus the equation of time, Spencer's series on the model's orbital angle) and gives
-  step $k$ the record's mean over the solar hour [$k$, $k$ + 1) (`solar_hour_means`); the daily temperature range is
+  step $`k`$ the record's mean over the solar hour [$`k`$, $`k`$ + 1) (`solar_hour_means`); the daily temperature range is
   taken over the solar day; the clock from `tower_clock` (12 of 410 towers with metadata differ from their record: 9
   Australian v1.3 towers whose `NIGHT` runs an hour ahead, 3 Swedish towers whose metadata say +2 h). Reason: the
   release read the tower shortwave at the hour on local standard time (the mean of the two intervals around the hour)
@@ -950,8 +950,8 @@ part of the release calibration history, not new fits made in this review.
 - *Methane band medians (D16).* `ch4_class_yaml.py --band-csv` leaves out the towers with a negative mean flux over
   their fitted years (`tower_gC_yr` of the fit report): the two temperate net-uptake towers. The budget threshold of log
   section 38.1 applies only with `--min-budget`; `--keep-all` reproduces the release's sections. Applied to the release's
-  fits, the rule moves only the temperate band, from 24 to 22 towers: $r$ 0.1186 to 0.1355, $Q_{10}$ 2.25 to 2.17,
-  $z_{\tau}$ 0.701 to 0.703 m, $\tau_{ox}$ 0.111 to 0.129 m (band level, printed by `figures/make_ch16.py numbers`). These
+  fits, the rule moves only the temperate band, from 24 to 22 towers: $`r`$ 0.1186 to 0.1355, $`Q_{10}`$ 2.25 to 2.17,
+  $`z_{\tau}`$ 0.701 to 0.703 m, $`\tau_{ox}`$ 0.111 to 0.129 m (band level, printed by `figures/make_ch16.py numbers`). These
   are not the next release's values: the band refit also uses the substrate-weighted production temperature
   (`methane.t_anaer_substrate`, default true, D13).
 - *Hourly energy test (D5 group, D6).* `timestep_body(with_fluxes=True)` also returns the sensible heat and the water
@@ -1003,8 +1003,8 @@ the refits and final protocol of section 16.14.3. Final scoring must use the zon
 quantity (D67). WAD2M defines wetland fraction relative to whole-cell area, so the final scoring convention must be explicit.
 The learned wetland model must be retrained on the final hindcast before the methane transient and hindcast pass (D39).
 
-**Kept and documented.** For an acclimated type whose state of acclimation stays below $S_{0} + S_{max}$, the tower
-fits identify only the ratio $V_{0}/S_{max}$, so its fitted $V_{0}$ is not a capacity reached in the field (D78;
+**Kept and documented.** For an acclimated type whose state of acclimation stays below $`S_{0} + S_{max}`$, the tower
+fits identify only the ratio $`V_{0}/S_{max}`$, so its fitted $`V_{0}`$ is not a capacity reached in the field (D78;
 section 9.3.3). The tree-cover limit caps the cell cover on cropland cells, not the natural-share cover it was fitted to
 (D8; section 11.5).
 

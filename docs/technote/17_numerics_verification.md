@@ -84,7 +84,7 @@ which calculations are compiled, which run in plain Python, and when recompilati
 
 JAX turns a Python function into a program for the XLA compiler, which compiles it for the CPU or the GPU. IBIS 3.0
 compiles one calendar month at a time: a loop over the days of the month whose body contains a second loop over the
-$N = 86400/\Delta t = 24$ time steps of the day, where $\Delta t$ = 3600 s is the time step (Figure 17.1a). Both loops
+$`N = 86400/\Delta t = 24`$ time steps of the day, where $`\Delta t`$ = 3600 s is the time step (Figure 17.1a). Both loops
 are JAX scans, allowing the compiler to process each loop as a whole. Day of year is a program input rather than a
 constant, so one program can serve months of the same length. The number of days per month, year length
 (365 or 366 days), daily decomposition-call count (`physics.nsoilcall`) and switches are fixed at
@@ -129,29 +129,29 @@ read from the code of the revised model.
 Within each hour, the model solves processes in sequence, each starting from the state left by its predecessor.
 This section describes that structure and identifies the equations solved implicitly.
 
-The time step $\Delta t$ = 3600 s is fixed, with no substeps or adaptive adjustment. The
+The time step $`\Delta t`$ = 3600 s is fixed, with no substeps or adaptive adjustment. The
 processes in Table 1.3 are solved sequentially, each over the full step using the state left by the preceding process
 (sequential operator splitting):
 
-$$
+```math
 \mathbf{x}^{n+1} = \mathcal{S}_{12} \circ \mathcal{S}_{11} \circ \cdots \circ \mathcal{S}_{1}\left(\mathbf{x}^{n};\, \mathbf{f}^{n}\right),
 \tag{17.1}
-$$
+```
 
-where $\mathbf{x}^{n}$ is the model state at the start of step $n$, $\mathbf{f}^{n}$ is the forcing of the step from the
-weather generator (Chapter 3), and $\mathcal{S}_{1}, \ldots, \mathcal{S}_{12}$ are the calculations of Table 1.3,
-applied from right to left. Within $\mathcal{S}_{6}$ (canopy), $\mathcal{S}_{9}$ (snow) and $\mathcal{S}_{10}$ (soil)
+where $`\mathbf{x}^{n}`$ is the model state at the start of step $`n`$, $`\mathbf{f}^{n}`$ is the forcing of the step from the
+weather generator (Chapter 3), and $`\mathcal{S}_{1}, \ldots, \mathcal{S}_{12}`$ are the calculations of Table 1.3,
+applied from right to left. Within $`\mathcal{S}_{6}`$ (canopy), $`\mathcal{S}_{9}`$ (snow) and $`\mathcal{S}_{10}`$ (soil)
 the model finds the unknowns of the step by implicit, linearized solutions of the energy and water balances, described
 in the chapters of the processes (Chapters 5-8); Table 17.3 summarizes their numerical structure. Apart from the
-fire-weather counters of the fire scheme of IBIS 3.0 (in $\mathcal{S}_{11}$, Chapter 13) and the methane flux
-($\mathcal{S}_{12}$, Chapter 14), the order and the methods are those of IBIS 2.6b4.
+fire-weather counters of the fire scheme of IBIS 3.0 (in $`\mathcal{S}_{11}`$, Chapter 13) and the methane flux
+($`\mathcal{S}_{12}`$, Chapter 14), the order and the methods are those of IBIS 2.6b4.
 
 **Table 17.3** The iterative and coupled solutions of the time step, in their order (Table 1.3).
 
 | Calculation | Unknowns | Discretization | Solver | Chapter |
 |---|---|---|---|---|
 | wet-bulb temperature of the air (temperature of the rain intercepted by the upper canopy; interception, step 4) | 1 per cell where the air is above the melting point | relaxed fixed-point iteration (relaxation factor 0.2) | at most 20 iterations, each cell keeping its value from the first with a change below 0.02 K | 5 |
-| canopy energy and water vapour balance | 9 per cell: $T_u$, $T_s$, $T_l$, $T_{12}$, $T_{34}$, $q_{12}$, $q_{34}$, $T_g$, $T_i$ | implicit, linearized about the current iterate; implicit and explicit parts weighted near the melting point | 3 fixed iterations, each with a 9 × 9 linear system solved by Gaussian elimination without pivoting | 5 |
+| canopy energy and water vapour balance | 9 per cell: $`T_u`$, $`T_s`$, $`T_l`$, $`T_{12}`$, $`T_{34}`$, $`q_{12}`$, $`q_{34}`$, $`T_g`$, $`T_i`$ | implicit, linearized about the current iterate; implicit and explicit parts weighted near the melting point | 3 fixed iterations, each with a 9 × 9 linear system solved by Gaussian elimination without pivoting | 5 |
 | snow temperature | 3 snow layers and the lower canopy buried by snow | implicit | tridiagonal (Thomas algorithm) | 8 |
 | soil water | 6 soil layers | implicit, fluxes linearized about the current state | tridiagonal (Thomas algorithm) | 7 |
 | soil and bedrock temperature | 6 soil + 3 bedrock layers (the release configuration) | implicit | tridiagonal (Thomas algorithm) | 6 |
@@ -160,39 +160,39 @@ fire-weather counters of the fire scheme of IBIS 3.0 (in $\mathcal{S}_{11}$, Cha
 
 The canopy calculation (Chapter 5) evaluates turbulent transfer coefficients, stomatal conductance and
 photosynthesis, then solves the linearized energy and water vapour balances of the canopy, canopy air,
-ground and snow surface. This sequence is repeated three times. Each pass $i = 1, 2, 3$ solves
+ground and snow surface. This sequence is repeated three times. Each pass $`i = 1, 2, 3`$ solves
 
-$$
+```math
 \mathbf{A}^{(i)}\,\mathbf{y}^{(i)} = \mathbf{b}^{(i)}, \qquad
 \mathbf{y} = \left(T_u, T_s, T_l, T_{12}, T_{34}, q_{12}, q_{34}, T_g, T_i\right)^{\mathsf{T}},
 \tag{17.2}
-$$
+```
 
-where $T_u$, $T_s$ and $T_l$ (K) are the temperatures of the upper-canopy leaves, the upper-canopy stems and the
-lower canopy; $T_{12}$ and $T_{34}$ (K) and $q_{12}$ and $q_{34}$ (kg kg⁻¹) are the temperatures and specific
-humidities of the air within the upper and the lower canopy; $T_g$ and $T_i$ (K) are the temperatures of the soil
-surface and the snow surface; and $\mathbf{A}^{(i)}$ and $\mathbf{b}^{(i)}$ are the coefficients and right-hand sides
-built from the transfer coefficients, conductances, heat capacities and radiation of pass $i$ (Chapter 5). The
-transfer coefficients and stomatal conductances for pass $i + 1$ are evaluated at the solution from pass $i$.
+where $`T_u`$, $`T_s`$ and $`T_l`$ (K) are the temperatures of the upper-canopy leaves, the upper-canopy stems and the
+lower canopy; $`T_{12}`$ and $`T_{34}`$ (K) and $`q_{12}`$ and $`q_{34}`$ (kg kg⁻¹) are the temperatures and specific
+humidities of the air within the upper and the lower canopy; $`T_g`$ and $`T_i`$ (K) are the temperatures of the soil
+surface and the snow surface; and $`\mathbf{A}^{(i)}`$ and $`\mathbf{b}^{(i)}`$ are the coefficients and right-hand sides
+built from the transfer coefficients, conductances, heat capacities and radiation of pass $`i`$ (Chapter 5). The
+transfer coefficients and stomatal conductances for pass $`i + 1`$ are evaluated at the solution from pass $`i`$.
 The third pass supplies the time-step solution. As in IBIS 2.6b4 (`canopy.f`), convergence is not tested.
 Several quantities carry over between passes, as they do through Fortran common blocks:
-stability factors, wind $u_{2}$ at the bottom of the upper canopy, logarithms of the two effective
+stability factors, wind $`u_{2}`$ at the bottom of the upper canopy, logarithms of the two effective
 roughness lengths and implicit fractions (section 5.3.2).
 
 The system (17.2) is solved for every cell by Gaussian elimination without pivoting, in the loop order of the Fortran
 routine `linsolve` (`math.f`):
 
-$$
+```math
 \ell_{jk} = \frac{a_{jk}}{a_{kk}}, \quad a_{jm} \leftarrow a_{jm} - \ell_{jk}\,a_{km}, \quad
 b_{j} \leftarrow b_{j} - \ell_{jk}\,b_{k} \quad (k = 1, \ldots, 8;\; j = k+1, \ldots, 9;\; m = 1, \ldots, 9),
 \qquad
 y_{k} = \frac{b_{k} - \sum_{m > k} a_{km}\,y_{m}}{a_{kk}} \quad (k = 9, \ldots, 1),
 \tag{17.3}
-$$
+```
 
-where $a_{jm}$ and $b_{j}$ are the elements of $\mathbf{A}$ and $\mathbf{b}$ and $\ell_{jk}$ is the multiplier of row
-$j$ at elimination step $k$. Elimination without pivoting relies on the diagonal elements staying away from zero, as
-the comment of the Fortran routine states. The Fortran updates only the columns $m = k, \ldots, 9$ and skips the
+where $`a_{jm}`$ and $`b_{j}`$ are the elements of $`\mathbf{A}`$ and $`\mathbf{b}`$ and $`\ell_{jk}`$ is the multiplier of row
+$`j`$ at elimination step $`k`$. Elimination without pivoting relies on the diagonal elements staying away from zero, as
+the comment of the Fortran routine states. The Fortran updates only the columns $`m = k, \ldots, 9`$ and skips the
 operations on elements that are zero in a fixed sparsity pattern. The port updates whole rows. This gives the same
 solution: subtracting a multiple of zero leaves an element unchanged, and columns to the left of the
 pivot are not read again. Retaining the Fortran elimination order also keeps rounding similar between codes.
@@ -204,28 +204,28 @@ systems of snow-covered cells at the melting point, changing canopy temperatures
 Heat conduction in the snow, water flow in the soil and heat conduction in the soil and bedrock each lead to one
 tridiagonal system per cell,
 
-$$
+```math
 a_{k}\,x_{k-1} + b_{k}\,x_{k} + c_{k}\,x_{k+1} = r_{k}, \qquad k = 1, \ldots, K, \quad a_{1} = c_{K} = 0,
 \tag{17.4}
-$$
+```
 
-where $x_{k}$ is the unknown of layer $k$ at the end of the step (a temperature in K, or a volumetric water content as
-a fraction of the pore space), $a_{k}$, $b_{k}$ and $c_{k}$ are the coefficients of the implicit discretization
-(Chapters 6-8), $r_{k}$ is the right-hand side and $K$ is the number of layers. (These $a$ and $b$ are unrelated to the
+where $`x_{k}`$ is the unknown of layer $`k`$ at the end of the step (a temperature in K, or a volumetric water content as
+a fraction of the pore space), $`a_{k}`$, $`b_{k}`$ and $`c_{k}`$ are the coefficients of the implicit discretization
+(Chapters 6-8), $`r_{k}`$ is the right-hand side and $`K`$ is the number of layers. (These $`a`$ and $`b`$ are unrelated to the
 matrix elements of (17.3).) They are solved by the Thomas algorithm (`ibis/physics/solvers.py`, the counterpart of the
 Fortran routine `tridia` of `math.f`):
 
-$$
+```math
 \gamma_{1} = \frac{c_{1}}{b_{1}}, \quad x'_{1} = \frac{r_{1}}{b_{1}}, \qquad
 \gamma_{k} = \frac{c_{k}}{b_{k} - a_{k}\gamma_{k-1}}, \quad x'_{k} = \frac{r_{k} - a_{k}x'_{k-1}}{b_{k} - a_{k}\gamma_{k-1}}
 \quad (k = 2, \ldots, K), \qquad
 x_{K} = x'_{K}, \quad x_{k} = x'_{k} - \gamma_{k}\,x_{k+1} \quad (k = K-1, \ldots, 1),
 \tag{17.5}
-$$
+```
 
-where $\gamma_{k}$ and $x'_{k}$ are the coefficients of the forward sweep. With the three bedrock layers of the release
-configuration (`grid.nbedrock` = 3; Chapter 6) the soil heat system has $K = 9$, the bedrock layers being added below
-the six soil layers; without them $K = 6$, as in IBIS 2.6b4. In either case no heat flows through the base of the
+where $`\gamma_{k}`$ and $`x'_{k}`$ are the coefficients of the forward sweep. With the three bedrock layers of the release
+configuration (`grid.nbedrock` = 3; Chapter 6) the soil heat system has $`K = 9`$, the bedrock layers being added below
+the six soil layers; without them $`K = 6`$, as in IBIS 2.6b4. In either case no heat flows through the base of the
 column; the drainage carries the heat of its water out through the base of the soil (Chapter 6).
 
 The soil water system treats interlayer fluxes implicitly, linearized about water content at the
@@ -261,26 +261,26 @@ reports how often they act.
 The bounds (Table 17.4) were added after global port runs produced non-finite values or runaway temperatures
 under conditions not sampled by Fortran verification. Each has the form
 
-$$
+```math
 \phi' = \min\left[\max\left(\phi,\; \phi_{lo}\right),\; \phi_{hi}\right],
 \tag{17.6}
-$$
+```
 
-where $\phi$ is the value computed by the step, $\phi'$ the value used, and $\phi_{lo}$ and $\phi_{hi}$ the limits of
+where $`\phi`$ is the value computed by the step, $`\phi'`$ the value used, and $`\phi_{lo}`$ and $`\phi_{hi}`$ the limits of
 Table 17.4. Clipping a temperature can change stored energy without a matching flux, and a floor on a water store
 can add water. A consistently applied flux bound need not have either effect. The ground-evaporation bound
 supplies a single rate used for water removal from puddles and soil, latent heat in the ground energy balance, and
 reported evapotranspiration. These three quantities therefore remain consistent when the bound acts.
 (The release run bounded water removal only.)
 
-**Table 17.4** Bounds of the time step that IBIS 2.6b4 does not have. None of them has a switch. $T_a$: air temperature
-of the step; $f_i$: snow cover; $E_g$: ground evaporation per unit snow-free area.
+**Table 17.4** Bounds of the time step that IBIS 2.6b4 does not have. None of them has a switch. $`T_a`$: air temperature
+of the step; $`f_i`$: snow cover; $`E_g`$: ground evaporation per unit snow-free area.
 
 | Quantity | Limits | Where in the step |
 |---|---|---|
-| ground evaporation of the snow-free part, $(1 - f_i)\,E_g$ (kg m⁻² s⁻¹) | ±1.0 × 10⁻³ | after the canopy solution; the bounded rate is used for the puddle and soil water, the latent heat of the ground and the evapotranspiration written out |
+| ground evaporation of the snow-free part, $`(1 - f_i)\,E_g`$ (kg m⁻² s⁻¹) | ±1.0 × 10⁻³ | after the canopy solution; the bounded rate is used for the puddle and soil water, the latent heat of the ground and the evapotranspiration written out |
 | sensible heat and net longwave radiation of the soil and snow surfaces (W m⁻²) | ±2000 (`IBIS_FLUX_MAX`) | in the heat fluxes into the soil and the snow |
-| temperatures $T_u$, $T_s$, $T_l$, $T_g$ (K) | $T_a$ ± 40 (`IBIS_T_MAX_DEV`) | after the soil calculation |
+| temperatures $`T_u`$, $`T_s`$, $`T_l`$, $`T_g`$ (K) | $`T_a`$ ± 40 (`IBIS_T_MAX_DEV`) | after the soil calculation |
 | water content of each soil layer after root uptake | ≥ 0 | before the soil water solution |
 | puddle liquid and ice (kg m⁻²) | ≥ 0 | after ground evaporation |
 
@@ -308,28 +308,28 @@ lifted, the two codes agree to 4.8 × 10⁻¹² K over the whole week.
 Three further changes protect the canopy system itself. They were applied identically to the port and reference
 Fortran after multi-cell lockstep verification exposed the relevant cases (section 17.9.3; Table 17.6).
 
-1. Where the canopy is absent ($2L_uf_u + 2S_uf_u + 2(L_l + S_l)f_l(1 - f_i)$ below $10^{-7}$, with $L$ and $S$ the
-   leaf and stem area indices of the upper ($u$) and lower ($l$) canopy and $f_u$ and $f_l$ their covers), the seven
-   canopy and canopy-air rows of (17.2) are replaced by $T = T_a\,\theta$ and $q = q_a$, where $\theta$ is the
-   potential-temperature factor of the reference level and $q_a$ the specific humidity of the air (Chapter 5). The
+1. Where the canopy is absent ($`2L_uf_u + 2S_uf_u + 2(L_l + S_l)f_l(1 - f_i)`$ below $`10^{-7}`$, with $`L`$ and $`S`$ the
+   leaf and stem area indices of the upper ($`u`$) and lower ($`l`$) canopy and $`f_u`$ and $`f_l`$ their covers), the seven
+   canopy and canopy-air rows of (17.2) are replaced by $`T = T_a\,\theta`$ and $`q = q_a`$, where $`\theta`$ is the
+   potential-temperature factor of the reference level and $`q_a`$ the specific humidity of the air (Chapter 5). The
    ground and snow rows are then solved against the air. IBIS 2.6b4 divides by a vanishing pivot there.
-2. The humidity factor of the soil surface is the weighted sum $\beta_s h_1 + (1 - \beta_s) h_2$, where $\beta_s$ is
-   the soil-wetness weight, $h_1$ an exponential of the matric potential of the top layer and $h_2$ the ratio of the
+2. The humidity factor of the soil surface is the weighted sum $`\beta_s h_1 + (1 - \beta_s) h_2`$, where $`\beta_s`$ is
+   the soil-wetness weight, $`h_1`$ an exponential of the matric potential of the top layer and $`h_2`$ the ratio of the
    canopy-air humidity to the saturation humidity of the soil surface (Chapter 5). Where the top layer is at the
-   wilting point ($\beta_s = 0$) the factor is set to $h_2$. The guard matters only for a negative saturated suction,
-   such as that of the soils the verification harness used until November 2026 (−0.15 m; section 17.9.1): there $h_1$
-   exceeded 1 and overflowed at a dry layer, and the product $0 \times \infty$ was not a number. With the positive
-   saturated suctions of IBIS's soils (0.07-0.37 m; Table 2.6), $h_1$ lies between 0 and 1, and the guard does not
+   wilting point ($`\beta_s = 0`$) the factor is set to $`h_2`$. The guard matters only for a negative saturated suction,
+   such as that of the soils the verification harness used until November 2026 (−0.15 m; section 17.9.1): there $`h_1`$
+   exceeded 1 and overflowed at a dry layer, and the product $`0 \times \infty`$ was not a number. With the positive
+   saturated suctions of IBIS's soils (0.07-0.37 m; Table 2.6), $`h_1`$ lies between 0 and 1, and the guard does not
    change the result in either code.
 3. Comparisons selecting branches in the canopy, interception and soil calculations include small tolerance bands
    to prevent differences of a few units in the last digit from sending the port and Fortran down
-   different branches: $10^{-9}$ K at the melting point, $10^{-8}$ (J m⁻² or K) in the tests of the implicit fractions
-   (added to the $\epsilon = 10^{-7}$ of the Fortran's tests), and $10^{-10}$ kg kg⁻¹ between humidities. In single
+   different branches: $`10^{-9}`$ K at the melting point, $`10^{-8}`$ (J m⁻² or K) in the tests of the implicit fractions
+   (added to the $`\epsilon = 10^{-7}`$ of the Fortran's tests), and $`10^{-10}`$ kg kg⁻¹ between humidities. In single
    precision the band at the melting point is narrower than the spacing of the numbers there (section 17.5) and has
-   no effect. The humidity band has no effect where the compared humidity is $2^{-9} \approx 1.95 \times 10^{-3}$
+   no effect. The humidity band has no effect where the compared humidity is $`2^{-9} \approx 1.95 \times 10^{-3}`$
    kg kg⁻¹ or more; below that value it moves the threshold by one or more units in the last digit, so it acts over
    cold surfaces (at 1000 hPa the saturation humidity falls below that value at about −8 °C). The bands of the implicit
-   fractions, which compare a difference against the small constant $1.1 \times 10^{-7}$, remain in effect.
+   fractions, which compare a difference against the small constant $`1.1 \times 10^{-7}`$, remain in effect.
 
 ## 17.5 Floating-point precision
 
@@ -345,13 +345,12 @@ its forcing arrays and sums are single-precision arrays. The release run was mad
 double-precision mode off (its log records that the code's double-precision constants were truncated to single
 precision), so every operation of its time step was in single precision. The relative precision of the two formats is
 
-$$
+```math
 u_{32} = 2^{-24} \approx 6.0 \times 10^{-8}, \qquad u_{64} = 2^{-53} \approx 1.1 \times 10^{-16},
 \tag{17.7}
-$$
+```
 
-where $u$ is the unit roundoff. Near the melting point (273.16 K), neighbouring single-precision numbers are $2^{-15}
-\approx 3.05 \times 10^{-5}$ K apart, and double-precision numbers $2^{-44} \approx 5.7 \times 10^{-14}$ K apart.
+where $`u`$ is the unit roundoff. Near the melting point (273.16 K), neighbouring single-precision numbers are $`2^{-15} \approx 3.05 \times 10^{-5}`$ K apart, and double-precision numbers $`2^{-44} \approx 5.7 \times 10^{-14}`$ K apart.
 Single precision loses the most accuracy when nearly equal numbers are subtracted. For example, reference height in
 the canopy calculation (Chapter 5) is computed from surface pressure minus 0.999 times that
 pressure. In single precision, this difference carries a relative error of up to 7.2 × 10⁻⁵ (median 2.1 × 10⁻⁵) over
@@ -423,16 +422,16 @@ with explicit keys rather than a mutable random-number stream. Repeating a draw 
 array shape and generator settings produces the same pseudo-random values. Changing the draw shape or the mapping of
 array entries to cells can change a cell's weather. Global runs start with key 42, which is split each day,
 
-$$
+```math
 \left(k_{d+1},\, k^{p}_{d},\, k^{s}_{d,0}\right) = \operatorname{split}(k_{d}), \qquad
 \left(k^{s}_{d,n+1},\, \kappa_{d,n}\right) = \operatorname{split}\left(k^{s}_{d,n}\right), \quad n = 0, \ldots, 23,
 \tag{17.8}
-$$
+```
 
-where $k_{d}$ is the key carried into day $d$, $k^{p}_{d}$ the key of the day's precipitation event (split again into
-one key for the length and one for the start), $k^{s}_{d,n}$ the key carried through the steps of the day and
-$\kappa_{d,n}$ the key given to the hourly generator for step $n$, which splits it once more before drawing the wind.
-(These keys are unrelated to the layer index $k$ of (17.3)-(17.5).) Each draw gives one uniform number per cell. IBIS
+where $`k_{d}`$ is the key carried into day $`d`$, $`k^{p}_{d}`$ the key of the day's precipitation event (split again into
+one key for the length and one for the start), $`k^{s}_{d,n}`$ the key carried through the steps of the day and
+$`\kappa_{d,n}`$ the key given to the hourly generator for step $`n`$, which splits it once more before drawing the wind.
+(These keys are unrelated to the layer index $`k`$ of (17.3)-(17.5).) Each draw gives one uniform number per cell. IBIS
 2.6b4 draws from the generator `ran2` of Press et al. (1992), seeded at the start of each run: one number for the event
 length, one for its start (and a new start when the limit of 15 mm per step lengthens the event) and, in every step,
 one for the wind of each cell in turn. The two sequences differ, so the port cannot repeat the Fortran's random
@@ -552,7 +551,7 @@ constants and settings to both codes. Until 1 November 2026, several differed fr
 (`python-port/tests/f2py/synthetic_inputs.py` and the wrapper's `set_soil` and `set_snow` as they then stood):
 
 1. Soils: one synthetic soil, the same in every layer of every cell, with a porosity of 0.45, a saturated
-   conductivity of 10⁻⁵ m s⁻¹, an exponent $b$ of 5, a field capacity of 0.35 and a wilting point of 0.15 (fractions
+   conductivity of 10⁻⁵ m s⁻¹, an exponent $`b`$ of 5, a field capacity of 0.35 and a wilting point of 0.15 (fractions
    of the pore space), and a saturated suction of −0.15 m, where IBIS's texture classes have positive suctions of
    0.07-0.37 m (Table 2.6). With the negative suction the coefficient of the diffusive term of the soil water flux is
    negative, and the code of both models then sets the hydraulic diffusivity between the layers to its floor of 10⁻⁹
@@ -590,7 +589,7 @@ the change.
 
 | File | Change | Reason | Record |
 |---|---|---|---|
-| `weather.f` | a wet day is followed by a wet day with probability $p_{ww}$ (the original never set the wet state in that branch) | daily weather generator: storms could not last more than one day | finding 5 |
+| `weather.f` | a wet day is followed by a wet day with probability $`p_{ww}`$ (the original never set the wet state in that branch) | daily weather generator: storms could not last more than one day | finding 5 |
 | `compft.h` | `real*4` declarations of the photosynthesis, phenology and vegetation constants made `real` | `real*4` is not promoted by `-fdefault-real-8`; these constants were stored in single precision | finding 19 |
 | `canopy.f` (`turvap`) | rows of the canopy unknowns replaced by the air values where the canopy is absent | division by a vanishing pivot (NaN) at hot, dry cells without vegetation | finding 20 |
 | `canopy.f`, `soil.f` | bands at the melting-point, implicit-fraction and humidity comparisons (section 17.4) | branch choices differing at the last digit between the two codes | findings 21, 23 |
@@ -660,8 +659,8 @@ GSWP3 lockstep runs then preceded the 46-year comparison (section 17.9.4): up to
 for 30 days to one year in 1990 and for 35 years from 1951. They found further defects of the port, among them the
 pivoting solver in section 17.3.2 and a missing Fortran cut-off for very small rain rates reaching soil.
 They also exposed the cases requiring the guards and bands in section 17.4. After correction,
-recorded single-step temperature differences at the five cells were at most $8.5 \times 10^{-9}$ K, and
-30-day differences were at most $6.6 \times 10^{-4}$ K.
+recorded single-step temperature differences at the five cells were at most $`8.5 \times 10^{-9}`$ K, and
+30-day differences were at most $`6.6 \times 10^{-4}`$ K.
 
 In November 2026 the checks of the verifier (`verify/timestepping/verify_lsxmain.py`) were run again with IBIS
 2.6b4's own settings (section 17.9.1), on the revised code, in double precision (`make_ch17.py timestep`):
@@ -697,13 +696,13 @@ cells in 1951 of the 46-year run. The larger differences fall into three groups:
 
 - At 15-25°N they come from the order of the top-layer heat flux and from the bounds of Table 17.4. With the order
   corrected and the bounds lifted (together, as temporary changes), four of the five cells there agree to
-  $4 \times 10^{-12}$ K over the year; the fifth keeps one event of $2.3 \times 10^{-4}$ K, not examined.
+  $`4 \times 10^{-12}`$ K over the year; the fifth keeps one event of $`2.3 \times 10^{-4}`$ K, not examined.
 - At three of the five cells at 55°N they are rounding amplified at freezing and thawing: there the port started
-  $10^{-12}$ K away from itself differs from itself about as much as from the Fortran.
+  $`10^{-12}`$ K away from itself differs from itself about as much as from the Fortran.
 - At the other two cells at 55°N (40°E and 120°E) the differences are 10 to 1000 times larger than that and start in
   spring. The first, on 23 March 1951 at 55°N, 40°E, arises within one step in the canopy calculation, at snow-laden
-  leaves at the melting point: the two codes agree to $1.4 \times 10^{-11}$ before the step and differ by
-  $1.5 \times 10^{-2}$ K in the canopy air after it. Giving the port the Fortran's state before the step leaves the
+  leaves at the melting point: the two codes agree to $`1.4 \times 10^{-11}`$ before the step and differ by
+  $`1.5 \times 10^{-2}`$ K in the canopy air after it. Giving the port the Fortran's state before the step leaves the
   difference unchanged, so it is not rounding. Its cause is not yet known (section 17.12).
 
 The southern and Antarctic cells of that year were not examined.
@@ -728,19 +727,19 @@ thickness, two stress factors, two canopy-air humidities and five surface fluxes
 
 For each cell, quantity and year the harness kept the largest absolute difference over the year's hourly steps,
 
-$$
+```math
 D_{c,y} = \max_{n \in y} \left| x^{F}_{c,n} - x^{J}_{c,n} \right|,
 \tag{17.9}
-$$
+```
 
-where $x^{F}_{c,n}$ and $x^{J}_{c,n}$ are the Fortran's and the port's values of the quantity in cell $c$ after step $n$
-of year $y$. Table 17.8 gives the distribution of $D_{c,y}$ over the 5,382 cell-years, and Figure 17.3 its geography and
+where $`x^{F}_{c,n}`$ and $`x^{J}_{c,n}`$ are the Fortran's and the port's values of the quantity in cell $`c`$ after step $`n`$
+of year $`y`$. Table 17.8 gives the distribution of $`D_{c,y}`$ over the 5,382 cell-years, and Figure 17.3 its geography and
 its evolution over time. At the median cell-year, the largest hourly upper-canopy temperature difference is
 2.6 µK, and in 99 % of the cell-years it is below 17 mK (the verification record and Chapter 1 round these to 3 µK
 and 20 mK). Large differences arise at individual steps where the codes follow different phase-change branches
 in cells with seasonal snow and frozen soil. One such event, at 55°N, 100°E on 25 April in the year-long
 comparison of 1990 that preceded the 46-year run, was examined by giving the port the Fortran's state just before the
-step; all quantities then agreed to $2 \times 10^{-9}$. That event therefore arose from rounding
+step; all quantities then agreed to $`2 \times 10^{-9}`$. That event therefore arose from rounding
 differences amplified by the canopy iteration, rather than a code difference. The largest upper-canopy temperature
 difference, 0.45 K, occurred in the first year, 1951, at 55°N, 40°E, the same cell as the
 unexplained event in section 17.9.3. Neither code produced a non-finite value.
@@ -758,25 +757,25 @@ The flagged values were:
 - a canopy-air humidity above 0.04 kg kg⁻¹ in one cell-month at 15°S.
 
 **Table 17.8** The 46-year lockstep (1951-1996, 117 cells): distribution over the 5,382 cell-years of the largest
-hourly difference between IBIS 2.6b4 and IBIS 3.0 in the year, $D_{c,y}$ (17.9). The ground-evaporation row compares
+hourly difference between IBIS 2.6b4 and IBIS 3.0 in the year, $`D_{c,y}`$ (17.9). The ground-evaporation row compares
 unlike quantities at snow-covered cells (see below).
 
 | Quantity | Median | 95th percentile | 99th percentile | Largest |
 |---|---|---|---|---|
-| upper-canopy leaf temperature $T_u$ (K) | 2.6 × 10⁻⁶ | 8.8 × 10⁻³ | 1.7 × 10⁻² | 0.45 |
-| lower-canopy temperature $T_l$ (K) | 3.5 × 10⁻⁶ | 7.8 × 10⁻³ | 1.8 × 10⁻² | 0.87 |
-| soil surface temperature $T_g$ (K) | 1.4 × 10⁻⁵ | 1.5 × 10⁻³ | 2.6 × 10⁻³ | 4.5 × 10⁻² |
+| upper-canopy leaf temperature $`T_u`$ (K) | 2.6 × 10⁻⁶ | 8.8 × 10⁻³ | 1.7 × 10⁻² | 0.45 |
+| lower-canopy temperature $`T_l`$ (K) | 3.5 × 10⁻⁶ | 7.8 × 10⁻³ | 1.8 × 10⁻² | 0.87 |
+| soil surface temperature $`T_g`$ (K) | 1.4 × 10⁻⁵ | 1.5 × 10⁻³ | 2.6 × 10⁻³ | 4.5 × 10⁻² |
 | top soil-layer temperature (K) | 3.9 × 10⁻⁵ | 2.1 × 10⁻³ | 4.7 × 10⁻³ | 0.11 |
 | top soil-layer water content (fraction of the pore space) | 6.6 × 10⁻⁸ | 1.7 × 10⁻⁴ | 6.3 × 10⁻⁴ | 6.5 × 10⁻³ |
 | sensible heat flux of the soil surface (W m⁻²) | 3.4 × 10⁻⁴ | 0.11 | 0.17 | 7.5 |
 | ground evaporation (kg m⁻² s⁻¹) | 1.5 × 10⁻⁹ | 4.5 × 10⁻⁵ | 5.8 × 10⁻⁵ | 3.7 × 10⁻⁴ |
 
 The ground-evaporation row overstates the code difference. At snow-covered cells, IBIS 2.6b4 stores cell-mean
-ground evaporation, $(1 - f_i)E_g$, while the port stores $E_g$. The 46-year runner compared these unlike quantities,
-so the row measures $f_i E_g$ at snow-covered cells rather than a code difference.
+ground evaporation, $`(1 - f_i)E_g`$, while the port stores $`E_g`$. The 46-year runner compared these unlike quantities,
+so the row measures $`f_i E_g`$ at snow-covered cells rather than a code difference.
 The runners now compare equivalent quantities. In the one-year repeat in section 17.9.3, the largest hourly
-ground-evaporation difference is $3.3 \times 10^{-10}$ kg m⁻² s⁻¹ at the median of 20 cells and
-$5.8 \times 10^{-8}$ at the largest, against $1.8 \times 10^{-5}$ and $4.0 \times 10^{-5}$ for the same cells in 1951
+ground-evaporation difference is $`3.3 \times 10^{-10}`$ kg m⁻² s⁻¹ at the median of 20 cells and
+$`5.8 \times 10^{-8}`$ at the largest, against $`1.8 \times 10^{-5}`$ and $`4.0 \times 10^{-5}`$ for the same cells in 1951
 of the 46-year run.
 
 ![Figure 17.3](figures/fig_17_3_lockstep_46yr.png)
@@ -832,23 +831,23 @@ value in a parameter file. Record: where the change is documented, as a finding 
 | Change | In IBIS 2.6b4 | In IBIS 3.0 | Switch | Record |
 |---|---|---|---|---|
 | linearization point of the soil water fluxes | weights that move water out of a dry layer above a wet one | the weights of the matrix | `soil.h2o_consistent_weights` (false; true in the release file) | CALIBRATION 62-63 |
-| booking of the annual litterfall | litterfall booked as $C/\tau$ while the pool decays by $C(1 - e^{-1/\tau})$: carbon conserved only at equilibrium | litterfall booked as the carbon the pool update removes (Chapter 11) | `pft.exact_litterfall` (false; true in the release file) | CALIBRATION 61, 63 |
+| booking of the annual litterfall | litterfall booked as $`C/\tau`$ while the pool decays by $`C(1 - e^{-1/\tau})`$: carbon conserved only at equilibrium | litterfall booked as the carbon the pool update removes (Chapter 11) | `pft.exact_litterfall` (false; true in the release file) | CALIBRATION 61, 63 |
 | canopy system without canopy | division by a vanishing pivot | rows of the canopy unknowns set to the air values (section 17.4) | none | finding 20 |
 | soil-surface humidity factor at the wilting point | product of zero and the matric factor, not a number only where that factor overflows (a negative saturated suction, as in the old harness's soils) | air-humidity term alone (the same value with IBIS's soils, whose suctions are positive) | none | finding 26 |
 | bounds of Table 17.4 | none; puddles may become negative | ground evaporation, surface heat fluxes, surface temperatures, layer water and puddles bounded | none | section 17.4 |
 | branch bands at the melting point, in the tests of the implicit fractions and between humidities | none | bands of section 17.4 (the melting-point band has no effect in single precision; the humidity band acts below 1.95 × 10⁻³ kg kg⁻¹ and the implicit-fraction bands act) | none | findings 21, 23 |
 | timing of the daily precipitation event | one length and start for the whole grid | drawn for each cell (Chapter 3) | none | finding 6 |
 | random numbers | `ran2`, one sequence | threefry keys (section 17.6) | none | section 17.6 |
-| leaf-orientation coefficient of the two-stream scheme | 101-entry table of $0.5 - \mu/3$ at $\mu$ rounded to 0.01, four decimals | the formula; largest difference 0.0017 | none | finding 1 |
+| leaf-orientation coefficient of the two-stream scheme | 101-entry table of $`0.5 - \mu/3`$ at $`\mu`$ rounded to 0.01, four decimals | the formula; largest difference 0.0017 | none | finding 1 |
 | soil thermal conductivity of dry solids | from sand and clay rounded to whole percent | from the unrounded values; at most 9.2 × 10⁻⁴ relative on the release soil file | none | finding 2 |
 | *after the release:* | | | | |
-| two-stream solution where the extinction coefficient $K$ of the direct beam nearly equals $h$ (section 4.4) | $p$ perturbed by 0.1 % to avoid the singularity, but three terms keep the unperturbed $K$: up to 0.18 of the direct near-infrared beam moved between the lower canopy and the soil | $K$ follows the perturbed $p$; unchanged outside these narrow windows of the solar angle | none | DEFECTS, technote review |
+| two-stream solution where the extinction coefficient $`K`$ of the direct beam nearly equals $`h`$ (section 4.4) | $`p`$ perturbed by 0.1 % to avoid the singularity, but three terms keep the unperturbed $`K`$: up to 0.18 of the direct near-infrared beam moved between the lower canopy and the soil | $`K`$ follows the perturbed $`p`$; unchanged outside these narrow windows of the solar angle | none | DEFECTS, technote review |
 | evaporation shares of a dry top layer under a puddle | shares sum to the puddle fraction, so part of the evaporation comes from no store | shares sum to 1 (Chapter 7) | none | DEFECTS, technote review |
 | ground snowfall beyond what covers the snow-free part in one step | discarded | added to the pack (Chapter 8) | none | DEFECTS, technote review |
 | ground evaporation where neither the top soil layer nor a puddle holds water | evaporates from the empty puddle, which turns negative (in IBIS 3.0 with the rule off, the puddle floor of Table 17.4 supplies that water from no store) | no evaporation there; dew still forms (Chapters 5, 7) | `soil.evap_needs_store` (false; true in `params_32a_base.yaml`, the parameter file that starts the refits) | DEFECTS, technote review |
 | time at which a step's sun and generated weather are evaluated | the start of the step | the middle of the step (Chapters 3, 4) | `weather.sun_midstep` (true) | CALIBRATION 87 |
 | snowpacks of 10 m or more | layers re-divided every step; heat flux into the soil by subtraction | layers re-divided when the top layer has moved by half its thickness; flux from the conductance (section 17.5) | none | DEFECTS, technote review |
-| lower-canopy sensible heat diagnostic | against the air of the upper canopy, $T_{12}$ | against the lower canopy's own air, $T_{34}$ (a diagnostic; read by no process) | none | DEFECTS, technote review |
+| lower-canopy sensible heat diagnostic | against the air of the upper canopy, $`T_{12}`$ | against the lower canopy's own air, $`T_{34}`$ (a diagnostic; read by no process) | none | DEFECTS, technote review |
 
 **Table 17.10** Defects of the port, corrected to the behaviour of IBIS 2.6b4, that changed results against earlier
 runs of the port. The rows dated November 2026 were corrected after the release run, which has none of them; a switch,
@@ -923,7 +922,7 @@ section 87; each defect with its evidence in `docs/DEFECTS_FOR_REVIEW.md`).
   `setup_jax_state` and `harness_params`. The Fortran wrapper accepts `csoi` and provides `wrap_set_exist`; the Python
   wrapper rejects libraries built before the change (rebuild with `python tests/f2py/build_f77.py`); `TestHarnessSettings`
   checks the cells against the compiled Fortran routines and `params.soi`. The lockstep runners now compare the
-  cell-mean ground evaporation $(1 - f_i)E_g$ of both codes; `--legacy-cells` selects the 117 cells of the 46-year run
+  cell-mean ground evaporation $`(1 - f_i)E_g`$ of both codes; `--legacy-cells` selects the 117 cells of the 46-year run
   and `--jit` compiles the port's step. Reason: the old harness disabled capillary diffusion in both codes. Its
   negative suction produced finding 26, now withdrawn as an inherited bug (the guard remains in both codes).
   Its snow constants and solids, which the port no longer shared, made the verifier report up to 0.73 K in single
@@ -985,11 +984,11 @@ section 87; each defect with its evidence in `docs/DEFECTS_FOR_REVIEW.md`).
 **Open**
 
 - `verify_lsxmain.py` compares `canopy.fsenl` with the Fortran's value, which since D90 differs by design, so the base
-  step reports one field beyond the thresholds and the verifier exits with code 2. Compare it against $T_{12}$, or
+  step reports one field beyond the thresholds and the verifier exits with code 2. Compare it against $`T_{12}`$, or
   leave it out.
 - The monsoon check's event on the fourth day is a difference of the codes, not rounding (`make_ch17.py inject`:
-  started from the Fortran's state after step 80, the port differs at step 81 by the same 6.55 × 10⁻⁵ K in $T_g$, and
-  by 1.95 × 10⁻⁴ K in $T_l$ at step 87). Before step 81 the freeze-thaw cell (cell 2) has its upper leaves and lower
+  started from the Fortran's state after step 80, the port differs at step 81 by the same 6.55 × 10⁻⁵ K in $`T_g`$, and
+  by 1.95 × 10⁻⁴ K in $`T_l`$ at step 87). Before step 81 the freeze-thaw cell (cell 2) has its upper leaves and lower
   canopy at 273.16 K holding snow (1.58 and 1.28 kg m⁻²) and liquid water (0.19 and 0.035 kg m⁻²), a snow cover of
   0.21, rain and snow falling (2 × 10⁻⁴ and 1 × 10⁻⁴ kg m⁻² s⁻¹), air at 273.16 K and the sun up (cosine 0.2). At
   that step the solar radiation absorbed by the leaves, stems and snow agrees to 10⁻¹² W m⁻², so the difference arises
@@ -997,7 +996,7 @@ section 87; each defect with its evidence in `docs/DEFECTS_FOR_REVIEW.md`).
   same check at bed0ae7 using `soil.f`'s top-layer heat-flux order showed no event (STATUS "Harness settings":
   6.4 × 10⁻¹² K), so a later change, or the harness's `hsnomin` of 0.15000000000000002, brings it out. It is a
   five-cell, 81-step case under conditions resembling the 55°N, 40°E difference below and may share its cause.
-  (When comparing radiation: the Fortran's `solg` after the step is the cell mean, $(1 - f_i)$ times the port's
+  (When comparing radiation: the Fortran's `solg` after the step is the cell mean, $`(1 - f_i)`$ times the port's
   `canopy.solg`, as for the ground evaporation of section 17.9.4.)
 - The canopy-stage difference at 55°N, 40°E (23 March 1951, 09 h; section 17.9.3) remains unexplained. Localizing it
   requires updating `verify/timestepping/pipeline/drill_canopy_iters.py` to the current canopy loop; outputs are in
@@ -1034,7 +1033,7 @@ section 87; each defect with its evidence in `docs/DEFECTS_FOR_REVIEW.md`).
 drawn from the release code's runs (cached in the default `CH17_WORK`, 31 October 2026); the revised-code numbers of
 section 17.5 come from the same experiment run with another `CH17_WORK`. `timestep` runs the verifier as checked in,
 then the cold snap with the bounds lifted (the release-era version gave the port the old harness constants instead).
-`selfpert` runs the port against itself started $10^{-12}$ K apart. `inject` repeats the diurnal and monsoon checks to
+`selfpert` runs the port against itself started $`10^{-12}`$ K apart. `inject` repeats the diurnal and monsoon checks to
 the end of the fourth day with the Fortran's state given to the port after step 80 (`_inject_f77_state`). All three
 send the coverage files of the canopy wrapper to `CH17_WORK/gcov`. `d83` and `wbal` print the numbers of sections
 17.8, 17.4 and 17.5. Figure 17.1 was redrawn for the daily climate statistics and the mid-step weather.

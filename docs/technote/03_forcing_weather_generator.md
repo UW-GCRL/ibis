@@ -14,8 +14,8 @@ how tower runs can use measured hourly sunlight instead of the generated cycle.
 The release is driven by the daily GSWP3 data set at 0.5° (Kim, 2017), in the version processed for ISIMIP2
 (Table 3.1). The data follow the Gregorian calendar, with leap days, and each model day reads the forcing of the same
 date. In the transient run and the hindcast the forcing year is the model year. During the spin-up the forcing cycles
-over the years 1901-1930: in spin-up year $k$ ($k = 0, 1, \ldots, 199$; model year $1701 + k$) the forcing year is
-$1901 + (k \bmod 30)$, and the model year takes that year's calendar. The model converts precipitation from
+over the years 1901-1930: in spin-up year $`k`$ ($`k = 0, 1, \ldots, 199`$; model year $`1701 + k`$) the forcing year is
+$`1901 + (k \bmod 30)`$, and the model year takes that year's calendar. The model converts precipitation from
 kg m⁻² s⁻¹ to mm d⁻¹. A missing value of any variable would be replaced by zero; none occurs at the land cells.
 
 **Table 3.1** Forcing variables and their use.
@@ -34,12 +34,12 @@ kg m⁻² s⁻¹ to mm d⁻¹. A missing value of any variable would be replaced
 ## 3.2 Time of day and solar geometry
 
 Time of day determines the solar position used for hourly sunlight and the phase of the fixed daily temperature
-cycle. The temperature cycle does not shift with sunrise. Each day has 24 steps of $\Delta t = 3600$ s. Step $n$
-($n = 0, 1, \ldots, 23$) covers the local solar hour from $n$ to $n + 1$ h. By default, the model evaluates the sun
-and weather generator at the middle of the step, $t = n + 0.5$ h, and holds those values throughout the step
+cycle. The temperature cycle does not shift with sunrise. Each day has 24 steps of $`\Delta t = 3600`$ s. Step $`n`$
+($`n = 0, 1, \ldots, 23`$) covers the local solar hour from $`n`$ to $`n + 1`$ h. By default, the model evaluates the sun
+and weather generator at the middle of the step, $`t = n + 0.5`$ h, and holds those values throughout the step
 (`weather.sun_midstep`, default true).
 
-With the switch off, as in IBIS 2.6b4 and the release, evaluation occurs at the start of the step, $t = n$ h.
+With the switch off, as in IBIS 2.6b4 and the release, evaluation occurs at the start of the step, $`t = n`$ h.
 The hour from 12 to 13 h then receives the noon sun, placing the centre of the day's sunlight at 12:30 rather than noon.
 
 The daily forcing is applied to the local solar day of each cell without a time shift. The days of GSWP3 are UTC days,
@@ -49,96 +49,96 @@ when hourly values are compared with tower data far from 0° longitude.
 The position of the sun follows the Fourier series given by Hartmann (1994, appendix A), as in IBIS 2.6b4. With the
 orbital angle
 
-$$
+```math
 \theta = \frac{2\pi J}{365.2425},
 \tag{3.1}
-$$
+```
 
-where $J$ is the day of the year (1 on 1 January), the solar declination $\delta$ (rad) is
+where $`J`$ is the day of the year (1 on 1 January), the solar declination $`\delta`$ (rad) is
 
-$$
+```math
 \delta = 0.006918 - 0.399912\cos\theta + 0.070257\sin\theta - 0.006758\cos 2\theta + 0.000907\sin 2\theta
 - 0.002697\cos 3\theta + 0.001480\sin 3\theta,
 \tag{3.2}
-$$
+```
 
-and the solar irradiance at the top of the atmosphere on a surface facing the sun, $S$ (W m⁻²), is
+and the solar irradiance at the top of the atmosphere on a surface facing the sun, $`S`$ (W m⁻²), is
 
-$$
+```math
 S = S_{0}\left(1.000110 + 0.034221\cos\theta + 0.001280\sin\theta + 0.000719\cos 2\theta + 0.000077\sin 2\theta\right),
 \tag{3.3}
-$$
+```
 
-where $S_{0} = 1370$ W m⁻² is the solar constant. The cosine of the solar zenith angle is
+where $`S_{0} = 1370`$ W m⁻² is the solar constant. The cosine of the solar zenith angle is
 
-$$
+```math
 \mu = \max\left[0,\; \sin\phi\,\sin\delta + \cos\phi\,\cos\delta\,\cos h\right], \qquad h = \frac{2\pi\,(t - 12)}{24},
 \tag{3.4}
-$$
+```
 
-where $\phi$ (rad) is the latitude of the cell, $h$ (rad) is the hour angle and $t$ (h) is the local solar time at which
-the step is evaluated. $\mu$ is zero while the sun is below the horizon.
+where $`\phi`$ (rad) is the latitude of the cell, $`h`$ (rad) is the hour angle and $`t`$ (h) is the local solar time at which
+the step is evaluated. $`\mu`$ is zero while the sun is below the horizon.
 
 ## 3.3 Shortwave radiation
 
 Sunlight drives photosynthesis and most of the surface energy balance. The generator calculates hourly sunlight from
-solar position and a daily cloud fraction $c$, ranging from 0 for clear sky to 1 for overcast sky. Atmospheric
+solar position and a daily cloud fraction $`c`$, ranging from 0 for clear sky to 1 for overcast sky. Atmospheric
 transmissivity is the fraction of sunlight that passes through the atmosphere (Friend, 1998):
 
-$$
+```math
 \tau = 0.251 + 0.509\,(1 - c),
 \tag{3.5}
-$$
+```
 
 and the share of it that arrives as diffuse light (Nikolov and Zeller, 1992) is
 
-$$
+```math
 f_{d} =
 \begin{cases}
 1.0045 + 0.0435\,\tau - 3.5227\,\tau^{2} + 2.6313\,\tau^{3} & \tau \le 0.75, \\
 0.166 & \tau > 0.75.
 \end{cases}
 \tag{3.6}
-$$
+```
 
-The direct and diffuse radiation incident on the surface in waveband $\Lambda$ are
+The direct and diffuse radiation incident on the surface in waveband $`\Lambda`$ are
 
-$$
+```math
 S^{\mu}_{\Lambda} = S\,\mu\,\nu_{\Lambda}\,\tau\,(1 - f_{d}), \qquad S_{\Lambda} = S\,\mu\,\nu_{\Lambda}\,\tau\,f_{d},
 \tag{3.7}
-$$
+```
 
-where $S^{\mu}_{\Lambda}$ and $S_{\Lambda}$ (W m⁻²) are the direct and the diffuse radiation and $\nu_{\Lambda}$ is the
+where $`S^{\mu}_{\Lambda}`$ and $`S_{\Lambda}`$ (W m⁻²) are the direct and the diffuse radiation and $`\nu_{\Lambda}`$ is the
 share of the waveband: 0.46 for the visible and 0.54 for the near-infrared.
 
 IBIS 2.6b4 read daily cloud cover directly from its input data. IBIS 3.0 derives cloud fraction from the forcing's
-daily mean shortwave radiation, $R$ (W m⁻²), by inverting (3.5):
+daily mean shortwave radiation, $`R`$ (W m⁻²), by inverting (3.5):
 
-$$
+```math
 c = \min\left[\max\left(1 - \frac{\tau_{obs} - 0.251}{0.509},\, 0\right),\, 1\right], \qquad
 \tau_{obs} = \min\left[\max\left(\frac{R}{S\,\bar{\mu}},\, 0\right),\, 1\right],
 \tag{3.8}
-$$
+```
 
-where $\tau_{obs}$ is the transmissivity of the day and $\bar{\mu}$ is the mean of $\mu$ over the 24 hours,
+where $`\tau_{obs}`$ is the transmissivity of the day and $`\bar{\mu}`$ is the mean of $`\mu`$ over the 24 hours,
 
-$$
+```math
 \bar{\mu} = \max\left[0,\; \frac{h_{s}\sin\phi\,\sin\delta + \cos\phi\,\cos\delta\,\sin h_{s}}{\pi}\right], \qquad
 \cos h_{s} = \min\left[\max\left(-\tan\phi\,\tan\delta,\, -1\right),\, 1\right],
 \tag{3.9}
-$$
+```
 
-with $h_{s}$ (rad) the hour angle of sunset. Where $\bar{\mu} < 0.01$ (the polar night and the days next to it) the
+with $`h_{s}`$ (rad) the hour angle of sunset. Where $`\bar{\mu} < 0.01`$ (the polar night and the days next to it) the
 cloud fraction is set to 0.5.
 
-When daily transmissivity lies between 0.251 and 0.760 and $\bar{\mu} \ge 0.01$, generated radiation reproduces
-the forcing's daily mean apart from the hourly sampling of solar position. The model evaluates $\mu$ at each hour's
+When daily transmissivity lies between 0.251 and 0.760 and $`\bar{\mu} \ge 0.01`$, generated radiation reproduces
+the forcing's daily mean apart from the hourly sampling of solar position. The model evaluates $`\mu`$ at each hour's
 midpoint rather than averaging it over the hour. Over land north of 60°S in 2001, the mean of the 24 hourly values
-of $\mu$ was 0.04 % above the daily mean $\bar{\mu}$ in (3.9).
+of $`\mu`$ was 0.04 % above the daily mean $`\bar{\mu}`$ in (3.9).
 
 Outside this transmissivity range, cloud fraction is fixed at 1 or 0, and generated radiation departs from the forcing.
 Over land north of 60°S in 2001, forcing transmissivity was below 0.251 on 5.0 % and above 0.760 on 0.9 % of
-cell-days with $\bar{\mu} \ge 0.01$. The area-weighted annual mean generated radiation was 189.4 W m⁻², compared
+cell-days with $`\bar{\mu} \ge 0.01`$. The area-weighted annual mean generated radiation was 189.4 W m⁻², compared
 with 188.3 W m⁻² in the forcing.
 
 ## 3.4 Air temperature
@@ -147,16 +147,16 @@ Hourly air temperature follows a fixed daily curve between the day's minimum and
 morning and highest in the early afternoon. As in IBIS 2.6b4, the curve is a Fourier series fitted to the diurnal
 temperature cycle (Campbell and Norman, 1998):
 
-$$
+```math
 T_{a} = \gamma\,T_{max} + (1 - \gamma)\,T_{min}, \qquad
 \gamma = 0.44 - 0.46\sin\left(\frac{\pi t}{12} + 0.9\right) + 0.11\sin\left(\frac{2\pi t}{12} + 0.9\right),
 \tag{3.10}
-$$
+```
 
-where $T_{a}$ (K) is the step's air temperature; $T_{max}$ and $T_{min}$ (K) are the forcing's daily maximum and
-minimum; $\gamma$ weights the maximum; and $t$ (h) is the step's local solar time. At the 24 hourly midpoints,
-$\gamma$ ranges from 0.025 (at 04:30) to 0.992 (at 13:30). Its average over any 24 evenly spaced times is 0.44.
-The mean hourly temperature is therefore $0.44\,T_{max} + 0.56\,T_{min}$, rather than the forcing's daily mean.
+where $`T_{a}`$ (K) is the step's air temperature; $`T_{max}`$ and $`T_{min}`$ (K) are the forcing's daily maximum and
+minimum; $`\gamma`$ weights the maximum; and $`t`$ (h) is the step's local solar time. At the 24 hourly midpoints,
+$`\gamma`$ ranges from 0.025 (at 04:30) to 0.992 (at 13:30). Its average over any 24 evenly spaced times is 0.44.
+The mean hourly temperature is therefore $`0.44\,T_{max} + 0.56\,T_{min}`$, rather than the forcing's daily mean.
 In 2001, this generated mean was on average 0.18 K below the forcing over land north of 60°S. The difference ranged
 from −1.06 to +0.40 K for 90 % of cells.
 
@@ -165,29 +165,29 @@ from −1.06 to +0.40 K for 90 % of cells.
 Hourly specific humidity follows the temperature cycle. The generator limits relative humidity to 99 % and
 preserves the daily mean specific humidity where that limit allows:
 
-$$
+```math
 q_{min} = \min\left[\bar{q},\; 0.99\,q_{sat}(T_{min}, p)\right], \qquad
 q_{max} = \frac{\bar{q} - 0.56\,q_{min}}{0.44}, \qquad
 q_{a} = \min\left[0.99\,q_{sat}(T_{a}, p),\; \gamma\,q_{max} + (1 - \gamma)\,q_{min}\right],
 \tag{3.11}
-$$
+```
 
-where $q_{a}$ (kg kg⁻¹) is the specific humidity of the step, $\bar{q}$ (kg kg⁻¹) is the daily mean specific humidity
-of the forcing, $q_{min}$ and $q_{max}$ (kg kg⁻¹) are the humidities that go with the daily minimum and maximum
-temperature, $p$ (Pa) is the surface pressure and $q_{sat}(T, p)$ (kg kg⁻¹) is the saturation specific humidity,
+where $`q_{a}`$ (kg kg⁻¹) is the specific humidity of the step, $`\bar{q}`$ (kg kg⁻¹) is the daily mean specific humidity
+of the forcing, $`q_{min}`$ and $`q_{max}`$ (kg kg⁻¹) are the humidities that go with the daily minimum and maximum
+temperature, $`p`$ (Pa) is the surface pressure and $`q_{sat}(T, p)`$ (kg kg⁻¹) is the saturation specific humidity,
 
-$$
+```math
 q_{sat} = \frac{0.622\,e_{sat}(T)}{\max\left[p - 0.378\,e_{sat}(T),\; 0.622\,e_{sat}(T)\right]},
 \tag{3.12}
-$$
+```
 
-with $e_{sat}(T)$ (Pa) the saturation vapour pressure over water or ice from the polynomials of Lowe (1977) (Chapter 5).
-Because $\gamma$ averages 0.44 over the 24 steps, the daily mean of $\gamma\,q_{max} + (1 - \gamma)\,q_{min}$ equals
-$\bar{q}$ whatever $q_{min}$ is. Only where the cap at the step's temperature binds does the daily mean of $q_{a}$ fall
-below $\bar{q}$. In 2001, over the land north of 60°S, the area-weighted annual mean of the hourly specific humidity was
+with $`e_{sat}(T)`$ (Pa) the saturation vapour pressure over water or ice from the polynomials of Lowe (1977) (Chapter 5).
+Because $`\gamma`$ averages 0.44 over the 24 steps, the daily mean of $`\gamma\,q_{max} + (1 - \gamma)\,q_{min}`$ equals
+$`\bar{q}`$ whatever $`q_{min}`$ is. Only where the cap at the step's temperature binds does the daily mean of $`q_{a}`$ fall
+below $`\bar{q}`$. In 2001, over the land north of 60°S, the area-weighted annual mean of the hourly specific humidity was
 0.3 % below that of the forcing (8.40 against 8.43 g kg⁻¹); averaged over the cell-days, the relative deficit was 2.2 %.
 
-On a dry day, when $\bar{q}$ is below 99 % of saturation at $T_{min}$, both $q_{min}$ and $q_{max}$ equal $\bar{q}$.
+On a dry day, when $`\bar{q}`$ is below 99 % of saturation at $`T_{min}`$, both $`q_{min}`$ and $`q_{max}`$ equal $`\bar{q}`$.
 Specific humidity then remains at the daily mean throughout the day; only relative humidity changes with temperature.
 This occurred on 55 % of the cell-days of 2001 (area-weighted, land north of 60°S). Night air therefore remains as dry
 as the daily mean, allowing vapour pressure deficit to remain above the fire threshold through the night (Chapter 13).
@@ -200,30 +200,30 @@ Wind speed controls the exchange of heat, water vapour and CO2 between the surfa
 step, the generator draws a random hourly wind speed for each cell. As in IBIS 2.6b4, it follows the
 EPIC weather generator (Sharpley and Williams, 1990):
 
-$$
+```math
 u_{a} = \min\left[\max\left(1.13989\,\bar{u}\,(-\ln \xi)^{0.30},\; 2.5\right),\; 10\right],
 \tag{3.13}
-$$
+```
 
-where $u_{a}$ (m s⁻¹) is the wind speed of the step, $\bar{u}$ (m s⁻¹) is the daily mean wind speed of the forcing and
-$\xi$ is a random number uniform on $(0, 1)$. Without the limits, the expected value of $u_{a}$ would be
-$1.13989\,\Gamma(1.3)\,\bar{u} \approx 1.02\,\bar{u}$, where $\Gamma$ is the gamma function. The limits of 2.5 and
+where $`u_{a}`$ (m s⁻¹) is the wind speed of the step, $`\bar{u}`$ (m s⁻¹) is the daily mean wind speed of the forcing and
+$`\xi`$ is a random number uniform on $`(0, 1)`$. Without the limits, the expected value of $`u_{a}`$ would be
+$`1.13989\,\Gamma(1.3)\,\bar{u} \approx 1.02\,\bar{u}`$, where $`\Gamma`$ is the gamma function. The limits of 2.5 and
 10 m s⁻¹ raise the mean: in 2001, over the land north of 60°S (area-weighted, from the distribution of (3.13)), the
 lower limit applied in 34 % of the steps and the upper limit in 3.3 %, and the expected hourly wind speed was
 4.12 m s⁻¹ against 3.83 m s⁻¹ in the forcing (+7.6 %).
 
 The optional switch `weather.wind_keep_mean` (default false) rescales the draws so their expected value equals the
-daily mean wind. When enabled, each draw from (3.13) is multiplied by $\bar{u}/\langle u_a\rangle$, where
-$\langle u_a\rangle$ is that day's expected value from (3.13),
+daily mean wind. When enabled, each draw from (3.13) is multiplied by $`\bar{u}/\langle u_a\rangle`$, where
+$`\langle u_a\rangle`$ is that day's expected value from (3.13),
 
-$$
+```math
 \langle u_a\rangle = 2.5\left(1 - e^{-x_{1}}\right) + 10\,e^{-x_{2}}
 + a\,\Gamma(1.3)\left[P_\Gamma(1.3, x_{2}) - P_\Gamma(1.3, x_{1})\right], \qquad
 a = 1.13989\,\bar{u}, \quad x_{1} = \left(\frac{2.5}{a}\right)^{1/0.3}, \quad x_{2} = \left(\frac{10}{a}\right)^{1/0.3},
 \tag{3.13a}
-$$
+```
 
-and $P_\Gamma$ is the regularized lower incomplete gamma function. The rescaled wind keeps the daily mean of the forcing on
+and $`P_\Gamma`$ is the regularized lower incomplete gamma function. The rescaled wind keeps the daily mean of the forcing on
 average, and it is no longer held between exactly 2.5 and 10 m s⁻¹. The switch is a variant for a test of the hourly
 energy balance at flux towers (section 3.14).
 
@@ -235,26 +235,26 @@ and a cloud emissivity of 0.95. IBIS 3.0 does not use that estimate.
 
 ## 3.8 Precipitation
 
-The day's precipitation falls as one event at a constant rate. The event lasts $L$ time steps,
+The day's precipitation falls as one event at a constant rate. The event lasts $`L`$ time steps,
 
-$$
+```math
 L = \min\left[\max\left(L_{r},\; \left\lceil P/15 \right\rceil\right),\; L_{max}\right], \qquad
 L_{min} = 1 + \left\lfloor \frac{4 \cdot 3600 - 1}{\Delta t} \right\rfloor, \qquad
 L_{max} = \max\left(\left\lfloor \frac{86400}{\Delta t} \right\rfloor,\; L_{min}\right),
 \tag{3.14}
-$$
+```
 
-where $P$ (mm) is the daily precipitation and $L_{r}$ is a random whole number between $L_{min}$ and $L_{max}$ (4 and
+where $`P`$ (mm) is the daily precipitation and $`L_{r}`$ is a random whole number between $`L_{min}`$ and $`L_{max}`$ (4 and
 24 for hourly steps). The event therefore lasts at least 4 hours, and it is lengthened, up to the whole day, when its
-rate would exceed 15 mm per step. The event starts at step $n_{0}$, a random whole number between 0 and $24 - L$, and
-during steps $n_{0}$ to $n_{0} + L - 1$ the precipitation rate is
+rate would exceed 15 mm per step. The event starts at step $`n_{0}`$, a random whole number between 0 and $`24 - L`$, and
+during steps $`n_{0}`$ to $`n_{0} + L - 1`$ the precipitation rate is
 
-$$
+```math
 P_{a} = \frac{P}{L\,\Delta t},
 \tag{3.15}
-$$
+```
 
-where $P_{a}$ (mm s⁻¹, or kg m⁻² s⁻¹) falls as rain when $T_{a}$ of the step exceeds 2.5 °C and as snow otherwise
+where $`P_{a}`$ (mm s⁻¹, or kg m⁻² s⁻¹) falls as rain when $`T_{a}`$ of the step exceeds 2.5 °C and as snow otherwise
 (Auer, 1974). The event always covers whole steps, so the timing of the sun (section 3.2) does not change which steps
 are wet or the daily total; it changes only the temperature that decides between rain and snow. The event length and
 start are drawn for each cell; IBIS 2.6b4 drew one length and one start for the whole grid each day, lengthened for all
@@ -307,11 +307,11 @@ draw of the random numbers.
 
 Measured sunlight at a flux tower captures hourly cloud changes that a smooth cycle with one daily cloud fraction
 cannot represent. Tower runs (Chapter 16) can therefore replace the generated shortwave radiation at each step with
-the measured hourly shortwave radiation $R_{h}$ (W m⁻²), using `--hourly-sw`. The model divides $R_{h}$ into direct
+the measured hourly shortwave radiation $`R_{h}`$ (W m⁻²), using `--hourly-sw`. The model divides $`R_{h}`$ into direct
 and diffuse light using the hourly relation of Spitters et al. (1986) and the clearness index
-$k_{t} = \min[\max(R_{h}/\max(S\mu, 1), 0), 1]$, the share of the top-of-atmosphere sunlight that reaches the ground:
+$`k_{t} = \min[\max(R_{h}/\max(S\mu, 1), 0), 1]`$, the share of the top-of-atmosphere sunlight that reaches the ground:
 
-$$
+```math
 f_{d} =
 \begin{cases}
 1 & k_{t} \le 0.22, \\
@@ -321,27 +321,27 @@ r & k_{t} > K,
 \end{cases}
 \qquad r = 0.847 - 1.61\,\mu + 1.04\,\mu^{2}, \qquad K = \frac{1.47 - r}{1.66},
 \tag{3.16}
-$$
+```
 
-with $f_{d}$ limited to $[0, 1]$ and set to 1 when the sun is below the horizon. The two parts are then divided into the
+with $`f_{d}`$ limited to $`[0, 1]`$ and set to 1 when the sun is below the horizon. The two parts are then divided into the
 two wavebands with the shares of (3.7). The hourly values are used on the days on which all 24 hours are present; on
 other days the model uses the generator.
 
 Tower records use local standard time; the model uses local apparent solar time (section 3.2). The tower reader
 (`verify/calibration/tower_forcing.py`) converts each half-hourly or hourly record value to solar time,
 
-$$
+```math
 t_{sol} = t_{std} + \frac{\lambda - 15\,u}{15} + E_t, \qquad
 E_t = \frac{229.18}{60}\left(0.000075 + 0.001868\cos\theta - 0.032077\sin\theta - 0.014615\cos 2\theta
 - 0.040849\sin 2\theta\right),
 \tag{3.17}
-$$
+```
 
-where $t_{sol}$ and $t_{std}$ (h) are the solar time and the time on the tower's clock, $\lambda$ (degrees east) is the
-tower's longitude, $u$ (h) is the offset of the tower's clock from UTC, and $E_t$ (h) is the equation of time (Spencer,
-1971), with $\theta$ the orbital angle of (3.1) for the fractional day of the year $J + (t_{std} - 12)/24$.
-Step $n$ receives the record's mean over the solar hour from $n$ to $n + 1$ h. Each half-hour is weighted by its
-overlap with that hour; if the hour touches a gap, its value is missing. The clock offset $u$ comes from the site
+where $`t_{sol}`$ and $`t_{std}`$ (h) are the solar time and the time on the tower's clock, $`\lambda`$ (degrees east) is the
+tower's longitude, $`u`$ (h) is the offset of the tower's clock from UTC, and $`E_t`$ (h) is the equation of time (Spencer,
+1971), with $`\theta`$ the orbital angle of (3.1) for the fractional day of the year $`J + (t_{std} - 12)/24`$.
+Step $`n`$ receives the record's mean over the solar hour from $`n`$ to $`n + 1`$ h. Each half-hour is weighted by its
+overlap with that hour; if the hour touches a gap, its value is missing. The clock offset $`u`$ comes from the site
 metadata. The reader checks that offset against the potential, or top-of-atmosphere, radiation calculated by FLUXNET
 on the record's own clock. If they disagree, it chooses the offset that places measured sunlight closer to solar noon.
 
@@ -349,12 +349,12 @@ The reader also calculates the tower's daily temperature range over the solar da
 tower's original days. Their offset from solar days depends on the site's distance in longitude from the time-zone
 meridian and on the equation of time; it is usually less than an hour.
 
-When the sun is below the horizon at a step's midpoint ($\mu = 0$), the radiation code sets absorbed shortwave
+When the sun is below the horizon at a step's midpoint ($`\mu = 0`$), the radiation code sets absorbed shortwave
 energy and albedos to zero. The diffuse-light coefficients used for photosynthesis do not receive the same mask.
 Observed shortwave can therefore still supply photosynthetically active radiation during that step (section 4.11).
 Even with solar-time alignment, this occurs during sunrise and sunset hours when the sun is above the horizon for
 part of the hour but below it at the midpoint, and when the sensor reports small night-time values. Global runs use
-generated radiation, which is zero whenever $\mu$ is zero.
+generated radiation, which is zero whenever $`\mu`$ is zero.
 
 ## 3.13 The daily weather generator of IBIS 2.6b4
 
@@ -368,18 +368,18 @@ the monthly-to-daily generator is not described here.
 Changes after the release (code `e54e342`), from the review of this note (decision numbers of `docs/CALIBRATION.md`
 section 87 and `docs/DEFECTS_FOR_REVIEW.md`):
 
-1. **The sun at mid-step (D33).** The model evaluates the sun and the generator at $t = n + 0.5$ h
+1. **The sun at mid-step (D33).** The model evaluates the sun and the generator at $`t = n + 0.5`$ h
    (`weather.sun_midstep`, default true; `ibis/timestepping/loops.py`, `step_time`). The release and IBIS 2.6b4
    (`main.f:421`) used the step start, which put each hour's value at the start of the hour it stands for and centred
    the day's sunlight on 12:30. The rain windows still start on step boundaries, so the wet steps and the daily totals
    are unchanged. Recomputed for mid-step from the GSWP3 forcing of 2001 (land north of 60°S, cos-latitude weights;
    the hour-start values in brackets): generated shortwave 189.4 W m⁻² (189.2) against 188.3 in the forcing; the mean
-   hourly $\mu$ 0.04 % above $\bar{\mu}$ (0.05 % below); $\gamma$ from 0.025 at 04:30 to 0.992 at 13:30 (0.028 at
+   hourly $`\mu`$ 0.04 % above $`\bar{\mu}`$ (0.05 % below); $`\gamma`$ from 0.025 at 04:30 to 0.992 at 13:30 (0.028 at
    04:00 to 0.997 at 14:00). The temperature and humidity statistics of sections 3.4 and 3.5 do not change at the
    digits given. Figure 3.1 is redrawn for mid-step; its daily shortwave was 209.7 W m⁻² at the step start. The GSWP3
    day stays a UTC day, as decided (section 3.2).
-2. **Tower clock (D34).** The tower reader moves the record to local apparent solar time, (3.17), and gives step $n$
-   the record's mean over the solar hour $[n, n+1)$ (`solar_hour_means`, `tower_clock`; tests in
+2. **Tower clock (D34).** The tower reader moves the record to local apparent solar time, (3.17), and gives step $`n`$
+   the record's mean over the solar hour $`[n, n+1)`$ (`solar_hour_means`, `tower_clock`; tests in
    `tests/test_tower_solar_time.py`). Until 2026-11-01 it gave each step the instant at the hour on the tower's clock,
    local standard time, and took the daily temperature range over the tower's own days; the tower fits of the release
    calibration used that reader, with `--hourly-sw` except for the three Mead sites, which used generated shortwave
