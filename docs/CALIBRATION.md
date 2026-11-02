@@ -7,6 +7,10 @@ parts. Methane is evaluated against FLUXNET-CH4 (Chenchen's processing).
 **Status (2026-10-30): final.** The IBIS 3.0 release is `params_31s_ch4h.yaml` (sections 70-84; `docs/RELEASE_3.0.md`). The
 note below is the stage of 23 October, kept as written.
 
+**Update (2026-11-01).** The technote review's decisions (section 87) reopen the calibration: one implementation pass,
+the tower analysis, refits and a final protocol run follow. Until that run replaces it, the release stays
+`params_31s_ch4h.yaml` with the run `final_rel30`.
+
 **Stage of 2026-10-23.** The zone-type set from the 356-tower campaign (sections 45, 50-54) is being
 carried down two roads to a candidate final run: road A, per-type leaf-area caps (s31f, `params_31f_cs2.yaml`); road B,
 allocation and leaf-mass coefficients without a cap (s31g, `params_31g5.yaml`; section 55). Both verdicts are in section 56;
@@ -2157,6 +2161,14 @@ the stem credit is read on a two-year run. Every fit from here runs with
 both `vmax_mix` and `scale_leaf_only` on, and the calibration is redone on
 the corrected canopy: the fitted vmax carried a 25 % stem credit.
 
+*Correction (2026-11-01, technote review D58; technote 9.6.2): the light part of this premise was wrong. The top-leaf
+light P_top already carries the leaves' share L/(L+S) (`radiation.py:514`), so the radiation the stems absorb is not
+credited to the leaves; what the big-leaf scaling counts for the stems is capacity, (1 - e^-k(L+S))/k top leaves, which
+is (L+S)/L times the leaves' own. `scale_leaf_only` removes the stems from the capacity (1.31 instead of 1.64 top leaves
+at L 5, S 1.25) but also applies L/(L+S) to the light a second time (the light equivalent P_top Lambda L falls from
+311.9 to 249.5 W m-2 under a clear sky). The switch is off in the release and inert with the sunlit/shaded canopy
+(section 51); its code comment is corrected in the implementation pass (section 87).*
+
 ### Lever test 12: with the stems out of the photosynthesis, the trigger reaches the flux
 
 Same 60 savanna cells, (b1) structure, `vmax_mix` on with behaviour-
@@ -4112,6 +4124,9 @@ own temperature function: 23.9-51.6e-6). Configuration: `default_seasonal_sunsha
 2003-2012 (`daily_{fitted,default}_2003-2012.npz`, `diagnostics/site_daily_replay.py`; `site_replay_report.py`); the
 hourly year 2010 (`diag_US-Ha1/sunshade_fitC_hourly_L47_2010.npz`).
 
+*Correction (2026-11-01, technote review D81): the TRY values are tabulated in Chen et al. (2022, ESSD 14, 4077-4093),
+Table 2, Kattge 2009 column, as section 30 says, not by Ma et al. 2022 (checked against the paper in the review).*
+
 **Result.** Loss 91.99 -> 10.44 (held-out years: 49.7 -> 18.0). vmax 31.8e-6 = 48.6 at 25 C, inside the range and
 close to IBIS's 45.9, the optimiser having explored 36-68; leaf-out 533 degree-days, ramp 108, senescence Ycrit 211,
 stomatal slope 10.7 (default 10). Held-out 2003-2012, model / tower:
@@ -4713,12 +4728,12 @@ Results: section 38.1 (pending).
 Run history, for the record: the first pass (10-09 05:05 to 10-10 03:16) on CPU and GPU, then a wide-cap rerun of the
 four flat fits, an inundated rerun of the eight strongly emitting non-wetland towers, and a repaired-forcing rerun of two
 towers; the first versions of those reruns had lost `--start-state` through a generator slip and were discarded (the
-valid batch is `site_fit/ch4_r5`). Two towers (US-HB4, US-Sne) had NaN pool states because their meteorology carried
-sensor faults (a 25,640 mm half-hour of rain; longwave of -23,729 to 68,394 W m-2); `ch4_tower_prep.py` now turns
-out-of-range meteorology into gaps and the two were re-spun. 19 towers with |budget| < 0.5 gC m-2 yr-1 were not fitted:
-they cannot constrain a production ratio, and several are known wetlands with a budget of exactly zero in the EuroFlux
-set (Ballynahone Bog, CZ-wet, AT-Nsd, AT-PsM, NO-Ikr, the four UK sites) -- a unit or scaling fault in that branch of
-the gap-fill pipeline, reported to Chenchen. Four towers had only two usable years and were skipped. Report
+valid batch is `site_fit/ch4_r5`). Two towers had NaN pool states because their meteorology carried sensor faults
+(rain and longwave far outside any physical range); `ch4_tower_prep.py` now turns out-of-range meteorology into gaps and
+the two were re-spun. 19 towers with |budget| < 0.5 gC m-2 yr-1 were not fitted: they cannot constrain a production
+ratio, and nine of them are known wetlands whose gap-filled budget is exactly zero in one branch of the gap-fill
+pipeline -- a unit or scaling fault, reported to Chenchen. (Tower names removed 2026-11-01: the methane tower data are
+unpublished; band-level statements only.) Four towers had only two usable years and were skipped. Report
 `logs/ch4_fit_report.csv`, figures `figures/ch4_fit/` (`diagnostics/ch4_fit_report.py`, `ch4_fit_figures.py`).
 
 **Wetland towers (45 informative, fitted ch4_r, ch4_q10, ch4_ztau, ch4_tauox; held-out = the last year):**
@@ -4752,6 +4767,14 @@ towers with budgets of -0.2 to 0.04).
 0.71, tau_oxid 0.158) and `methane_bands:` (the medians by band above) into
 `python-port/configs/params/params_s4_classmedian_ch4.yaml`; run_global applies the band values by latitude with t_ref
 unchanged (295.15 K, as the tower fits held it). The 1991-2010 methane rerun on that file is section 39.
+
+*Note (2026-11-01, technote review D16): two of the 48 wetland towers of the hourly fits (section 80), both temperate,
+have a negative mean flux over their fitted years. Their fit's magnitude term sits at its cap whenever target and model
+differ in sign, and the modelled flux is never negative, so they inform only the monthly terms (technote 16.11).
+Decided: the band medians leave out the towers with a negative mean flux over their fitted years, i.e. these two. The
+band tool applies the rule (`ch4_class_yaml.py --band-csv`; commit 13b23d5 on `technote-review-fixes`), and
+`--keep-all` reproduces the release's band sections. The release's bands are not rebuilt; the methane band refit of the
+work program (section 87) uses the rule.*
 
 ## 39. The global run on the calibrated set, against the budgets and the gridded products (2026-10-10)
 
@@ -4875,6 +4898,10 @@ r of 0.5-0.6 is that mismatch. Rice (US-Twt) fails outright (r -0.5): a flooded 
 phenology (sowing by growing-degree days, harvest date, bare fallow) is the structural step; until then the C3 value
 is a magnitude correction. Written to `params_s5_crop.yaml` (`crop: harvest_index 0.45, vmax_scale_c3 0.33,
 vmax_scale_c4 1.16`); the global run with the cropland map is section 43.
+
+*Correction (2026-11-01, technote review D81): four of the twelve C3 fits are at the 0.30 floor (0.3001, 0.3009, 0.3009,
+0.3027 in `crop2/*/best.json`) and four more within 0.05 of it (0.3111-0.3454); "eight at the floor" counted all eight
+within 0.05. The median, 0.329, is the release value of `crop.vmax_scale_c3`.*
 
 ## 42. The tower's water table in the methane fit: a test, not an adoption (2026-10-11)
 
@@ -6139,6 +6166,11 @@ excess is leaf display and composition (section 53's diagnosis: upper LAI 3.3 in
 `acclim_light` and `frost_on` stay in the code, OFF in `params_31d.yaml`; s31d carries the gate 0.55, T07 out of
 A_humid and the GDD5 floor 600. The winter item moves whole to the phenology/composition stage.
 
+*Note (2026-11-01, technote review D56): `frost_on` had no effect in the code. Its ramp reads `atm.td`
+(`loops.py:305-309`), which the daily loops never update: td is 283.0 K in all 95,333 cells of the 2010 release
+restart, so with frost_t1 = 5 C the ramp is 1 everywhere. If the tower runs above went through these loops (not checked), what they measured is
+`acclim_light` alone. The ramp is to read the day's mean temperature (implementation pass, section 87).*
+
 **s31d (cold protocol, 14:42-21:04 2026-10-21; `final_s31d/score/`; 2006-2010).**
 
 | quantity | s31c | **s31d** | observed |
@@ -6320,6 +6352,12 @@ are not the path and s31f with caps is not run; the existence fix, the gate, the
 and the temperate-grass timing stand. The leaf equilibrium in IBIS is LAI = aleaf tauleaf specla NPP / cover, so the
 product aleaf tauleaf specla per type is what sets the leaf level once NPP is what the towers say, and awood tauwood
 sets the wood.
+
+*Correction (2026-11-01, technote review D18): the temperate-grass timing did not reach the release. The G06 fit of
+`params_31f.yaml` (tthresh_l_c 2.0, gdd_thresh_l 700, sen_ycrit_l 200, sen_pstart_l 15) is not in
+`params_31s_ch4h.yaml`, whose G06 has tthresh_l_c 3.0496, gdd_thresh_l 58.696 and no sen_ycrit_l or sen_pstart_l (the
+base 300 K d and 14 h); and of "the G06/G07/G08 phenology" that section 54 puts into 31f, a key-by-key diff of 31e to
+31f finds only G06. The timing is in `params_32a_base.yaml` (commit 307d0f8), the base of the refits (section 87).*
 
 **Biomass references** (ILAMB 0.5-degree grids, `inputs/eval/biomass/ilamb_dl/`): XuSaatchi2021 (annual live woody
 carbon density 2000-2019, MgC/ha), Thurner (temperate/boreal total vegetation carbon), Saatchi2011 (tropical AGB +
@@ -7708,6 +7746,12 @@ share (fl_grass = 1 on the share, or the cropland share exempt from the saturati
 GPP, ET and NEE and therefore needs a new protocol run; it is Hangkai's call whether that goes into the release or into
 the crop-model item of the roadmap. Recorded as a known limitation either way.
 
+*Note (2026-11-01, technote review D23): the cover is one of two causes. The type set also lowered the grasses' leaf
+allocation, from aleaf 0.45 in the 12 October set (with tauleaf 1.25/1.5 and specla 20) to 0.25-0.30 (aroot 0.70-0.75)
+in the release, and at equilibrium the harvest is h a_l of the crop's NPP: 0.20 then, 0.11-0.135 now. On the cells with
+more than 10 % cropland (cropland-weighted) the harvest per unit of cell NPP fell x0.59 and the cell NPP x0.80 between
+the two sets; no run isolates either cause. Decision in section 87.*
+
 ## 77. Is the soil carbon short because the spin-up is short? No: the soil is at equilibrium by 1900 (2026-10-29)
 
 Hangkai (10-29): "do you think the soil carbon issue is due to the time of spin up too short? shall we make the spin up
@@ -7858,12 +7902,16 @@ against 1.3 Tg), as in the GCP prior. Interannual sd of the global total 3.2 Tg 
 objective and years: production (10 October code, snapshot) | today's code, snapshot (`site_fit/ch4_h1_snapbase`) |
 today's code, hourly. Cadence alone (hourly over snapshot, today's code): median 0.98, 60 % of towers better hourly.
 Code since 10 October (today's snapshot over the production baseline): 1.00 at 29 towers and 1.2-16x at 19 (mostly the
-FLUXNET-CH4 v2 AmeriFlux sites added for this campaign: CA-EM1/EM2, CA-DB2, CA-DBB, CA-BOU, CA-ARB/ARF, CA-SCB, CA-DSM,
-US-HB1, US-EvM, US-Dmg, US-ALQ, US-BZB/BZF, US-Elm/Esm, US-DPW, US-Cms). Not the inputs: Chenchen's gap-filled files are
+towers added for this campaign; names removed 2026-11-01, the methane tower data being unpublished). Not the inputs: Chenchen's gap-filled files are
 unchanged since July, the 11 October regeneration of the targets (section 42) changed no CH4 aggregation, and the
 meteorology clipping of 3509a51 touched only 4 of the 19. So the production methane parameters were stale against the
 current model at 19 of the 48 towers, independent of the cadence; the refit was needed on both counts. Which commit
 since 10 October moved those towers is not yet bisected.
+
+*Note (2026-11-01, technote review D16): the temperate band of the table above includes the two towers whose mean flux
+over their fitted years is negative. The band tool now leaves such towers out of the band medians (`ch4_class_yaml.py
+--band-csv`, commit 13b23d5; the rule in 38.1), and `--keep-all` reproduces these bands, which the release keeps until
+the methane band refit of section 87.*
 
 
 ## 81. WAD2M and GFED5 registration fixed; the wetland-area modes rerun (2026-10-29 22:45)
@@ -8047,3 +8095,205 @@ band-level statements (four passages; three of them were pushed in September and
 
 Full suite on the final code: 824 passed, 6 skipped, 6 xfailed, 3 xpassed. (Its first run caught one more near-zero
 field in the accumulator test, the puddle `wpud` at 2e-9: fields below 1e-6 are now compared against 1e-6.)
+
+## 86. Soil texture classes restored to the IBIS 2.6b4 border rule; no rerun (2026-10-30)
+
+Found while drawing the texture-triangle figure of the technical note (`docs/technote/`, Figure 2.4): the port classified
+a soil layer whose sand and clay lie on a class border (at whole percent) differently from F77 `textcls`, in 9.6 % of the
+land cells in at least one layer, 2,483 cells in the top layer; mostly loam read as sandy loam at 52 % sand and clay loam
+as sandy clay loam at 45 % sand, where the F77 class is also the USDA one. Numbers, the fix and its test in
+[`DEFECTS_FOR_REVIEW.md`](DEFECTS_FOR_REVIEW.md). Hangkai (10-30): "Revise it and Document it there in the revised version,
+but do not rerun right now! Keep moving for the later chapter, maybe we will keep meeting issues." So the code now has the
+F77 classes; the release run `final_rel30`, its scores and every calibration in this log have the earlier ones, and the
+rerun is deferred until the technote review has collected what else it finds. `RELEASE_3.0.md` section 4 says the current
+code does not reproduce the release run.
+
+## 87. The technote review and its decisions (2026-11-01)
+
+**The review.** The technical note of IBIS 3.0 (`docs/technote/`; 17 chapters, 77 figures and their scripts, commit
+7012f02) was checked against the code, the Fortran and the release run as it was written. Chapters 1-3 were written and
+checked first, one at a time. For each of Chapters 4-17 a writer drafted the chapter and its figure script, a content
+checker and a figure checker reviewed it independently (197 content and 118 figure issues in all), and a fixer checked
+every issue against the code, the Fortran and the release data before changing the text (304 changes applied, 52 not,
+with reasons) and wrote up what needed the owner's decision: 107 items, 109 with the 2 of Chapter 3. These were merged
+into 97 decisions, each with its evidence, impact, options and a recommendation, ranked by the breadth and size of the
+effect (`merged.json`: 61 that would change results, 21 documentation only, 15 cosmetic). A last pass across the
+chapters made nine consistency fixes, annotated the symbol clashes, checked the cross-references and the values repeated
+between chapters, and left 12 notes on Chapters 1-3 and the technote's README for their owner. The files are in
+`technote_review_2026-11-01/` on the lab NAS (`results/chNN.json` per chapter, `merged.json`, `decisions_taken.md`); the
+counts above are taken from them. The texture-class defect of section 86 came from the same work.
+
+**The process.** Hangkai (11-01): "let me finish all the decision first, then you start to analysis and refit and
+restart the final run". The decisions were taken one at a time, all 97 on 11-01; `decisions_taken.md` holds each with his
+words and its state. Nothing is refitted or rerun before the last decision; then come one implementation pass (code,
+tests, the full suite, the records, the technote), the tower analysis, the refits and one final protocol run. Two code
+changes were made before the process was set and belong to the pass: the texture classes (86) and the growth-respiration
+rule of D1.
+
+**The decisions**, grouped as in `decisions_taken.md`. Fix: a code change in the implementation pass. Keep: kept and
+documented. Test: in the tower analysis. Refit: in the refits. Every defect and unrecorded departure among them has an
+entry in `DEFECTS_FOR_REVIEW.md` with its evidence and numbers.
+
+| Decisions | Hangkai | What follows |
+|---|---|---|
+| D1 growth respiration charged on negative net assimilation (IBIS 2.6b4: on positive gains only) | "I would choose (b), refit it once every choice is confirmed." | fix: the IBIS 2.6b4 rule; refit rgrowth and rroot with the others |
+| D3 day and night NEE targets are partial-month sums | "(a) Compare means per half-hour instead of sums ..." | fix (tower targets and objective): means per half-hour, every tower-month kept; used in the NEE refit |
+| D4 rgrowth piles up at its 0.10 floor | (proposed with D3, not objected) | checked after the D1/D3 refit; back to Hangkai only if the pile-up remains |
+| D2 decomposition factor over 0-1 m (IBIS 2.6b4: 0-0.25 m) | "I would use (a)" | keep as an IBIS 3.0 difference; fix the code comment; a verify test of the factor against `stats.f` |
+| D9 yearly climate statistics from monthly means (IBIS 2.6b4: daily) | "I would choose Switch to IBIS 2.6b4's daily statistics, and re-tune the degree-day floors against observed tree cover in the refit." | fix; refit: the degree-day floors (900 for position 4, 600 for 6-8) against observed tree cover |
+| D8 tree-cover cap on the cell cover, D22 sapwood fraction on the cell wood, D48 cover floor after (1 - c) | "(a) Keep all three as they are, documented." | keep |
+| D10 + D17 ice sheets: uncapped snowpacks and puddle ice, float32 water loss and noise soil temperatures beneath | "(b)" | fix the single-precision problems (layers updated incrementally, the snow-to-soil flux from the conductance); packs and puddle ice stay uncapped (inherited) |
+| D5 canopy-air transfer capped at 300/(2 dt), D14 stem heat capacity, D7 wind floor and cap, D24 no dew on dry leaves, D6 ET partition | "I would choose (b) in this round." | test: the hourly energy balance at forest and grassland towers (114 FULLSET half-hourly files: H, LE, net radiation, G) under variants (no dt-dependent cap or reference height over tall canopies, with a stability check; a smaller stem heat capacity; wind draws keeping the daily mean; dew on dry surfaces), each adopted only if it improves hourly H and LE without worsening monthly GPP and ET (ratios by PFT and month), the T/ET of each variant reported; then refit (the GPP/ET stage at the 356 towers if any is adopted) |
+| D11 frozen soil triggers the lower-canopy drought dormancy, D15 zone drought threshold from types that do not read it, D18 G06 timing missing from the release, D50 one-day lower-canopy jump; D12 lower canopy nearly absent on D_temperate cropland, D19 T15 at its minimum leaf area | "(b)" | fix (D11 gated by the growing-season test; D15 the median over the types that read a drought factor; D18 the G06 timing of `params_31f`, which settles D50 for G06); refit the phenology in the GPP/ET stage; test: investigate D12 and D19; the statement of section 55 corrected |
+| D13 production temperature to 4 m, D16 two net-uptake towers in the temperate band median, D39 W without (1 - wisoi), D38 transient band mismatch, D61 frozen anaerobic zone produces, D40 damped learned year-to-year variation | "(b)" | fix (D13 weighted by the substrate profile, D39 liquid water, D38 the band from the learned-model file, D61 no production when frozen); keep lambda = 1 (D40); refit the band parameters at the 48 towers without the two uptake towers in the temperate median (D16); retrain the learned area on the final run's hindcast, then a methane transient and hindcast pass |
+| D41 C4 capacity bounds converted with the C3 factor, D31 Mead C4 crop fits without hourly shortwave, D20 T21 at the widened bound, D21 T04 from one tower | "(b)" | fix D41; refit (the three Mead fits with hourly shortwave); D20, D21: B_cold and C_highland GPP against FLUXCOM, and where the zone is off T21's capacity to the TRY upper bound (57.0 umol m-2 s-1 at 15 C) and T04's to position 3's base (28.9) |
+| D23 harvest takes h a_l = 0.11-0.135 of the crop NPP (0.67 PgC yr-1) | "(c)" | test, then refit: a crop allocation on the cropland share (more to leaves, from the crop literature), blended by the crop share; harvest index 0.45; conditional on the D12 investigation, else a note in section 76 and crops unchanged |
+| D70 no water-conservation diagnostic, D25 desert evaporation from no store, D28 ground-evaporation bound outside the energy balance and the output, D52 dry top layer with a puddle, D53 discarded ground snowfall | "(b)" | fix: conservation outputs and counters; test: one diagnostic year to separate the sources; then fix the source of D25, the bounded rate in the heat flux and the output (D28), the case-3 shares (D52), the excess snowfall to the pack (D53) |
+| D26 two-stream window near K = h, D42 upper snow factor, D43 diffuse bookkeeping (all inherited) | "(b)" | fix D26; keep D42, D43 |
+| D45 tiny-leaf-area E0, D51 order of the top-layer heat flux, D47 larch transpiration, D27 GPP split without acclimation; D46 tall trees, D49 cell-mean disturbance, D37 negative wood metabolic fraction | "(b)" | fix D45, D51 (with a lockstep check), D47, D27; keep D46, D49, D37 |
+| D30 night hours make whole days fire-prone (inherited) | "(b)" | fix: the fire-prone time from daylight steps; refit k_b, fu_half and x_c with the zone objective against GFED5 2003-2005 (`fire_f7_fit.py`) on the preliminary global run |
+| D33 hour-start sun and UTC days, D34 tower clock and twilight shortwave | "(b)" | fix before the tower refits: tower timestamps in local apparent solar time, the sun and the generator at mid-step; the UTC day kept, documented |
+| Batch 1, release-neutral fixes: D29 fire-off gate, D35 methane section override, D55 prescribed-LAI cover, D56 frost_on input, D57 acclim_light on the grasses, D58 scale_leaf_only comment, D54 cold start at 278.13 K; D59, D60 | "(b)" | fix the seven, with tests; keep D59, D60 (D60's sentinel at the next restart-format change) |
+| Batch 2, outputs and guards: D36 fire emissions from the combusted carbon, the yearly burned fraction and emissions, the RELEASE wording; D44 ET bookings; D32 hourly precision note; D77 nsoilcall attribute; D69 the bound limits logged; D71 nbedrock check in `load_state` | "(b)" | fix |
+| Batch 3, records and verification: D62 harness settings and re-run checks, D63/D64 RELEASE_3.0, D65 tower-score labels, D66/D67 one harness and one area convention for the final scores, D68 puddle provenance, D72 leaf-respiration share from the final run, D73 DEFECTS 2.8, D74 BEDROCK.md, D75 RELEASE fire row, D76/D82 STATUS.md, D78/D81 this log, D79 ENVIRONMENT GPU, D80 unread solid-phase keys | "(b)" | the records (DEFECTS_FOR_REVIEW, this log, RELEASE_3.0, README, STATUS, BEDROCK, ENVIRONMENT); the harness; the final scoring |
+| Batch 4, cosmetic: D91-D97 comments and docstrings, D85 dtype, D87 snow_coverage substitution, D89 zwpmax wiring, D84 puddle order as `soil.f`, D90 lower-canopy diagnostic; D83 deterministic GPU reductions; D86, D88 | "b" | fix; D83 adopted if the run takes at most about 20 % longer (one GPU trial); keep D86, D88 |
+
+**The work program** (`decisions_taken.md`, in order; the durations are the estimates written there).
+1. Implementation pass (about 1.5-2 days). The model fixes above, the four variants of the energy test behind switches
+   (off by default), batches 1, 2 and 4; the tower tools (D3 day and night means, D41, D34 solar-time towers, hourly H
+   and LE from the site runs, D62 harness settings); a test for each, the full suite, the records and the technote
+   chapters brought to the new code.
+2. Tower analysis (about 2-3 days, CPU). The corrected baseline at the towers with the release parameters and every fix,
+   against the release, with grouped ablations so that no change is credited to another (ratios by PFT and month,
+   verdict first); the energy test and its adoption rule; one global diagnostic year for the water sources (D25); the
+   D12/D19 investigation and the D23 condition.
+3. Refits (about 3-4 days of compute). The GPP/ET stage at the 356 towers and the crop towers (Mead with hourly
+   shortwave, the crop allocation), with the adopted variants and the phenology rules; the D20/D21 checks; the NEE stage
+   at the 358 towers (day and night means; the D4 check); the methane bands at the 48 towers (D13, D16); a new parameter
+   file.
+4. Global (about 2 days). A preliminary protocol run (about 8.5 h on the GPU); on it the degree-day floors re-tuned
+   against observed tree cover (D9) and the fire parameters refitted on its 2003-2005 states (D30); the final protocol
+   run (about 8.5 h; deterministic reductions if adopted, D83); the learned wetland area retrained on its hindcast and
+   the methane transient and hindcast pass (about 4 h); the scores with one harness and one area convention (D65-D67);
+   then README, RELEASE_3.0 and the technote numbers.
+
+**Where it stands.** The implementation is under way on branch `technote-review-fixes` (not `main`). On it so far: the
+texture classes (1aa7715, section 86); D1 (42a885c: growth respiration on a positive net assimilation only); D9, D11,
+D15, D27, D45 and D47 with the parameter-only D18 and D80 (307d0f8: the switches `pheno.climate_stats_daily`,
+`pheno.drop_stress_gate` and `bgc.rgrowth_positive_only`, each default true, false giving the release's rule; and
+`params_32a_base.yaml`, the release file plus the G06 timing of D18 and without the unread solid-phase keys of D80, the
+base of the refits). No tower stage, analysis or protocol run has been made with any of it. The release
+(`params_31s_ch4h.yaml`, run `final_rel30`, code `e54e342`) and its scores stand until the final run of step 4 replaces
+them.
+
+**Implementation (2026-11-01).** The code part of the implementation pass is in: the review's branches are merged into
+`technote-review-fixes` (head c8b4d21; not on `main`). By commit, besides 1aa7715, 42a885c and 307d0f8 above:
+- 31a4f0c: D10, single precision under the ice-sheet snowpacks (packs of 10 m or more).
+- e6c70cb: water and snow D28, D51, D52, D53, D84, D87; the ET bookings D44; the water-balance diagnostic D70
+  (`physics.water_balance`, default false); D69, D71, D77, D89, D90; batch 1 (D29, D54, D55, D56, D57, D58) and D36.
+- 8416c20: D26; D33 (`weather.sun_midstep`, default true); D30 (`fire.daylight_only`, default true); the variants of the
+  energy test (D5 group), off by default and bit-identical when off: `canopy.za_above_top` (default 1.0 m, IBIS 2.6b4's
+  height of the reference level above the canopy top), `canopy.ca_cap` (default 1.0, IBIS 2.6b4's cap on the
+  canopy-air transfer; 0 lifts it), `canopy.dew_on_dry` (default 0) and `weather.wind_keep_mean` (default false), with
+  D14's smaller stem heat capacity through the existing `canopy.chs`; D23 (`crop.aleaf`, unset until the crop-tower
+  refit); D2 (the verify test against the compiled `stats.f`, and the comment); batch 4 D85, D91, D92, D94-D97.
+- 13b23d5 (branch review-methane): D13 (`methane.t_anaer_substrate`, default true), D61, D35, D38, D39, D93; and the D16
+  tool, whose band medians leave out the towers with a negative mean flux over their fitted years (the two net-uptake
+  towers), as decided (sections 38.1, 80).
+- bed0ae7 (branch review-harness): D62, IBIS 2.6b4's own settings for both codes in the verification harness, and the
+  re-run (`verify/STATUS.md`, Harness settings).
+- 63fd7c0 (branch review-tower): D3 (day and night NEE means, with step counts), D41, D34 (solar-time tower forcing), and
+  the hourly H, LE and net radiation of the site runs for the energy test. A follow-up that recomputes the towers' night
+  flag from the solar clock is in progress (the flag ran one hour ahead at 9 Australian FLUXNET v1.3 towers).
+
+The switches that change results default to the decisions (`bgc.rgrowth_positive_only`, `pheno.climate_stats_daily`,
+`pheno.drop_stress_gate`, `weather.sun_midstep`, `fire.daylight_only`, `methane.t_anaer_substrate`: true; false gives
+the release's rule). D25's source is fixed after the diagnostic year of the tower analysis, and D83 awaits its GPU
+trial. The tower analysis, the refits and the final protocol run of the work program follow; nothing here is a result
+of the new code.
+
+**Corrections and notes to this log.** Dated notes are appended in place to sections 16 (D58: the light part of the
+stem-credit premise was wrong), 29 and 41 (D81: the TRY tabulation is Chen et al. (2022); four, not eight, C3 crop fits
+at the 0.30 floor), 53 (D56: `frost_on` was inert), 55 (D18: the G06 timing did not reach the release) and 76 (D23: the
+allocation is a second cause of the halved harvest). Two notes have no earlier passage to correct:
+- *Acclimated types (D78).* Where the state of acclimation X stays below S0 + S_max, the capacity is V0 (X - S0)/S_max,
+  so the tower fits identify only the ratio V0/S_max, and the fitted V0 of an acclimated type is not a capacity reached
+  in the field. Example (technote 9.3.3, `make_ch09.py`): for T17 S0 + S_max = 18.72 C, while X peaks at 18.74 C in 2001
+  at the D_subarctic example cell (June-August mean f_S 0.857; f_S = 1 on one day). This matters when Table 9.5 of the
+  technote is compared with literature capacities. No code change; constraining S_max (or fixing it at the PRELES
+  17.72 C) is for a later calibration round.
+- *Puddle capacity and base permeability (D68).* The release values, `soil.wpudmax` 10 kg m-2 and `soil.bperm` 0.04, are
+  not those of IBIS 2.6b4's `params.soi` (4.5 and 0.10; `fortran/params.soi:46-47`, read by `readpars.f:224-225`). They
+  are the code defaults of the port since its initial commit 4ca4481 (`git log -S`), and no record gives their origin.
+  The lockstep verification gave both codes 0.04 (and 4.5), so its "matches" (`verify/STATUS.md`) says nothing about
+  the value. For the same state of the bottom layer the drainage is 0.4 times that of IBIS 2.6b4; over 60S-60N the
+  release drains 203 mm yr-1, 58 % of runoff plus drainage; the effect of the two values on the release was not
+  measured. The calibration was made with them, so they stay as IBIS 3.0 parameters (D68); the review recommends a tower
+  sensitivity test (0.10, 4.5) before any change (technote 7.13 item 6).
+
+### 87.1 Continuation record, 2026-11-02
+
+This dated update supersedes the earlier pending-work descriptions in section 87. Those entries remain above as the
+decision and implementation history. The release run and its scores are unchanged; the new diagnostics below describe
+pre-refit experiments.
+
+**Implemented and selected.** The water-source correction is in `b2d2cca`: `soil.evap_needs_store` prevents ground
+evaporation without an available store when enabled. It is true in the revised starting preset and false in the
+function fallback. Follow-up `75d8935` books rain and melt lost below the mixing threshold before the soil; it extends
+the water-conservation accounting rather than establishing exact closure everywhere (D25/D70; technote Chapter 7).
+The water work was merged in `8403fb7`.
+
+The preliminary protocol completed, and its degree-day comparison supported the owner's selected floors: 975 °C d
+for the temperate conifer position 4 and 700 °C d for boreal tree positions 6–8. The selected values are in
+`params_32a_base.yaml`, commit `c6698fd` (D9). The original 900/600 values remain appropriate when describing the
+historical release or an unchanged fallback, not the current starting preset.
+
+The controlled fire comparison favored counting every step over the daylight-only variant: best zone log-RMS
+0.632 versus 0.674 with the vegetation held fixed. The owner therefore restored `fire.daylight_only = false` in
+`c6698fd` (D30). The diagnostic best-fit coefficients were not thereby adopted as a new parameter set. The earlier
+entry naming daylight-only as the default describes the superseded implementation.
+
+Deterministic GPU reductions were enabled in the production global driver in `b9387a0` (D83). The driver appends
+`--xla_gpu_exclude_nondeterministic_ops=true` unless that option is already in `XLA_FLAGS` or
+`IBIS_NONDETERMINISTIC=1`. The same-configuration trial produced identical yearly fields at 2–8 % more time. Existing
+XLA options are preserved; this is not a guarantee of equality across devices, software versions or all entry points.
+
+**Completed tower diagnostics.** The step-2 baseline and grouped comparisons are in
+`verify_outputs/diag_work/step2/cmp_abl_all.txt`. The median paired change in annualized NEE bias is +9.22 gC m⁻² yr⁻¹
+for revised baseline minus release; +11.04 for the positive-gain growth-respiration rule; and +1.39 for the mid-step
+sun. The residual after subtracting switched-group effects is −2.84. It includes unswitched fixes and interactions;
+these medians are not an additive causal decomposition. The median paired ET-ratio increase at eight deciduous
+needleleaf forest towers is 0.132, which warrants attention in the refit but does not isolate the larch conductance
+correction. Technote 16.14.1 states the experiment and sample sizes.
+
+All 624 energy-test output files exist (104 towers, six variants). Hourly comparisons include 73 towers, the monthly
+summary contains 103 tower records with missing values excluded separately for each metric, and ET-component
+fractions use 104 towers. The hourly/monthly report was written, but its T/ET section
+crashed: `energy_summary.py` summed the month axis of `(year, 12, 4)` instead of the ET-component axis. Codex preserved
+the original script and changed `ep.sum(1)` to `ep.sum(-1)`. The missing report was recovered from existing output
+files without restarting simulations. The original partial report remains available.
+
+The recovery script and original-script backup are in
+`/shared/nas2/Hangkai/ibis/technote_review_2026-11-01/codex_takeover_2026-11-02_UhmANV/`. Results are in
+`verify_outputs/diag_work/step2/energy/codex_20261102_partition{.txt,_groups.csv,_tower.csv,_checks.json}`. Synthetic
+checks cover component shape, weighted annual fractions and both hemispheres' summer selection. Component sums and
+saved monthly ET agree within 0.0022583 mm in 618 files; one site has no comparison series in all six variants.
+Baseline median annual/summer T/ET is 0.4313/0.5253; preserving daily mean wind gives 0.4603/0.5461.
+
+Reducing stem heat capacity to one tenth gives the strongest forest hourly improvement (median RMSE change
+−23.54 W m⁻² for H and −1.27 for LE), but the monthly forest GPP ratio changes from 1.004 to 0.981 and ET from 1.071
+to 1.090. The full per-type and seasonal adoption rule still applies. Codex has not adopted an energy variant or
+changed production parameters. Technote Table 16.13 summarizes these results and their different denominators.
+
+**Documentation takeover.** Codex preserved all 31 inherited uncommitted technote files and ignored images, then
+fast-forwarded `review-technote` from `75d8935` to `c6698fd`; the inherited binary diff was unchanged. The saved
+journal confirms all nine writers completed, including chapter 17. The latest completed checkers produced 207
+findings; neither chapter 17 checker completed, and no fixer or consistency agent returned success. Some failed
+fixers nevertheless made edits, so the actual text is checked before applying each finding. The early documentation edition and its scope are described in [`technote/EARLY_EDITION.md`](technote/EARLY_EDITION.md).
+
+**Remaining scientific work.** Assess the energy variants against the adoption rule; investigate D12/D19 and the
+conditional crop-allocation choice D23; rebuild the NEE targets; perform the D20/D21 checks and step-3 refits; then
+run the final protocol, wetland retraining and scoring with the D66/D67 conventions. The diagnostic outputs above
+predate the final floor and fire-default selections and do not validate the final revised configuration. No new
+refits or global protocol simulations were started as part of the documentation takeover. Do not push without the
+owner's instruction.

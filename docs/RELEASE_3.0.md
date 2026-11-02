@@ -1,5 +1,8 @@
 # IBIS 3.0: the calibrated model of 30 October 2026
 
+> Documentation edition, 2 November 2026: dated release results remain historical. Descriptions of later corrections refer to the reviewed development implementation; this publication does not update model code on main. See [the edition note](technote/EARLY_EDITION.md).
+
+
 The short description of the IBIS 3.0 release state: what the model is, which parameter file is the release and where it
 came from, what was calibrated against what, how the release run is reproduced and scored, what it scores, and what it
 does not do. The long form is the calibration log, [`CALIBRATION.md`](CALIBRATION.md) (85 sections, each stage with its
@@ -8,13 +11,16 @@ file names of the October stage (s31*, t31_*, params_31*) are working labels, no
 
 ## 1. What IBIS 3.0 is
 
-IBIS 2.6b4 (Foley et al. 1996; Kucharik et al. 2000) rewritten in JAX and verified against the Fortran at machine
-precision, with the Fortran's own defects and the port's fixed ([`DEFECTS_FOR_REVIEW.md`](DEFECTS_FOR_REVIEW.md),
-CALIBRATION 59-63), and with these additions, each behind a switch that is off by default and bit-identical to the Fortran
-when off: a sunlit/shaded two-big-leaf canopy with capacity declining through the canopy and acclimation; phenology as
+IBIS 2.6b4 (Foley et al. 1996; Kucharik et al. 2000) rewritten in JAX and compared with the Fortran in routine and time-step tests, with the remaining
+differences documented in technote Chapter 17 and corrections to identified defects in both implementations ([`DEFECTS_FOR_REVIEW.md`](DEFECTS_FOR_REVIEW.md),
+CALIBRATION 59-63), and with these additions, most of them behind a switch that is off by default (the details of the fire
+scheme are on by default, technote Table 13.1; some additions act through parameter values, technote 10.6): a
+sunlit/shaded two-big-leaf canopy with capacity declining through the canopy and acclimation; phenology as
 parameters (photoperiod senescence, a soil-stress drought trigger); forty Köppen-zone plant types that live in the twelve
 PFT slots, each square taking the types of its climate zone; a water-limited maximum tree cover; a fire scheme driven by
-the length of the fire season with per-type mortality and conserved emissions (CO2, CO, CH4, N2O); a wetland methane
+the length of the fire season with per-type mortality, and a diagnostic of its trace-gas emissions (CO2, CO, CH4, N2O,
+NOx; no feedback) whose release values burn about 58 % more carbon than the fire removes (2.17 against 1.38 PgC yr-1,
+technote 13.5) and will be recomputed from the combusted carbon (DEFECTS_FOR_REVIEW.md, D36); a wetland methane
 module (one scalar form) evaluated every time step, with the water table from the model's own soil moisture and a
 dynamic wetland area (the WAD2M seasonal climatology plus a learned year-to-year anomaly from the model's own water); cropland as managed
 grass on the ESA CCI cropland share with harvest; three thermal bedrock layers under the 4 m column; per-type respiration
@@ -44,6 +50,13 @@ with `methane_hourly`, `methane_carbon_partition` (the net CH4 carbon taken out 
 (`cropfrac_file`). Organic-soil hydrology is off. The run is cold: no state is inherited
 from an earlier run.
 
+Two corrections have switches whose code default is the IBIS 2.6b4 form and which the release file sets true:
+`soil.h2o_consistent_weights`, the linearization point of the soil-water solver (with the IBIS 2.6b4 form a dry layer
+above wet ones can let the column drain water that the bounds create, about 692 mm yr-1 in the dry cells of CALIBRATION
+62), and `pft.exact_litterfall`, the litterfall booked as the carbon the pool update removes (CALIBRATION 61, 63). A
+parameter file without these keys runs the IBIS 2.6b4 forms; 44 of the 57 files in `configs/params` of the release code
+lack the first.
+
 Corrections that are not switches change results against port runs made before 25-26 October; each carries a setting or
 note that restores the old behaviour, and without them the carbon budget does not close (CALIBRATION 59-63, 81): the
 fire counters cleared every year as F77 does (`fire_annual_reset`) and the per-type fire parameters reaching the fire
@@ -58,11 +71,11 @@ Towers first, then the globe; no global total was ever a term in a loss function
 
 | Process | Parameters | Data | How | Log |
 |---|---|---|---|---|
-| photosynthesis, stomata, phenology, respiration, allocation | per type: capacity and acclimation, Ball-Berry, leaf traits, allocation and turnover, respiration | 356 flux towers (FLUXNET2015, ICOS, AmeriFlux, NEON, regional networks): monthly GPP, ET and NEE on the tower's own meteorology, three to five years, one held out | CMA-ES per tower on a bounded objective; each type is the median of its towers; every tower re-scored under the shared set | 34-36, 45, 50-57 |
+| photosynthesis, stomata, phenology, respiration, allocation | per type: capacity and acclimation, Ball-Berry, leaf traits, allocation and turnover, respiration | 356 flux towers (FLUXNET2015, ICOS, AmeriFlux, NEON, regional networks): monthly GPP, ET and NEE on the tower's own meteorology, three to five years, one held out | CMA-ES per tower on a bounded objective; each type is the median of its towers; every tower re-scored under the type sets of 20 and 26 October (README; technote Table 16.5); the release set itself has not been re-scored at the towers | 34-36, 45, 50-57 |
 | wetland methane | rate, Q10, anaerobic depth scale and oxidation scale per wetland band | 48 wetland towers of Fluxnet-Methane_V2.0, held-out year | per-tower fits with the flux evaluated every time step, band medians by Köppen wetland type | 38, 42, 73, 80 |
 | wetland area | the learned anomaly model (trees per band, monotone in water) | WAD2M v2.0 monthly fraction 2001-2010 | trained on a reference hindcast's month-mean soil state and water totals; held out by year | METHANE 8-11, 81 |
 | cropland | crop capacity factor, harvest | 16 cropland towers | per-tower fits | 41 |
-| fire | season, danger, fuel, mortality, damping | GFED5 burned fraction 2001-05 by zone | a zone objective on amount and pattern; the release sits at its optimum | 59, 65-66 |
+| fire | closed-canopy damping (`fu_half`, `fu_width`; the closed-canopy zone and cover) and the burn scale `k_b`; season, danger, fuel and mortality a priori | GFED5 burned fraction, 2003-2005 zone means | a zone objective, the log-RMS of the model/GFED5 ratios of the zone means (`fire_f7_fit.py`); the closed-canopy cover from a sweep against the humid regions | 59, 65-66 |
 | tree cover | maximum cover against growing-season water stress, per zone | CLM / MODIS tree cover on natural land | the product's cover as a function of the model's own stress, fitted by zone; phantom and lost forest as the check | 70-71 |
 | wood | C/D-zone allocation, temperate residence, tropical turnover | Xu & Saatchi 2021 live biomass by zone group and continent | bounded refit, verified in the full protocol | 67, 70-71 |
 | soil carbon | slow/passive turnover per zone group | HWSD2 organic carbon 0-1 m by zone group and latitude band | a two-member bracket through the full protocol; the strong member chosen | 72 |
@@ -96,6 +109,45 @@ in the CPU environment). The numbers in section 5 come from that chain on the re
 `global_figures.py` and `global_spatial.py`; the wood, soil and fire figures of the release stage from
 `verify/calibration/diagnostics/release_2026-10-28/` (its README gives the order).
 
+**Code after the release.** The release code is commit `e54e342`, with which `final_rel30` was run; the current code
+(branch `technote-review-fixes`, not `main`) does not reproduce that run. The decisions of the technote review are
+implemented there (CALIBRATION 86-87, with the commits; each defect in [`DEFECTS_FOR_REVIEW.md`](DEFECTS_FOR_REVIEW.md)).
+New switches, with their defaults (CALIBRATION 87):
+- `bgc.rgrowth_positive_only`: true, growth respiration on positive net carbon gain (assimilation less maintenance respiration) only (D1; about 9 % less NPP at
+  the release parameters, before rgrowth and rroot are refitted). False: the release's rule.
+- `pheno.climate_stats_daily`: true, the year's climate statistics from daily values as IBIS 2.6b4 (D9). False: the
+  release's monthly statistics. The revised starting preset `params_32a_base.yaml` uses degree-day floors of 975 °C d
+  for temperate conifers (position 4) and 700 °C d for boreal trees (positions 6–8), selected in `c6698fd`.
+- `pheno.drop_stress_gate`: true, the lower canopy's drought trigger on growing-season days only (D11). False: every day.
+- `weather.sun_midstep`: true, the sun and the weather generator at mid-step (D33). False: the step start.
+- `fire.daylight_only`: false, the fire-prone time from every step as the release; true counts daylight steps only (D30;
+  refitted on the same vegetation it fitted GFED5 worse, 0.674 against 0.632 zone log-RMS, so the release rule stays).
+- `methane.t_anaer_substrate`: true, the production temperature weighted by the substrate profile (D13). False: the
+  thickness-weighted mean to 4 m.
+- `physics.water_balance`: false; true writes the yearly water-conservation diagnostic (D70; outputs only).
+- `soil.evap_needs_store`: false in the function fallback, true in `params_32a_base.yaml`; the latter prevents ground
+  evaporation without an available store (D25). The release parameter file is unchanged.
+- `crop.aleaf`: unset, the grasses' own allocation on the cropland share. A separate crop value is conditional on the
+  D12 investigation identifying grass allocation as the cause of the nearly leafless lower canopy (D23).
+- `canopy.za_above_top`: 1.0 m, the reference level's height above the canopy top (D5; energy-test variant).
+- `canopy.ca_cap`: 1.0, IBIS 2.6b4's cap on the canopy-air transfer; 0 lifts it (D5; energy-test variant).
+- `canopy.dew_on_dry`: 0, no dew on dry leaves and stems (D24; energy-test variant).
+- `weather.wind_keep_mean`: false; true keeps the day's mean wind in the hourly draws (D7; energy-test variant).
+- `IBIS_NONDETERMINISTIC` (environment variable): unset, `scripts/run_global.py` asks XLA for deterministic GPU
+  reductions unless `XLA_FLAGS` already supplies that option. The same-configuration trial produced identical yearly
+  fields at 2–8 % more time (D83; [`ENVIRONMENT.md`](ENVIRONMENT.md)). Setting it to 1 suppresses the driver's added
+  option; an option already present in `XLA_FLAGS` remains in effect. This is not a cross-platform repeatability guarantee.
+
+The four energy-test variants default to the release's behaviour (D14's variant is the existing `canopy.chs`). Changes
+without a switch include the texture classes, the deep snowpacks in single precision, the two-stream window, the order
+of the top-layer heat flux, the water and snow fixes, the methane band of the learned cells and its root-zone water
+(the release's learned file was trained with the earlier water and is to be retrained), and the tower tools (day and
+night NEE means, the C4 capacity bounds, solar-time tower forcing). The preliminary protocol, floor retuning and
+controlled fire comparison are complete. The energy variants have diagnostic results but no newly adopted defaults.
+The refits (GPP and ET, NEE, methane bands and conditional crop settings), final protocol, wetland retraining and final
+scoring remain. Until then `final_rel30` remains the historical release run, and the diagnostics are not its replacement.
+See [`technote/EARLY_EDITION.md`](technote/EARLY_EDITION.md) and CALIBRATION section 87 for the continuation record.
+
 ## 5. What it scores
 
 2001-2010 means unless stated; pools from the 2010 state.
@@ -125,8 +177,9 @@ in the CPU environment). The numbers in section 5 come from that chain on the re
    tropics (the Congo basin) are 0.66 and humid Asia 1.36 of the map (67, 71).
 3. **The methane split by band follows the towers, not the wetland-model ensemble**: 1.23 times the ensemble in the
    tropics, 0.33 in 30-60 N, 0.58 north of 60 N. The band parameters fitted at the towers carry the towers' own rates into
-   the globe; rescaling a band to the ensemble would be tuning to a global total. The module has no frozen-season
-   production (about 3 Tg yr-1 in the north at the towers). The learned wetland area follows the observed year-to-year
+   the globe; rescaling a band to the ensemble would be tuning to a global total. Frozen soil is excluded from the
+   active substrate calculation, but thawed subsurface layers can still support winter production (technote 14.2).
+   The learned wetland area follows the observed year-to-year
    variation (r 0.90 tropics, 0.48 temperate, 0.58 boreal, held out) at damped amplitude (a quarter of the observed
    swings in the tropics); a prognostic extent needs river routing (38, 73, 80-84; METHANE 8-12).
 4. **GPP north of 30 N in spring and autumn** is 1.5-3 times FLUXCOM while July is close; annual GPP north of 60 N is
@@ -137,8 +190,19 @@ in the CPU environment). The numbers in section 5 come from that chain on the re
    mineral-soil decomposition scheme has no process to build (72, 77).
 6. **Tree cover is 0.450 against 0.388** on natural land, phantom forest 3.6 % (71).
 7. **Cropland is a managed grass**: no crop phenology, sowing or harvest date; harvest 0.67 PgC yr-1 (41).
-8. **Carried from the 12 October release and not re-evaluated**: the ET partition (transpiration share), growth respiration
-   booked in daylight, the unclumped two-stream canopy, no vertically resolved decomposition, forcing ending in 2010.
+8. **Other limits and subsequent diagnostics.** The canopy remains unclumped, decomposition has no vertical
+   resolution, and forcing ends in 2010. The ET partition has since been examined in the 624-run diagnostic comparison
+   (technote 16.14.2); it has not been validated against observed transpiration. Growth respiration follows net carbon
+   gain, not a daylight switch: the release also reduced deficits, while revised code charges only positive gain
+   (technote 11.2.3).
+9. **Gradients are not usable.** The time step returns gradients that are not numbers: the tests of its gradients with
+   respect to air temperature, solar radiation, soil water and leaf area, and over three steps, are expected failures and
+   give NaN when forced (technote 17.11). The calibration used no gradients.
+10. **Hourly values carry single-precision rounding.** The release run, like the tower runs, holds the state in single
+    precision. In a one-year test at the 117 cells of the lockstep verification, the largest hourly difference between
+    single and double precision exceeds 0.1 K in the upper-canopy temperature at 20 cells (largest 1.6 K; lower canopy
+    1.8 K), so hourly canopy temperatures carry up to 1-2 K of rounding at some cells, while the annual means agree within
+    0.4 mK (upper canopy) and 9.3 mK (top soil layer) (technote 17.5).
 
 ## 7. Where things are
 
@@ -151,6 +215,7 @@ in the CPU environment). The numbers in section 5 come from that chain on the re
   `tables/ch4_bands_s31t.txt`, `tables/soil_figure_s31n_s31r_s31t.txt`, `tables/global_spatial_s31t.txt`,
   `tables/wetland_modes_compare_r2.txt`, `tables/wetland_learned_vs_observed_breakdown.txt`,
   `tables/fire_rescored_registration_fix.txt`; wetland figures in `wetland_2026-10-29/`).
-- Log: [`CALIBRATION.md`](CALIBRATION.md) 70-85 for the final stages and the pre-release review; [`FIRE.md`](FIRE.md), [`METHANE.md`](METHANE.md),
+- Log: [`CALIBRATION.md`](CALIBRATION.md) 70-85 for the final stages and the pre-release review, 86-87 for the changes
+  decided after the release; [`FIRE.md`](FIRE.md), [`METHANE.md`](METHANE.md),
   [`BEDROCK.md`](BEDROCK.md), [`GPP.md`](GPP.md) for the modules; [`RUNNING.md`](RUNNING.md) and
   [`ENVIRONMENT.md`](ENVIRONMENT.md) for the machine.
