@@ -219,7 +219,7 @@ factor and the stress threshold of leaf drop (Chapters 9 and 10), the three para
 $`s`$ in cell $`c`$ is the median over the types of the cell's zone that set it,
 
 ```math
-s_{c} = \operatorname{median}\left\{ s_{\tau} : \tau \in T_{s}(z_{c}) \right\},
+s_{c} = \mathrm{median}\left\{ s_{\tau} : \tau \in T_{s}(z_{c}) \right\},
 \qquad\text{(2.2)}
 ```
 

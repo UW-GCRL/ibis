@@ -370,7 +370,7 @@ the drought trigger, stress factor and three respiration parameters go to every 
 $`t`$ is
 
 ```math
-p_{t} = \operatorname{median}\left\{ \hat{p}_{s} : s \in S_{t}(p) \right\},
+p_{t} = \mathrm{median}\left\{ \hat{p}_{s} : s \in S_{t}(p) \right\},
 \qquad\text{(16.10)}
 ```
 

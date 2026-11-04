@@ -430,8 +430,8 @@ array shape and generator settings produces the same pseudo-random values. Chang
 array entries to cells can change a cell's weather. Global runs start with key 42, which is split each day,
 
 ```math
-\left(k_{d+1},\, k^{p}_{d},\, k^{s}_{d,0}\right) = \operatorname{split}(k_{d}), \qquad
-\left(k^{s}_{d,n+1},\, \kappa_{d,n}\right) = \operatorname{split}\left(k^{s}_{d,n}\right), \quad n = 0, \ldots, 23,
+\left(k_{d+1},\, k^{p}_{d},\, k^{s}_{d,0}\right) = \mathrm{split}(k_{d}), \qquad
+\left(k^{s}_{d,n+1},\, \kappa_{d,n}\right) = \mathrm{split}\left(k^{s}_{d,n}\right), \quad n = 0, \ldots, 23,
 \qquad\text{(17.8)}
 ```
 

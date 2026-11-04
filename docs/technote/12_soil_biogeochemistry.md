@@ -223,8 +223,8 @@ Both climate factors combine temperature and moisture. The litter factor uses th
 and wood litter lie. The soil factor uses the top metre, which contains the roots and most soil organic matter:
 
 ```math
-f_{l} = \operatorname{clip}\left[f_{T}(T_{1})\,f_{W}(\theta_{1})\,\kappa,\; 0.001,\; 10\right], \qquad
-f_{s} = \operatorname{clip}\left[f_{T}(\bar{T})\,f_{W}(\bar{\theta})\,\kappa,\; 0.001,\; 10\right],
+f_{l} = \mathrm{clip}\left[f_{T}(T_{1})\,f_{W}(\theta_{1})\,\kappa,\; 0.001,\; 10\right], \qquad
+f_{s} = \mathrm{clip}\left[f_{T}(\bar{T})\,f_{W}(\bar{\theta})\,\kappa,\; 0.001,\; 10\right],
 \qquad\text{(12.6)}
 ```
 
@@ -535,7 +535,7 @@ IBIS 2.6b4 reads `soilcspin` from its input file but hard-codes the schedule (`m
 the year of the run counted from 0 as in (12.16), it calls the routine 40 times a day for $`i \le 75`$, then
 
 ```math
-n_{i} = \max\left[\operatorname{int}\left(40 - 1.6\,(i - 75)\right),\; 1\right] \quad (75 < i < 100),
+n_{i} = \max\left[\mathrm{int}\left(40 - 1.6\,(i - 75)\right),\; 1\right] \quad (75 < i < 100),
 \qquad\text{(12.17)}
 ```
 

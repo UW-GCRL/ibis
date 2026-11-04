@@ -396,7 +396,7 @@ G_{i} = \mathrm{SW}_{i} + \mathrm{LW}'_{i} - H_{i} - \lambda_{i}\,E_{i}, \qquad
 E'_{g} =
 \begin{cases}
 E_{g} & (1 - f_{i})\,|E_{g}| \le E_{max}, \\
-\operatorname{sign}(E_{g})\,E_{max}/\max(1 - f_{i},\, \epsilon) & \text{otherwise},
+\mathrm{sign}(E_{g})\,E_{max}/\max(1 - f_{i},\, \epsilon) & \text{otherwise},
 \end{cases}
 \qquad\text{(5.48)}
 ```
