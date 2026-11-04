@@ -61,7 +61,7 @@ IBIS 3.0 adds the following to IBIS 2.6b4:
 8. Respiration and allocation parameters for each plant type (Chapter 11); and new outputs: quantities used to compare with flux
    towers (evapotranspiration and day- and night-time net ecosystem exchange), the components of evapotranspiration, fire
    emissions and harvest (Chapters 13 and 15), and, on request, a yearly account of the water balance (Chapter 7).
-9. A calibration of the vegetation parameters at 356 flux towers (358 for the respiration parameters), of the methane
+9. The release calibration of the vegetation parameters at 356 flux towers (358 for the respiration parameters), of the methane
    parameters at 48 wetland towers and of the cropland parameters at 16 cropland towers, evaluated against global
    products (Chapter 16).
 
@@ -69,6 +69,11 @@ Most of these additions have a configuration switch (section 1.6). The release i
 review of this note led to changes in the code. Each chapter describes the code as it is now, and lists what changed
 since the release in its closing section, "Notes for developers". Results of the release run (global totals, tower
 scores, maps) are quoted as the release run's.
+
+The development update of 4 November 2026 adds the completed natural-site and crop refits, new soil-carbon pool
+preparations, and the water-accounting diagnosis. The NEE refits and final evaluation are still in progress
+(Chapter 16). These developments do not replace the release-run maps or global totals. This GitHub update
+publishes the documentation; the model code on GitHub main remains the 30 October release.
 
 ## 1.2 Biogeophysical and biogeochemical processes
 
@@ -272,9 +277,10 @@ The switches added after the release are marked * in Tables 1.7 and 1.8. Five th
 `weather.sun_midstep`, default to true; set to false, each gives the release's rule for that process. The optional
 `fire.daylight_only` rule defaults to false, so fire-prone weather is counted in every step, as in the release.
 The other additions keep the release's behaviour by default: `soil.evap_needs_store`
-(above); `crop.aleaf`, unset until its value is chosen (Chapter 15); `physics.water_balance`, which adds output only;
-and `canopy.za_above_top`, `canopy.ca_cap`, `canopy.dew_on_dry` and `weather.wind_keep_mean`, variants for a test of
-the hourly energy balance at flux towers. For each starred switch the Release column gives the setting that restores
+(above); `crop.aleaf`, which remains unset for this release (Chapter 15); `physics.water_balance`, which adds output only;
+and `canopy.za_above_top`, `canopy.ca_cap`, `canopy.dew_on_dry` and `weather.wind_keep_mean`, variants evaluated in
+the completed hourly energy test at flux towers; the current settings were retained (Chapter 16).
+For each starred switch the Release column gives the setting that restores
 the release's behaviour of that switch. Other changes since the release have no switch, so the current code as a whole
 does not reproduce the release run (section 1.8).
 
@@ -366,7 +372,10 @@ calibration described in Chapter 16 did not use gradients.
    better over the year. Those two settings changed together. The fifth cell retains one event that has not been
    examined. At three of the five cells at 55°N, rounding differences grow during soil or snow freezing and thawing.
    At the other two (40°E and 120°E), differences begin in spring (23 March and 1 April 1951). The first begins within
-   one step, at snow-laden leaves at the melting point; it is not a rounding effect, and its cause remains unknown.
+   one step, at snow-laden leaves at the melting point. A later replay of that event found that a last-digit change
+   in compiled arithmetic selects a different ice/water saturation branch in the third canopy iteration. Selecting
+   the same branch removes the recreated temperature gap. The exact historical March input was not saved, so this
+   explains the recreated event rather than proving exact recovery of the original input or all long-run differences.
    The second event and the southern cells have not been examined (`verify/STATUS.md`, "Harness settings";
    Chapter 17, section 17.9.3). The 46-year lockstep comparison has not been repeated.
 3. **Fire off (D29; no switch).** The annual update applies the fire scheme's mortality per position and its combustion

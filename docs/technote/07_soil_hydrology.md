@@ -587,6 +587,9 @@ be zero; a positive $`r`$ is water lost without a booked term.
 | `n_snow`, `ay_w_snow` | steps yr⁻¹, mm yr⁻¹ | steps with more snowfall on snow-free ground than covers it, and the excess added to the pack (section 8.5) |
 | `n_cdef`, `ay_w_cdef` | steps yr⁻¹, mm yr⁻¹ | steps on which evaporation exceeded the water held on the canopy, and the unsupplied amount subtracted from the upward vapour flux (Chapter 5) |
 
+Once the pending canopy-accounting correction is integrated, the rounding adjustment in Table 7.3 will also
+subtract the water discarded while mixing canopy rain and snow. The later check below explains this addition.
+
 **The release run.** Because the release run predates the diagnostic, its water balance was reconstructed over the
 hindcast, 2001-2010. Storage was read from the restart files at the end of 2000 and of 2010 for each cell's soil,
 puddle, snow and canopy. Annual precipitation, evapotranspiration, surface runoff and drainage came from the output. The release did not write out $`A`$, so the residual of this balance is the storage change less the net
@@ -629,8 +632,7 @@ updated after the final run of the revised model).
   (1st to 99th percentile −0.31 to +0.41 mm yr⁻¹; land precipitation 845 mm yr⁻¹). The 518 cells with $`|r|`$ above
   1 mm yr⁻¹ (at most 5.8 mm yr⁻¹) all lie in Antarctica (300) or Greenland (218), 516 of them under a snowpack that was
   more than 10 m thick at the start of the year, where single precision still limits the bookkeeping (section 8.14). In
-  the other cells $`r`$ is about +0.1 mm yr⁻¹, indicating water loss that none of the recorded terms explains. The source
-  of this loss has not yet been found.
+  the other cells $`r`$ is about +0.1 mm yr⁻¹. These results predate the canopy-accounting correction described below.
 - The limit on the ground evaporation never acted, and no step had more snowfall on snow-free ground than covers it.
   The third event was common but small: a canopy store evaporated more than it held in 59,028 of the 95,333 land cells
   (62 %), on 31 steps a year averaged over the land cells (at most 463 in one cell), and the excess averaged
@@ -638,6 +640,20 @@ updated after the final run of the revised model).
 
 The figure script of this chapter prints these numbers (option `diagyear`). They come from a diagnostic run, not from
 the final run of the revised model (to be updated after the final run of the revised model).
+
+**The later bookkeeping check.** A separate replay of 2001 at four cells—the Amazon, the Nubian Desert, Madison and
+a neighbouring cell—separated a missing adjustment from single-precision round-off. In double precision, the annual
+residuals were 0.0335, 0.0000, 0.1135 and 0.1124 mm. Each matched the very small amounts discarded when canopy rain
+and snow are mixed. Counting those amounts as an adjustment closed the annual budgets to the reported precision.
+Patched double-precision monthly checks also close near numerical precision. The change in the storage weight of
+the lower canopy as snow cover changes is already consistent with the counted fluxes; adding it as another missing
+flux would count it twice.
+
+The remaining single-precision residual in this controlled comparison comes from round-off. The correction changes
+only the water accounts and is implemented on a separate development branch, awaiting integration after the current
+NEE fits finish. These four cells establish the mechanism in the tested replay; they do not measure its contribution
+to the earlier global residual or verify global closure after the correction. The historical global numbers above
+remain snapshots until the final revised-model run provides updated global diagnostics.
 
 Figure 7.4 shows the soil water of one cell through four years of the release run. Over 2003-2006 the cell received
 937 mm yr⁻¹ of precipitation; evapotranspiration was 540 mm yr⁻¹, surface runoff 73 mm yr⁻¹ and drainage 299 mm yr⁻¹.
@@ -784,8 +800,8 @@ The `soil.*` switches are keys of the parameter file; the `physics.*` switches a
 
 ## 7.15 Notes for developers
 
-These notes record changes after the release (code `e54e342`, run `final_rel30`) through `c6698fd`, and details needed
-to reproduce the results. The primary decision record is the review's `decisions_taken.md`; `docs/CALIBRATION.md`
+These notes record changes after the release (code `e54e342`, run `final_rel30`), the earlier comparisons through
+`c6698fd`, and the dated follow-up checks below. The primary decision record is the review's `decisions_taken.md`; `docs/CALIBRATION.md`
 sections 87–87.1 and `docs/DEFECTS_FOR_REVIEW.md` record the decisions and their completion. The commits and diagnostic
 runs below provide the chapter's implementation and result sources.
 
@@ -813,6 +829,18 @@ physics and time-step code implement the sequence in Table 7.2.
   `step2_wbal_2001_d25` (switch on) and `step2_wbal_2001_d25b` (switch on, with the change of 75d8935) on the lab file
   system; `make_ch07.py diagyear` computes the numbers quoted in sections 7.11 and 8.14 from them (the box terms agree
   with `verify_outputs/diag_work/step2/wbal_analysis.py`).
+- **Canopy cascade accounting (4 November 2026; commit 6087ab5).** The cascade's `mix` routine discards water below
+  its small-number threshold. The patch records the discarded mass as a negative contribution to `adj_round`, then
+  includes it in the existing water-balance diagnostic. It does not change the water passed between stores or the
+  state trajectory. The float64 replay uses the four cells, forcing, parameters and end-of-2000 preliminary-run
+  restart of `diag_work/step3_codex_20261102/water_closure/real_year_result.json`. Its 2001 residual equals the cascade
+  loss to the printed precision at every cell; patched float64 monthly residuals are near numerical precision.
+  The measured snow-cover storage-weight term is not an additional missing flux. The float32 comparison retains
+  accumulation error; it does not justify attributing the full earlier global median to round-off from four cells.
+  Evidence: `diag_work/step3_claude_review/water_x64/WATER_CLOSURE_F64_RESULT.md`, `gpu/real_year_result.json` and the
+  `patched_f64` and `patched_f32` results beneath that directory. Measurement preserved all 290 checked core-state
+  fields bit for bit. The patch is on `review-water-closure` and awaits merge after the NEE queue, which imports the
+  main development checkout at `9ef13c5`; the post-merge full suite and the final revised-model run remain pending.
 - **The evaporation limit in the heat flux and the output** (D28; e6c70cb). `loops.bounded_ground_evaporation` gives the
   rate per unit of snow-free ground whose cell mean is limited; `heatg`, the stores and `gsuvap` all use it, where the
   release used the unlimited rate for `heatg` and `gsuvap`. Reason: where the limit acts, the latent heat, the water

@@ -411,6 +411,13 @@ rounding remains: in the diagnostic year of section 17.4, all 518 land cells who
 than 1 mm in the year lie south of 60°S or in the box 60-84°N, 10-75°W around Greenland (up to 5.8 mm), while elsewhere
 the budget closes to within 0.62 mm (`make_ch17.py wbal`).
 
+A later four-cell replay of 2001 separated water-accounting error from round-off (section 7.11). In double precision,
+the residual matched small amounts discarded when canopy rain and snow are mixed. Recording those amounts as an
+adjustment closed the annual budgets to the reported precision; patched monthly checks also close near numerical
+precision. The comparable single-precision runs retain accumulation error. This explains the tested cells, without
+establishing closure or a complete attribution of the residual across the global grid. The accounting correction
+awaits integration after the current NEE fits finish.
+
 ## 17.6 Random numbers
 
 The weather generator uses random numbers for hourly wind and daily precipitation timing. This section explains
@@ -683,10 +690,10 @@ exactly at the melting point (273.16 K). To distinguish rounding from a code dif
 restarted from the Fortran state immediately before that step (`make_ch17.py inject`). In the diurnal run, it then remains within
 1.6 × 10⁻¹² K of the Fortran through day end. That event therefore arises from rounding: state differences of
 10⁻¹² K send the codes down different phase-change branches. In the monsoon run, starting from the Fortran
-state leaves the same 6.6 × 10⁻⁵ K difference at that step, identifying a code difference. It occurs
+state leaves the same 6.6 × 10⁻⁵ K difference at that step. Its cause remains unresolved. It occurs
 with both canopies' leaves at the melting point, holding snow and liquid water while rain and snow fall.
-These conditions resemble the unexplained event in the one-year lockstep below. The cause remains unknown
-(section 17.12).
+These conditions resemble the event in the one-year lockstep below, but the later diagnosis of a recreated
+lockstep event has not been tested on the monsoon case (section 17.12).
 
 One lockstep year, 1951, was also run with IBIS 2.6b4's settings at 20 of the 117 cells in section 17.9.4
 (`verify/STATUS.md`). It used the code of 1 November 2026, before the order of the heat flux into the top soil layer
@@ -701,9 +708,20 @@ cells in 1951 of the 46-year run. The larger differences fall into three groups:
   $`10^{-12}`$ K away from itself differs from itself about as much as from the Fortran.
 - At the other two cells at 55°N (40°E and 120°E) the differences are 10 to 1000 times larger than that and start in
   spring. The first, on 23 March 1951 at 55°N, 40°E, arises within one step in the canopy calculation, at snow-laden
-  leaves at the melting point: the two codes agree to $`1.4 \times 10^{-11}`$ before the step and differ by
+  leaves at the melting point. The historical record reports that the two codes agree to $`1.4 \times 10^{-11}`$ before the step and differ by
   $`1.5 \times 10^{-2}`$ K in the canopy air after it. Giving the port the Fortran's state before the step leaves the
-  difference unchanged, so it is not rounding. Its cause is not yet known (section 17.12).
+  difference unchanged. A later controlled replay explains a recreated event as sensitivity to compiled arithmetic,
+  as described below; the exact historical input was not preserved.
+
+That follow-up recreated the 23 March event and compared the codes from identical injected states. The uncompiled
+port agreed with Fortran to 1.14 × 10⁻¹³ K; compiling the same calculation left canopy-air differences of 0.01355 and
+0.01505 K. The first material temperature difference arose in the third canopy iteration. An intermediate snow
+temperature was just below 273.16 K without compilation and exactly 273.16 K with it, selecting the ice and liquid
+forms of saturation, respectively. Selecting the ice side in that iteration removed the temperature gap. Thus
+matching the input state alone does not rule out rounding inside the calculation. This explains the recreated event,
+not every departure in the year-long or 46-year comparison. It also does not establish exact recovery of the
+historical event; the raw replay's pre-step difference was larger than the old record's. No new phase rule or
+melting-point tolerance was adopted (section 17.12).
 
 The southern and Antarctic cells of that year were not examined.
 
@@ -742,7 +760,8 @@ comparison of 1990 that preceded the 46-year run, was examined by giving the por
 step; all quantities then agreed to $`2 \times 10^{-9}`$. That event therefore arose from rounding
 differences amplified by the canopy iteration, rather than a code difference. The largest upper-canopy temperature
 difference, 0.45 K, occurred in the first year, 1951, at 55°N, 40°E, the same cell as the
-unexplained event in section 17.9.3. Neither code produced a non-finite value.
+historical event discussed in section 17.9.3. Explaining the recreated single-step event does not attribute that
+entire yearly maximum. Neither code produced a non-finite value.
 
 The harness also flagged values outside fixed plausibility windows. Per-year files contain 1,117,261 step-level
 exceedances, although the verification summary reported none. Both codes flagged the same cell-months.
@@ -790,8 +809,9 @@ the cells. The lockstep was made with the code of the port of May-June 2026 and 
 ### 17.9.5 What the verification covers
 
 Verification shows close double-precision agreement for the tested routines and hourly steps under the
-shared inputs and harness settings in section 17.9.1. The departures above, including two unexplained
-canopy events, remain part of this result. The comparisons do not establish full equivalence and do not cover:
+shared inputs and harness settings in section 17.9.1. The departures above remain part of this result. A later check
+explains a recreated canopy event, while the separate monsoon event remains unresolved. The comparisons do not
+establish full equivalence and do not cover:
 
 1. The processes added in IBIS 3.0 (Chapter 1) and every switch of Tables 1.7 and 1.8 in its release state. They have
    no counterpart in the Fortran and were tested on their own (section 17.11). The corrections of IBIS 2.6b4 made
@@ -809,8 +829,9 @@ canopy events, remain part of this result. The comparisons do not establish full
    layers. Since November 2026 the time-step checks use the texture-class soils of IBIS, so capillary diffusion is now
    compared in the time step as well as in the routine-level comparison of the soil water routine.
 
-Within the tested scope, two code differences remain unexplained. Both occur on leaves at the melting point
-that hold snow and liquid water (section 17.9.3).
+The unresolved monsoon event occurs on leaves at the melting point holding snow and liquid water (section 17.9.3).
+The numerical explanation of the recreated 55°N, 40°E event does not settle that case, recover the exact historical
+March input or explain the other unexamined departures.
 
 ## 17.10 Corrections and departures from IBIS 2.6b4
 
@@ -938,6 +959,28 @@ section 87; each defect with its evidence in `docs/DEFECTS_FOR_REVIEW.md`).
   `hydrology.wtot` is filled every step, as in `stats.f`. Since 75d8935, the diagnostic also records rain and melt
   discarded by the inherited cut-off for very small rates before they reach soil (finding 24). Reason: the release
   could check cell water budgets only offline, from restart files.
+- **Canopy cascade accounting (4 November 2026; commit 6087ab5).** `interception.mix` also discards sub-threshold
+  water. The patch includes these losses as negative contributions to `adj_round` without changing state or fluxes.
+  In a four-cell 2001 float64 replay the annual residual equals the cascade loss to the printed precision; patched
+  monthly checks close near numerical precision. The snow-cover storage-weight term is already consistent with the
+  booked fluxes and is not another missing flux. The remaining float32 residual in this comparison is accumulation
+  error. Evidence: `diag_work/step3_claude_review/water_x64/WATER_CLOSURE_F64_RESULT.md` and its `gpu`, `patched_f64`
+  and `patched_f32` results; measurement preserved all 290 checked core-state fields bit for bit. These checks do not
+  establish global closure. The commit remains on `review-water-closure`, awaiting merge after the NEE queue finishes
+  using `9ef13c5` and a subsequent full test run.
+- **Recreated canopy event (2 November 2026).** A bounded replay at source `26379c4` captured the 55°N, 40°E event's
+  Fortran common blocks, port state, forcing and parameters, then injected the same dynamic inputs into the port.
+  The exact historical March input was absent from the retained year-end records. The raw replay's pre-step canopy-air
+  difference was 3.92 × 10⁻⁷ K, compared with 1.4 × 10⁻¹¹ K in the old record. Under controlled identical inputs,
+  uncompiled execution matches Fortran within 1.14 × 10⁻¹³ K, while compiled execution retains the approximately
+  0.015 K gap. In `turvap` iteration 3, the same snow-temperature blend evaluates to 273.15999999999997 K uncompiled
+  and 273.16 K compiled. The saturation function selects ice below that boundary and liquid at it. Choosing the ice
+  side in that iteration removes the measured gap, but is only a diagnostic counterfactual. The auxiliary trace
+  changes 35 of 257 state leaves by at most 3.44 × 10⁻¹² while retaining the gap; it is not bit-identical instrumentation.
+  Arithmetic barriers did not reliably preserve the uncompiled phase choice in neighbouring-value tests. No epsilon
+  band, compiler convention or physics change was adopted. Saved evidence is in
+  `diag_work/step3_codex_20261102/fortran_canopy_event`: the assessment, `identical_full_comparison.json`,
+  `aux_trace_comparison.json`, `phase_branch_probe.json`, `phase_branch_neighbors.json` and `counterfactual_phase.json`.
 - **Bound limits in the log** (D69; commit e6c70cb). `run_global.py` writes `IBIS_FLUX_MAX` and `IBIS_T_MAX_DEV` to its
   log at start-up. The time step still reads them from the environment, when it is compiled. Reason: no configuration
   or log recorded them.
@@ -986,7 +1029,7 @@ section 87; each defect with its evidence in `docs/DEFECTS_FOR_REVIEW.md`).
 - `verify_lsxmain.py` compares `canopy.fsenl` with the Fortran's value, which since D90 differs by design, so the base
   step reports one field beyond the thresholds and the verifier exits with code 2. Compare it against $`T_{12}`$, or
   leave it out.
-- The monsoon check's event on the fourth day is a difference of the codes, not rounding (`make_ch17.py inject`:
+- The monsoon check's event on the fourth day remains unresolved (`make_ch17.py inject`:
   started from the Fortran's state after step 80, the port differs at step 81 by the same 6.55 × 10⁻⁵ K in $`T_g`$, and
   by 1.95 × 10⁻⁴ K in $`T_l`$ at step 87). Before step 81 the freeze-thaw cell (cell 2) has its upper leaves and lower
   canopy at 273.16 K holding snow (1.58 and 1.28 kg m⁻²) and liquid water (0.19 and 0.035 kg m⁻²), a snow cover of
@@ -995,12 +1038,14 @@ section 87; each defect with its evidence in `docs/DEFECTS_FOR_REVIEW.md`).
   later in the step. Switching off the D26 or the D53 correction in a temporary local test leaves it unchanged. The
   same check at bed0ae7 using `soil.f`'s top-layer heat-flux order showed no event (STATUS "Harness settings":
   6.4 × 10⁻¹² K), so a later change, or the harness's `hsnomin` of 0.15000000000000002, brings it out. It is a
-  five-cell, 81-step case under conditions resembling the 55°N, 40°E difference below and may share its cause.
+  five-cell, 81-step case under conditions resembling the recreated 55°N, 40°E event. A shared cause has not been
+  established; survival after state injection alone does not exclude sensitivity to compiled arithmetic.
   (When comparing radiation: the Fortran's `solg` after the step is the cell mean, $`(1 - f_i)`$ times the port's
   `canopy.solg`, as for the ground evaporation of section 17.9.4.)
-- The canopy-stage difference at 55°N, 40°E (23 March 1951, 09 h; section 17.9.3) remains unexplained. Localizing it
-  requires updating `verify/timestepping/pipeline/drill_canopy_iters.py` to the current canopy loop; outputs are in
-  `verify_outputs/d62_harness/years_1951_1951` and the probes `d62_harness_probe` and `d62_harness_probe_d51`.
+- The recreated canopy event at 55°N, 40°E is explained above, but the original historical input was not preserved
+  in `verify_outputs/d62_harness/years_1951_1951` or its probes `d62_harness_probe` and `d62_harness_probe_d51`.
+  A shared convention for evaluating saturation at the melt boundary would need separate validation in both codes
+  and neighbouring cases before adoption. The diagnostic ice-side selection is not such a validated rule.
 - The one-year lockstep at 20 cells predates the merge of D51, and the 46-year lockstep has not been repeated on the
   revised code (section 17.9.5).
 
@@ -1027,6 +1072,10 @@ section 87; each defect with its evidence in `docs/DEFECTS_FOR_REVIEW.md`).
 - Section 17.9.4 and Table 17.8: `make_ch17.py numbers` (`numbers_lockstep`).
 - Section 17.11: the count from `pytest --collect-only` at 75d8935 (927 tests in 78 files); the 912 passes from the
   message of commit b2d2cca (the same tests); the release numbers from CALIBRATION 85.
+- The refit source at `9ef13c5` passed a full suite of 938 tests. The separate water-branch test record of 4 November
+  is a narrower check: its initial full run had environment failures in the compiled-Fortran checks. After the
+  required Fortran modules were copied into that worktree, the affected checks were rerun and all 25 passed. A full
+  suite after integration remains pending.
 
 **`make_ch17.py`.** `precision_run` reads the harness inputs of the 46-year lockstep from `bed0ae7~1`
 (`_lockstep_harness`, a read-only `git show`), so the experiment no longer changes with the harness. Figure 17.2 is

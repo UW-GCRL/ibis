@@ -599,6 +599,11 @@ following year.
 | **soil** | **1,893.2** | **1,987.7** |
 | litterfall of the year (leaf, root, wood), PgC yr⁻¹ | 49.1 (12.5, 26.6, 9.9) | 60.5 (15.6, 32.6, 12.3) |
 
+**Tower-pool update, 4 November 2026.** The new natural-site GPP/ET fits have been followed by 358 per-site pool
+preparations for the NEE stage (Chapter 16). All preparation runs completed, but six final states retain large
+drift flags. A completed run is not proof that its soil carbon has reached equilibrium; those flags remain part
+of the NEE review. These states initialize tower calibration and do not replace the global totals of Table 12.7.
+
 ## 12.8 Switches and parameters
 
 Table 12.8 lists the adjustable soil biogeochemistry settings: the spin-up schedule and climate-factor parameters.
@@ -692,8 +697,8 @@ did not change.
    `bgc.rgrowth_positive_only` (default true) the net primary production at the release parameters is about 9 % lower
    than in the release run (`docs/RELEASE_3.0.md`), so the litterfall and the pools of section 12.7 change. The tower
    runs now count the night and day steps (`NEEParts.n_night`, `n_day`), so the day and night NEE are means; the
-   respiration enters them as before. $`E_{0}`$ will be refitted with the growth respiration fraction and the fine-root
-   respiration coefficient in the planned NEE stage.
+   respiration enters them as before. $`E_{0}`$ is being refitted with the growth respiration fraction and the fine-root
+   respiration coefficient in the current NEE stage.
 5. *Docstrings* (D95; commit `8416c20`): `tnmin` is in mol N m⁻² s⁻¹ (`state/vegetation.py`), and `yrleach` and
    `ynleach` are run-long sums (`state/summary.py`). No change of behaviour.
 

@@ -420,8 +420,9 @@ medians of an earlier set of fits at 62 towers (section 16.6; `params_s3_classme
 temperate grass G06 to the timing of grassland towers ($`\Theta_{l}`$ = 2 °C, $`G^{*}_{l}`$ = 700 K d, $`Y_{crit,l}`$ = 200
 K d, $`P_{start,l}`$ = 15 h) is not in the release file, which keeps the values of Table 10.4 for G06 and the base
 $`Y_{crit,l}`$ and $`P_{start,l}`$ everywhere. It is in `params_32a_base.yaml`, the parameter file from which the refits of
-the revised model start. The phenology parameters will be refitted there (Chapter 16), so the fitted values of Tables 10.3
-and 10.4 will change.
+the revised model start. Those GPP/ET refits are now complete (Chapter 16). The new type aggregate retains G06's
+lower-canopy degree-day threshold of 700 on the separate onset-timing evidence; the final assembled parameters
+still need evaluation. Tables 10.3 and 10.4 keep their stated release and historical sources.
 
 **Table 10.4** Per-cell phenology parameters of each zone with the release parameter file (Köppen zones of Table 2.2;
 type placement of Table 2.4), and the types that supply them by equation (2.2). "base": the base value of Table 10.3.
@@ -614,7 +615,7 @@ items:
    required both thawing and the 14-day recovery (section 10.6 and Table 10.2 give the release-run numbers). `docs/CALIBRATION.md` section 18 had
    fixed the same confusion for the tree-cover stress sums only. The gate uses the same test as those sums
    (`stress_accum_tmin`). The upper-canopy factor $`D_{u}`$ is not gated. The tower-fitted $`\beta^{*}`$ values were
-   obtained with the ungated trigger; the phenology parameters will be refitted in the GPP/ET stage. The step-2
+   obtained with the ungated trigger; the GPP/ET refit stage is now complete (Chapter 16). The step-2
    ablations found median tower-score changes below 0.002 for both this gate and the daily climate statistics
    (`diag_work/step2/cmp_abl_all.txt`); this does not establish that their global effects are small.
 3. **Zone stress threshold from the types that read it (D15; commit 307d0f8; no switch).** `pft_types.zone_scalar` takes
@@ -638,19 +639,25 @@ items:
    at the 35 G06 towers in the step-2 ablation, median monthly GPP correlation fell from 0.88 to 0.86 (worse at 26),
    the GPP-to-observation ratio fell from 1.03 to 0.97, and the respiration ratio from 1.17 to 1.08. Across the full
    356-tower comparison, mean October GPP fell by 6.5 % (`RESUME.md` and `diag_work/step2/cmp_abl_all.txt`).
-   The planned GPP/ET refit must evaluate both timing and flux magnitudes before these values can be treated as final.
+   The natural-site GPP/ET refits are now complete. Their type aggregate retains the lower-canopy degree-day
+   threshold of 700: a fit to monthly flux amounts does not by itself replace the separate onset-timing
+   calibration. The other fitted G06 values enter the new aggregate. This is the chosen refit parameter set;
+   its final global performance has not yet been evaluated (Chapter 16).
 5. **One-day opening of the lower canopy (D50; kept).** Where $`\Theta_{l}`$ lies well above $`\Theta^{g}_{l}`$, the
    degree-day sum is complete before the leaf-drop condition clears, so $`\phi_{l}`$ jumps from 0 to 1 in one day and the
    ramp $`R_{l}`$ never acts (section 10.11). Documented; for G06 the timing of item 4 spreads the opening over three
    days at the Figure 10.2 cell. Starting the lower sum relative to $`\Theta_{l}`$ is an option for a later phenology
    revision.
-6. **Open items for the tower analysis (D12, D19).** D12: the lower canopy is nearly absent, and bistable, on much of
-   the D_temperate cropland. In the release hindcast of July 2001, 60 % of the 2,709 D_temperate cells with a crop share
+6. **Lower-canopy and composition checks (D12, D19).** D12: the lower canopy is nearly absent on much of
+   the D_temperate cropland, with sharply contrasting neighbouring states. In the release hindcast of July 2001, 60 % of the 2,709 D_temperate cells with a crop share
    above 0.5 have a lower-canopy leaf area below 0.2 (median 0.09); phenology is not the cause (at the Figure 10.2
    cell $`\phi_{l}`$ = 1 from day 97 to day 286). D19: the cold-deciduous tree T15 holds 0.011 m² m⁻² of leaf area or
    less, about its minimum, on 72.6 % of the D_temperate area at the end of 2000, so the fitted upper-canopy phenology
-   of the zone acts on little leaf area. Both are questions of composition and allocation (Chapters 11 and 15), to be
-   investigated together with the crop allocation of D23 (review evidence; release run).
+   of the zone acts on little leaf area. The later controlled tests separate initial-composition, allocation and
+   climate-eligibility effects (Chapters 11 and 15). Raising leaf allocation has a lasting effect over the ten-year
+   diagnostic, whereas the early benefit of adding initial grass leaves fades. The trajectories are still changing;
+   they do not establish stable alternative equilibria. The release decision is to retain the existing allocation
+   and document the limitation (D23), rather than adopt the trial value.
 7. **Code comments corrected (D94; commit 8416c20).** `ddays` is a linear leaf-fall time, not an e-folding time; the
    ten-day means of IBIS 2.6b4 are updated in `sumnow` (`stats.f` line 11; weight line 68; updates lines 281-289); the
    routine is ported from `vegetation.f`.

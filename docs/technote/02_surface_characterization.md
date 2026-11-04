@@ -470,7 +470,7 @@ the cell only, the shrubs' net primary production is scaled by $`1 - f_{crop}`$,
 litterfall on the cropland share is removed as harvest (Chapter 15).
 
 Crops can also have a separate carbon allocation. The parameter `crop.aleaf` specifies the crop leaf share and is
-unset by default and in the release. When supplied, it blends the allocation of both grass positions toward the crop
+unset by default, in the release, and in the current revision. When supplied, it blends the allocation of both grass positions toward the crop
 allocation in proportion to cropland fraction, just as (2.11) blends capacity. The leaf share becomes
 $`(1 - f_{crop})\,a_{l} + f_{crop}\,a_{crop}`$ and the root share becomes
 $`(1 - f_{crop})\,a_{r} + f_{crop}\,(1 - a_{crop})`$, where $`a_{l}`$ and $`a_{r}`$ are the grass's own leaf and root shares,
@@ -519,9 +519,10 @@ Changes after the release (code `e54e342`), with the decision numbers of `docs/C
    `soil.csoi_mineral_val` 870. The release never reads them: every cell carries the values of (2.9) from
    `ibis/io/soil_init.py`, and the keys act only where a state has no solid-phase values. `params_32a_base.yaml`, the
    base of the refits, drops them.
-6. **Crop allocation (D23).** `crop.aleaf` is new and unset. Its value is to come from the crop literature at the
-   refit of the crop towers, if the investigation of the nearly leafless lower canopy of D_temperate cropland points to
-   the grass allocation as its cause.
+6. **Crop allocation (D23).** The release decision is to keep allocation unchanged: `crop.aleaf` remains unset and
+   the harvest index remains 0.45. Controlled tests show that allocation affects leaf growth, but the trial leaf
+   share of 0.45 was not selected as a crop parameter. A crop-specific pool mapping and its calibration are future
+   work. Prescribed tower fits do not use this allocation override (Chapter 15).
 7. **Tower scores (D66).** The tower re-scores of Table 16.5 (`verify/calibration/towers31_rescore.py`) set the
    phenology thresholds, the leaf-drop threshold and the stress factor to the mean over the tower's own types, not by
    (2.2). The final scores are to use (2.2).
@@ -529,7 +530,8 @@ Changes after the release (code `e54e342`), with the decision numbers of `docs/C
    `params_31f.yaml`: `gdd_thresh_l` 700 K d (release 58.7), `tthresh_l_c` 2.0 °C (release 3.05), and the two cell
    parameters that the release set for no type, `sen_ycrit_l` 200 K d and `sen_pstart_l` 15 h, so that all thirteen
    cell parameters of (2.2) are set. The release file lacked this fit of the calibration, although the calibration log
-   said it had been retained (Chapter 10).
+   said it had been retained (Chapter 10). The new type aggregate retains the lower-canopy degree-day threshold of
+   700 after the monthly GPP/ET refits; those flux fits do not replace the separate onset-timing evidence.
 9. **Methane band of the learned-area cells (D38; no switch).** With the learned inundated area
    (`physics.wetland_source` `learned` or `observed_learned`), the cells of the learned model's file take the band
    stored in the file in every run (`LearnedWetland.band_index`, called from `scripts/run_global.py`; commit 13b23d5).

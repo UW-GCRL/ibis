@@ -10,8 +10,9 @@ group within the full protocol of section 1.5.3. Tower runs with prescribed vege
 The chapter describes tower simulations, targets and objective functions, the optimizer, reduction to plant
 types, the global stages and release scores. Unless stated otherwise, all parameter values and scores
 refer to the release. The model and several calibration tools have since changed, including the tower reader, NEE
-targets and objective, capacity bounds, and methane-band reduction (section 16.15). The parameters therefore need
-refitting. Section 16.14 presents the completed diagnostic comparisons and remaining work. The release calibration
+targets and objective, capacity bounds, and methane-band reduction (section 16.15). A new refit is under way;
+section 16.14.4 records its progress through 4 November 2026. Section 16.14 presents the diagnostic comparisons and
+remaining work. The release calibration
 used no gradients (section 1.7); an earlier gradient-based fit of fire parameters against GFED5
 (`docs/FIRE.md`, step F6) was not carried into the release. The code is in `verify/calibration/`, and the per-tower fit
 records are under `verify_outputs/site_fit/` on the lab file server. `docs/RELEASE_3.0.md` summarizes the release, and
@@ -695,11 +696,11 @@ other fit of the campaign (their `setup.json`), so three of the four values behi
 different radiation input. The harvest index (0.45) and the C4 share of the cropland (0.2, about the harvested-area share
 of maize, sorghum, millet and sugar cane) were set, not fitted.
 
-Recalibration will repeat the three Mead fits with measured hourly shortwave radiation. Since the release, the model
-also supports a separate allocation on the cropland share (`crop.aleaf`, Chapter 15). The release file leaves it unset,
-so crops inherit grass allocation. A separate allocation will be chosen from crop literature only if the investigation
-of nearly leafless lower canopies on D_temperate cropland identifies grass allocation as the cause. Otherwise,
-the setting will remain unset (section 16.15).
+**Update, 4 November 2026.** The 46 crop refits are complete, including the three Mead fits with hourly shortwave
+forcing. The decision for this release is to leave the separate crop-allocation override unset, so crops continue
+to inherit grass allocation (Chapter 15). That override does not enter the prescribed tower fits. Their capacity
+scales were fitted with the starting parameter set and still need a compatibility check with the later assembled
+type parameters before the final global protocol (section 16.14.4).
 
 ## 16.13 Evaluation of the release
 
@@ -872,12 +873,13 @@ in summer. Preserving mean wind raises these fractions to 0.460 and 0.546. Summe
 equator and December–February south of it. These are model partitions; no observed transpiration fraction was used
 to validate them.
 
-### 16.14.3 Remaining recalibration
+### 16.14.3 Recalibration plan recorded on 2 November 2026
 
+This was the plan before the new tower fits. Section 16.14.4 gives the later progress and decisions.
 The tower baseline, grouped comparisons and preliminary global protocol run are complete. The degree-day floors
 have been set to 975 °C d for the temperate conifer position and 700 °C d for the boreal tree positions, and fire again
 counts every step by default. The diagnostics above preceded these final parameter decisions and are not a validation
-of the final revised configuration. The remaining work is:
+of the final revised configuration. The planned work at that point was:
 
 - Assess the energy variants against the full adoption rule. Refit GPP and ET with the adopted settings and the revised
   phenology, together with the crop towers. Repeat the Mead crop fits with measured hourly radiation. Set a separate
@@ -890,6 +892,53 @@ of the final revised configuration. The remaining work is:
   medians with the net-uptake exclusion rule (section 16.11).
 - Run the final global protocol, check the fire calibration on that run, retrain the learned wetland-area model on its
   hindcast, and recompute the scores with a consistent tower evaluation procedure and area convention.
+
+### 16.14.4 Development progress, 4 November 2026
+
+The natural-tower and crop GPP/ET refits have finished, along with the soil-pool preparations for the NEE stage.
+NEE fitting is in progress. These results come from the development campaign. The model code on public GitHub main
+remains the 30 October release; this dated documentation update does not announce a new code release. The release
+scores and benchmark tables elsewhere in this chapter retain their original experiments and meaning.
+
+| Stage | Progress through 4 November |
+|---|---|
+| Natural-tower GPP and ET | 356 fits complete |
+| Crop GPP and ET | 46 fits complete, including the three Mead sites with hourly shortwave forcing |
+| Soil pools for NEE | 358 preparation runs complete; six results retain pool-drift flags for review |
+| Day and night NEE | Refits in progress using mean fluxes and the solar day/night split |
+| Methane bands, final global protocol, learned wetland area and final scores | Pending |
+
+The three completed stages report no execution failures. A completed preparation run, however, does not establish
+soil-carbon equilibrium at every site. The six drift flags remain part of the review of the NEE starting states.
+
+**What the first tower comparison shows.** Among 331 towers with finite paired GPP ratios, the number whose
+model/tower ratio is within 10% of one rises from 75 in the revised starting configuration to 189 after fitting.
+The result is encouraging for these tower simulations, but the changes are not uniformly beneficial. At the eight
+larch towers, the median ET ratio falls from 1.423 to 1.278, leaving an overestimate. At the 31 open-shrubland towers
+with finite paired GPP ratios, the median rises from 0.987 to 1.178, moving toward excess GPP.
+
+These are paired comparisons of saved tower outputs. They are not an independent held-out validation of the
+assembled type parameters or evidence of improved global skill. Held-out years, the reduction from individual fits
+to type values, and the final global run still need separate assessment. The crop capacity scales were fitted on
+the starting parameter set; their compatibility with the assembled natural-type parameters must also be checked
+before the final global protocol.
+
+**Decisions retained for this release.** The lower-canopy growing-degree-day threshold for temperate grass G06
+remains 700 °C d; the lower threshold obtained by taking the new fitted median has not been adopted. The separate
+crop-allocation override remains unset, retaining the current allocation behavior. Prescribed crop-tower fits do
+not use that override, so this decision does not invalidate their completion. The lower-canopy leaf-area finding
+remains a limitation to examine in the global evaluation; the exploratory allocation test did not select a new
+crop parameter.
+
+The regional FLUXCOM comparison is complete, and the planned T21 and T04 capacity constraints have been selected.
+Their consequences still need to be assessed after assembling the final parameters. The energy-test review retained
+the current settings: none of the five variants met the full hourly and monthly adoption rule.
+
+A local water-balance correction now records water discarded by the canopy mixing threshold. It has been
+implemented and tested on a separate development branch and awaits merge. The final protocol and water scores
+must use the intended merged source. Methane-band refits, the final global protocol, retraining the learned wetland
+component and the final scoring remain ahead. The earlier preliminary global run does not substitute for that
+evaluation with the newly fitted parameters.
 
 ## 16.15 Notes for developers
 
@@ -924,7 +973,8 @@ part of the release calibration history, not new fits made in this review.
   by the length, and refuses a target file without `nall_*`. Reason: in gappy months the release's targets were partial
   sums against whole-month model sums. The review identified this as the likeliest common cause of `rgrowth` accumulating at
   0.10 (D4, to be checked after the refit). The length-scaled floor of $`\sigma`$ was confirmed after the implementation
-  (decisions of 2026-11-01). The campaign's target file must be rebuilt with the new script before the NEE refit.
+  (decisions of 2026-11-01). For the November refit, the target file was rebuilt and checked on the solar clock before
+  NEE fitting began.
 - *Night by the sun (D3, with D34).* The night of the targets is the sun below the horizon at the middle of the
   half-hour, on the tower's solar clock and at the cell's latitude (`tower_forcing.solar_night`), matching the model's
   `coszen` ≤ 0 at mid-step. FLUXNET's `NIGHT` (whole interval dark) is now a cross-check only (`night_check`,
@@ -964,10 +1014,12 @@ part of the release calibration history, not new fits made in this review.
   `weather.wind_keep_mean = true`; and `canopy.dew_on_dry = 1` (Chapter 5). These diagnostic variants have not been
   adopted as new defaults. Monthly ET components were saved by the energy worktree's `site_fit --heat-diurnal` path
   (`review-energy`, `3cad226`); do not assume every older heat file contains them.
-- *Crop towers (D23, D31).* `crop.aleaf` (unset: the release's behaviour) would be set from crop literature during
-  the crop-tower refits only if the investigation of the nearly leafless lower canopy on D_temperate cropland (D12)
-  identifies grass allocation as the cause. Otherwise, `crop.aleaf` remains unset, and log section 76 names both
-  causes of the halved harvest. The three Mead fits are rerun with `--hourly-sw`.
+- *Crop towers (D23, D31).* The recorded decision for this release is to leave `crop.aleaf` unset. This preserves
+  the current allocation rule without adopting the exploratory leaf-allocation value. The prescribed tower setup
+  does not read this override; the decision concerns vegetation in the global protocol. The 46 crop refits used
+  `params_32a_base.yaml`, including the three Mead fits with `--hourly-sw`. Compatibility of their fitted capacity
+  scales with the later assembled parameter set remains a review item. Log section 76 names both causes of the
+  halved harvest.
 
 **Completed diagnostics and current preset (2026-11-02).** The tower baseline and grouped comparisons ran with
 `site_fit --only-baseline` on each tower's NEE-stage soil pools. The release set was evaluated on release code; the
@@ -996,9 +1048,21 @@ for each metric. Ratios are computed within a tower before taking the median.
 The floor and fire decisions are supported by `d9_floors/floors_2010.txt`, `d30_fire/refit_prelim.txt`, and
 `d30_fire/refit_allsteps.txt`. These reports describe preliminary diagnostic runs, not the final global evaluation.
 
-**Still to do.** Assess energy-variant adoption; investigate D12 and D19 before the conditional crop-allocation
-decision (D23); rebuild the campaign NEE target file; complete the FLUXCOM checks of T21 and T04 (D20, D21); and run
-the refits and final protocol of section 16.14.3. Final scoring must use the zone rule (2.2) for the cell scalars
+**Development results through 4 November.** The natural-tower, crop and pool-preparation campaigns used development
+source `9ef13c5`. Their completion records establish successful execution, not scientific acceptance of every fitted
+parameter. The GPP counts in section 16.14.4 use the 331 records with finite ratios in both the revised baseline and
+the fitted set. The larch and open-shrubland numbers are separate medians over their paired records; subtracting
+those medians is not the same as taking the median paired change. The source comparison's difference is oriented
+as starting configuration minus fitted configuration, so its percentage marked closer describes the starting
+configuration. The new fitted lower-GDD median for G06 was excluded from the assembled candidate to retain 700.
+The 35 own-G06 fits used a 50–1500 range, allowing that agreed starting value to be represented during optimization;
+other prescribed roles retained their existing bounds.
+The water adjustment was implemented separately and was not part of these tower fits.
+
+**Still to do (4 November).** Complete the NEE and methane refits; review pool drift, crop-parameter compatibility
+and the fitted type aggregate; merge the reviewed water adjustment; and run the final protocol and evaluation of
+section 16.14.4. The crop-allocation decision is settled for this release, while the lower-canopy findings remain
+documented limitations. Final scoring must use the zone rule (2.2) for the cell scalars
 (D66; `towers31_rescore.py` still takes the mean over the tower's types) and state the area convention for each
 quantity (D67). WAD2M defines wetland fraction relative to whole-cell area, so the final scoring convention must be explicit.
 The learned wetland model must be retrained on the final hindcast before the methane transient and hindcast pass (D39).

@@ -828,14 +828,18 @@ implementation details:
    for the acclimated types the tower fits identify only the ratio $`V^{0}/S_{max}`$ where $`X`$ stays below
    $`S_{0} + S_{max}`$ (section 9.3.3); for T17, $`S_{0} + S_{max}`$ = 18.72 °C while $`X`$ peaks at 18.74 °C in 2001 at
    the D_subarctic cell of Figure 9.2. Constraining $`S_{max}`$ is left to a later calibration round.
-8. **Capacities to be checked in the refits.** D20: T21's capacity sits at the widened upper bound of positions 4 and 6
+8. **Capacity checks and selected constraints.** D20: T21's release capacity sits at the widened upper bound of positions 4 and 6
    in the bound-relaxed refit (1.5 × 87.2/1.5298 = 85.50 µmol m⁻² s⁻¹ at 15 °C); D21: T04's comes from the one tower
    typed T04, and position 3's TRY range at 15 °C is 17.6-39.6 µmol m⁻² s⁻¹. Decision: compare B_cold and C_highland
    GPP with FLUXCOM and, where the zone is off, set T21's capacity to the TRY upper bound (57.0 µmol m⁻² s⁻¹ at 15 °C)
    and T04's to position 3's base value (28.9). D41: the tower tool converted the C4 capacity bounds with the C3
    temperature factor (6.5-49.0 instead of 5.9-44.1 µmol m⁻² s⁻¹ at 15 °C); `site_fit.vmax_bounds_15c` now uses the C4
    factor for the C4 position (commit 63fd7c0). The release C4 capacities would not change; the slopes and stress
-   factors of the 12 C4 fits above 44.1 could.
+   factors of the 12 C4 fits above 44.1 could. The regional FLUXCOM comparison is now complete, and the new type
+   aggregate applies the selected T21 and T04 constraints (section 16.14.4). This is a constraint choice, not a
+   demonstrated improvement in regional GPP. T21 has little leaf area in the preliminary run, limiting how much
+   of the regional discrepancy can be attributed to its capacity. The assembled parameters still need the final
+   global evaluation; Tables 9.5 and 9.6 remain the release values.
 9. **Positive-gain growth respiration (D1).** `bgc.rgrowth_positive_only`, default true, charges growth respiration
    only on a positive gain. The release also charged it on deficits; see sections 11.2.3 and 11.13.
 10. **Provenance in `docs/CALIBRATION.md`.** Tower fits of the type values, sections 45-57; the reset capacities,

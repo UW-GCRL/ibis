@@ -947,12 +947,25 @@ Kept and documented after the review: no bound on the canopy height (D46); one d
 canopies (D49); the smoothed-stress sentinel "0 = not set" (`stress_accum.py`; D60, to change at the next restart-format
 change); the cropland cover cap, sapwood fraction and cover floor (D8, D22, D48; section 15.12).
 
-The tower analysis is investigating the scarcity of cold-deciduous trees alongside the leafless D_temperate cropland
+Controlled tests have examined the scarcity of cold-deciduous trees alongside the leafless D_temperate cropland
 of section 15.9 (D19 with D12). In the release state at the end of 2000, T15 (position 5) holds 0.011 m² m⁻² of leaf
 area or less, about its minimum, on 72.6 % of the D_temperate area (cos-latitude weighted). Over the zone it holds 10.9 % of the upper-canopy leaf area
 (area-weighted mean leaf area 0.25 against 2.02 m² m⁻² for the conifer T16 in position 4), so the zone's fitted
 upper-canopy phenology acts on little leaf area (Chapter 10; review evidence, `technote_review_2026-11-01/merged.json`,
-D19, on the lab NAS). The stem temperature
+D19, on the lab NAS).
+
+At the sampled Madison cell, T15 is allowed by the climate rule, but its low NPP supports a leaf area below the
+minimum in a fixed-NPP budget. Exchanging the initial T15 and T16 leaf areas, while holding total upper leaf area
+unchanged, raises T15's potential leaf area to 0.935 m² m⁻² after three years. This supports an initial-composition
+feedback at the tested cells; it does not show that initial conditions explain the whole zone or that the two
+states are stable equilibria.
+
+The ten-year grass controls show a strong allocation response and a transient benefit from initial leaf seeding
+(section 15.9.1). The changed daily climate statistics also affect C4 eligibility near the 22 °C warm-season
+threshold. Allocation remains unchanged for this release: the trial leaf share of 0.45 is not an adopted crop
+parameter. The low leaf area and harvest remain limitations, and a separate crop-pool mapping is future work.
+
+The stem temperature
 $`T_{s}`$ of (11.4) depends on the stem heat capacity `canopy.chs`, one of the variants of the hourly energy test (D14;
 Chapter 5). The share of leaf respiration in the gross primary production is to be reported from the final run (D72;
 Chapter 9).

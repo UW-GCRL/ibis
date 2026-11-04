@@ -687,8 +687,9 @@ log at start-up; the release run did not yet do so and is assumed to have used t
 
 The routines of this chapter were checked against `canopy.f`, `comsat.h`, `main.f` (`lsxmain`) and `stats.f` of IBIS
 2.6b4 and against `params.can`. The equations, constants and order of the calculations are those of IBIS 2.6b4. The time
-step that contains them was verified against the Fortran in double precision (section 17.9); one difference inside the
-canopy calculation is still unexplained (section 5.12). The differences are:
+step that contains them was verified against the Fortran in double precision (section 17.9). A later check explains
+a recreated melting-point event as sensitivity to compiled arithmetic; a separate monsoon event remains unresolved
+(section 17.9.3). The differences are:
 
 1. **Guards shared with the reference Fortran.** The replacement of the canopy rows where the canopy surfaces vanish
    (section 5.6.4), the humidity factor $`\alpha = h_{2}`$ at $`\beta_{s} = 0`$ (5.37) and the bands of $`10^{-10}`$ kg kg⁻¹,
@@ -723,6 +724,12 @@ canopy calculation is still unexplained (section 5.12). The differences are:
     cover $`a_p \le 0.5`$ (section 7.13). The puddle capacity $`P_{max}`$ in (5.35) is 10 kg m⁻² in the release parameter
     set, compared with 4.5 kg m⁻² in IBIS 2.6b4.
 
+A water-balance check on 4 November 2026 found that very small amounts of water discarded when canopy rain and
+snow are mixed were missing from the recorded adjustments. Counting them closes the double-precision water budget
+near numerical precision in the four tested cells (section 7.11). This changes the accounting, not the movement of
+water through the canopy. The correction is implemented on a separate development branch and awaits integration
+after the current NEE fits finish; it has not yet been checked in a new global run.
+
 ## 5.12 Notes for developers
 
 The following implementation notes are for readers working on the code. The routines are in `ibis/physics/canopy_exchange.py`
@@ -732,9 +739,9 @@ and latent heats). These port `canopy.f` and `comsat.h` of IBIS 2.6b4; `timestep
 calls them in the order of Table 5.1.
 
 The notes below record changes to this chapter's code after the release
-(code `e54e342`, run `final_rel30`). The current documentation is aligned with `c6698fd`, which includes the
-`review-d25` changes. Sources are the review's `decisions_taken.md`, `docs/CALIBRATION.md` section 87 and
-`docs/DEFECTS_FOR_REVIEW.md`. Recalibration is still pending. A preliminary 310-year protocol run finished on
+(code `e54e342`, run `final_rel30`). The earlier comparisons use `c6698fd`, which includes the
+`review-d25` changes; later follow-up checks are dated below. Sources are the review's `decisions_taken.md`,
+`docs/CALIBRATION.md` section 87 and `docs/DEFECTS_FOR_REVIEW.md`. Recalibration is under way. A preliminary 310-year protocol run finished on
 2 November 2026 (`verify_outputs/prelim_d25`); it is not the final run, which follows recalibration. The test year
 cited below is one global year, 2001, of the revised code with the review parameters
 and `physics.water_balance` on, started from a copy of the release hindcast's state at the end of 2000
@@ -795,12 +802,21 @@ and `physics.water_balance` on, started from a copy of the release hindcast's st
   excess ground snowfall (`n_snow`) and of the canopy-store overshoot (`n_cdef`, `ay_w_cdef`).
 - **Verification harness (D62; bed0ae7).** Both codes now run with IBIS 2.6b4's own soils, solids, snow constants and
   existence flags (`verify/STATUS.md`, Harness settings). The guard $`\alpha = h_{2}`$ of (5.37) stays; the overflow it
-  prevents (finding 26) came from the harness's negative saturated suction, not from IBIS 2.6b4. One difference remains unresolved: at 55°N 40°E on
-  23 March 1951, 09 h (full snow cover, upper leaves at 273.16 K holding snow and liquid), the codes agree to
-  1.4 × 10⁻¹¹ before the step and differ by 1.5 × 10⁻² K in the canopy air after it. Radiation and the cascade agree;
-  the difference arises in the canopy stage (`canini`, `turcof`, the stomata and three passes of `turvap`) from
-  identical inputs and is not rounding. Locating its source requires the per-iteration drill
-  `verify/timestepping/pipeline/drill_canopy_iters.py`, which first needs updating to the current loop.
+  prevents (finding 26) came from the harness's negative saturated suction, not from IBIS 2.6b4. The historical record
+  at 55°N, 40°E on 23 March 1951, 09 h reports agreement to 1.4 × 10⁻¹¹ before the step and a canopy-air difference of
+  1.5 × 10⁻² K afterwards, with snow and liquid on leaves at 273.16 K. The exact historical input was not retained.
+  A bounded replay recreated this kind of event and compared both codes from identical injected inputs. Uncompiled
+  execution agreed with Fortran to 1.14 × 10⁻¹³ K; compiled execution retained a gap of about 0.015 K. The first
+  material difference occurs in the third `turvap` iteration: a one-unit difference in the last represented digit
+  selects opposite sides of the snow-saturation phase boundary. Selecting the ice side in that iteration removes
+  the gap. This counterfactual is a diagnosis, not an adopted tolerance or physics change. It does not recover the
+  exact historical event or settle the separate monsoon case. Section 17.12 gives the saved evidence and limits.
+- **Canopy cascade accounting (4 November 2026; commit 6087ab5).** The cascade's mixing routine drops amounts below
+  its small-number threshold. The correction includes those discards as negative contributions to `adj_round`, as
+  already done for the rain/melt cut-off before soil, without changing the canopy state or fluxes. A four-cell replay
+  of 2001 in float64 and patched monthly checks close near numerical precision; the snow-cover storage-weight term
+  must not be added as a separate missing flux (section 7.15). The commit remains on `review-water-closure`, pending
+  merge after the NEE queue; the current fits continue to use the unchanged source at `9ef13c5`.
 - **Comments (D97; 8416c20).** `constants.py` and the port's `fortran/src/modules/mod_constants.f90` now name
   `inisurf` (`initial.f`) as the source of the constants. The reference IBIS 2.6b4 sources are unchanged.
 - **Kept as they are (D46).** Upper-canopy tops reach 154.5 m in the release state, and the reference level follows

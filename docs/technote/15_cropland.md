@@ -272,6 +272,10 @@ cropland, the harvest is then $`h\, a_{crop}`$ of the crop NPP. The harvest inde
 real crops, is a share of the above-ground production. The release does not set this parameter, so grasses retain
 their own allocation. Like the other annual cropland terms, it acts only with dynamic vegetation (section 15.8).
 
+The current release decision also leaves this override unset. The controlled tests of section 15.9.1 show that
+allocation matters, but they do not select a transferable crop leaf share. The harvest index remains 0.45; that
+index is a different quantity from the trial leaf-allocation value of 0.45 used in the diagnostic.
+
 ## 15.7 Leaf-area limit on the cropland share
 
 The code can limit each canopy's leaf area per unit cover to a per-type maximum (`pft.lai_max`; section 11.7),
@@ -332,7 +336,7 @@ the C_oceanic zone (median 1.99 m² m⁻²), 12 % in the B_cold zone and 7 % in 
 the value is 0.11 m² m⁻², at the cell east of it (86 % cropland) 2.85 m² m⁻². At the first of these cells the
 cold-phenology factor of the lower canopy is 1 from day 97 to day 286, and the displayed fraction implied by the run's
 month-end leaf area is 1 at the end of every month from April to September (section 10.11), so the leaf-area shortfall arises from
-the grass's leaf carbon rather than its phenology. The cause is under investigation (section 15.12).
+the grass's leaf carbon rather than its phenology. The later controlled tests are described in section 15.9.1.
 The review evidence for these cell and zone statistics is identified in the developer notes.
 
 ![Figure 15.3](figures/fig_15_3_release_cropland.png)
@@ -372,7 +376,7 @@ lower-canopy cover fell from 0.94 in that set to 0.38 in the release (weighted b
 area, the harvest fell from 65.5 to 31.0 g C per m² of cropland per year, its ratio to the cell's NPP by 40 % (0.0925
 to 0.0550), and the cell's NPP by 20 %, from 0.71 to 0.56 kg C m⁻² yr⁻¹ (`figures/make_ch15.py`, `N15`).
 
-No run isolates the two
+The earlier parameter-set comparison does not isolate the two
 causes. A crop that covered its own share would change the lower-canopy cover, and through it the NPP of the grasses,
 the water balance and the fire, of every cell with cropland, but not the share $`h\,a_{l}`$ of the grass NPP that the
 harvest takes; the crops' allocation of section 15.6 changes that share. In the release the crops' cover was left for a
@@ -387,6 +391,33 @@ irrigation and fertilization of cropland; the land-use history, since the map of
 1701 on; residues, which enter the litter with the rest of the grass turnover; and the shrubs' and the trees' absence
 from the field, which is represented through their NPP and cover, not through their pools.
 
+### 15.9.1 Controlled tests and the release decision, November 2026
+
+Three controls followed Madison and its eastern neighbour through 2001-2010 from the same end-2000 release
+state, with the revised model and the same weather. They compared the reference with a crop leaf-allocation
+override of 0.45 and with a restored initial C3 leaf pool, its cover and stem area recomputed consistently.
+At Madison in 2010, the month-end July lower-canopy leaf
+area per unit grid-cell area was 0.134 m² m⁻² in the reference, 1.119 with the allocation change, and 0.084 with
+the initial-leaf treatment. These are month-end diagnostic quantities, not the monthly-mean values in the
+historical release comparison above.
+
+The allocation change strongly affects later leaf growth and production. Adding leaves initially helps early in
+the run, but that benefit does not persist. None of the three trajectories has settled, so this experiment does
+not establish an equilibrium, stable alternative states or a remedy for the whole climate zone. A separate
+climate-statistics check also shows why the revised daily rule changes C4 eligibility: Madison's 2010 warm normal
+is 22.285572 °C under that rule, compared with 21.957893 °C under the release's monthly rule, on opposite sides of
+the 22 °C cutoff. That eligibility change and the subsequent allocation response are distinct effects.
+
+For this release, allocation is kept unchanged. The trial value of 0.45 is the older grass value, not a selected
+crop parameter. Mapping crop leaf, stem, root and grain production into the model's managed-grass pools requires
+further development and testing. This decision leaves the low leaf area and harvest as documented limitations;
+it does not mean that allocation has no effect.
+
+The 46 prescribed crop-tower refits are complete, including the three Mead sites with hourly shortwave radiation.
+Those fits can constrain crop photosynthetic capacity, but not this dynamic allocation rule, because their
+vegetation update is prescribed (section 15.8). The final combined parameter set and global crop results remain
+to be evaluated (Chapter 16).
+
 ## 15.10 Parameters and switches
 
 **Table 15.4** Parameters of the `crop` section of the parameter file. The fitted values are the medians of the
@@ -398,7 +429,7 @@ per-tower fits of section 16.12.
 | `crop.vmax_scale_c3` | $`s_{C3}`$ | 0.329 | capacity of the C3 crop relative to the natural C3 grass | fitted, 12 C3 towers | (15.1), (15.2) |
 | `crop.vmax_scale_c4` | $`s_{C4}`$ | 1.158 | capacity of the C4 crop relative to the natural C4 grass | fitted, 4 maize towers | (15.1), (15.2) |
 | `crop.c4_share` | $`q`$ | 0.2 | share of C4 crops in the cropland; negative: the scales act per position | set | (15.1), (15.2) |
-| `crop.aleaf` | $`a_{crop}`$ | not set | leaf share of the crops' allocation on the cropland share, the rest to roots; not set: the grasses' own allocation | from the crop literature, at the next crop calibration | (15.7) |
+| `crop.aleaf` | $`a_{crop}`$ | not set | leaf share of the crops' allocation on the cropland share, the rest to roots; not set: the grasses' own allocation | remains unset for this release; separate crop-pool development is future work | (15.7) |
 | `crop.lai_max` | $`\Lambda^{max}_{crop}`$ | not set | maximum leaf area per unit cover of the crops, with `pft.lai_max` only | – | (15.8) |
 
 **Table 15.5** Parameters of other sections that the cropland terms use, with their release values.
@@ -443,19 +474,20 @@ At the default `physics.isimveg` = 0, IBIS 3.0 instead uses its own fixed-vegeta
 
 The release run (`final_rel30`) was made with the code of commit `e54e342`. The technote review of 2026-11-01
 (`docs/CALIBRATION.md` section 87; `docs/DEFECTS_FOR_REVIEW.md`) changed or settled the following aspects of cropland treatment.
-No result quoted in this chapter comes from a run with these changes.
+The release figures and global totals above retain their original source. Section 15.9.1 reports the later
+controlled diagnostics and current release decision separately.
 
 1. *Crops' allocation* (review D23; `crop.aleaf`, default unset). The harvest takes $`h\,a_{l}`$ = 0.11-0.135 of the
    crop NPP, and `docs/CALIBRATION.md` section 76 had attributed the halving of the harvest to the saturating cover
-   alone; its dated note now names the allocation as a second cause. Decision (c): the cropland share gets a crop
-   allocation, blended by the crop share (`dynaveg`, `vegetation_dynamics.py`; test
-   `tests/test_review_vegetation_fixes.py`); the harvest index stays 0.45. The value of `crop.aleaf` is to be selected
-   from the crop literature during the analysis phase, before the crop towers are refitted in the GPP/ET stage of the
-   refit. The tower fits cannot constrain this value: their runs use the fixed-vegetation update (section 11.12.1), which has no
-   cropland terms, and the tower harness (`verify/calibration/site_transient.py`) passes no cropland fraction to the
-   annual update. The choice depends on the investigation of the leafless D_temperate cropland (D12, section 15.9): if
-   the grass allocation is not its cause, the parameter stays unset and the crops stay as in the release
-   (`docs/CALIBRATION.md` section 83).
+   alone; its dated note now names the allocation as a second cause. The optional blend was implemented in
+   `dynaveg` (`vegetation_dynamics.py`; test `tests/test_review_vegetation_fixes.py`), but the subsequent release
+   decision supersedes the plan to select a new value: `crop.aleaf` remains unset and the harvest index stays 0.45.
+   This is an explicit release choice after the controlled tests, not the earlier conditional claim that allocation
+   has no role. The tower fits cannot constrain this value: their runs use the fixed-vegetation update
+   (section 11.12.1), which has no cropland terms, and the tower harness (`verify/calibration/site_transient.py`)
+   passes no cropland fraction to the annual update. The ten-year diagnostics and their state/checkpoint checks
+   are recorded in the D12/D19 development review; their first three years reproduce the original controls
+   bit for bit. A crop-pool mapping and its calibration are deferred.
 2. *The light-limited rate* (D57). With `stomata.acclim_light` on, the grasses' light factor now comes from the
    acclimation and frost factor without the cropland factor (`loops.acclimation_vfac(..., with_crop=False)`, passed to
    `stomata` as `jfac`); before, the cropland factor (0.495 at full cropland) would have scaled it. Off in every
@@ -472,7 +504,9 @@ No result quoted in this chapter comes from a run with these changes.
    divides by the cell's wood, which raises the wood maintenance respiration of the cropland cells at 15 °C from 0.338
    to 0.450 Pg C yr⁻¹ (release run, D22); the cover floor acts after the factor $`1 - f_{crop}`$ (D48).
 5. *Tower fits* (D31, D81). The C4 scale is the median of four fits; the three Mead (Nebraska) fits ran without the
-   towers' hourly shortwave radiation and will be rerun with it (`site_fit --hourly-sw`) in the refit. Four of the twelve
+   towers' hourly shortwave radiation. Those three fits have now been rerun with it (`site_fit --hourly-sw`) as part
+   of the completed 46-site crop refit. These development fits use the revised base parameter file; their
+   compatibility with the natural-type aggregate must be checked before assembling final parameters. Four of the twelve
    C3 fits lie within 0.003 of the bound 0.30 and eight within 0.05 (`crop2/*/best.json`); `docs/CALIBRATION.md`
    section 41 counted eight at the bound and carries a dated correction.
 

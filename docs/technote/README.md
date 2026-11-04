@@ -1,8 +1,9 @@
 # IBIS 3.0 Technical Note
 
-**Early edition · 2 November 2026.** This edition improves the explanations while retaining the scientific content.
-It documents the released model and the corrections reviewed since release. Refits and final evaluation are still
-in progress; Chapter 16 identifies the remaining work. The model code on GitHub main remains the 30 October release; this publication updates documentation only.
+**Early edition · updated 4 November 2026.** This dated update adds verified development findings and the current
+recalibration status. It retains the published release benchmark tables. Refits and final evaluation remain in
+progress; Chapter 16 records the completed work and remaining tests. The model code on GitHub main remains the
+30 October release; this publication updates documentation only.
 
 This note describes the Integrated Biosphere Simulator, version 3.0: the equations the model solves, their
 parameters and the data the model reads. Its chapter structure follows the CLM5 Technical Note (Lawrence et al.,
@@ -14,6 +15,14 @@ the current starting parameters and exploratory results. In that reviewed implem
 types and 975 for temperate conifer; fire counts eligible steps throughout the day; and the global driver requests
 deterministic GPU reductions by default. These settings are not assigned retrospectively to older experiments.
 Remaining scientific decisions, refits and final validation are described in Chapter 16.
+
+**Development progress, 4 November 2026.** The natural-tower and crop GPP/ET refits and the new soil-pool preparations
+are complete; the NEE refits are in progress. [Chapter 16](16_calibration.md#16144-development-progress-4-november-2026)
+reports the first paired tower comparisons, their tradeoffs and the work still needed before a final global evaluation.
+The release candidate retains the G06 timing threshold described in [Chapter 10](10_phenology.md) and leaves the
+separate crop-allocation override unset ([Chapter 15](15_cropland.md)). A local water-balance adjustment has been
+implemented and awaits merge; [Chapter 7](07_soil_hydrology.md) explains the water accounting. These development
+results do not change the released benchmark tables or the model code published on GitHub main.
 
 The chapters describe the equations, inputs and parameter choices in detail. Implementation history and unresolved
 questions appear in each chapter's closing Notes for developers.
@@ -37,7 +46,7 @@ questions appear in each chapter's closing Notes for developers.
 | 13 | [Fire](13_fire.md) | early edition |
 | 14 | [Wetland Methane](14_methane.md) | early edition |
 | 15 | [Cropland](15_cropland.md) | early edition |
-| 16 | [Calibration](16_calibration.md) | early edition |
+| 16 | [Calibration](16_calibration.md) | early edition; progress updated 4 November |
 | 17 | [Numerical Implementation and Verification against IBIS 2.6b4](17_numerics_verification.md) | early edition |
 
 Chapter 5 continues in [Part 2: energy balance and evapotranspiration](05_surface_fluxes_part2.md).
