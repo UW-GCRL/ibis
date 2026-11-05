@@ -110,15 +110,22 @@ visible and near-infrared. Beneath the vegetation the model resolves a snowpack 
 six layers to 4 m (Table 1.2) and, when `grid.nbedrock` is 3 (default 0; 3 in the release), three bedrock layers that
 conduct heat only and extend the column to 12 m (Figure 1.1).
 
-![Figure 1.1](figures/fig_1_1_model_structure.png)
+![IBIS 3.0: one shared land column and the connections among physics, vegetation, soil carbon, crops, fire and wetland methane](figures/fig_1_1_model_structure.svg)
 
-**Figure 1.1** (a) The structure of a grid cell: the upper canopy of trees, which covers the fraction $`f_u`$ of the
-cell, and the lower canopy of shrubs and grasses, which covers the fraction $`f_l`$ of its snow-free part, above a
-snowpack of three layers, six soil layers to 4 m and, in the release, three bedrock layers to 12 m (Table 1.2); the
-layers are not drawn to scale. (b) The time scales of the calculations (Tables 1.3 and 1.4): sums and means of the
-hourly calculations, with the daily forcing, drive the daily, monthly and yearly ones. In turn, the daily and the
-yearly calculations update the leaf area and the carbon pools, and the yearly ones also the cover, which the hourly
-calculations use.
+**Figure 1.1** Structure and selected process connections of IBIS 3.0. (a) The upper tree canopy covers the
+fraction $`f_u`$ of the cell; the lower shrub-and-grass canopy covers the fraction $`f_l`$ of its snow-free part.
+The canopies can overlap. Thirty-five climate-zone vegetation types parameterize twelve canopy positions;
+sunlit and shaded leaves are photosynthetic partitions, not extra canopy layers. Snow has three layers where
+present. Six soil layers reach 4 m, and three heat-only bedrock layers extend the thermal column to 12 m when
+enabled, as in the release (Table 1.2). Depth spacing and vegetation are schematic, not to scale. (b) Solid arrows
+show selected transfers; dashed arrows show state or input controls. Cropland modifies the existing grass
+positions. Wetland methane uses the shared soil state and decomposition respiration, with a seasonal wetland-area
+climatology plus a learned anomaly in the illustrated configuration. Methane carbon is part of the carbon already
+removed by decomposition, not a second withdrawal from the pools. Litter and soil-carbon pools have no vertical
+layers. The diagram is not a complete budget or an execution order; Tables 1.3-1.4 give the calculation schedules.
+
+[Open the vector figure](figures/fig_1_1_model_structure.svg) or
+[download the high-resolution PNG](figures/fig_1_1_model_structure.png) for a larger view.
 
 **Table 1.1** The twelve plant functional type (PFT) positions of IBIS 2.6b4. With the climate-zone types of Chapter 2,
 the positions of a cell are filled by the tree, shrub and grass types of its zone; a tree position with no type in the
@@ -390,7 +397,7 @@ calibration described in Chapter 16 did not use gradients.
    position of its first minute, centring the day's sunlight on 12:30. Climate statistics are accumulated day by day,
    as in IBIS 2.6b4 (`pheno.climate_stats_daily`). The release derived them from monthly means, which give different
    values: the coldest monthly mean lies above the year's lowest 10-day mean. The latter two switches default to true;
-   false gives the release's rule for each process. Tables 1.3, 1.4 and Figure 1.1 show the current order.
+   false gives the release's rule for each process. Tables 1.3 and 1.4 show the current order.
 5. **Cold start (D54; no switch).** The soil and the ground start at 278.13 K, as in IBIS 2.6b4
    (`initial.f:628-630`), and the bedrock at the same temperature; the release code used 278.0 K. The change matters
    only for short cold-start comparisons with the Fortran; it has no effect after the 200-year spin-up.

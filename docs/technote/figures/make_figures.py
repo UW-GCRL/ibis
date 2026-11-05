@@ -62,98 +62,13 @@ def _coast(ax, land):
 
 
 # ---------------------------------------------------------------------------------------------------------------
-# Figure 1.1: structure of a grid cell and the time scales of its processes
+# Figure 1.1: a shared grid-cell column and selected process connections
 # ---------------------------------------------------------------------------------------------------------------
 
 def fig_1_1():
-    fig, ax = plt.subplots(figsize=(8.4, 5.4))
-    ax.set_xlim(0, 112); ax.set_ylim(0, 72); ax.axis("off")
-    x0, x1 = 6.0, 28.0                                             # the column
-    # atmosphere
-    ax.add_patch(Rectangle((x0, 62), x1 - x0, 8, fc="#eaf2fb", ec="none"))
-    ax.text(x0 + 1, 68.6, "atmosphere", va="center", color=INK2, fontsize=7.5, style="italic")
-    for xa in (10, 15, 20):
-        ax.add_patch(FancyArrowPatch((xa, 67.5), (xa, 62.6), arrowstyle="-|>", mutation_scale=7, color="#6d8fb3", lw=0.8))
-    ax.add_patch(FancyArrowPatch((25, 62.6), (25, 67.5), arrowstyle="-|>", mutation_scale=7, color="#b07a3b", lw=0.8))
-    # upper canopy: two broadleaf and two conifer trees
-    for xc, kind in ((9.0, "b"), (14.5, "n"), (20.0, "b"), (25.2, "n")):
-        ax.add_patch(Rectangle((xc - 0.35, 43.5), 0.7, 9, fc="#7a5a3c", ec="none"))
-        if kind == "b":
-            ax.add_patch(Ellipse((xc, 55.5), 5.0, 7.0, fc="#4f8f3a", ec="none"))
-        else:
-            ax.add_patch(Polygon([(xc - 2.3, 49.5), (xc + 2.3, 49.5), (xc, 60.0)], closed=True, fc="#2f6b3a", ec="none"))
-    # lower canopy: shrubs and grasses
-    for xc in (7.0, 12.0, 17.5, 22.5):
-        ax.add_patch(Ellipse((xc, 44.6), 2.6, 2.4, fc="#8db84a", ec="none"))
-    for xg in np.arange(6.8, 27.5, 0.9):
-        ax.plot([xg, xg + 0.25], [43.0, 45.6], color="#b5c95c", lw=0.7)
-    # snow
-    for k in range(3):
-        ax.add_patch(Rectangle((x0, 40.0 + k * 1.0), x1 - x0, 1.0, fc="#f4f8fc", ec="#c9d6e3", lw=0.4))
-    # soil: six layers, bedrock: three (not to scale)
-    from ibis.io.soil_init import HSOI_LAYERS
-    from ibis.physics.bedrock import BedrockParams
-    soil_bot = tuple(np.cumsum(HSOI_LAYERS))
-    rock_bot = tuple(soil_bot[-1] + np.cumsum(BedrockParams().hsoi))
-    browns = ("#c9a77c", "#bf9a6c", "#b28c5e", "#a57e52", "#987147", "#8a653e")
-    y = 40.0
-    for d, c in zip(soil_bot, browns):
-        ax.add_patch(Rectangle((x0, y - 4.0), x1 - x0, 4.0, fc=c, ec="white", lw=0.6)); y -= 4.0
-        ax.text(x0 - 0.6, y, f"{d:g} m", ha="right", va="center", fontsize=6.5, color=INK2)
-    for d, c in zip(rock_bot, ("#a3a3a0", "#959592", "#878784")):
-        ax.add_patch(Rectangle((x0, y - 3.6), x1 - x0, 3.6, fc=c, ec="white", lw=0.6)); y -= 3.6
-        ax.text(x0 - 0.6, y, f"{d:g} m", ha="right", va="center", fontsize=6.5, color=INK2)
-    ax.text(x0 - 0.6, 40.0, "0", ha="right", va="center", fontsize=6.5, color=INK2)
-    ax.text(x0, 0.3, "not to scale", fontsize=6.5, color=INK2, style="italic")
-    # labels of the column
-    lx = 30.5
-    lab = [
-        (66.5, "Atmosphere", "radiation, heat, water vapour,\nmomentum, CO$_2$, CH$_4$; daily forcing\nmade hourly (Ch. 3)"),
-        (56.5, "Upper canopy: trees", "PFT positions 1–8, cover $f_u$;\nbig leaves: broadleaf, conifer"),
-        (47.3, "Lower canopy: shrubs, grasses", "positions 9–12, cover $f_l$; big leaves:\nshrub, C3 grass, C4 grass"),
-        (39.4, "Snow", "three layers (Ch. 8)"),
-        (29.0, "Soil, 6 layers to 4 m", "temperature, liquid water and ice\n(Ch. 6, 7); roots (Ch. 2)"),
-        (8.0, "Bedrock, 3 layers to 12 m", "heat conduction only\n(grid.nbedrock = 3; Ch. 6)"),
-    ]
-    for yy, head, body in lab:
-        ax.text(lx, yy + 1.2, head, fontsize=8, color=INK, weight="bold", va="bottom")
-        ax.text(lx, yy + 0.9, body, fontsize=7.2, color=INK2, va="top", linespacing=1.25)
-    ax.text(0, 71.8, "(a) one grid cell", fontsize=9, weight="bold", color=INK, va="top")
-    # time scales
-    bx0, bw = 67.0, 38.0
-    ax.text(bx0, 71.8, "(b) time scales", fontsize=9, weight="bold", color=INK, va="top")
-    boxes = [
-        ("every time step (1 h)", "radiation; turbulent fluxes; interception;\nphotosynthesis and stomatal conductance;\n"
-                                  "snow; soil heat and water; fire weather;\nwetland CH$_4$ (when the switch\nphysics.methane_hourly is on)"),
-        # the year's climate statistics are accumulated day by day (pheno.climate_stats_daily, the default since 2026-11-01)
-        ("every day", "10-day running means; the year's climate\nstatistics; leaf phenology; litter and\n"
-                      "soil carbon decomposition"),
-        ("every month", "wetland area; the month's CH$_4$;\nmonthly output"),
-        ("every year", "running climate means (30-year memory);\nexistence of each position; allocation\n"
-                       "of NPP; turnover, litterfall; fire;\ntree-cover limit; harvest"),
-    ]
-    tops = (67.0, 47.0, 33.0, 21.0); hs = (17.0, 11.0, 9.0, 15.0)
-    fills = ("#e8f0fa", "#eaf4e4", "#f6efe0", "#f3e6e6")
-    for (head, body), top, h, fc in zip(boxes, tops, hs, fills):
-        ax.add_patch(Rectangle((bx0, top - h), bw, h, fc=fc, ec="none"))
-        ax.text(bx0 + 1.2, top - 1.2, head, fontsize=8, weight="bold", color=INK, va="top")
-        ax.text(bx0 + 1.2, top - 4.0, body, fontsize=7.0, color=INK2, va="top", linespacing=1.3)
-    for top, h, nxt in zip(tops[:-1], hs[:-1], tops[1:]):
-        ax.add_patch(FancyArrowPatch((bx0 + 9, top - h), (bx0 + 9, nxt), arrowstyle="-|>", mutation_scale=7,
-                                     color=INK2, lw=0.8))
-    ax.text(bx0 + 10.2, (tops[0] - hs[0] + tops[1]) / 2, "sums and means", fontsize=6.8, color=INK2, va="center")
-    # feedback to the hourly step: the leaf area and the carbon pools change every day (phenology, decomposition)
-    # and every year (allocation, turnover); the cover changes in the annual update only
-    xr_ = bx0 + bw + 2.0; gr = "#3d6f2c"
-    y_step, y_day, y_year = tops[0] - hs[0] / 2, tops[1] - hs[1] / 2, tops[3] - hs[3] / 2
-    ax.plot([bx0 + bw, xr_, xr_], [y_year, y_year, y_step], color=gr, lw=0.9, solid_capstyle="butt")
-    ax.plot([bx0 + bw, xr_], [y_day, y_day], color=gr, lw=0.9, solid_capstyle="butt")
-    ax.add_patch(FancyArrowPatch((xr_, y_step), (bx0 + bw, y_step), arrowstyle="-|>", mutation_scale=7,
-                                 color=gr, lw=0.9, shrinkA=0, shrinkB=0))
-    ax.text(xr_ + 1.9, (y_step + y_year) / 2, "leaf area, carbon pools (daily, yearly);\ncover (yearly)",
-            rotation=90, fontsize=6.8, color=gr, ha="center", va="center", linespacing=1.25)
-    fig.savefig(OUT / "fig_1_1_model_structure.png")
-    plt.close(fig)
+    # The standalone drawing reads layer geometry without importing the model.
+    from make_model_structure import make_model_structure
+    make_model_structure(OUT, source_root=ROOT)
 
 
 # ---------------------------------------------------------------------------------------------------------------
