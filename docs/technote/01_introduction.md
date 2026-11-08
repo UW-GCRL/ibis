@@ -70,9 +70,10 @@ review of this note led to changes in the code. Each chapter describes the code 
 since the release in its closing section, "Notes for developers". Results of the release run (global totals, tower
 scores, maps) are quoted as the release run's.
 
-The development update of 4 November 2026 adds the completed natural-site and crop refits, new soil-carbon pool
-preparations, and the water-accounting diagnosis. The NEE refits and final evaluation are still in progress
-(Chapter 16). These developments do not replace the release-run maps or global totals. This GitHub update
+The development update of 7 November 2026 records the completed refits at the flux, wetland and cropland towers, the
+assembled parameter set, the first full protocol run of the revised model and its evaluation, and the equilibrium
+analysis that led to a much longer spin-up for the production run, which is in progress (Chapter 16, section 16.14.5;
+Chapter 12, section 12.7). These developments do not replace the release-run maps or global totals. This GitHub update
 publishes the documentation; the model code on GitHub main remains the 30 October release.
 
 ## 1.2 Biogeophysical and biogeochemical processes
@@ -250,10 +251,18 @@ soil pore space (Chapters 6 and 7).
 
 The release run starts cold and follows a three-stage protocol: a 200-year spin-up (model years 1701-1900) that cycles
 the 1901-1930 forcing at a CO2 concentration of 296 ppm; a transient run from 1901 to 2000 with the forcing of each
-year and rising CO2; and a hindcast from 2001 to 2010 with monthly output. The spin-up brings the slow soil carbon pools
-close to equilibrium. To speed this up, the litter and soil carbon routine runs ten times on each model day of the
+year and rising CO2; and a hindcast from 2001 to 2010 with monthly output. The spin-up is meant to bring the slow soil
+carbon pools close to equilibrium. To speed this up, the litter and soil carbon routine runs ten times on each model day of the
 spin-up, so that these pools evolve ten times faster; the last 50 years of the spin-up run at the normal rate
-(Chapter 12). Wetland methane is computed in the transient and the hindcast.
+(Chapter 12). A later pool-level analysis found that this schedule reaches only about 78 % of the soil equilibrium
+(Chapter 12, section 12.7.1). Wetland methane is computed in the transient and the hindcast.
+
+The production run of the revised model (November 2026) keeps the three stages but replaces the 200-year spin-up by a
+chained spin-up whose first stage starts cold and whose later stages each start from the previous stage's last restart
+file, with a decreasing number of soil calls a day (810 years at 50 calls, then 60 years each at 15, 5 and 1, with
+further stages under decision on 7 November), so that the slowest soil pools reach their equilibrium and the faster
+pools and the vegetation settle at the normal rate before the transient (Chapter 12, section 12.7). The transient and
+the hindcast are unchanged.
 
 ### 1.5.4 Parameters
 

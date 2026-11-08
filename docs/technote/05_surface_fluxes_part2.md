@@ -727,8 +727,9 @@ a recreated melting-point event as sensitivity to compiled arithmetic; a separat
 A water-balance check on 4 November 2026 found that very small amounts of water discarded when canopy rain and
 snow are mixed were missing from the recorded adjustments. Counting them closes the double-precision water budget
 near numerical precision in the four tested cells (section 7.11). This changes the accounting, not the movement of
-water through the canopy. The correction is implemented on a separate development branch and awaits integration
-after the current NEE fits finish; it has not yet been checked in a new global run.
+water through the canopy. The correction (commit 6087ab5) is part of the source of the protocol runs of the revised
+model since 5 November 2026, and the full test suite passed on that source (942 tests). Its effect on the water
+balance of a complete global run has not been evaluated.
 
 ## 5.12 Notes for developers
 
@@ -815,8 +816,8 @@ and `physics.water_balance` on, started from a copy of the release hindcast's st
   its small-number threshold. The correction includes those discards as negative contributions to `adj_round`, as
   already done for the rain/melt cut-off before soil, without changing the canopy state or fluxes. A four-cell replay
   of 2001 in float64 and patched monthly checks close near numerical precision; the snow-cover storage-weight term
-  must not be added as a separate missing flux (section 7.15). The commit remains on `review-water-closure`, pending
-  merge after the NEE queue; the current fits continue to use the unchanged source at `9ef13c5`.
+  must not be added as a separate missing flux (section 7.15). The commit heads the source of the protocol runs
+  since 5 November 2026 (`9ef13c5` plus this change; full suite of 942 tests passed); the tower refits used `9ef13c5`.
 - **Comments (D97; 8416c20).** `constants.py` and the port's `fortran/src/modules/mod_constants.f90` now name
   `inisurf` (`initial.f`) as the source of the constants. The reference IBIS 2.6b4 sources are unchanged.
 - **Kept as they are (D46).** Upper-canopy tops reach 154.5 m in the release state, and the reference level follows

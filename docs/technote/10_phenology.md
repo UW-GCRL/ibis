@@ -642,7 +642,7 @@ items:
    The natural-site GPP/ET refits are now complete. Their type aggregate retains the lower-canopy degree-day
    threshold of 700: a fit to monthly flux amounts does not by itself replace the separate onset-timing
    calibration. The other fitted G06 values enter the new aggregate. This is the chosen refit parameter set;
-   its final global performance has not yet been evaluated (Chapter 16).
+   a first protocol run with it has been evaluated and the production run is in progress (Chapter 16, section 16.14.5).
 5. **One-day opening of the lower canopy (D50; kept).** Where $`\Theta_{l}`$ lies well above $`\Theta^{g}_{l}`$, the
    degree-day sum is complete before the leaf-drop condition clears, so $`\phi_{l}`$ jumps from 0 to 1 in one day and the
    ramp $`R_{l}`$ never acts (section 10.11). Documented; for G06 the timing of item 4 spreads the opening over three

@@ -596,8 +596,9 @@ shrub and grass big leaves (Chapter 10).
 ## 9.9 Parameters
 
 This section lists the parameters of the chapter with their values in the release parameter file
-(`params_31s_ch4h.yaml`). The values fitted at flux towers (Tables 9.5 and 9.6) will be replaced by those of the refits
-of the revised model (Chapter 16).
+(`params_31s_ch4h.yaml`). The refits of the revised model are complete (Chapter 16, section 16.14.5); the values fitted
+at flux towers (Tables 9.5 and 9.6) will be replaced by the production parameter set once the production run has been
+evaluated.
 
 **Table 9.2** Parameters of the leaf model and the canopy integration (section `stomata` of the parameter file). The
 release values equal those of IBIS 2.6b4 (`params.can`; the O2 mole fraction is the atmospheric value of

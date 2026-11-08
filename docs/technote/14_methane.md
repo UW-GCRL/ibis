@@ -215,8 +215,8 @@ three wetland bands. (a) Water-table depth (14.2) as a function of pore fill $`\
 0.5 m. All three bands use the black curve. (b) The fraction of heterotrophic respiration below the water table,
 (14.5), and the fraction of produced methane escaping oxidation, (14.7), as functions of water-table depth. (c) Gross methane production per
 unit of heterotrophic respiration below the water table, $`r\,Q_{10}^{(T_a - T_{ref})/10}`$ of (14.6), zero below 0 °C,
-with $`T_{ref} = 22`$ °C. The band parameters are those of the release; they will be refitted for the current production
-temperature (section 14.6).
+with $`T_{ref} = 22`$ °C. The band parameters are those of the release; Table 16.14 (section 14.6) gives the values
+refitted in November 2026 for the current production temperature.
 
 ## 14.5 Evaluation in time and output
 
@@ -273,9 +273,9 @@ which the release parameter file does not override, and $`T_{f}`$ is a module co
 
 **Table 14.1** Parameters of the wetland methane module (`MethaneParams`). Each parameter-file name can be set in the
 `methane` section of the parameter file and, except the switch, in its `methane_bands` section. The first four values
-are those of the `methane_bands` section of the release parameter file (rounded to four significant digits); they will
-be refitted for the current production temperature. The other values are the code defaults, which the release file
-does not change.
+are those of the `methane_bands` section of the release parameter file (rounded to four significant digits); the values
+refitted in November 2026 for the current production temperature are in Table 16.14. The other values are the code
+defaults, which the release file does not change.
 
 | Symbol | Parameter-file name | Description | Tropical (W01) | Temperate (W02) | Boreal (W03) | Units |
 |---|---|---|---|---|---|---|
@@ -301,9 +301,10 @@ The four release band parameters were fitted at the 48 wetland towers in the Flu
 using hourly evaluation (section 14.5), an inundated fraction of 1 and the release-run production temperature
 (the thickness rule of (14.4)). Each band value is the parameter-wise median of fits at towers whose
 Köppen zone has that band's wetland type (12, 24 and 12 towers); the `methane` section contains medians over all 48
-(Chapter 16). The revised model's band parameters will be refitted with the current production temperature. The
-new band medians will exclude towers with negative mean flux over the fitted years, indicating net methane
-uptake. The module cannot match these towers' annual budgets because it never produces a negative flux.
+(Chapter 16). The band parameters were refitted in November 2026 at the same 48 towers with the current production
+temperature and the pools of the refitted model (Chapter 16, section 16.14.5, Table 16.14). The new band medians
+exclude the two towers with negative mean flux over the fitted years, indicating net methane uptake, so the temperate
+band rests on 22 towers. The module cannot match these towers' annual budgets because it never produces a negative flux.
 Their monthly errors still respond to the parameters and pull the fitted production ratio downward. In the release's
 temperate band, the median ratio is 0.119 with the two net-uptake towers and 0.136 without them.
 
@@ -438,9 +439,10 @@ The current code defines the water predictor `W` as top-metre liquid water (Tabl
 was trained with an earlier definition that also counts the ice-filled portion of a partly frozen layer. Using that
 file with current code therefore supplies the learned model with a smaller `W` than it saw during training in months
 with ice in the top metre. The effect on inundated area has not been measured. The model logs a warning when it reads
-a file trained with the earlier definition. The learned model will be retrained on the final revised-model hindcast;
-files trained since the change carry a marker
-(`w_liquid`) and produce no warning.
+a file trained with the earlier definition. The learned model was retrained on the hindcast of the first protocol run
+of the revised model (6 November 2026): in years held out of its training, its monthly inundated fraction has R² 0.74
+against WAD2M (the release file 0.73) and its interannual anomalies a correlation of 0.69 (0.65). It will be retrained
+once more on the production hindcast. Files trained since the change carry a marker (`w_liquid`) and produce no warning.
 
 In a learned month, the time steps evaluate emissions with $`f = 1`$ in every land cell, making the monthly mean
 (14.9) an emission per unit inundated area. The steps also accumulate monthly means of
@@ -552,8 +554,9 @@ This section reports release-run wetland methane emissions. Several subsequent c
 The most direct are the weighting of production temperature by the decomposition profile (section 14.3) and the
 use of liquid water alone for learned inundated area (section 14.7.2). The revised growth-respiration rule (Chapter 11)
 also changes NPP, litterfall and the heterotrophic respiration supplying methane production. Other physics corrections
-affect soil temperature and water. The band parameters will be refitted and the learned model retrained. Every number
-in this section therefore describes the release run and will be updated after the final revised-model run.
+affect soil temperature and water. The band parameters have been refitted and the learned model retrained (sections
+14.6 and 14.7.2), and the first protocol run of the revised model is described at the end of this section. Every other
+number in this section describes the release run and will be updated after the production run.
 
 In the release hindcast (2001-2010), wetland methane emissions average 152.5 Tg CH4 yr⁻¹ (annual totals of
 147.8-160.5 Tg CH4 yr⁻¹; population standard deviation of the ten annual totals 4.1 Tg CH4 yr⁻¹). Of this, 135.0, 10.7
@@ -607,6 +610,23 @@ land-fraction weighting of the release totals. (c) The totals of the three latit
 Budget: IBIS 3.0 with the land-fraction weighting (the release convention) and with the whole cell area, and the mean of
 the 22 prognostic runs of 2000-2009 with their range.
 
+**The first protocol run of the revised model (5-6 November 2026).** With the refitted vegetation and soil parameters
+(Chapter 16, section 16.14.5), the band parameters of Table 16.14 and the retrained wetland area, the methane pass over
+that run's hindcast gives 203 Tg CH4 yr⁻¹ for 2001-2010 with the land-fraction weighting (annual totals 196-216,
+standard deviation 6 Tg CH4 yr⁻¹; 218 Tg CH4 yr⁻¹ by whole cell area), of which 179, 15.5 and 9 Tg CH4 yr⁻¹ fall in
+the latitude bands 90°S-30°N, 30-60°N and 60-90°N (191, 17 and 10 by whole cell area). Against the 22 prognostic runs
+quoted above, the total lies above their range and the band 90°S-30°N far above it (179 against 109.5, range
+65.7-146.1); the band 30-60°N lies just below the range with the land-fraction weighting (15.5 against 16.3-60.1;
+17.1 by whole cell area, inside it) and the band 60-90°N inside it and below its mean (9 against 11.7, range
+3.6-28.1). Two steps separate this total from the preliminary protocol run's (162 Tg CH4 yr⁻¹ by whole cell area: the
+revised code with the parameters before the refit and the release's band parameters; the release run gave 164): the
+refitted vegetation and soil raise the emission to 181 Tg CH4 yr⁻¹ (the inundated area is unchanged; on the inundated
+cells of the tropical band, NPP and heterotrophic respiration are about 16 % higher and soil carbon 22 % higher after
+the refit, with GPP 2 % higher), and the refitted band parameters raise it to 218: the tropical band's production ratio rose from 0.0997 to 0.1352 and its oxic
+depth scale fell from 0.128 to 0.102 m (Table 16.14). The tropical band's values are therefore under review before the
+production run's methane pass. The methane carbon is booked out of the respired CO₂ (section 14.8) but does not change
+the carbon pools, so the production run's carbon does not depend on this decision.
+
 ## 14.11 Relation to IBIS 2.6b4
 
 The module has no counterpart in IBIS 2.6b4: no Fortran source file or parameter file of IBIS 2.6b4 contains a methane
@@ -639,9 +659,8 @@ yet; this chapter still reports release results. Tests: `tests/test_review_metha
    before any refit, at the release parameters: +1.3 %, +16 % and +16 % emission in the tropical, temperate and boreal
    bands (review estimate, `/shared/nas2/Hangkai/ibis/technote_review_2026-11-01/merged.json` D13); `make_ch14.py` reproduces +1.3 %, +16.1 % and +16.4 % by rescaling the
    release emission of each cell-month with the $`Q_{10}`$ factor of the change of $`T_{a}`$ on the month-mean soil states
-   (+3.0 % over all bands). Parameters will be refitted at the 48 towers, and the band medians will exclude the
-   net-uptake towers as described in item 6, following the work program
-   (`docs/CALIBRATION.md` section 87).
+   (+3.0 % over all bands). The parameters were refitted at the 48 towers in November 2026 with this rule, and the
+   band medians exclude the net-uptake towers as described in item 6 (Table 16.14).
 2. *No production without thawed soil below the water table* (D61; no switch). `methane_flux` now gates the production
    with the thawed fraction of `thawed_anaerobic_zone` (thawed thickness above $`10^{-12}`$ m), which it does not
    otherwise use to scale production (respiration already collapses in frozen soil; `docs/METHANE.md`
@@ -658,8 +677,9 @@ yet; this chapter still reports release results. Tests: `tests/test_review_metha
    cell's band from the Köppen period of `time.iyear0`, while the learned model used the band in its file. 2,703 of the 49,545 file
    cells change band for a 1901 start, none for a 2001 start, so the release hindcast is unchanged.
 5. *Liquid root-zone water* (D39). `FeatureBuilder` (`W`) and `wetland_area.root_zone_water` (now with `wisoi` as a
-   required keyword) use $`\phi\,(1 - i)\,s\,\Delta z`$. The release's learned file was trained with the earlier `W`
-   and will be retrained on the revised model's hindcast; `wetland_learned_train.py --save` marks new files with `w_liquid`, and
+   required keyword) use $`\phi\,(1 - i)\,s\,\Delta z`$. The release's learned file was trained with the earlier `W`;
+   the file retrained on the first protocol run's hindcast (6 November 2026) uses the liquid water, and a further
+   retraining on the production hindcast follows; `wetland_learned_train.py --save` marks new files with `w_liquid`, and
    `LearnedWetland` logs a warning for a file without the mark. Climatology files of `wetland_clim_prep.py` made before
    2026-11-01 hold the earlier `W` as well.
 6. *Band tool for the tower medians* (D16; `verify/calibration/ch4_class_yaml.py --band-csv`, commits `13b23d5` and

@@ -415,8 +415,9 @@ it does not mean that allocation has no effect.
 
 The 46 prescribed crop-tower refits are complete, including the three Mead sites with hourly shortwave radiation.
 Those fits can constrain crop photosynthetic capacity, but not this dynamic allocation rule, because their
-vegetation update is prescribed (section 15.8). The final combined parameter set and global crop results remain
-to be evaluated (Chapter 16).
+vegetation update is prescribed (section 15.8). The parameter set assembled for the protocol runs keeps the base
+file's crop capacity scales, which are the release's; the fitted scales await the compatibility check of section 15.12
+(Chapter 16, section 16.14.5), and the global crop results of the production run are pending.
 
 ## 15.10 Parameters and switches
 
@@ -506,7 +507,8 @@ controlled diagnostics and current release decision separately.
 5. *Tower fits* (D31, D81). The C4 scale is the median of four fits; the three Mead (Nebraska) fits ran without the
    towers' hourly shortwave radiation. Those three fits have now been rerun with it (`site_fit --hourly-sw`) as part
    of the completed 46-site crop refit. These development fits use the revised base parameter file; their
-   compatibility with the natural-type aggregate must be checked before assembling final parameters. Four of the twelve
+   compatibility with the natural-type aggregate must be checked before they enter the parameter set, and the protocol
+   runs of November 2026 use the base file's scales (Chapter 16, section 16.14.5). Four of the twelve
    C3 fits lie within 0.003 of the bound 0.30 and eight within 0.05 (`crop2/*/best.json`); `docs/CALIBRATION.md`
    section 41 counted eight at the bound and carries a dated correction.
 

@@ -604,13 +604,130 @@ preparations for the NEE stage (Chapter 16). All preparation runs completed, but
 drift flags. A completed run is not proof that its soil carbon has reached equilibrium; those flags remain part
 of the NEE review. These states initialize tower calibration and do not replace the global totals of Table 12.7.
 
+### 12.7.1 How close the release-protocol spin-up comes to equilibrium
+
+The regression above sees mainly the fast pools. A pool-level analysis made on 6 November 2026 on the first protocol
+run of the revised model (Chapter 16, section 16.14.5), which used the release spin-up schedule, measured each pool's
+distance from its own equilibrium with the model's rate equations (Table 12.6). For each cell (94,934 of the 95,333
+land cells, 99.5 % of the land area), the climate factor averaged over the forcing cycle was solved from the passive
+pool's balance over the 50 years at the normal rate, which gives each pool its residence time at that factor; each slow
+pool's distance from equilibrium is its drift at the normal rate times its residence time, and the equilibrium of the
+passive pool follows from the slow pools at their own equilibrium. By this measure the 1,550 years of decomposition
+left the soil carbon at 78 % of its equilibrium at the end of 1900 (1,998 PgC against about 2,580 PgC; humid tropics
+0.77, savanna and hot dry 0.79, subtropical 0.76, temperate 0.81, boreal 0.81, tundra and cold dry 0.68). The passive
+pool was the furthest from equilibrium, at 0.37 (212 against about 576 PgC): at the cycle-mean climate factor its
+residence time has a median of 3,460 years, from 2,240 years in the humid tropics to 5,250 years in the boreal zones,
+and leaching alone (12.12) bounds it below about 11,000 years (16,000 years at a sand fraction of zero). The protected
+slow pool was at 0.88 (boreal 0.87, tundra and cold dry 0.69), with residence times from 28 years in the humid tropics
+to 465 years in the boreal zones. The drift of soil carbon left at the normal rate was +0.38 PgC yr⁻¹ at 1900 and still
+about +0.24 PgC yr⁻¹ in 2005, a spurious sink of about a tenth of the land sink. The vegetation carbon was at 0.994 of
+its equilibrium (boreal 0.975, with an e-folding time of about 57 years). Reaching 99.9 % of the soil equilibrium needs
+about 25,000-30,000 years of decomposition; the vegetation needs about 80 more years at the normal rate globally and
+about 190 for the boreal and tundra groups (scripts and outputs in `verify_outputs/final_eq20261107/diag/` on the lab
+file system).
+
+### 12.7.2 The production spin-up
+
+The production run of the revised model therefore uses a longer spin-up, chained from stages of the same configuration
+with different numbers of calls a day (Table 12.8), the first from a cold start and each later one from the last restart
+file of the previous stage: 1,290 model years (1091-2380), the equivalent of 42,060 years of decomposition, were planned,
+and more are under decision (below). The design rested on three findings from the first protocol run and from a
+five-year test (three years at 100 calls a day, then two at the normal rate); the ramp to the normal rate then added a
+fourth.
+
+- *Acceleration is faithful for a pool whose residence time, divided by the number of calls, stays much longer than a
+  year.* The growth of the passive and protected slow pools during the accelerated years, divided by the number of
+  calls, matches their drift at the normal rate within 10 % (boreal protected slow pool 0.076 against 0.071 PgC yr⁻¹,
+  passive 0.010 against 0.010). A pool whose accelerated residence time falls to about a year or less becomes
+  quasi-static within the stretched seasons: its year-end state is distorted (at the switch from ten calls to one in
+  1851, the year-end microbial biomass rose by 74 % in the boreal and 33 % in the temperate group), and litter piles
+  up, by roughly 1-1.4 PgC per extra call a day (111 PgC at the normal rate, 121 at ten, 163 at fifty and 244-250 at a
+  hundred calls a day), decaying after a switch with the litter's own residence times: of the 135 PgC excess of the
+  100-call test, 87 PgC remained after one year at the normal rate and 65 after two, and the 9 PgC excess at the first
+  protocol run's switch from ten calls fell to 4, 2 and 1 PgC in the following three years. The stages therefore
+  reduce the number of calls in steps, each stage at least three e-folding times long for the pools it frees: 50 calls
+  for the passive pool and the boreal protected slow pool, 15 for the temperate protected slow pool, 5 for the tropical
+  protected slow pool and the boreal non-protected slow pool, and the normal rate for the remaining pools, the litter
+  and the vegetation.
+- *The forcing cycle leaves an imprint.* The 30-year cycle in the climate factor (0.3-2.1 % of its mean by zone group)
+  reaches a pool with the attenuation of a first-order filter, and the passive pool's equilibrium follows the climate
+  factor with a sensitivity of 0.4 (tropics) to 0.9 (boreal and tundra) because leaching does not scale with it. A
+  stage at 100 calls a day would freeze a wobble of 0.03-0.20 % into the passive pool, which the shorter later stages
+  cannot remove (the pool's memory, its residence time divided by the number of calls, exceeds their length); at 50
+  calls the wobble is about 0.1 %. Every stage is a whole number of cycles, so the forcing phase is continuous across
+  the stages and the transient's 1901 follows the forcing of 1930 (in the release protocol, whose 200-year spin-up is
+  not a whole number of cycles, it followed the forcing of 1920). Runs are compared at the same forcing year: global
+  NPP differs by 9 % between two forcing years of the cycle alone.
+- *Fire amplifies the inflated litter only in fuel-limited cells.* The fuel term of the fire model saturates at
+  0.2 kg C m⁻² of litter (Chapter 13). In the 100-call test, compared with the same forcing years of the first protocol
+  run at the normal rate, the burned fraction of the land is 4 % higher (2.49 against 2.39 % a year); the cells whose
+  litter lies below the saturation level at the normal rate, 30 % of the land, burn 1.05 against 0.86 % and carry about
+  60 % of the increase (tundra and cold dry group 0.85 against 0.75 %, savanna and hot dry 4.77 against 4.57 %), while
+  the forest groups differ by 2-4 % (boreal 0.35 against 0.34 %), differences the five-year test cannot attribute to
+  the litter, whose fuel term is saturated in those cells. The design took the acceleration to reach the vegetation
+  only through the burned fraction of the fuel-limited cells.
+- *The vegetation of the fuel-limited cells follows their fire regime.* This was found when the acceleration was
+  reduced. At the same forcing year, the boreal group's lower-canopy production was 0.68 PgC yr⁻¹ throughout the stage
+  at 50 calls (flat from 1780 to 1900), 0.56 at 15 calls and 0.14 from the stage at 5 calls on; its deciduous shrubs
+  fell from 1.2 to 0.05 PgC of biomass, its lower-canopy cover from 0.096 to 0.054 and its litterfall from 3.47 to
+  2.95 PgC yr⁻¹ (fine roots −20 %), while its upper-canopy production, tree cover, biomass and burned fraction (0.5 % a
+  year) were unchanged; a conifer of the temperate group's position 6 (17.7 to 0.7 PgC) and the trees of the tundra
+  group (−30 %) gave way to temperate trees and to grass. The fuel term is the only path from the soil carbon to the
+  vegetation in the code (section 13.10), so the higher fire frequency of the fuel-limited cells under acceleration,
+  with fire's mortality by plant type, sustained a composition that does not persist at the normal rate. The group
+  totals of biomass and production, which the convergence checks had followed, hid it.
+
+The cost of a model year does not depend on the number of calls (58 s at one and at a hundred calls a day on the
+production GPU when the machine is otherwise idle); each distinct number of calls is compiled twice, for a common and
+for a leap year, in about four minutes each.
+
+**Table 12.8** The stages of the production spin-up (configuration only, on the code of commit 6087ab5; forcing cycle
+1901-1930 at 296 ppm CO₂ as in the release protocol; `physics.soilcspin_tail_years` 0 in every stage; residence times
+at the normal rate, area medians, from the analyses of sections 12.7.1 and 12.7.2).
+
+| Stage | Model years | Calls a day | Years of decomposition | Pools brought to equilibrium |
+|---|---|---|---|---|
+| S1 | 1091-1900 (810) | 50 | 40,500 | passive; boreal protected slow (residence time 500-600 years) |
+| S2 | 1901-1960 (60) | 15 | 900 | temperate protected slow (about 110 years) |
+| S3 | 1961-2020 (60) | 5 | 300 | tropical protected slow (about 30 years); boreal non-protected slow (about 50 years) |
+| S4 | 2021-2080 (60) | 1 | 60 | non-protected slow of the tropics, microbial biomass and litter |
+| S5 | 2081-2380 (300) | 1 | 300 | planned for the vegetation of the sparse cells and a slow boreal succession; under revision on 7 November (below) |
+
+**Convergence at the end of the first stage.** The first stage was extended from 630 to 810 years after an interim
+check at 630 years. At its end, the drifts over 30-year windows at the same forcing phase, fitted over the last eight
+windows, showed the vegetation carbon of every zone group within noise of its equilibrium except the boreal group,
+0.10 % below it with an e-folding time of 169 years, and the per-cell analysis of section 12.7.1, with the drifts
+converted to years of decomposition (solved for 65,666 cells, 87 % of the land area; the rest, whose passive pool no
+longer grows, counted as at equilibrium), put the soil carbon at 0.9995 of its equilibrium globally (temperate 0.9997,
+boreal 0.9991, tundra and cold dry 0.9988, the other groups at 1.000), with a drift at the normal rate of
++0.0002 PgC yr⁻¹. That is the equilibrium of the accelerated system. The soil carbon at the end of the first stage is
+2,597 PgC (convention of Figure 12.4), 30 % more than the first protocol run's release-protocol spin-up at the same
+forcing year (1,990 PgC; 1,998 PgC at its end), with the same parameters except two subarctic tree types; its litter
+is inflated as described above and is not comparable with Table 12.7.
+
+**What the ramp to the normal rate changed (stages S2-S4, 7 November 2026).** Global soil carbon went from 2,597 PgC
+at the end of S1 to 2,606 (S2), 2,581 (S3) and 2,583 PgC at the end of S4, with the passive pools unchanged within
+0.3 %. The protected slow pools moved by several percent: the temperate pool from 387 to 359 PgC, settled by the end of
+S3 (at 50 calls its year-end snapshot, two model years from its residence time of 110 years, sat above its annual
+mean), the savanna pool from 198 to 218 PgC (the opposite artifact of a pool that is quasi-static at 50 calls), and the
+boreal pool from 620 to 598 PgC, still falling at 0.09 PgC yr⁻¹ at the end of S4. The boreal change is a change of
+input, not of the snapshot: the vegetation change of the fourth finding above lowered the boreal litterfall by 15 % as
+the calls went from 50 to 5 a day, and the pool, which had equilibrated at 50 calls to the higher input and has a
+residence time of about 590 years at the normal rate, has about 52 PgC still to lose (7 % of the boreal soil carbon,
+2 % of the global total); the other groups are within about 1 % of their equilibrium at the end of S4. The stage at the
+normal rate planned after S4 cannot remove that remainder (300 years leave 31 PgC); a stage at 5 calls a day, at which
+the vegetation of these cells is already in its normal-rate state, would. The choice is being made as this edition is
+published; the stages as run, the final check on the same-phase drift of the last 30 years at the normal rate, and the
+pools of the production run will be reported here when the run is complete (scripts and outputs in
+`verify_outputs/final_eq20261107/diag/`).
+
 ## 12.8 Switches and parameters
 
-Table 12.8 lists the adjustable soil biogeochemistry settings: the spin-up schedule and climate-factor parameters.
+Table 12.9 lists the adjustable soil biogeochemistry settings: the spin-up schedule and climate-factor parameters.
 The rate constants and yields in Table 12.6 and C:N ratios in section 12.1 are also set in the `bgc`
 section of the parameter file.
 
-**Table 12.8** Switches and adjustable parameters of the soil biogeochemistry.
+**Table 12.9** Switches and adjustable parameters of the soil biogeochemistry.
 
 | Name | Default | Release | Meaning |
 |---|---|---|---|
@@ -623,6 +740,9 @@ section of the parameter file.
 | `bgc.som_k_scale` | 1 | per zone (Table 12.5) | turnover factor $`\sigma`$ of the slow and passive pools, (12.7) |
 | `bgc.som_lt_e0` | 0 (off) | 0 | temperature sensitivity $`E_{s}`$ of the slow and passive pools, (12.7) |
 | `bgc.som_t_ref` | 298.16 K | 298.16 K (unused) | reference temperature $`T_{r}`$ of (12.7) |
+
+The production spin-up (Table 12.8) sets `physics.nsoilcall` for each stage and `physics.soilcspin_tail_years` to 0;
+its stages at the normal rate take the place of the tail.
 
 ## 12.9 Differences from IBIS 2.6b4
 

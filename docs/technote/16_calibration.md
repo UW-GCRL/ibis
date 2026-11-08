@@ -10,9 +10,9 @@ group within the full protocol of section 1.5.3. Tower runs with prescribed vege
 The chapter describes tower simulations, targets and objective functions, the optimizer, reduction to plant
 types, the global stages and release scores. Unless stated otherwise, all parameter values and scores
 refer to the release. The model and several calibration tools have since changed, including the tower reader, NEE
-targets and objective, capacity bounds, and methane-band reduction (section 16.15). A new refit is under way;
-section 16.14.4 records its progress through 4 November 2026. Section 16.14 presents the diagnostic comparisons and
-remaining work. The release calibration
+targets and objective, capacity bounds, and methane-band reduction (section 16.15). The tower refits are complete;
+sections 16.14.4 and 16.14.5 record the progress through 7 November 2026, the first protocol run with the refitted
+parameters and the production run in progress. Section 16.14 presents the diagnostic comparisons and remaining work. The release calibration
 used no gradients (section 1.7); an earlier gradient-based fit of fire parameters against GFED5
 (`docs/FIRE.md`, step F6) was not carried into the release. The code is in `verify/calibration/`, and the per-tower fit
 records are under `verify_outputs/site_fit/` on the lab file server. `docs/RELEASE_3.0.md` summarizes the release, and
@@ -677,8 +677,8 @@ release code). The data are not public, so only band statistics are reported her
 Two aspects changed after the release. The band tool now excludes towers with net uptake over their fitted years
 from both the individual-band medians and the all-tower `methane` section (`ch4_class_yaml.py --band-csv`;
 `--keep-all` retains every tower, as in the release). The methane module's production temperature is now
-weighted by the substrate profile (Chapter 14). The four band parameters will therefore be refitted at the 48 towers,
-and band medians will be computed using the new rule.
+weighted by the substrate profile (Chapter 14). The four band parameters were refitted at the 48 towers in November
+2026 with both changes; section 16.14.5 gives the band values (Table 16.14) and the first global result.
 
 ## 16.12 Cropland
 
@@ -940,6 +940,141 @@ must use the intended merged source. Methane-band refits, the final global proto
 component and the final scoring remain ahead. The earlier preliminary global run does not substitute for that
 evaluation with the newly fitted parameters.
 
+### 16.14.5 Development progress, 7 November 2026
+
+The tower refits are complete, their type and band values have been assembled into a parameter set, a first full
+protocol run with that set has been scored, and the production run is in progress with a longer spin-up and two types
+returned to their base values. These results come from the development campaign; the model code on public
+GitHub main remains the 30 October release, and the release scores and benchmark tables elsewhere in this chapter
+retain their original experiments and meaning.
+
+| Stage | Progress through 7 November |
+|---|---|
+| Natural-tower GPP and ET | 356 fits complete (section 16.14.4) |
+| Crop GPP and ET | 46 fits complete; their capacity scales are not in the assembled set (below) |
+| Soil pools for NEE | 358 preparation runs complete |
+| Day and night NEE | 358 fits complete, none failed |
+| Plant types | 302 values of 35 types assembled from the medians; the two subarctic tree types returned to their base values after the first protocol run |
+| Methane | 48 pool preparations and 48 hourly fits complete; band medians over 46 towers; the tropical band under review |
+| First protocol run with the assembled set | complete and scored (5-6 November); three findings below |
+| Production protocol | spin-up in progress on 7 November; transient, hindcast, retraining of the wetland area, methane pass and scores to follow |
+
+**The assembled parameter set.** Starting from `params_32a_base.yaml` (section 16.15), the GPP and ET stage recorded
+200 changes to 35 types (199 distinct values, since T21's capacity appears as fitted and then as fixed): the capacity
+and stomatal slope of every fitted position, the stress factor, the drought trigger and the phenology thresholds of
+the types that fit them, and the acclimation of six evergreen conifers, holding G06's lower-canopy threshold at
+700 °C d (section 16.14.4) and fixing the capacities of T21 and T04 as planned in section 16.14.3. The NEE stage added
+the growth and fine-root respiration coefficients and the temperature sensitivity of decomposition of 34 types, 302
+changes in all (`params_nee_aggregate_excl_pinned.yaml`). Two
+decisions shaped the NEE medians. First, 28 of the 358 NEE fits ended with the soil-pool scale at its floor of 0.1; at
+these towers the fitted fine-root coefficient (median 0.32 yr⁻¹, against 0.68 yr⁻¹ where the scale is at least 0.3)
+and temperature sensitivity (343 K against 265 K) compensate for a sink that the bounded pool scale cannot carry, the
+compensation that Carvalhais et al. (2008) describe for fits under an assumed steady state and that Kuppel et al.
+(2014) absorb with a site-specific pool multiplier. These 28 fits are left out of the medians of the three NEE
+parameters; the median ratio of the resulting type values to the all-tower medians is 1.00, eleven types move by more
+than 10 %, and three type-parameter pairs lose their only tower and keep the parent's value. Second, 91 of the 358
+fits ended with the growth respiration fraction at its floor of 0.10 (median 0.107, interquartile range 0.101-0.170;
+eight at the ceiling of 0.50), spread over the vegetation classes and unrelated to the pool-scale pinning. The floor
+is kept and these fits stay in the medians (decision of 5 November 2026, D4). The refitted type values range from
+0.10 to 0.25 (median 0.11): most tree types lie at 0.10-0.13, close to the 0.11 of CLM5 (Lawrence et al., 2018) rather
+than to the 0.30 of IBIS 2.6b4, and the grasses and shrubs mostly at 0.14-0.25. The ratio of NPP to GPP is 0.43 in
+the release hindcast and 0.46 in the first protocol run, within the observed 0.46 ± 0.12 (Collalti and Prentice,
+2019). The recorded reading (D4) is that the fits ask for less respiration than the floor allows, and that growth
+respiration, booked in daylight, is the only fitted parameter acting on the daytime respiration alone (the fine-root
+coefficient is fitted too but acts day and night; the maintenance coefficients of leaves and wood are not fitted). The
+level and timing of maintenance respiration are noted for investigation after the release. The crop capacity scales fitted at the 46 crop towers are
+not in the assembled set: the protocol runs use the base file's scales, which are the release's, and the compatibility
+check of section 15.12 remains open.
+
+**Wetland methane bands.** The 48 wetland towers were refitted with the substrate-weighted production temperature
+(Chapter 14) on pools spun up with the assembled set (median absolute drift of the pools 0.09 kg C m⁻² yr⁻¹ over the
+48 towers). The band medians (Table 16.14) leave out the two temperate towers with net uptake over their fitted years
+(D16), so the temperate band rests on 22 towers and the all-tower `methane` section on 46. For the individual fits,
+the held-out year's annual flux is within 25 % of the tower's at a third of the 48 towers, with a median model / tower
+ratio of 0.75 and a median correlation of the held-out monthly series of 0.80. The tropical band's production ratio
+rose by a third and its oxic depth scale fell by a fifth; the two northern bands' ratios fell and their oxic depth
+scales rose by three quarters to double. Section 14.10 gives the global consequence.
+
+**Table 16.14** The refitted methane parameters by wetland band (November 2026, `params_final_ch4.yaml`; symbols as in
+Table 16.10; the release values of Table 16.10 in parentheses).
+
+| Band | Towers | $`r`$ | $`Q_{10}`$ | $`z_{\tau}`$ (m) | $`\tau_{ox}`$ (m) |
+|---|---|---|---|---|---|
+| tropical (W01) | 12 (12) | 0.1352 (0.0997) | 2.16 (2.17) | 0.743 (0.770) | 0.102 (0.128) |
+| temperate (W02) | 22 (24) | 0.1037 (0.1186) | 2.18 (2.25) | 0.814 (0.701) | 0.228 (0.111) |
+| boreal (W03) | 12 (12) | 0.1161 (0.1881) | 1.52 (1.71) | 0.942 (0.729) | 0.212 (0.121) |
+
+**The first protocol run (5-6 November 2026).** The protocol of section 1.5.3 was run from a cold start on the
+integrated source (commit 6087ab5; Chapter 17) with the assembled set: the release spin-up schedule (200 years, 150 of
+them at ten calls a day), the transient and the hindcast, followed by the retraining of the learned wetland area on
+the hindcast and a methane pass with the refitted bands (Chapter 14). The transient was interrupted by a machine
+failure in 1910 and continued from the restart file of 1909 (section 17.6). Table 16.15 gives its scores beside the
+release's.
+
+**Table 16.15** Scores of the first protocol run of the revised model, 2001-2010 hindcast unless stated (not the
+production run; totals on the land fraction of each cell as in Table 16.11; the burned area by whole cell area on the
+2010 state; the tower ET is the ratio of the mean annual ET of the model to the towers' at the cells of 194 towers with
+at least 24 months of latent heat). The release column repeats Table 16.11, computed by the release scoring.
+
+| Quantity | First protocol run | Release (Table 16.11) | Reference |
+|---|---|---|---|
+| GPP, PgC yr⁻¹ | 149.2 | 147.6 | published estimates 110-160 |
+| GPP on the land FLUXCOM covers, PgC yr⁻¹; model / FLUXCOM | 145.5; 1.34 | 144; 1.32 | FLUXCOM 109 |
+| model / FLUXCOM GPP by latitude band: 30°S-30°N, 30-50°N, 50-60°N, 60-70°N, 70-90°N | 1.21, 1.47, 1.64, 2.22, 4.33 | – | – |
+| change of GPP, 1901-1910 to 2001-2010 | +20 % | +22 % | +31 ± 5 % |
+| NPP, PgC yr⁻¹ | 68.1 | 64.2 (section 12.7) | – |
+| ET, mm yr⁻¹, mean over all land cells of the binary mask by whole cell area (not the convention of the ET row of Table 16.11) | 523 | – | – |
+| ET at the tower cells, model / tower | 1.04 | – | – |
+| peak leaf area index by latitude band against the MODIS annual maximum: 30°S-30°N, 30-50°N, 50-60°N, 60-70°N | 1.34, 1.12, 0.49, 0.07 | – | – |
+| wetland CH4, Tg CH4 yr⁻¹ | 203 | 152.5 | 153 (116-189) |
+| burned area, % of land yr⁻¹ (2010 state); rank correlation over all cells, over burning cells | 2.58; 0.77, 0.47 | 2.42; 0.78, 0.44 | GFED5 4.62 |
+| vegetation carbon (leaves, wood and fine roots), PgC (2001-2010 mean) | 476 | – | – |
+
+Three findings came out of this run.
+
+1. *Loss of the subarctic conifer.* The hindcast's peak leaf area north of 50°N is far below the MODIS annual maximum
+   (Table 16.15): the subarctic evergreen conifer T17 (position 6, the closed and open taiga) had all but disappeared,
+   its leaf carbon at 50-60°N falling from 0.13 kg C m⁻² in the preliminary protocol run (section 16.14.3) to 0.002 in
+   the 2010 state, replaced by the subarctic birch and aspen T18 (position 7). Three controlled spin-ups isolated the
+   cause. A global spin-up with T18 returned to its base values recovered about a third of the loss at 50-60°N and
+   almost none at 60-70°N. Two regional spin-ups north of 45°N, beside a control that reproduces the global test cell
+   by cell, then returned T17 to its base values in one and lowered the boreal degree-day floors from 700 to 600 °C d
+   in the other: at the end of the spin-up the conifer's leaf carbon at 50-60°N was 0.148 kg C m⁻² with T17 at base,
+   against 0.042 in the control and 0.044 with the lower floors (at 60-70°N 0.086, 0.007 and 0.008). The loss is
+   therefore caused mainly by T17's own refitted values, not by the floor of 700 °C d (section 11.3.1). T17's refitted values
+   are medians over 24 towers whose interquartile ranges contain the base values (`coefm` 3.5-7.9 around the median
+   4.47, base 5.35; `rroot` 0.70-1.72 around 1.09, base 0.93; `stressfac` −5.5 to −3.0 around −4.2, base −3.3), and the
+   set of medians had never been scored at the towers together (section 16.6.2); T18's values come from a single tower.
+   The production set (`params_final_eq.yaml`) returns T17 and T18 to their base values and keeps the refitted values
+   of the other 33 types. At the end of the production run's first spin-up stage (four times longer, at 50 calls a
+   day, with the same parameters except T17 and T18), compared with the first protocol run's spin-up at the same forcing
+   year, spruce holds 44.7 PgC of the boreal group's biomass against 1.7, and birch and aspen 8.2 against 81.8; the
+   boreal group's GPP is 30 % lower and its NPP 10-12 % lower, the temperate group's GPP 5 % lower, and the tropical,
+   savanna and subtropical groups are unchanged within 0.2 % (Chapter 12, section 12.7.2).
+2. *Wetland methane above the budget range.* The methane pass gives 203 Tg CH4 yr⁻¹ with the land-fraction
+   convention (218 by whole cell area) against the release's 152.5, with the excess in the band 90°S-30°N. About a
+   third of the increase comes from the refitted vegetation and soil, which raise NPP, soil carbon and heterotrophic
+   respiration on the inundated tropical cells with the inundated area unchanged, and two thirds from the refitted
+   band parameters, nearly all of it in the tropics (section 14.10). The tropical band's values are under review; since
+   the methane module does not feed
+   back on the carbon pools, the production run's carbon does not depend on the outcome.
+3. *Continuation from a restart.* The transient continued from the 1909 restart differs from an uninterrupted
+   transient from 1910 on by the random weather alone (the hourly wind and the timing of rain), at the level of weather
+   noise (section 17.6).
+
+**Spin-up equilibrium and the production protocol.** A pool-level analysis of this run's spin-up (Chapter 12, section
+12.7.1) found its soil carbon at 78 % of equilibrium and its passive pool at 37 %, leaving a spurious sink of about
++0.24 PgC yr⁻¹ in the hindcast. The production run therefore uses a chained spin-up of at least 1,290 model years
+(section 12.7.2, Table 12.8) with the production set, the integrated source and the protocol's forcing. On 7 November
+its four accelerated and ramp stages had ended: the first stage of 810 years at 50 calls a day left every zone group's
+soil carbon at 0.9988 of the accelerated system's equilibrium or above and its vegetation carbon within 0.1 % of
+equilibrium, but the ramp to the normal rate then changed the vegetation of sparse, fuel-limited boreal, tundra and
+temperate-boreal cells, whose fire regime follows the inflated litter, and the boreal protected slow pool is relaxing
+toward an input 15 % lower, with about 7 % of the boreal soil carbon still to lose at a 590-year time scale (section
+12.7.2). A corrective stage at 5 calls a day is under decision; the remaining stages, the transient, the hindcast, the
+retraining of the wetland area, the methane pass and the scores follow. Until then, the release results and the first
+protocol run's scores above are the only global evaluations of the refitted model.
+
 ## 16.15 Notes for developers
 
 **Where the record is.** The calibration log `docs/CALIBRATION.md` records each stage's baselines, tests and
@@ -1059,13 +1194,25 @@ The 35 own-G06 fits used a 50–1500 range, allowing that agreed starting value 
 other prescribed roles retained their existing bounds.
 The water adjustment was implemented separately and was not part of these tower fits.
 
-**Still to do (4 November).** Complete the NEE and methane refits; review pool drift, crop-parameter compatibility
-and the fitted type aggregate; merge the reviewed water adjustment; and run the final protocol and evaluation of
-section 16.14.4. The crop-allocation decision is settled for this release, while the lower-canopy findings remain
-documented limitations. Final scoring must use the zone rule (2.2) for the cell scalars
-(D66; `towers31_rescore.py` still takes the mean over the tower's types) and state the area convention for each
-quantity (D67). WAD2M defines wetland fraction relative to whole-cell area, so the final scoring convention must be explicit.
-The learned wetland model must be retrained on the final hindcast before the methane transient and hindcast pass (D39).
+**Sources for the 7 November results.** The assembled sets and their provenance records are under
+`verify_outputs/diag_work/step3_claude_review/aggregate/` (`params_s2_aggregate.yaml`,
+`params_nee_aggregate_excl_pinned.yaml`, the type-median tables and `nee_pinned_sites_excluded.txt`); the methane band
+tool's log and the per-tower fit report are under `verify_outputs/final_review20261105/ch4/` (both hold per-tower
+information from unpublished data and are not public). The first protocol run is `verify_outputs/final_review20261105/`
+(`run_protocol.sh`, the continuation `run_protocol_resume.sh`, `final_chain_v2.sh` for the retraining, the methane pass
+and the scores, and `scores.log`); the controlled spin-ups are `final_review20261105_T18prior/` and
+`final_review20261105_boreal_ab/`. The production run is `verify_outputs/final_eq20261107/` (`chain_spinup.sh`,
+`chain_s5.sh`, `chain_transient.sh`, `make_stage_cfg.py`, `params_final_eq.yaml` and the log `chain.log`), with the
+equilibrium and comparison scripts and their outputs in its `diag/` directory (Chapter 12, section 12.7).
+
+**Still to do (7 November).** Complete the production protocol and score it with one harness and one area convention
+(D65-D67; `towers31_rescore.py` still takes the mean over the tower's types, and WAD2M defines the wetland fraction
+relative to the whole cell, so each quantity's convention must be stated); decide the tropical methane band and run
+the methane pass; retrain the learned wetland area on the production hindcast (D39); check the fire calibration on
+the production run; carry the production numbers into the chapters that still quote the release run; record the
+maintenance-respiration item in `docs/DEFECTS_FOR_REVIEW.md` and add the measured size of the restart effect to its
+section 2.8. The crop-allocation decision is settled
+for this release, while the lower-canopy findings remain documented limitations.
 
 **Kept and documented.** For an acclimated type whose state of acclimation stays below $`S_{0} + S_{max}`$, the tower
 fits identify only the ratio $`V_{0}/S_{max}`$, so its fitted $`V_{0}`$ is not a capacity reached in the field (D78;
@@ -1080,11 +1227,17 @@ Campbell, J. E., et al., 2017: Large historical growth in global terrestrial gro
 Cao, S., et al., 2023: Spatiotemporally consistent global dataset of the GIMMS leaf area index (GIMMS LAI4g) from 1982
 to 2020. *Earth System Science Data*, 15, 4877-4899.
 
+Carvalhais, N., et al., 2008: Implications of the carbon cycle steady state assumption for biogeochemical modeling
+performance and inverse parameter retrieval. *Global Biogeochemical Cycles*, 22, GB2007.
+
 Chen, J. M., et al., 2022: Global datasets of leaf photosynthetic capacity for ecological and earth system research.
 *Earth System Science Data*, 14, 4077-4093.
 
 Chen, Y., et al., 2023: Multi-decadal trends and variability in burned area from the fifth version of the Global Fire
 Emissions Database (GFED5). *Earth System Science Data*, 15, 5227-5259.
+
+Collalti, A., and I. C. Prentice, 2019: Is NPP proportional to GPP? Waring's hypothesis 20 years on. *Tree Physiology*,
+39, 1473-1483.
 
 FAO and IIASA, 2023: *Harmonized World Soil Database version 2.0*. Food and Agriculture Organization of the United
 Nations, Rome, and International Institute for Applied Systems Analysis, Laxenburg.
@@ -1099,6 +1252,12 @@ FLUXCOM approach. *Biogeosciences*, 17, 1343-1365.
 
 Kattge, J., W. Knorr, T. Raddatz, and C. Wirth, 2009: Quantifying photosynthetic capacity and its relationship to leaf
 nitrogen content for global-scale terrestrial biosphere models. *Global Change Biology*, 15, 976-991.
+
+Kuppel, S., et al., 2014: Model-data fusion across ecosystems: from multisite optimizations to global simulations.
+*Geoscientific Model Development*, 7, 2581-2597.
+
+Lawrence, D. M., et al., 2018: Technical Description of version 5.0 of the Community Land Model (CLM). National Center
+for Atmospheric Research, Boulder, CO.
 
 Pastorello, G., et al., 2020: The FLUXNET2015 dataset and the ONEFlux processing pipeline for eddy covariance data.
 *Scientific Data*, 7, 225.

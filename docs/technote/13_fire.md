@@ -640,6 +640,22 @@ Earlier history is retained here for reference. The global driver began clearing
 then, each year's fire calculation used counters accumulated since the first spin-up year (`physics.fire_annual_reset` false
 reproduces those runs; `docs/CALIBRATION.md` section 59).
 
+**Fire during accelerated spin-up (7 November 2026).** The production spin-up of the revised model runs the soil
+routine up to 50 times a day (Chapter 12, section 12.7.2), which inflates the litter by roughly 1-1.4 PgC per extra
+call a day. Because the litter factor saturates at $`L_{ref}`$ = 0.2 kg C m⁻² ((13.5), Table 13.2; `legacy_fuel_fraction`
+in `ibis/physics/fire.py`), the inflation reaches the burned fraction only where the litter lies below that level at the
+normal rate, 30 % of the land. In a five-year test (three years at 100 calls a day, then two at the normal rate),
+compared with the same forcing years of the first protocol run at the normal rate, the burned fraction of the land rose
+from 2.39 to 2.49 % a year; the fuel-limited cells burn 1.05 against 0.86 % and carry about 60 % of the increase
+(tundra and cold dry group 0.75 to 0.85 %, savanna and hot dry 4.57 to 4.77 %), and the forest groups differ by 2-4 %
+(boreal 0.34 to 0.35 %), differences the test cannot attribute to the litter. The vegetation of the fuel-limited cells,
+however, follows their fire regime: when the production spin-up's calls fell from 50 to 5 a day, the boreal group's
+deciduous shrubs died back from 1.2 to 0.05 PgC and its lower-canopy production from 0.68 to 0.14 PgC yr⁻¹, with the
+group's burned fraction unchanged at 0.5 % a year (section 12.7.2). The litter factor is the only path from the soil
+carbon to the vegetation in the code, so the composition of fuel-limited cells in an accelerated stage is that of a
+higher fire frequency, and such cells need a stage at a low number of calls to settle before the transient
+(`verify_outputs/final_eq20261107/diag/fire_accel_cmp.py`, `veg_by_stage.py`, `pft_biomass_trend.py`).
+
 ## References
 
 Andreae, M. O., 2019: Emission of trace gases and aerosols from biomass burning – an updated assessment. *Atmospheric

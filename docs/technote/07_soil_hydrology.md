@@ -581,14 +581,15 @@ be zero; a positive $`r`$ is water lost without a booked term.
 | `ay_adj_puddle` | mm yr⁻¹ | evaporation beyond the water of the puddle, supplied by the floors of (7.8) (IBIS 3.0) |
 | `ay_adj_uptake` | mm yr⁻¹ | root uptake beyond the water of a layer, supplied by the floor of (7.12) (IBIS 3.0) |
 | `ay_adj_untaken` | mm yr⁻¹ | transpiration written out but taken from no layer, where $`S_{c} < \epsilon`$ in (7.10) |
-| `ay_adj_round` | mm yr⁻¹ | water added by the rounding floors of the puddle, (7.23) and its freezing and thawing (IBIS 3.0), less the rain and melt below $`\epsilon`$ that (7.2) drops |
+| `ay_adj_round` | mm yr⁻¹ | water added by the rounding floors of the puddle, (7.23) and its freezing and thawing (IBIS 3.0), less the rain and melt below $`\epsilon`$ that (7.2) drops and, since commit 6087ab5, less the water discarded while mixing canopy rain and snow |
 | `ay_adj_canopy` | mm yr⁻¹ | change of the water held on leaves and stems when the daily phenology changes the leaf area |
 | `n_bound`, `ay_w_bound` | steps yr⁻¹, mm yr⁻¹ | steps on which the limit on the ground evaporation (section 7.4) acted, and the evaporation it held back |
 | `n_snow`, `ay_w_snow` | steps yr⁻¹, mm yr⁻¹ | steps with more snowfall on snow-free ground than covers it, and the excess added to the pack (section 8.5) |
 | `n_cdef`, `ay_w_cdef` | steps yr⁻¹, mm yr⁻¹ | steps on which evaporation exceeded the water held on the canopy, and the unsupplied amount subtracted from the upward vapour flux (Chapter 5) |
 
-Once the pending canopy-accounting correction is integrated, the rounding adjustment in Table 7.3 will also
-subtract the water discarded while mixing canopy rain and snow. The later check below explains this addition.
+Since the canopy-accounting correction of 4 November 2026 (commit 6087ab5, part of the source of the protocol runs),
+the rounding adjustment in Table 7.3 also subtracts the water discarded while mixing canopy rain and snow. The check
+described in section 7.15 explains this addition.
 
 **The release run.** Because the release run predates the diagnostic, its water balance was reconstructed over the
 hindcast, 2001-2010. Storage was read from the restart files at the end of 2000 and of 2010 for each cell's soil,
@@ -839,8 +840,9 @@ physics and time-step code implement the sequence in Table 7.2.
   accumulation error; it does not justify attributing the full earlier global median to round-off from four cells.
   Evidence: `diag_work/step3_claude_review/water_x64/WATER_CLOSURE_F64_RESULT.md`, `gpu/real_year_result.json` and the
   `patched_f64` and `patched_f32` results beneath that directory. Measurement preserved all 290 checked core-state
-  fields bit for bit. The patch is on `review-water-closure` and awaits merge after the NEE queue, which imports the
-  main development checkout at `9ef13c5`; the post-merge full suite and the final revised-model run remain pending.
+  fields bit for bit. The patch (commit 6087ab5, on top of `9ef13c5`) is the source of the protocol runs of the
+  revised model since 5 November 2026, and the full suite passed on it (942 tests); the tower refits ran on `9ef13c5`,
+  which differs from it only by this accounting change.
 - **The evaporation limit in the heat flux and the output** (D28; e6c70cb). `loops.bounded_ground_evaporation` gives the
   rate per unit of snow-free ground whose cell mean is limited; `heatg`, the stores and `gsuvap` all use it, where the
   release used the unlimited rate for `heatg` and `gsuvap`. Reason: where the limit acts, the latent heat, the water

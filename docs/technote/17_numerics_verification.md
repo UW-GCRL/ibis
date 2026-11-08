@@ -416,7 +416,7 @@ the residual matched small amounts discarded when canopy rain and snow are mixed
 adjustment closed the annual budgets to the reported precision; patched monthly checks also close near numerical
 precision. The comparable single-precision runs retain accumulation error. This explains the tested cells, without
 establishing closure or a complete attribution of the residual across the global grid. The accounting correction
-awaits integration after the current NEE fits finish.
+is part of the source of the protocol runs of the revised model since 5 November 2026 (section 17.12).
 
 ## 17.6 Random numbers
 
@@ -452,6 +452,18 @@ with key 42, just as IBIS 2.6b4 reseeds its generator at every run start. Splitt
 random weather, so an interrupted run cannot resume with the weather it would otherwise have generated.
 Each of the three release-protocol stages (Chapter 1) started with key 42.
 
+The size of this effect was measured on the first protocol run of the revised model (5-6 November 2026; Chapter 16,
+section 16.14.5), whose transient was stopped by a machine failure in 1910 and continued from its restart file of 1909,
+while a second, uninterrupted transient from the same state of 1900 was run for the methane pass (Chapter 14). The two
+runs are identical through 1909 and differ in every land cell from 1910 on, through the random weather alone (the
+hourly wind and the timing of rain, drawn from a key that restarts at 42).
+The differences stay at the level of weather noise and do not grow: in 2000 the global carbon totals agree within
+0.01 PgC, and the differences of annual GPP between the two runs have a median of 4 × 10⁻⁴ and a 99th percentile of
+0.05 kg C m⁻² yr⁻¹ over the land cells. A run continued from a restart is therefore another realisation of the same
+climate, not a reproduction of the uninterrupted run (section 17.8). Storing the key in the restart file would remove
+the difference (`docs/DEFECTS_FOR_REVIEW.md`, section 2.8, which leaves it for a later version; the measured size of the
+effect is to be added there).
+
 ## 17.7 Restart files
 
 A restart file stores physical model state at year end so that a run can continue from it. The driver holds the
@@ -473,6 +485,15 @@ array counts rather than every array shape or parameter meaning. Optional traili
 `stress` onward) may differ between file and template; the loader fills or drops them as needed. Snow constants come
 from the template, and the saved structure indicates whether the file contains wetland
 state.
+
+The production spin-up of the revised model (Chapter 12, section 12.7) runs as chained stages, the first from a cold
+start and each later one from the last restart file of the previous stage, with its own number of soil calls (the
+first stage, extended from 630 to 810 years, was itself continued from its restart of 1720, on a cycle boundary). The
+loader keeps the whole physical
+state, including the climate statistics of the vegetation dynamics (Chapter 11), which the driver seeds only at a cold
+start; each stage begins with key 42. The forcing year of a spin-up year is the first year of the cycle plus the
+offset of the year from the stage's first year, modulo 30, so each stage is a whole number of cycles long and the
+forcing cycle continues without a break from stage to stage and into the transient.
 
 ## 17.8 Reproducibility
 
@@ -966,8 +987,8 @@ section 87; each defect with its evidence in `docs/DEFECTS_FOR_REVIEW.md`).
   booked fluxes and is not another missing flux. The remaining float32 residual in this comparison is accumulation
   error. Evidence: `diag_work/step3_claude_review/water_x64/WATER_CLOSURE_F64_RESULT.md` and its `gpu`, `patched_f64`
   and `patched_f32` results; measurement preserved all 290 checked core-state fields bit for bit. These checks do not
-  establish global closure. The commit remains on `review-water-closure`, awaiting merge after the NEE queue finishes
-  using `9ef13c5` and a subsequent full test run.
+  establish global closure. The commit heads the source of the protocol runs of the revised model since 5 November
+  2026; the full suite passed on it (942 tests).
 - **Recreated canopy event (2 November 2026).** A bounded replay at source `26379c4` captured the 55°N, 40°E event's
   Fortran common blocks, port state, forcing and parameters, then injected the same dynamic inputs into the port.
   The exact historical March input was absent from the retained year-end records. The raw replay's pre-step canopy-air
@@ -1074,8 +1095,9 @@ section 87; each defect with its evidence in `docs/DEFECTS_FOR_REVIEW.md`).
   message of commit b2d2cca (the same tests); the release numbers from CALIBRATION 85.
 - The refit source at `9ef13c5` passed a full suite of 938 tests. The separate water-branch test record of 4 November
   is a narrower check: its initial full run had environment failures in the compiled-Fortran checks. After the
-  required Fortran modules were copied into that worktree, the affected checks were rerun and all 25 passed. A full
-  suite after integration remains pending.
+  required Fortran modules were copied into that worktree, the affected checks were rerun and all 25 passed. The
+  integrated source `6087ab5` (`9ef13c5` plus the canopy cascade accounting) then passed a full suite of 942 tests on
+  4 November 2026 and is the source of the protocol runs (Chapter 16, section 16.14.5).
 
 **`make_ch17.py`.** `precision_run` reads the harness inputs of the 46-year lockstep from `bed0ae7~1`
 (`_lockstep_harness`, a read-only `git show`), so the experiment no longer changes with the harness. Figure 17.2 is

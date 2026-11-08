@@ -255,7 +255,10 @@ statistics exclude, mostly the boreal positions 6-8 (2,006 to 2,149 cells each, 
 D_extreme zones) and the C4 grass (2,685 cells). The release's degree-day limits were tuned against observed tree
 cover with the monthly statistics (11.8). For the revised parameter set, quantile mapping on the preliminary run
 raised the boreal limit from 600 to 700 °C d and the temperate-conifer limit from 900 to 975 °C d (Table 11.2).
-These are the adopted settings; the final global run and its tree-cover evaluation are still pending.
+These are the adopted settings. The first protocol run of the revised model (5-6 November 2026) lost most of its subarctic
+conifer cover; controlled spin-ups attributed the loss to the refitted parameters of the two subarctic tree types, not to
+the floor of 700 °C d, which a test at 600 °C d did not change (Chapter 16, section 16.14.5). The production run's
+tree-cover evaluation is pending.
 
 ### 11.3.2 Running means
 
@@ -433,8 +436,10 @@ release parameter file are the code defaults.
 `stats.f` for $`r_{g}`$ and $`r_{r}`$) in parentheses where they differ. $`\sigma`$: specific leaf area (m² kg C⁻¹);
 $`\tau_{l}`$, $`\tau^{0}_{w}`$: leaf and wood turnover times (yr); $`a_{l}`$, $`a_{r}`$, $`a_{w}`$: allocation fractions;
 $`r_{g}`$: growth respiration coefficient; $`r_{r}`$: fine-root maintenance coefficient (yr⁻¹). The release values of
-$`r_{g}`$ and $`r_{r}`$ were fitted under the growth respiration rule of the release run (section 11.2.3) and will be
-refitted.
+$`r_{g}`$ and $`r_{r}`$ were fitted under the growth respiration rule of the release run (section 11.2.3). The type
+values of Table 11.5 were refitted under the corrected rule in November 2026 (Chapter 16, section 16.14.5), and the
+production run uses them except for the two subarctic tree types, which it returns to their base values; the position
+values of this table are unchanged.
 
 | Position | $`\sigma`$ | $`\tau_{l}`$ | $`\tau^{0}_{w}`$ | $`a_{l}`$ | $`a_{r}`$ | $`a_{w}`$ | $`r_{g}`$ | $`r_{r}`$ |
 |---|---|---|---|---|---|---|---|---|
@@ -898,8 +903,9 @@ differ from IBIS 2.6b4 (sections 11.2.3 and 11.3.1).
 
 The release run (`final_rel30`) was made with the code of commit `e54e342`. The technote review of 2026-11-01
 (`docs/CALIBRATION.md` section 87; each defect in `docs/DEFECTS_FOR_REVIEW.md`) changed the following in this chapter.
-The global maps and totals in this chapter still describe the release run. A corrected-code tower baseline and a
-preliminary protocol run have since finished; the parameter refits and final protocol run remain pending.
+The global maps and totals in this chapter still describe the release run. A corrected-code tower baseline, a
+preliminary protocol run, the parameter refits and a first protocol run with the refitted parameters have since
+finished; the production run is in progress (Chapter 16, section 16.14.5).
 
 1. *Growth respiration on a positive gain only* (review D1; `bgc.rgrowth_positive_only`, default true). The release
    applied $`(1 - r_{g})`$ to every step (`loops_gswp3.py` since the port's first commit 4ca4481), against `stats.f`,
@@ -909,8 +915,10 @@ preliminary protocol run have since finished; the parameter refits and final pro
    `tests/test_review_vegetation_fixes.py`. The repeat of 2010 behind section 11.2.3 ran on the CPU with the release
    parameters, the release code with the restored soil texture border rule (section 2.6) and the climatological wetland
    area; its NPP differs from the release run's by a median of 0.002-0.005 kg C m⁻² yr⁻¹ per cell in the three strips
-   (at most 0.14). $`r_{g}`$ and $`r_{r}`$ (NEE stage, `docs/CALIBRATION.md` section 36) will be refitted with the day and
-   night NEE means of review D3; whether $`r_{g}`$ still piles up at its bound 0.10 is checked after that refit (D4).
+   (at most 0.14). $`r_{g}`$ and $`r_{r}`$ (NEE stage, `docs/CALIBRATION.md` section 36) were refitted with the day and
+   night NEE means of review D3 at 358 towers; $`r_{g}`$ ended at its bound of 0.10 in 91 of the 358 fits, the bound was
+   kept and the refitted type values adopted (0.10-0.25, median 0.11; most tree types 0.10-0.13), except for the two
+   subarctic tree types, which return to their base values (D4, decided 5 November 2026; Chapter 16, section 16.14.5).
 2. *Daily climate statistics* (D9; `pheno.climate_stats_daily`, default true). Code: `reset_climate_stats`,
    `accumulate_climate_stats` and `year_end_climate_stats` (`loops_gswp3.py`), used by `scripts/run_global.py` and the
    tower harness (`verify/calibration/site_transient.py`); IBIS 2.6b4: `weather.f`, lines 210-214 (reset) and 909-915.
