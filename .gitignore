@@ -46,6 +46,7 @@ verify/results/
 *.jpg
 *.jpeg
 *.gif
+!docs/figures/readme/*.gif
 *.html
 *.ipynb
 
