@@ -7,9 +7,10 @@ IBIS 3.0 is a land-surface and terrestrial-ecosystem model. Every hour it comput
 carbon between the land and the atmosphere; every day, leaf phenology and the decomposition of litter and soil carbon;
 every year, the growth of vegetation, its competition, fire and other disturbance. It is a rewrite of IBIS 2.6b4 (Foley
 et al. 1996; Kucharik et al. 2000), checked against the original Fortran, corrected where either was wrong, and extended
-with new processes. Driven by the daily GSWP3 weather of 1901–2010 at 0.5° (95,333 land cells, with a diurnal weather
-generator), a full global simulation (a 200-year spin-up and 1901–2010) takes about eight and a half hours on one GPU (an
-RTX 4090); calibrating the model at one flux tower takes 20 minutes to an hour and a half on four CPU cores.
+with new processes. It runs on the daily GSWP3 weather at 0.5° (95,333 land cells, with a diurnal weather generator).
+The release protocol, 310 model years (a 200-year spin-up on the weather of 1901–1930, then 1901–2010), takes about
+seven and a half hours on one RTX 4090 with the machine to itself, and calibrating the model at one flux tower about 40
+minutes on four CPU cores.
 
 **Status.** The scores, figures and parameter set
 ([`params_31s_ch4h.yaml`](python-port/configs/params/params_31s_ch4h.yaml)) below are those of the release of 30

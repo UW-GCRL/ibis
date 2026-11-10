@@ -25,7 +25,11 @@ module (one scalar form) evaluated every time step, with the water table from th
 dynamic wetland area (the WAD2M seasonal climatology plus a learned year-to-year anomaly from the model's own water); cropland as managed
 grass on the ESA CCI cropland share with harvest; three thermal bedrock layers under the 4 m column; per-type respiration
 and allocation; and the diagnostics the towers measure (ET parts, day and night NEE, fire emissions, methane, harvest).
-The global run has 95,333 half-degree land cells; the protocol (200-year spin-up, 1901-2010) takes about eight and a half hours on one RTX 4090.
+The global run has 95,333 half-degree land cells; the protocol, 310 model years (200-year spin-up, 1901-2010), takes
+about seven and a half hours on one RTX 4090 with the machine to itself: the spin-up about 2.6 h at about 40 s per model
+year (its 1901-1930 weather stays loaded), the transient and hindcast about 4.6-4.9 h at 140-155 s per year (each year
+reads a new year of forcing). The release run took 8 h 17 min on 30 October; its transient years ranged from 112 to 320 s,
+against 140-146 s in a later run with the machine to itself.
 
 ## 2. The release parameter file and its provenance
 
